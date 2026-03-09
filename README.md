@@ -4,7 +4,7 @@ A portable collection of 40 Claude Code hooks extracted from [PAI](https://githu
 
 ## What's included
 
-24 hooks by [@SaintPepsi](https://github.com/SaintPepsi), 16 from the [PAI framework](https://github.com/danielmiessler/PAI).
+23 hooks by [@SaintPepsi](https://github.com/SaintPepsi), 17 from the [PAI framework](https://github.com/danielmiessler/PAI).
 
 **Security & Safety**
 - `DestructiveDeleteGuard` — confirms before deleting files
@@ -27,7 +27,7 @@ A portable collection of 40 Claude Code hooks extracted from [PAI](https://githu
 - `TestObligationTracker` — tracks test changes alongside code on `Write`/`Edit`/`Bash`
 - `TestObligationEnforcer` — enforces test obligations on `Stop`
 - `HookExecutePermission` — controls hook execution permissions on `Write`
-- `PRDSync` — syncs PRD frontmatter to `work.json` on `Write`/`Edit`
+- `PRDSync` — syncs PRD frontmatter to `work.json` on `Write`/`Edit` *(PAI)*
 - `SkillGuard` — validates skill invocations on `PreToolUse` *(PAI)*
 
 **Session Lifecycle**
