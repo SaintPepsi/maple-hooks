@@ -10,7 +10,9 @@ See also the root-level scripts:
 
 Extracts hook entries from `~/.claude/settings.json` and writes `settings.hooks.json`.
 Filters to only hooks matching the source path prefix, rewrites paths to use the repo's
-namespaced env var (`${SAINTPEPSI_PAI_HOOKS_DIR}/`).
+namespaced env var (`${SAINTPEPSI_PAI_HOOKS_DIR}/`). Only includes hooks whose `.hook.ts`
+file exists in the repo, so PAI-specific hooks that aren't implemented here are excluded
+automatically.
 
 **Used by:** Husky pre-commit hook (author workflow).
 
