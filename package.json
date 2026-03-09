@@ -1,0 +1,15 @@
+{
+  "name": "saintpepsi-pai-hooks",
+  "version": "1.0.0",
+  "scripts": {
+    "install-hooks": "bun run install.ts",
+    "uninstall-hooks": "bun run uninstall.ts",
+    "export-settings": "bun run scripts/export-hooks.ts",
+    "import-settings": "bun run scripts/import-hooks.ts",
+    "test": "bun test",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.0.0"
+  }
+}
