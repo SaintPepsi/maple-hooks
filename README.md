@@ -1,6 +1,6 @@
 # pai-hooks
 
-23 Claude Code hooks by [@SaintPepsi](https://github.com/SaintPepsi). Install them into any Claude Code setup with a single command.
+23 Claude Code hooks created/modified by [@SaintPepsi](https://github.com/SaintPepsi). Install them into any Claude Code setup with a single command.
 
 ## What's included
 
