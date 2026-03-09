@@ -261,7 +261,7 @@ suite("CodingStandards — adapter exemption", () => {
     const dirtyContent = `import { readFileSync } from "fs";\ntry { readFileSync("x"); } catch (e) {}`;
     await runHook(CodingStandardsEnforcer, {
       ...io,
-      stdinOverride: makePreToolUseWriteInput("/Users/hogers/.claude/hooks/core/runner.ts", dirtyContent),
+      stdinOverride: makePreToolUseWriteInput("/home/user/.claude/hooks/core/runner.ts", dirtyContent),
     });
 
     const output = JSON.parse(io.stdoutLines[0]);

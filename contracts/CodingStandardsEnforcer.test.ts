@@ -115,7 +115,7 @@ describe("CodingStandardsEnforcer", () => {
       expect(
         CodingStandardsEnforcer.accepts(
           makeWriteInput(
-            "/Users/hogers/.claude/hooks/core/runner.ts",
+            "/home/user/.claude/hooks/core/runner.ts",
             "import fs from 'fs';",
           ),
         ),

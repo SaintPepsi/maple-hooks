@@ -93,7 +93,7 @@ describe("CodingStandardsAdvisor", () => {
     it("skips hooks/core/ files", () => {
       expect(
         CodingStandardsAdvisor.accepts(
-          makeReadInput("/Users/hogers/.claude/hooks/core/runner.ts"),
+          makeReadInput("/home/user/.claude/hooks/core/runner.ts"),
         ),
       ).toBe(false);
     });

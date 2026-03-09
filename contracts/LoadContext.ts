@@ -378,7 +378,7 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   return `\n## Pending Improvement Proposals\n\n` +
     `You have **${proposals.length}** pending improvement proposal${proposals.length === 1 ? "" : "s"} from recent learnings:\n` +
     summaries.join("\n") + more + "\n\n" +
-    `Present these to Ian for review. ` +
+    `Present these to the user for review. ` +
     `Read each proposal file for full details.\n` +
     `Path: MEMORY/LEARNING/PROPOSALS/pending/\n` +
     `To approve: apply the change and move the file to PROPOSALS/applied/\n` +
