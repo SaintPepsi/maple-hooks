@@ -6,8 +6,8 @@
  * This file is the hook entry point that settings.json references.
  */
 
-import { runHook } from "./core/runner";
-import { HookExecutePermission } from "./contracts/HookExecutePermission";
+import { runHook } from "@hooks/core/runner";
+import { HookExecutePermission } from "@hooks/contracts/HookExecutePermission";
 
 if (import.meta.main) {
   runHook(HookExecutePermission).catch(() => {

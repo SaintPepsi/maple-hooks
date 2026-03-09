@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { runHook } from "./core/runner";
-import { UpdateCounts } from "./contracts/UpdateCounts";
+import { runHook } from "@hooks/core/runner";
+import { UpdateCounts } from "@hooks/contracts/UpdateCounts";
 
 if (import.meta.main) {
   runHook(UpdateCounts).catch(() => {

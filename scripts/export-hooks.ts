@@ -103,7 +103,7 @@ export function run(deps: ExportHooksDeps = defaultDeps): void {
   const settings = JSON.parse(settingsResult.value!);
 
   const sourcePrefix = process.argv[2] || "${PAI_DIR}/hooks/";
-  const targetPrefix = `\${${envVar}}/`;
+  const targetPrefix = `\${${envVar}}/hooks/`;
 
   const exported = extractHooksForRepo(settings, sourcePrefix, targetPrefix);
 

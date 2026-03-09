@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { runHook } from "./core/runner";
-import { WorkCompletionLearning } from "./contracts/WorkCompletionLearning";
+import { runHook } from "@hooks/core/runner";
+import { WorkCompletionLearning } from "@hooks/contracts/WorkCompletionLearning";
 
 if (import.meta.main) {
   runHook(WorkCompletionLearning).catch(() => {

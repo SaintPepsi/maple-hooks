@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { runHook } from "./core/runner";
-import { StartupGreeting } from "./contracts/StartupGreeting";
+import { runHook } from "@hooks/core/runner";
+import { StartupGreeting } from "@hooks/contracts/StartupGreeting";
 
 if (import.meta.main) {
   runHook(StartupGreeting).catch(() => {

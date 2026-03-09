@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { runHook } from "./core/runner";
-import { SecurityValidator } from "./contracts/SecurityValidator";
+import { runHook } from "@hooks/core/runner";
+import { SecurityValidator } from "@hooks/contracts/SecurityValidator";
 
 if (import.meta.main) {
   runHook(SecurityValidator).catch(() => {

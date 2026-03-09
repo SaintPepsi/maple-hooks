@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { runHook } from "./core/runner";
-import { CodingStandardsEnforcer } from "./contracts/CodingStandardsEnforcer";
+import { runHook } from "@hooks/core/runner";
+import { CodingStandardsEnforcer } from "@hooks/contracts/CodingStandardsEnforcer";
 
 if (import.meta.main) {
   runHook(CodingStandardsEnforcer).catch(() => {

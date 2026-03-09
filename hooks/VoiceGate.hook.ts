@@ -6,8 +6,8 @@
  * This file is the hook entry point that settings.json references.
  */
 
-import { runHook } from "./core/runner";
-import { VoiceGate } from "./contracts/VoiceGate";
+import { runHook } from "@hooks/core/runner";
+import { VoiceGate } from "@hooks/contracts/VoiceGate";
 
 if (import.meta.main) {
   runHook(VoiceGate).catch(() => {

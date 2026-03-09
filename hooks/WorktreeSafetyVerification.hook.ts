@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
-import { runHook } from "./core/runner";
-import { WorktreeSafetyVerification } from "./contracts/WorktreeSafetyVerification";
+import { runHook } from "@hooks/core/runner";
+import { WorktreeSafetyVerification } from "@hooks/contracts/WorktreeSafetyVerification";
 
 if (import.meta.main) {
   runHook(WorktreeSafetyVerification).catch(() => {

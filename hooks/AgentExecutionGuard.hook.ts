@@ -6,8 +6,8 @@
  * This file is the hook entry point that settings.json references.
  */
 
-import { runHook } from "./core/runner";
-import { AgentExecutionGuard } from "./contracts/AgentExecutionGuard";
+import { runHook } from "@hooks/core/runner";
+import { AgentExecutionGuard } from "@hooks/contracts/AgentExecutionGuard";
 
 if (import.meta.main) {
   runHook(AgentExecutionGuard).catch(() => {

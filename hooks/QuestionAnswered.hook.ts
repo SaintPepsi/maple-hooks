@@ -6,8 +6,8 @@
  * This file is the hook entry point that settings.json references.
  */
 
-import { runHook } from "./core/runner";
-import { QuestionAnswered } from "./contracts/QuestionAnswered";
+import { runHook } from "@hooks/core/runner";
+import { QuestionAnswered } from "@hooks/contracts/QuestionAnswered";
 
 if (import.meta.main) {
   runHook(QuestionAnswered).catch(() => {

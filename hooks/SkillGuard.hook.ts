@@ -6,8 +6,8 @@
  * This file is the hook entry point that settings.json references.
  */
 
-import { runHook } from "./core/runner";
-import { SkillGuard } from "./contracts/SkillGuard";
+import { runHook } from "@hooks/core/runner";
+import { SkillGuard } from "@hooks/contracts/SkillGuard";
 
 if (import.meta.main) {
   runHook(SkillGuard).catch(() => {
