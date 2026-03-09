@@ -241,7 +241,7 @@ describe("CodingStandardsEnforcer", () => {
       expect(result.type).toBe("block");
     });
 
-    it("continues when file does not exist on disk (new file via edit)", () => {
+    it("continues when file does not exist on disk and editParts are empty", () => {
       const deps = makeDeps({ readFile: () => null });
       const input = makeEditInput(
         "/src/new.ts",
@@ -250,6 +250,50 @@ describe("CodingStandardsEnforcer", () => {
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
       expect(result.type).toBe("continue");
+    });
+
+    it("checks just new_string when file does not exist on disk (new file via edit)", () => {
+      const deps = makeDeps({ readFile: () => null });
+      const input = makeEditInput(
+        "/src/new.ts",
+        "placeholder",
+        "export const y = 2;",
+      );
+      const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
+      expect(result.type).toBe("continue");
+    });
+
+    it("continues when Edit is missing old_string", () => {
+      const deps = makeDeps({ readFile: () => null });
+      const input: ToolHookInput = {
+        session_id: "test-sess",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/new.ts", new_string: "export const y = 2;" },
+      };
+      const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
+      expect(result.type).toBe("continue");
+    });
+
+    it("continues when Edit is missing new_string", () => {
+      const deps = makeDeps({ readFile: () => null });
+      const input: ToolHookInput = {
+        session_id: "test-sess",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/new.ts", old_string: "placeholder" },
+      };
+      const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
+      expect(result.type).toBe("continue");
+    });
+
+    it("blocks new_string violations when file does not exist on disk", () => {
+      const deps = makeDeps({ readFile: () => null });
+      const input = makeEditInput(
+        "/src/new.ts",
+        "placeholder",
+        'import { readFileSync } from "fs";\nexport const y = 2;',
+      );
+      const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
+      expect(result.type).toBe("block");
     });
   });
 

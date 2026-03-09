@@ -58,6 +58,24 @@ describe("CitationTracker", () => {
     expect(CitationTracker.accepts(makeToolInput("Read"))).toBe(false);
   });
 
+  it("rejects Skill tool with string tool_input", () => {
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Skill",
+      tool_input: "Research",
+    };
+    expect(CitationTracker.accepts(input)).toBe(false);
+  });
+
+  it("rejects Skill tool with null tool_input", () => {
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Skill",
+      tool_input: null,
+    };
+    expect(CitationTracker.accepts(input)).toBe(false);
+  });
+
   it("writes flag file on execute", () => {
     let writtenPath = "";
     const deps = makeDeps({
@@ -145,6 +163,36 @@ describe("CitationEnforcement", () => {
     );
 
     expect(writtenPaths).toContain("/tmp/new-article.md");
+  });
+
+  it("returns continue without context when file_path is missing", () => {
+    const deps = makeDeps({
+      fileExists: () => true,
+    });
+    const result = CitationEnforcement.execute(
+      makeToolInput("Write", {}),
+      deps,
+    ) as Result<ContinueOutput, PaiError>;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.additionalContext).toBeUndefined();
+  });
+
+  it("returns continue without context when tool_input is a string", () => {
+    const deps = makeDeps({
+      fileExists: () => true,
+    });
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Write",
+      tool_input: "/tmp/test.md",
+    };
+    const result = CitationEnforcement.execute(input, deps) as Result<ContinueOutput, PaiError>;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.additionalContext).toBeUndefined();
   });
 
   it("reminds for different file paths", () => {

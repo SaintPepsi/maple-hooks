@@ -115,6 +115,24 @@ describe("CodingStandardsAdvisor", () => {
         ),
       ).toBe(false);
     });
+
+    it("rejects when tool_input is a string (no file_path object)", () => {
+      const input: ToolHookInput = {
+        session_id: "test-sess",
+        tool_name: "Read",
+        tool_input: "/src/app.ts",
+      };
+      expect(CodingStandardsAdvisor.accepts(input)).toBe(false);
+    });
+
+    it("rejects when tool_input is null", () => {
+      const input: ToolHookInput = {
+        session_id: "test-sess",
+        tool_name: "Read",
+        tool_input: null,
+      };
+      expect(CodingStandardsAdvisor.accepts(input)).toBe(false);
+    });
   });
 
   // ─── execute() ─────────────────────────────────────────────────────────

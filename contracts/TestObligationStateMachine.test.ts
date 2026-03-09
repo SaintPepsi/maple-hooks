@@ -615,4 +615,86 @@ describe("TestObligationEnforcer", () => {
     // Should clean up pending flag and block count file
     expect(removedPaths.length).toBeGreaterThanOrEqual(1);
   });
+
+  it("returns silent when pending list is empty", () => {
+    const deps = makeTrackerDeps({
+      fileExists: () => true,
+      readPending: () => [],
+    });
+
+    const result = TestObligationEnforcer.execute(
+      makeStopInput(),
+      deps,
+    ) as Result<BlockOutput | SilentOutput, PaiError>;
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("silent");
+  });
+});
+
+// ─── Edge cases ────────────────────────────────────────────────────────────
+
+describe("TestObligationTracker edge cases", () => {
+  it("returns continue when Edit has no file_path in tool_input", () => {
+    const deps = makeTrackerDeps();
+    // Bypass accepts() by calling execute directly with Edit but no file_path
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Edit",
+      tool_input: {},
+    };
+    const result = TestObligationTracker.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+    }
+  });
+});
+
+// ─── defaultDeps coverage ───────────────────────────────────────────────────
+
+describe("TestObligationTracker defaultDeps", () => {
+  it("defaultDeps.fileExists returns a boolean", () => {
+    expect(typeof TestObligationTracker.defaultDeps.fileExists("/tmp")).toBe("boolean");
+  });
+
+  it("defaultDeps.readPending returns an array for nonexistent file", () => {
+    const result = TestObligationTracker.defaultDeps.readPending("/tmp/nonexistent-pai-tosm-12345.json");
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toEqual([]);
+  });
+
+  it("defaultDeps.writePending writes without throwing", () => {
+    const tmpPath = "/tmp/pai-test-tosm-wp-" + Date.now() + ".json";
+    expect(() => TestObligationTracker.defaultDeps.writePending(tmpPath, ["/src/a.ts"])).not.toThrow();
+  });
+
+  it("defaultDeps.removeFlag does not throw for nonexistent file", () => {
+    expect(() => TestObligationTracker.defaultDeps.removeFlag("/tmp/nonexistent-pai-tosm-12345.json")).not.toThrow();
+  });
+
+  it("defaultDeps.readBlockCount returns 0 for nonexistent file", () => {
+    const result = TestObligationTracker.defaultDeps.readBlockCount("/tmp/nonexistent-pai-tosm-bc-12345.txt");
+    expect(result).toBe(0);
+  });
+
+  it("defaultDeps.writeBlockCount writes without throwing", () => {
+    const tmpPath = "/tmp/pai-test-tosm-bc-" + Date.now() + ".txt";
+    expect(() => TestObligationTracker.defaultDeps.writeBlockCount(tmpPath, 1)).not.toThrow();
+  });
+
+  it("defaultDeps.writeReview writes without throwing", () => {
+    const tmpPath = "/tmp/pai-test-tosm-rv-" + Date.now() + ".md";
+    expect(() => TestObligationTracker.defaultDeps.writeReview(tmpPath, "# Review")).not.toThrow();
+  });
+
+  it("defaultDeps.stderr writes without throwing", () => {
+    expect(() => TestObligationTracker.defaultDeps.stderr("test")).not.toThrow();
+  });
+
+  it("defaultDeps.stateDir is a string path", () => {
+    expect(typeof TestObligationTracker.defaultDeps.stateDir).toBe("string");
+    expect(TestObligationTracker.defaultDeps.stateDir).toContain("test-obligation");
+  });
 });

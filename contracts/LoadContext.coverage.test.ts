@@ -1205,3 +1205,118 @@ describe("loadPendingProposals", () => {
     expect(result).not.toContain("proposals");
   });
 });
+
+// ─── session-names.json parse failure ─────────────────────────────────────────
+
+describe("getRecentWorkSessions session-names.json failure", () => {
+  it("logs stderr when session-names.json fails to parse", async () => {
+    const stderrLines: string[] = [];
+    const now = new Date();
+    const y = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    const dirName = `${y}${mo}${d}-120000_test-work-session`;
+
+    const deps = makeDeps({
+      fileExists: (path: string) => {
+        if (path.includes("SKILL.md")) return true;
+        if (path.includes("MEMORY/WORK")) return true;
+        if (path.includes("session-names.json")) return true;
+        if (path.includes("settings.json")) return true;
+        if (path.includes("META.yaml")) return true;
+        return false;
+      },
+      readJson: <T = unknown>(path: string) => {
+        if (path.includes("session-names.json")) {
+          return err(makePaiError("corrupt JSON")) as Result<T, PaiError>;
+        }
+        if (path.includes("settings.json")) {
+          return ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>;
+        }
+        return ok({}) as Result<T, PaiError>;
+      },
+      readFile: (path: string) => {
+        if (path.includes("META.yaml")) {
+          return ok(`title: "Test task with long title"\nstatus: "ACTIVE"\nsession_id: "sess-1"\n`);
+        }
+        return ok("context content here");
+      },
+      readDir: (path: string) => {
+        if (path.includes("MEMORY/WORK") && !path.includes(dirName)) {
+          return ok([dirEntry(dirName, true)]);
+        }
+        return ok([]);
+      },
+      stat: () => ok({ mtimeMs: Date.now() }),
+      stderr: (msg: string) => stderrLines.push(msg),
+    });
+
+    await LoadContext.execute(makeInput(), deps);
+    expect(stderrLines.some(l => l.includes("Failed to parse session-names.json"))).toBe(true);
+  });
+});
+
+// ─── defaultDeps coverage ───────────────────────────────────────────────────
+
+describe("LoadContext defaultDeps", () => {
+  it("defaultDeps.getCurrentDate returns a date string", async () => {
+    const result = await LoadContext.defaultDeps.getCurrentDate();
+    expect(typeof result).toBe("string");
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it("defaultDeps.isSubagent returns a boolean", () => {
+    expect(typeof LoadContext.defaultDeps.isSubagent()).toBe("boolean");
+  });
+
+  it("defaultDeps.fileExists returns a boolean", () => {
+    expect(typeof LoadContext.defaultDeps.fileExists("/tmp")).toBe("boolean");
+  });
+
+  it("defaultDeps.readFile returns a Result", () => {
+    const result = LoadContext.defaultDeps.readFile("/tmp/nonexistent-pai-lc-12345.txt");
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  it("defaultDeps.readJson returns a Result", () => {
+    const result = LoadContext.defaultDeps.readJson("/tmp/nonexistent-pai-lc-12345.json");
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  it("defaultDeps.readDir returns a Result", () => {
+    const result = LoadContext.defaultDeps.readDir("/tmp", { withFileTypes: true });
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  it("defaultDeps.stat returns a Result", () => {
+    const result = LoadContext.defaultDeps.stat("/tmp");
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  it("defaultDeps.execSyncSafe returns a Result", () => {
+    const result = LoadContext.defaultDeps.execSyncSafe("echo hello", { timeout: 3000 });
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  it("defaultDeps.setTabState returns a Result", () => {
+    const result = LoadContext.defaultDeps.setTabState({ title: "test", state: "idle", sessionId: "test-sess" });
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  it("defaultDeps.readTabState returns a Result", () => {
+    const result = LoadContext.defaultDeps.readTabState("test-sess");
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  it("defaultDeps.getDAName returns a string", () => {
+    expect(typeof LoadContext.defaultDeps.getDAName()).toBe("string");
+  });
+
+  it("defaultDeps.recordSessionStart is callable", () => {
+    expect(() => LoadContext.defaultDeps.recordSessionStart()).not.toThrow();
+  });
+
+  it("defaultDeps.stderr writes without throwing", () => {
+    expect(() => LoadContext.defaultDeps.stderr("test")).not.toThrow();
+  });
+});

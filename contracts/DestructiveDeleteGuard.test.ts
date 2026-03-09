@@ -224,4 +224,43 @@ describe("DestructiveDeleteGuard Edit/Write allowed", () => {
     const result = DestructiveDeleteGuard.execute(writeInput(code), mockDeps);
     expect(result.ok && result.value.type).toBe("continue");
   });
+
+  test("returns continue for empty Edit new_string", () => {
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Edit",
+      tool_input: { file_path: "/some/file.ts", old_string: "old", new_string: "" },
+    };
+    const result = DestructiveDeleteGuard.execute(input, mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("returns continue for empty Write content", () => {
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Write",
+      tool_input: { file_path: "/some/file.ts", content: "" },
+    };
+    const result = DestructiveDeleteGuard.execute(input, mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+});
+
+// ─── Bash: empty and string inputs ──────────────────────────────────────────
+
+describe("DestructiveDeleteGuard Bash edge cases", () => {
+  test("returns continue for empty bash command", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput(""), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("handles string tool_input for Bash", () => {
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Bash",
+      tool_input: "ls -la",
+    };
+    const result = DestructiveDeleteGuard.execute(input, mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
 });

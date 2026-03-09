@@ -393,4 +393,85 @@ describe("SecurityValidator.execute() — patterns fallback", () => {
       expect(result.value.type).toBe("continue");
     }
   });
+
+  it("fails open when readFile returns an error", () => {
+    const deps = makeDeps({
+      fileExists: () => true,
+      readFile: () => ({ ok: false, error: { code: "FILE_READ_FAILED", message: "nope" } } as ReturnType<SecurityValidatorDeps["readFile"]>),
+    });
+    const input = makeInput("Bash", { command: "r" + "m -r" + "f /" });
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+    }
+  });
+
+  it("fails open when safeParseYaml returns null", () => {
+    const deps = makeDeps({
+      safeParseYaml: () => null,
+    });
+    const input = makeInput("Bash", { command: "r" + "m -r" + "f /" });
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+    }
+  });
+});
+
+// ─── matchesPathPattern — createRegex returns null ────────────────────────────
+
+describe("matchesPathPattern — regex null fallback", () => {
+  it("returns false when createRegex returns null for a wildcard pattern", () => {
+    const deps = makeDeps({
+      createRegex: () => null,
+    });
+    const result = matchesPathPattern("/Users/test/.ssh/id_rsa", "~/.ssh/id_*", "/Users/test", deps);
+    expect(result).toBe(false);
+  });
+});
+
+// ─── Bash with string tool_input ─────────────────────────────────────────────
+
+describe("SecurityValidator.execute() — string tool_input", () => {
+  it("handles Bash with string tool_input (raw command)", () => {
+    const deps = makeDeps();
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Bash",
+      tool_input: "ls -la",
+    };
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+    }
+  });
+
+  it("blocks Bash with string tool_input matching blocked pattern", () => {
+    const deps = makeDeps();
+    const rmCmd = "r" + "m -r" + "f /";
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Bash",
+      tool_input: rmCmd,
+    };
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(false);
+  });
+
+  it("handles file tool with string tool_input (raw path)", () => {
+    const deps = makeDeps();
+    const input: ToolHookInput = {
+      session_id: "test-session",
+      tool_name: "Edit",
+      tool_input: "/tmp/safe.txt",
+    };
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("continue");
+    }
+  });
 });

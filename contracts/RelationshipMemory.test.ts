@@ -1,8 +1,8 @@
 import { describe, test, expect } from "bun:test";
-import { RelationshipMemory, type RelationshipMemoryDeps } from "./RelationshipMemory";
-import type { StopInput } from "../core/types/hook-inputs";
+import { RelationshipMemory, type RelationshipMemoryDeps } from "@hooks/contracts/RelationshipMemory";
+import type { StopInput } from "@hooks/core/types/hook-inputs";
 
-// ─── Types (mirrored for test use) ───────────────────────────────────────────
+// -- Types (mirrored for test use) --
 
 interface TranscriptEntry {
   type: "user" | "assistant";
@@ -16,7 +16,7 @@ interface RelationshipNote {
   confidence?: number;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// -- Helpers --
 
 function makeInput(overrides: Partial<StopInput> = {}): StopInput {
   return {
@@ -35,8 +35,8 @@ function makeDeps(
   const stderrLines: string[] = [];
   return {
     readTranscript: (_path: string) => entries,
-    analyzeForRelationship: (e: TranscriptEntry[]) => {
-      // Default: return empty — tests that need notes override this
+    analyzeForRelationship: (_e: TranscriptEntry[]) => {
+      // Default: return empty -- tests that need notes override this
       return [];
     },
     writeNotes: (notes: RelationshipNote[]) => {
@@ -51,7 +51,7 @@ function makeDeps(
   };
 }
 
-// ─── Tests ───────────────────────────────────────────────────────────────────
+// -- Tests --
 
 describe("RelationshipMemory", () => {
   describe("accepts", () => {
@@ -65,12 +65,12 @@ describe("RelationshipMemory", () => {
 
     test("returns false when transcript_path is undefined", () => {
       const input = makeInput();
-      delete (input as any).transcript_path;
+      delete (input as Record<string, unknown>).transcript_path;
       expect(RelationshipMemory.accepts(input)).toBe(false);
     });
   });
 
-  describe("execute — no transcript entries", () => {
+  describe("execute -- no transcript entries", () => {
     test("returns silent output when entries array is empty", () => {
       const deps = makeDeps([]);
       const result = RelationshipMemory.execute(makeInput(), deps);
@@ -93,7 +93,7 @@ describe("RelationshipMemory", () => {
     });
   });
 
-  describe("execute — no notes extracted", () => {
+  describe("execute -- no notes extracted", () => {
     test("returns silent output when analyzeForRelationship returns empty", () => {
       const entries: TranscriptEntry[] = [
         { type: "user", message: { content: "Hello there" } },
@@ -116,7 +116,7 @@ describe("RelationshipMemory", () => {
     });
   });
 
-  describe("execute — with positive pattern notes (O type)", () => {
+  describe("execute -- with positive pattern notes (O type)", () => {
     test("writeNotes is called with O-type note for positives", () => {
       const entries: TranscriptEntry[] = [
         { type: "user", message: { content: "some content" } },
@@ -154,7 +154,7 @@ describe("RelationshipMemory", () => {
     });
   });
 
-  describe("execute — with frustration pattern notes (O type)", () => {
+  describe("execute -- with frustration pattern notes (O type)", () => {
     test("writeNotes is called with O-type note for frustrations", () => {
       const entries: TranscriptEntry[] = [
         { type: "user", message: { content: "some content" } },
@@ -176,7 +176,7 @@ describe("RelationshipMemory", () => {
     });
   });
 
-  describe("execute — with SUMMARY entries (B type)", () => {
+  describe("execute -- with SUMMARY entries (B type)", () => {
     test("writeNotes is called with B-type note for summaries", () => {
       const entries: TranscriptEntry[] = [
         { type: "assistant", message: { content: "SUMMARY: Completed refactor of auth module" } },
@@ -213,14 +213,13 @@ describe("RelationshipMemory", () => {
     });
   });
 
-  describe("execute — defaultAnalyzeForRelationship integration", () => {
+  describe("execute -- defaultAnalyzeForRelationship integration", () => {
     test("produces O note when user text has 2+ positive patterns", () => {
       const entries: TranscriptEntry[] = [
         { type: "user", message: { content: "That is great work you did there" } },
         { type: "user", message: { content: "awesome job, that is perfect output" } },
       ];
       const capturedNotes: RelationshipNote[] = [];
-      // Use real defaultDeps.analyzeForRelationship by running through defaultDeps
       const result = RelationshipMemory.execute(makeInput(), {
         readTranscript: () => entries,
         analyzeForRelationship: RelationshipMemory.defaultDeps.analyzeForRelationship,
@@ -283,9 +282,79 @@ describe("RelationshipMemory", () => {
       });
       expect(capturedNotes).toHaveLength(0);
     });
+
+    test("produces B note from assistant milestone text", () => {
+      const entries: TranscriptEntry[] = [
+        {
+          type: "assistant",
+          message: { content: "This is the first time the full pipeline completed successfully end-to-end." },
+        },
+      ];
+      const capturedNotes: RelationshipNote[] = [];
+      RelationshipMemory.execute(makeInput(), {
+        readTranscript: () => entries,
+        analyzeForRelationship: RelationshipMemory.defaultDeps.analyzeForRelationship,
+        writeNotes: (notes) => capturedNotes.push(...notes),
+        stderr: () => {},
+      });
+      const bNotes = capturedNotes.filter((n) => n.type === "B");
+      expect(bNotes.length).toBeGreaterThanOrEqual(1);
+    });
+
+    test("deduplicates identical summary notes", () => {
+      const entries: TranscriptEntry[] = [
+        { type: "assistant", message: { content: "SUMMARY: Did the thing" } },
+        { type: "assistant", message: { content: "SUMMARY: Did the thing" } },
+      ];
+      const capturedNotes: RelationshipNote[] = [];
+      RelationshipMemory.execute(makeInput(), {
+        readTranscript: () => entries,
+        analyzeForRelationship: RelationshipMemory.defaultDeps.analyzeForRelationship,
+        writeNotes: (notes) => capturedNotes.push(...notes),
+        stderr: () => {},
+      });
+      const bNotes = capturedNotes.filter((n) => n.type === "B");
+      // Duplicates should be deduplicated via Set
+      expect(bNotes).toHaveLength(1);
+    });
+
+    test("caps B notes at 3 from summaries", () => {
+      const entries: TranscriptEntry[] = [
+        { type: "assistant", message: { content: "SUMMARY: Summary one for testing" } },
+        { type: "assistant", message: { content: "SUMMARY: Summary two for testing" } },
+        { type: "assistant", message: { content: "SUMMARY: Summary three for testing" } },
+        { type: "assistant", message: { content: "SUMMARY: Summary four for testing" } },
+        { type: "assistant", message: { content: "SUMMARY: Summary five for testing" } },
+      ];
+      const capturedNotes: RelationshipNote[] = [];
+      RelationshipMemory.execute(makeInput(), {
+        readTranscript: () => entries,
+        analyzeForRelationship: RelationshipMemory.defaultDeps.analyzeForRelationship,
+        writeNotes: (notes) => capturedNotes.push(...notes),
+        stderr: () => {},
+      });
+      const bNotes = capturedNotes.filter((n) => n.type === "B");
+      expect(bNotes.length).toBeLessThanOrEqual(3);
+    });
+
+    test("does not produce positive note with only 1 positive match", () => {
+      const entries: TranscriptEntry[] = [
+        { type: "user", message: { content: "That is really great work right there" } },
+        { type: "user", message: { content: "Can you fix the bug in the parser?" } },
+      ];
+      const capturedNotes: RelationshipNote[] = [];
+      RelationshipMemory.execute(makeInput(), {
+        readTranscript: () => entries,
+        analyzeForRelationship: RelationshipMemory.defaultDeps.analyzeForRelationship,
+        writeNotes: (notes) => capturedNotes.push(...notes),
+        stderr: () => {},
+      });
+      const oNotes = capturedNotes.filter((n) => n.type === "O" && n.content.includes("positively"));
+      expect(oNotes).toHaveLength(0);
+    });
   });
 
-  describe("extractText integration — via defaultAnalyzeForRelationship", () => {
+  describe("extractText integration -- via defaultAnalyzeForRelationship", () => {
     test("handles string content", () => {
       const entries: TranscriptEntry[] = [
         { type: "user", message: { content: "great work, that was awesome and excellent!" } },
@@ -298,7 +367,6 @@ describe("RelationshipMemory", () => {
         writeNotes: (notes) => capturedNotes.push(...notes),
         stderr: () => {},
       });
-      // 2 positive matches should produce an O note
       const oNotes = capturedNotes.filter((n) => n.type === "O");
       expect(oNotes.length).toBeGreaterThanOrEqual(1);
     });
@@ -349,5 +417,75 @@ describe("RelationshipMemory", () => {
         });
       }).not.toThrow();
     });
+
+    test("handles non-string non-array content via extractText fallback", () => {
+      // Force content to be neither string nor array to exercise the return "" fallback
+      // (line 51 in RelationshipMemory.ts)
+      const entries = [
+        { type: "user" as const, message: { content: 42 as unknown as string } },
+        { type: "user" as const, message: { content: "great awesome excellent perfect good job well done" } },
+        { type: "user" as const, message: { content: "awesome excellent great perfect really nice" } },
+      ];
+      const capturedNotes: RelationshipNote[] = [];
+      expect(() => {
+        RelationshipMemory.execute(makeInput(), {
+          readTranscript: () => entries,
+          analyzeForRelationship: RelationshipMemory.defaultDeps.analyzeForRelationship,
+          writeNotes: (notes) => capturedNotes.push(...notes),
+          stderr: () => {},
+        });
+      }).not.toThrow();
+    });
+  });
+});
+
+describe("RelationshipMemory defaultDeps", () => {
+  const testTranscriptPath = "/tmp/pai-test-rm-transcript.jsonl";
+  const testTranscriptContent = [
+    JSON.stringify({ type: "user", message: { content: "Hello world test content" } }),
+    JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Test summary here" } }),
+    "invalid json line",
+    JSON.stringify({ type: "system", message: { content: "ignored type" } }),
+  ].join("\n");
+
+  test("defaultDeps.readTranscript returns empty array for missing path", () => {
+    const result = RelationshipMemory.defaultDeps.readTranscript("/tmp/nonexistent-pai-12345.jsonl");
+    expect(result).toEqual([]);
+  });
+
+  test("defaultDeps.readTranscript returns empty array for empty path", () => {
+    const result = RelationshipMemory.defaultDeps.readTranscript("");
+    expect(result).toEqual([]);
+  });
+
+  test("defaultDeps.readTranscript parses valid JSONL entries", async () => {
+    await Bun.write(testTranscriptPath, testTranscriptContent);
+    const result = RelationshipMemory.defaultDeps.readTranscript(testTranscriptPath);
+    // Should parse user and assistant entries, skip invalid JSON and non-user/assistant types
+    expect(result.length).toBe(2);
+    expect(result[0].type).toBe("user");
+    expect(result[1].type).toBe("assistant");
+  });
+
+  test("defaultDeps.analyzeForRelationship returns array", () => {
+    const result = RelationshipMemory.defaultDeps.analyzeForRelationship([]);
+    expect(Array.isArray(result)).toBe(true);
+  });
+
+  test("defaultDeps.writeNotes does not throw with empty notes", () => {
+    expect(() => RelationshipMemory.defaultDeps.writeNotes([])).not.toThrow();
+  });
+
+  test("defaultDeps.writeNotes writes notes to filesystem", () => {
+    // Exercises the defaultWriteNotes function (lines 130-152 in RelationshipMemory.ts)
+    expect(() => {
+      RelationshipMemory.defaultDeps.writeNotes([
+        { type: "B", entities: ["@TestDA"], content: "Test note for coverage" },
+      ]);
+    }).not.toThrow();
+  });
+
+  test("defaultDeps.stderr writes without throwing", () => {
+    expect(() => RelationshipMemory.defaultDeps.stderr("test")).not.toThrow();
   });
 });

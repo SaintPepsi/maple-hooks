@@ -1,10 +1,10 @@
 import { describe, test, expect } from "bun:test";
-import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary";
-import type { SessionEndInput } from "../core/types/hook-inputs";
-import { ok, err, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import { SessionSummary, type SessionSummaryDeps } from "@hooks/contracts/SessionSummary";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { ok, err, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 
-// ─── Test Helpers ─────────────────────────────────────────────────────────────
+// -- Test Helpers --
 
 let lastWrittenPath: string = "";
 let lastWrittenContent: string = "";
@@ -73,7 +73,7 @@ function makeInput(overrides: Partial<SessionEndInput> = {}): SessionEndInput {
   };
 }
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// -- Tests --
 
 describe("SessionSummary", () => {
   describe("accepts", () => {
@@ -90,7 +90,7 @@ describe("SessionSummary", () => {
     });
   });
 
-  describe("execute — returns SilentOutput", () => {
+  describe("execute -- returns SilentOutput", () => {
     test("always returns ok with silent type", () => {
       const deps = makeDeps();
       const result = SessionSummary.execute(makeInput(), deps);
@@ -101,7 +101,7 @@ describe("SessionSummary", () => {
     });
   });
 
-  describe("execute — scoped state file (current-work-{session_id}.json)", () => {
+  describe("execute -- scoped state file (current-work-{session_id}.json)", () => {
     test("reads the scoped state file path", () => {
       let readJsonPath = "";
       const deps = makeDeps({
@@ -145,7 +145,7 @@ describe("SessionSummary", () => {
     });
   });
 
-  describe("execute — no legacy fallback (session isolation)", () => {
+  describe("execute -- no legacy fallback (session isolation)", () => {
     test("does not fall back to legacy current-work.json when scoped file absent", () => {
       const deps = makeDeps({
         fileExists: (path: string) => {
@@ -155,13 +155,12 @@ describe("SessionSummary", () => {
         },
       });
       SessionSummary.execute(makeInput(), deps);
-      // Should not delete or write anything — no state found for this session
       expect(deletedPaths).toHaveLength(0);
       expect(lastWrittenPath).toBe("");
     });
   });
 
-  describe("execute — no state file present", () => {
+  describe("execute -- no state file present", () => {
     test("succeeds silently when no state file exists", () => {
       const deps = makeDeps({
         fileExists: () => false,
@@ -188,7 +187,7 @@ describe("SessionSummary", () => {
     });
   });
 
-  describe("execute — mismatched session ID", () => {
+  describe("execute -- mismatched session ID", () => {
     test("skips state update when session_id does not match state file", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(_path: string) =>
@@ -209,7 +208,28 @@ describe("SessionSummary", () => {
     });
   });
 
-  describe("execute — tab state reset", () => {
+  describe("execute -- readJson fails", () => {
+    test("skips work state update when readJson fails", () => {
+      const deps = makeDeps({
+        readJson: () => err({ code: "FILE_READ_FAILED", message: "corrupt" } as PaiError),
+      });
+      SessionSummary.execute(makeInput(), deps);
+      expect(lastWrittenPath).toBe("");
+    });
+  });
+
+  describe("execute -- no session_dir in state", () => {
+    test("skips META.yaml update when session_dir is empty", () => {
+      const deps = makeDeps({
+        readJson: <T = unknown>(_path: string) =>
+          ok({ session_id: "test-session-123", session_dir: "" }) as Result<T, PaiError>,
+      });
+      SessionSummary.execute(makeInput(), deps);
+      expect(lastWrittenPath).toBe("");
+    });
+  });
+
+  describe("execute -- tab state reset", () => {
     test("calls setTabState with idle state", () => {
       const deps = makeDeps();
       SessionSummary.execute(makeInput(), deps);
@@ -261,9 +281,30 @@ describe("SessionSummary", () => {
       const result = SessionSummary.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
     });
+
+    test("logs failure message when setTabState throws", () => {
+      const stderrMessages: string[] = [];
+      const deps = makeDeps({
+        setTabState: () => {
+          throw new Error("kitty not running");
+        },
+        stderr: (msg: string) => { stderrMessages.push(msg); },
+      });
+      SessionSummary.execute(makeInput(), deps);
+      expect(stderrMessages.some(m => m.includes("Tab reset failed"))).toBe(true);
+    });
+
+    test("logs success message when setTabState succeeds", () => {
+      const stderrMessages: string[] = [];
+      const deps = makeDeps({
+        stderr: (msg: string) => { stderrMessages.push(msg); },
+      });
+      SessionSummary.execute(makeInput(), deps);
+      expect(stderrMessages.some(m => m.includes("Tab reset to default"))).toBe(true);
+    });
   });
 
-  describe("execute — META.yaml content preservation", () => {
+  describe("execute -- META.yaml content preservation", () => {
     test("preserves non-status lines in META.yaml", () => {
       const deps = makeDeps();
       SessionSummary.execute(makeInput(), deps);
@@ -290,5 +331,46 @@ describe("SessionSummary", () => {
         "/tmp/test/MEMORY/STATE/current-work-test-session-123.json",
       );
     });
+  });
+});
+
+describe("SessionSummary defaultDeps", () => {
+  test("defaultDeps.fileExists returns a boolean", () => {
+    expect(typeof SessionSummary.defaultDeps.fileExists("/tmp")).toBe("boolean");
+  });
+
+  test("defaultDeps.readFile returns a Result", () => {
+    const result = SessionSummary.defaultDeps.readFile("/tmp/nonexistent-pai-12345.txt");
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  test("defaultDeps.readJson returns a Result", () => {
+    const result = SessionSummary.defaultDeps.readJson("/tmp/nonexistent-pai-12345.json");
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  test("defaultDeps.writeFile returns a Result", () => {
+    const result = SessionSummary.defaultDeps.writeFile("/tmp/pai-test-ss-12345.txt", "test");
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  test("defaultDeps.unlinkSync is callable", () => {
+    expect(() => SessionSummary.defaultDeps.unlinkSync("/tmp/nonexistent-pai-12345.txt")).not.toThrow();
+  });
+
+  test("defaultDeps.getTimestamp returns a string", () => {
+    expect(typeof SessionSummary.defaultDeps.getTimestamp()).toBe("string");
+  });
+
+  test("defaultDeps.setTabState does not throw", () => {
+    expect(() => SessionSummary.defaultDeps.setTabState({ title: "", state: "idle", sessionId: "test-default" })).not.toThrow();
+  });
+
+  test("defaultDeps.cleanupKittySession does not throw", () => {
+    expect(() => SessionSummary.defaultDeps.cleanupKittySession("test-default")).not.toThrow();
+  });
+
+  test("defaultDeps.stderr writes without throwing", () => {
+    expect(() => SessionSummary.defaultDeps.stderr("test")).not.toThrow();
   });
 });

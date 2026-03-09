@@ -557,3 +557,50 @@ describe("DocObligationEnforcer", () => {
     expect(removedPaths.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+// ─── defaultDeps coverage ───────────────────────────────────────────────────
+
+describe("DocObligationTracker defaultDeps", () => {
+  it("defaultDeps.fileExists returns a boolean", () => {
+    expect(typeof DocObligationTracker.defaultDeps.fileExists("/tmp")).toBe("boolean");
+  });
+
+  it("defaultDeps.readPending returns an array for nonexistent file", () => {
+    const result = DocObligationTracker.defaultDeps.readPending("/tmp/nonexistent-pai-dosm-12345.json");
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toEqual([]);
+  });
+
+  it("defaultDeps.writePending writes without throwing", () => {
+    const tmpPath = "/tmp/pai-test-dosm-wp-" + Date.now() + ".json";
+    expect(() => DocObligationTracker.defaultDeps.writePending(tmpPath, ["/src/a.ts"])).not.toThrow();
+  });
+
+  it("defaultDeps.removeFlag does not throw for nonexistent file", () => {
+    expect(() => DocObligationTracker.defaultDeps.removeFlag("/tmp/nonexistent-pai-dosm-12345.json")).not.toThrow();
+  });
+
+  it("defaultDeps.readBlockCount returns 0 for nonexistent file", () => {
+    const result = DocObligationTracker.defaultDeps.readBlockCount("/tmp/nonexistent-pai-dosm-bc-12345.txt");
+    expect(result).toBe(0);
+  });
+
+  it("defaultDeps.writeBlockCount writes without throwing", () => {
+    const tmpPath = "/tmp/pai-test-dosm-bc-" + Date.now() + ".txt";
+    expect(() => DocObligationTracker.defaultDeps.writeBlockCount(tmpPath, 1)).not.toThrow();
+  });
+
+  it("defaultDeps.writeReview writes without throwing", () => {
+    const tmpPath = "/tmp/pai-test-dosm-rv-" + Date.now() + ".md";
+    expect(() => DocObligationTracker.defaultDeps.writeReview(tmpPath, "# Review")).not.toThrow();
+  });
+
+  it("defaultDeps.stderr writes without throwing", () => {
+    expect(() => DocObligationTracker.defaultDeps.stderr("test")).not.toThrow();
+  });
+
+  it("defaultDeps.stateDir is a string path", () => {
+    expect(typeof DocObligationTracker.defaultDeps.stateDir).toBe("string");
+    expect(DocObligationTracker.defaultDeps.stateDir).toContain("doc-obligation");
+  });
+});

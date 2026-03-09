@@ -3,6 +3,9 @@ import { CheckVersion, type CheckVersionDeps } from "@hooks/contracts/CheckVersi
 import { ok, err } from "@hooks/core/result";
 import { processExecFailed } from "@hooks/core/error";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import type { Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
 
 const baseInput: SessionStartInput = {
   session_id: "test-session-123",
@@ -107,5 +110,63 @@ describe("CheckVersion", () => {
     const result = await CheckVersion.execute(baseInput, deps);
     expect(result.ok).toBe(true);
     expect(messages.length).toBe(0);
+  });
+
+  test("does not log when current version is unknown", async () => {
+    const messages: string[] = [];
+    const deps = makeDeps({
+      getCurrentVersion: async () => ok("unknown"),
+      getLatestVersion: async () => ok("2.0.0"),
+      stderr: (msg) => messages.push(msg),
+    });
+    const result = await CheckVersion.execute(baseInput, deps);
+    expect(result.ok).toBe(true);
+    expect(messages.length).toBe(0);
+  });
+
+  test("does not log when latest version is unknown", async () => {
+    const messages: string[] = [];
+    const deps = makeDeps({
+      getCurrentVersion: async () => ok("1.0.0"),
+      getLatestVersion: async () => ok("unknown"),
+      stderr: (msg) => messages.push(msg),
+    });
+    const result = await CheckVersion.execute(baseInput, deps);
+    expect(result.ok).toBe(true);
+    expect(messages.length).toBe(0);
+  });
+
+  test("does not log when both versions are unknown", async () => {
+    const messages: string[] = [];
+    const deps = makeDeps({
+      getCurrentVersion: async () => ok("unknown"),
+      getLatestVersion: async () => ok("unknown"),
+      stderr: (msg) => messages.push(msg),
+    });
+    const result = await CheckVersion.execute(baseInput, deps);
+    expect(result.ok).toBe(true);
+    expect(messages.length).toBe(0);
+  });
+});
+
+describe("CheckVersion defaultDeps", () => {
+  test("defaultDeps.getCurrentVersion returns a result", async () => {
+    const result = await CheckVersion.defaultDeps.getCurrentVersion();
+    // May succeed or fail depending on env, but should always return Result
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  test("defaultDeps.getLatestVersion returns a result", async () => {
+    const result = await CheckVersion.defaultDeps.getLatestVersion();
+    expect(typeof result.ok).toBe("boolean");
+  });
+
+  test("defaultDeps.isSubagent returns a boolean", () => {
+    const result = CheckVersion.defaultDeps.isSubagent();
+    expect(typeof result).toBe("boolean");
+  });
+
+  test("defaultDeps.stderr writes without throwing", () => {
+    expect(() => CheckVersion.defaultDeps.stderr("test")).not.toThrow();
   });
 });

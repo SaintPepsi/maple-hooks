@@ -76,4 +76,41 @@ describe("BranchAwareness", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
   });
+
+  it("logs skip message when branch is null", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      getBranch: () => null,
+      stderr: (msg: string) => { stderrMessages.push(msg); },
+    });
+    BranchAwareness.execute(makeInput(), deps);
+    expect(stderrMessages.some(m => m.includes("Could not determine"))).toBe(true);
+  });
+
+  it("logs branch name to stderr on success", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      getBranch: () => "develop",
+      stderr: (msg: string) => { stderrMessages.push(msg); },
+    });
+    BranchAwareness.execute(makeInput(), deps);
+    expect(stderrMessages.some(m => m.includes("develop"))).toBe(true);
+  });
+});
+
+describe("BranchAwareness defaultDeps", () => {
+  it("defaultDeps.getBranch returns a string or null", () => {
+    const result = BranchAwareness.defaultDeps.getBranch();
+    // In a git repo it returns a string, otherwise null
+    expect(result === null || typeof result === "string").toBe(true);
+  });
+
+  it("defaultDeps.isSubagent returns a boolean", () => {
+    const result = BranchAwareness.defaultDeps.isSubagent();
+    expect(typeof result).toBe("boolean");
+  });
+
+  it("defaultDeps.stderr writes without throwing", () => {
+    expect(() => BranchAwareness.defaultDeps.stderr("test message")).not.toThrow();
+  });
 });
