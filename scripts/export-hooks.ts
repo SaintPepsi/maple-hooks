@@ -9,7 +9,7 @@
  * Used by: pre-commit Husky hook (author workflow)
  */
 
-import { readFile, writeFile } from "@hooks/core/adapters/fs";
+import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
 import { join, resolve } from "path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -67,11 +67,46 @@ export function extractHooksForRepo(
   return { envVar, hooks: result };
 }
 
+/**
+ * Filter exported hooks to only those whose .hook.ts file exists in the repo.
+ * Prevents exporting hooks that live in the source settings but aren't
+ * implemented in this repo (e.g., PAI-specific hooks like ArticleWriter).
+ */
+export function filterToExistingFiles(
+  exported: ExportedHooks,
+  repoRoot: string,
+  checkExists: (path: string) => boolean,
+): ExportedHooks {
+  const filtered: Record<string, MatcherGroup[]> = {};
+
+  for (const [event, matchers] of Object.entries(exported.hooks)) {
+    const filteredMatchers: MatcherGroup[] = [];
+
+    for (const group of matchers) {
+      const existingHooks = group.hooks.filter((h) => {
+        const basename = h.command.split("/").pop() || "";
+        return checkExists(join(repoRoot, "hooks", basename));
+      });
+
+      if (existingHooks.length > 0) {
+        filteredMatchers.push({ matcher: group.matcher, hooks: existingHooks });
+      }
+    }
+
+    if (filteredMatchers.length > 0) {
+      filtered[event] = filteredMatchers;
+    }
+  }
+
+  return { envVar: exported.envVar, hooks: filtered };
+}
+
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
 export interface ExportHooksDeps {
   readFile: (path: string) => { ok: boolean; value?: string; error?: { message: string } };
   writeFile: (path: string, content: string) => { ok: boolean };
+  fileExists: (path: string) => boolean;
   stderr: (msg: string) => void;
   homeDir: string;
 }
@@ -79,6 +114,7 @@ export interface ExportHooksDeps {
 const defaultDeps: ExportHooksDeps = {
   readFile,
   writeFile,
+  fileExists,
   stderr: (msg) => process.stderr.write(msg + "\n"),
   homeDir: process.env.HOME || process.env.USERPROFILE || "~",
 };
@@ -106,12 +142,15 @@ export function run(deps: ExportHooksDeps = defaultDeps): void {
   const sourcePrefix = process.argv[2] || "${PAI_DIR}/hooks/";
   const targetPrefix = `\${${envVar}}/hooks/`;
 
-  const exported = extractHooksForRepo(settings, sourcePrefix, targetPrefix);
+  const extracted = extractHooksForRepo(settings, sourcePrefix, targetPrefix);
+  const exported = filterToExistingFiles(extracted, repoRoot, deps.fileExists);
 
   const outputPath = join(repoRoot, "settings.hooks.json");
   deps.writeFile(outputPath, JSON.stringify(exported, null, 2) + "\n");
 
-  deps.stderr(`Exported ${Object.values(exported.hooks).flat().length} matcher groups to settings.hooks.json`);
+  const skipped = Object.values(extracted.hooks).flat().length - Object.values(exported.hooks).flat().length;
+  const skippedMsg = skipped > 0 ? ` (${skipped} skipped — no matching file in repo)` : "";
+  deps.stderr(`Exported ${Object.values(exported.hooks).flat().length} matcher groups to settings.hooks.json${skippedMsg}`);
 }
 
 if (import.meta.main) {

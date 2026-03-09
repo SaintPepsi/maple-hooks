@@ -353,10 +353,6 @@
           },
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ArticleWriter.hook.ts"
-          },
-          {
-            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ModeAnalytics.hook.ts"
           }
         ]
@@ -367,15 +363,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/RatingCapture.hook.ts"
-          },
-          {
-            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AutoWorkCreation.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionAutoName.hook.ts"
           }
         ]
       }
