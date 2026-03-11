@@ -15,6 +15,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 | **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx files are Read |
 | **CodeQualityGuard** | PostToolUse | SOLID quality scoring |
 | **DocObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until docs updated |
+| **GitAutoSync** | SessionEnd | Auto-commits and pushes ~/.claude on session end (debounced, with key file backup) |
 | **HookExecutePermission** | PostToolUse | Auto-chmod on new hook files |
 | **LoadContext** | SessionStart | Loads PAI context at session start |
 | **SessionAutoName** | UserPromptSubmit | AI-generates session titles |

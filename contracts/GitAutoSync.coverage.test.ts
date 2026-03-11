@@ -1,254 +1,257 @@
 import { describe, it, expect } from "bun:test";
 import {
-  runGitAutoSync,
+  GitAutoSync,
   KEY_HOOK_PATTERN,
   KEY_FILES,
   DEBOUNCE_MINUTES,
   type GitAutoSyncDeps,
 } from "@hooks/contracts/GitAutoSync";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { ok, err } from "@hooks/core/result";
+import { PaiError, ErrorCode } from "@hooks/core/error";
+
+// ─── Test Helpers ────────────────────────────────────────────────────────────
 
 function makeDeps(overrides: Partial<GitAutoSyncDeps> = {}): GitAutoSyncDeps {
   return {
-    execSync: () => "",
-    spawn: () => ({ unref() {} }),
+    execSync: () => ok(""),
+    spawnBackground: () => ok(undefined),
+    fileExists: () => false,
+    readFile: () => ok(""),
+    ensureDir: () => ok(undefined),
+    copyFile: () => ok(undefined),
+    removeFile: () => ok(undefined),
     dateNow: () => Date.now(),
-    exit: () => {},
+    getTimestamp: () => "2026-03-09 17:00:00 AEDT",
     claudeDir: "/tmp/test-claude",
     backupDir: "/tmp/test-backup",
-    debug: false,
-    getTimestamp: () => "2026-03-09 17:00:00 AEDT",
-    mkdirSync: () => undefined,
-    copyFileSync: () => {},
-    readFileSync: () => "",
-    existsSync: () => false,
-    unlinkSync: () => {},
     stderr: () => {},
     ...overrides,
   };
 }
 
-describe("runGitAutoSync pipeline", () => {
-  it("exits early when git status is clean", () => {
-    let exitCode = -1;
+function makeInput(): SessionEndInput {
+  return { session_id: "test" };
+}
+
+function execError(msg: string) {
+  return err<string, PaiError>(new PaiError(ErrorCode.ProcessExecFailed, msg));
+}
+
+// ─── Pipeline Tests ──────────────────────────────────────────────────────────
+
+describe("GitAutoSync pipeline", () => {
+  it("returns silent when git status is clean", () => {
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "";
-        return "";
+        if (cmd === "git status --porcelain") return ok("");
+        return ok("");
       },
-      exit: (code: number) => { exitCode = code; },
     });
-    runGitAutoSync(deps);
-    expect(exitCode).toBe(0);
+
+    const result = GitAutoSync.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("silent");
   });
 
   it("commits and pushes when status is dirty", () => {
     const commands: string[] = [];
-    let pushSpawned = false;
-    let unrefCalled = false;
+    let pushCalled = false;
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
         commands.push(cmd);
-        if (cmd === "git status --porcelain") return "M settings.json\n";
-        if (cmd.includes("git log -1")) return ""; // no previous auto-sync
-        if (cmd.includes("git ls-files hooks/")) return "";
-        return "";
+        if (cmd === "git status --porcelain") return ok("M settings.json\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd.includes("git ls-files hooks/")) return ok("");
+        return ok("");
       },
-      spawn: (cmd: string, args: string[]) => {
-        if (cmd === "git" && args[0] === "push") pushSpawned = true;
-        return { unref() { unrefCalled = true; } };
+      spawnBackground: (cmd: string, args: string[]) => {
+        if (cmd === "git" && args[0] === "push") pushCalled = true;
+        return ok(undefined);
       },
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
 
     expect(commands).toContain("git add -A");
     expect(commands.some(c => c.includes("git commit"))).toBe(true);
     expect(commands.some(c => c.includes("auto-sync"))).toBe(true);
-    expect(pushSpawned).toBe(true);
-    expect(unrefCalled).toBe(true);
+    expect(pushCalled).toBe(true);
   });
 
-  it("exits early when last auto-sync is within debounce window", () => {
-    let exitCode = -1;
+  it("returns silent when last auto-sync is within debounce window", () => {
     const now = Date.now();
-    // Last auto-sync was 5 minutes ago (well within 15 min debounce)
     const lastCommitEpoch = Math.floor(now / 1000) - 5 * 60;
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M file.txt\n";
-        if (cmd.includes("git log -1")) return String(lastCommitEpoch);
-        return "";
+        if (cmd === "git status --porcelain") return ok("M file.txt\n");
+        if (cmd.includes("git log -1")) return ok(String(lastCommitEpoch));
+        return ok("");
       },
-      exit: (code: number) => { exitCode = code; },
       dateNow: () => now,
     });
 
-    runGitAutoSync(deps);
-    expect(exitCode).toBe(0);
+    const result = GitAutoSync.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("silent");
   });
 
-  it("prints debounce message when debug is enabled", () => {
+  it("prints debounce message to stderr", () => {
     const stderrMessages: string[] = [];
     const now = Date.now();
     const lastCommitEpoch = Math.floor(now / 1000) - 5 * 60;
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M file.txt\n";
-        if (cmd.includes("git log -1")) return String(lastCommitEpoch);
-        return "";
+        if (cmd === "git status --porcelain") return ok("M file.txt\n");
+        if (cmd.includes("git log -1")) return ok(String(lastCommitEpoch));
+        return ok("");
       },
-      exit: () => {},
       dateNow: () => now,
-      debug: true,
       stderr: (msg: string) => { stderrMessages.push(msg); },
     });
 
-    runGitAutoSync(deps);
-    expect(stderrMessages.some(m => m.includes("debounced"))).toBe(true);
+    GitAutoSync.execute(makeInput(), deps);
+    expect(stderrMessages.some(m => m.includes("Debounced"))).toBe(true);
     expect(stderrMessages.some(m => m.includes(String(DEBOUNCE_MINUTES)))).toBe(true);
   });
 
   it("proceeds when debounce period has expired", () => {
     const commands: string[] = [];
     const now = Date.now();
-    // Last auto-sync was 20 minutes ago (past 15 min debounce)
     const lastCommitEpoch = Math.floor(now / 1000) - 20 * 60;
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
         commands.push(cmd);
-        if (cmd === "git status --porcelain") return "M file.txt\n";
-        if (cmd.includes("git log -1")) return String(lastCommitEpoch);
-        if (cmd.includes("git ls-files hooks/")) return "";
-        return "";
+        if (cmd === "git status --porcelain") return ok("M file.txt\n");
+        if (cmd.includes("git log -1")) return ok(String(lastCommitEpoch));
+        if (cmd.includes("git ls-files hooks/")) return ok("");
+        return ok("");
       },
       dateNow: () => now,
-      spawn: () => ({ unref() {} }),
+      spawnBackground: () => ok(undefined),
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
     expect(commands).toContain("git add -A");
     expect(commands.some(c => c.includes("git commit"))).toBe(true);
   });
 
-  it("calls cleanupLock on error when lock exists", () => {
-    let unlinkedPath = "";
+  it("cleans up lock on exec error when lock exists", () => {
+    let removedPath = "";
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M file.txt\n";
-        if (cmd.includes("git log -1")) return "";
-        if (cmd === "git add -A") throw new Error("git lock error");
-        return "";
+        if (cmd === "git status --porcelain") return ok("M file.txt\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd === "git add -A") return execError("git lock error");
+        return ok("");
       },
-      existsSync: (path: string) => path.endsWith("index.lock"),
-      unlinkSync: (path: string) => { unlinkedPath = path; },
+      fileExists: (path: string) => path.endsWith("index.lock"),
+      removeFile: (path: string) => { removedPath = path; return ok(undefined); },
     });
 
-    runGitAutoSync(deps);
-    expect(unlinkedPath).toContain("index.lock");
+    GitAutoSync.execute(makeInput(), deps);
+    expect(removedPath).toContain("index.lock");
   });
 
-  it("does not unlink when lock does not exist on error", () => {
-    let unlinkCalled = false;
+  it("does not remove lock when lock does not exist on error", () => {
+    let removeCalled = false;
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M file.txt\n";
-        if (cmd.includes("git log -1")) return "";
-        if (cmd === "git add -A") throw new Error("some error");
-        return "";
+        if (cmd === "git status --porcelain") return ok("M file.txt\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd === "git add -A") return execError("some error");
+        return ok("");
       },
-      existsSync: () => false,
-      unlinkSync: () => { unlinkCalled = true; },
+      fileExists: () => false,
+      removeFile: () => { removeCalled = true; return ok(undefined); },
     });
 
-    runGitAutoSync(deps);
-    expect(unlinkCalled).toBe(false);
+    GitAutoSync.execute(makeInput(), deps);
+    expect(removeCalled).toBe(false);
   });
 
-  it("prints error message in debug mode on error", () => {
+  it("prints error message to stderr on failure", () => {
     const stderrMessages: string[] = [];
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M file.txt\n";
-        if (cmd.includes("git log -1")) return "";
-        if (cmd === "git add -A") throw new Error("test error message");
-        return "";
+        if (cmd === "git status --porcelain") return ok("M file.txt\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd === "git add -A") return execError("test error message");
+        return ok("");
       },
-      debug: true,
       stderr: (msg: string) => { stderrMessages.push(msg); },
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
     expect(stderrMessages.some(m => m.includes("test error message"))).toBe(true);
   });
 
   it("backs up key files before pull", () => {
     const commandOrder: string[] = [];
-    let mkdirCalled = false;
-    const copiedFiles: string[] = [];
+    let ensureDirCalled = false;
+    const copiedDests: string[] = [];
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        commandOrder.push(cmd.split(" ")[0] + (cmd.includes("commit") ? " commit" : cmd.includes("pull") ? " pull" : ""));
-        if (cmd === "git status --porcelain") return "M settings.json\n";
-        if (cmd.includes("git log -1")) return "";
-        if (cmd.includes("git ls-files hooks/")) return "hooks/GitAutoSync.ts\nhooks/other.ts\n";
-        return "";
+        commandOrder.push(
+          cmd.split(" ")[0] +
+          (cmd.includes("commit") ? " commit" : cmd.includes("pull") ? " pull" : ""),
+        );
+        if (cmd === "git status --porcelain") return ok("M settings.json\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd.includes("git ls-files hooks/")) return ok("hooks/GitAutoSync.ts\nhooks/other.ts\n");
+        return ok("");
       },
-      existsSync: (path: string) => {
-        // All key files and hook files exist
+      fileExists: (path: string) => {
         for (const f of KEY_FILES) {
           if (path.endsWith(f)) return true;
         }
         if (path.includes("hooks/")) return true;
         return false;
       },
-      mkdirSync: () => { mkdirCalled = true; return undefined; },
-      copyFileSync: (_src: string, dest: string) => { copiedFiles.push(dest); },
-      spawn: () => ({ unref() {} }),
+      ensureDir: () => { ensureDirCalled = true; return ok(undefined); },
+      copyFile: (_src: string, dest: string) => { copiedDests.push(dest); return ok(undefined); },
+      spawnBackground: () => ok(undefined),
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
 
-    expect(mkdirCalled).toBe(true);
-    // Should have copied key files + hook files
-    expect(copiedFiles.length).toBeGreaterThan(0);
-    // Verify .pre-pull suffix is used
-    expect(copiedFiles.every(f => f.endsWith(".pre-pull"))).toBe(true);
-    // Verify commit happens before pull in command order
+    expect(ensureDirCalled).toBe(true);
+    expect(copiedDests.length).toBeGreaterThan(0);
+    expect(copiedDests.every(f => f.endsWith(".pre-pull"))).toBe(true);
     const commitIdx = commandOrder.findIndex(c => c.includes("commit"));
     const pullIdx = commandOrder.findIndex(c => c.includes("pull"));
     expect(commitIdx).toBeLessThan(pullIdx);
   });
 
-  it("returns null backup when no key files exist", () => {
+  it("skips backup when no key files exist", () => {
     let pullExecuted = false;
     let checkDiffCalled = false;
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M random.txt\n";
-        if (cmd.includes("git log -1")) return "";
-        if (cmd.includes("git ls-files hooks/")) return "";
-        if (cmd.includes("git pull")) { pullExecuted = true; return ""; }
-        return "";
+        if (cmd === "git status --porcelain") return ok("M random.txt\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd.includes("git ls-files hooks/")) return ok("");
+        if (cmd.includes("git pull")) { pullExecuted = true; return ok(""); }
+        return ok("");
       },
-      existsSync: () => false, // no key files exist
+      fileExists: () => false,
       stderr: (msg: string) => {
         if (msg.includes("WARNING")) checkDiffCalled = true;
       },
-      spawn: () => ({ unref() {} }),
+      spawnBackground: () => ok(undefined),
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
     expect(pullExecuted).toBe(true);
-    // No warnings should be emitted since backup is null
     expect(checkDiffCalled).toBe(false);
   });
 
@@ -257,29 +260,27 @@ describe("runGitAutoSync pipeline", () => {
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M settings.json\n";
-        if (cmd.includes("git log -1")) return "";
-        if (cmd.includes("git ls-files hooks/")) return "";
-        return "";
+        if (cmd === "git status --porcelain") return ok("M settings.json\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd.includes("git ls-files hooks/")) return ok("");
+        return ok("");
       },
-      existsSync: (path: string) => {
-        // settings.json exists both in claudeDir and backup
+      fileExists: (path: string) => {
         if (path.endsWith("settings.json")) return true;
         if (path.endsWith(".pre-pull")) return true;
         return false;
       },
-      readFileSync: (path: string) => {
-        // Backup content differs from current content (simulating merge change)
-        if (path.includes(".pre-pull")) return '{"before": true}';
-        return '{"after": true}';
+      readFile: (path: string) => {
+        if (path.includes(".pre-pull")) return ok('{"before": true}');
+        return ok('{"after": true}');
       },
-      mkdirSync: () => undefined,
-      copyFileSync: () => {},
+      ensureDir: () => ok(undefined),
+      copyFile: () => ok(undefined),
       stderr: (msg: string) => { warnings.push(msg); },
-      spawn: () => ({ unref() {} }),
+      spawnBackground: () => ok(undefined),
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
     expect(warnings.some(w => w.includes("WARNING") && w.includes("settings.json"))).toBe(true);
   });
 
@@ -288,56 +289,53 @@ describe("runGitAutoSync pipeline", () => {
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M settings.json\n";
-        if (cmd.includes("git log -1")) return "";
-        if (cmd.includes("git ls-files hooks/")) return "";
-        return "";
+        if (cmd === "git status --porcelain") return ok("M settings.json\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd.includes("git ls-files hooks/")) return ok("");
+        return ok("");
       },
-      existsSync: (path: string) => {
+      fileExists: (path: string) => {
         if (path.endsWith("settings.json")) return true;
         if (path.endsWith(".pre-pull")) return true;
         return false;
       },
-      readFileSync: () => '{"same": true}', // same content before and after
-      mkdirSync: () => undefined,
-      copyFileSync: () => {},
+      readFile: () => ok('{"same": true}'),
+      ensureDir: () => ok(undefined),
+      copyFile: () => ok(undefined),
       stderr: (msg: string) => { warnings.push(msg); },
-      spawn: () => ({ unref() {} }),
+      spawnBackground: () => ok(undefined),
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
     expect(warnings.filter(w => w.includes("WARNING"))).toHaveLength(0);
   });
 
   it("skips diff check for files not in KEY_FILES or matching KEY_HOOK_PATTERN", () => {
-    // This tests checkPostMergeDiff line 96 — the continue path
     const warnings: string[] = [];
 
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M random.txt\n";
-        if (cmd.includes("git log -1")) return "";
-        // Return a non-key, non-hook file from git ls-files
-        if (cmd.includes("git ls-files hooks/")) return "not-a-hook.txt\n";
-        return "";
+        if (cmd === "git status --porcelain") return ok("M random.txt\n");
+        if (cmd.includes("git log -1")) return ok("");
+        if (cmd.includes("git ls-files hooks/")) return ok("not-a-hook.txt\n");
+        return ok("");
       },
-      existsSync: (path: string) => {
+      fileExists: (path: string) => {
         if (path.endsWith("not-a-hook.txt")) return true;
         if (path.endsWith(".pre-pull")) return true;
         return false;
       },
-      readFileSync: (path: string) => {
-        // Different content — but should NOT trigger warning since file is not key
-        if (path.includes(".pre-pull")) return "before";
-        return "after";
+      readFile: (path: string) => {
+        if (path.includes(".pre-pull")) return ok("before");
+        return ok("after");
       },
-      mkdirSync: () => undefined,
-      copyFileSync: () => {},
+      ensureDir: () => ok(undefined),
+      copyFile: () => ok(undefined),
       stderr: (msg: string) => { warnings.push(msg); },
-      spawn: () => ({ unref() {} }),
+      spawnBackground: () => ok(undefined),
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
     expect(warnings.filter(w => w.includes("WARNING"))).toHaveLength(0);
   });
 
@@ -345,21 +343,23 @@ describe("runGitAutoSync pipeline", () => {
     let commitMsg = "";
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "M file.txt\n";
-        if (cmd.includes("git log -1")) return "";
+        if (cmd === "git status --porcelain") return ok("M file.txt\n");
+        if (cmd.includes("git log -1")) return ok("");
         if (cmd.includes("git commit")) commitMsg = cmd;
-        if (cmd.includes("git ls-files hooks/")) return "";
-        return "";
+        if (cmd.includes("git ls-files hooks/")) return ok("");
+        return ok("");
       },
       getTimestamp: () => "2026-03-09 17:00:00 AEDT",
-      spawn: () => ({ unref() {} }),
+      spawnBackground: () => ok(undefined),
     });
 
-    runGitAutoSync(deps);
+    GitAutoSync.execute(makeInput(), deps);
     expect(commitMsg).toContain("2026-03-09 17:00:00 AEDT");
     expect(commitMsg).toContain("auto-sync: session end");
   });
 });
+
+// ─── Regex Tests ─────────────────────────────────────────────────────────────
 
 describe("KEY_HOOK_PATTERN regex", () => {
   it("matches .ts files under hooks/", () => {
@@ -377,7 +377,6 @@ describe("KEY_HOOK_PATTERN regex", () => {
   });
 
   it("does not match non-.ts files under hooks/", () => {
-    // The pattern is /^hooks\/.*\.ts$/ so .js would not match
     expect(KEY_HOOK_PATTERN.test("hooks/readme.md")).toBe(false);
     expect(KEY_HOOK_PATTERN.test("hooks/config.json")).toBe(false);
   });

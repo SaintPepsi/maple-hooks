@@ -1,22 +1,23 @@
 import { describe, it, expect } from "bun:test";
 import { GitAutoSync, type GitAutoSyncDeps } from "@hooks/contracts/GitAutoSync";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { ok } from "@hooks/core/result";
+
+// ─── Test Helpers ────────────────────────────────────────────────────────────
 
 function makeDeps(overrides: Partial<GitAutoSyncDeps> = {}): GitAutoSyncDeps {
   return {
-    execSync: () => "",
-    spawn: () => ({ unref() {} }),
+    execSync: () => ok(""),
+    spawnBackground: () => ok(undefined),
+    fileExists: () => false,
+    readFile: () => ok(""),
+    ensureDir: () => ok(undefined),
+    copyFile: () => ok(undefined),
+    removeFile: () => ok(undefined),
     dateNow: () => Date.now(),
-    exit: () => {},
+    getTimestamp: () => "2026-03-09 17:00:00 AEDT",
     claudeDir: "/tmp/test-git-auto-sync",
     backupDir: "/tmp/test-backup",
-    debug: false,
-    getTimestamp: () => "2026-03-09 17:00:00 AEDT",
-    mkdirSync: () => undefined,
-    copyFileSync: () => {},
-    readFileSync: () => "",
-    existsSync: () => false,
-    unlinkSync: () => {},
     stderr: () => {},
     ...overrides,
   };
@@ -25,6 +26,8 @@ function makeDeps(overrides: Partial<GitAutoSyncDeps> = {}): GitAutoSyncDeps {
 function makeInput(): SessionEndInput {
   return { session_id: "test" };
 }
+
+// ─── Contract Tests ──────────────────────────────────────────────────────────
 
 describe("GitAutoSync contract", () => {
   it("has correct name and event", () => {
@@ -36,11 +39,11 @@ describe("GitAutoSync contract", () => {
     expect(GitAutoSync.accepts(makeInput())).toBe(true);
   });
 
-  it("returns silent output", () => {
+  it("returns silent output when status is clean", () => {
     const deps = makeDeps({
       execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "";
-        return "";
+        if (cmd === "git status --porcelain") return ok("");
+        return ok("");
       },
     });
 
@@ -50,36 +53,24 @@ describe("GitAutoSync contract", () => {
       expect(result.value.type).toBe("silent");
     }
   });
-
-  it("execute suppresses exit calls from runGitAutoSync", () => {
-    let exitCalled = false;
-    const deps = makeDeps({
-      execSync: (cmd: string) => {
-        if (cmd === "git status --porcelain") return "";
-        return "";
-      },
-      exit: () => { exitCalled = true; },
-    });
-
-    GitAutoSync.execute(makeInput(), deps);
-    // exit should NOT have been called — execute suppresses it
-    expect(exitCalled).toBe(false);
-  });
 });
 
+// ─── Dependency Tests ────────────────────────────────────────────────────────
+
 describe("GitAutoSync defaultDeps", () => {
-  it("defaultDeps.execSync throws on failed command", () => {
-    expect(() => GitAutoSync.defaultDeps.execSync("false", { timeout: 1000 })).toThrow();
+  it("defaultDeps.execSync returns error for failed command", () => {
+    const result = GitAutoSync.defaultDeps.execSync("false", { timeout: 1000 });
+    expect(result.ok).toBe(false);
   });
 
-  it("defaultDeps.spawn returns an object with unref", () => {
-    const result = GitAutoSync.defaultDeps.spawn("echo", ["test"], { cwd: "/tmp" });
-    expect(typeof result.unref).toBe("function");
-    result.unref(); // should not throw
+  it("defaultDeps.spawnBackground returns ok for valid command", () => {
+    const result = GitAutoSync.defaultDeps.spawnBackground("echo", ["test"], { cwd: "/tmp" });
+    expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.readFileSync throws on missing file", () => {
-    expect(() => GitAutoSync.defaultDeps.readFileSync("/tmp/nonexistent-pai-test-file-12345.txt")).toThrow();
+  it("defaultDeps.readFile returns error for missing file", () => {
+    const result = GitAutoSync.defaultDeps.readFile("/tmp/nonexistent-pai-test-file-12345.txt");
+    expect(result.ok).toBe(false);
   });
 
   it("defaultDeps.stderr writes without throwing", () => {
@@ -90,30 +81,11 @@ describe("GitAutoSync defaultDeps", () => {
     expect(typeof GitAutoSync.defaultDeps.dateNow()).toBe("number");
   });
 
-  it("defaultDeps.existsSync returns a boolean", () => {
-    expect(typeof GitAutoSync.defaultDeps.existsSync("/tmp")).toBe("boolean");
-  });
-
-  it("defaultDeps.mkdirSync does not throw for /tmp", () => {
-    expect(() => GitAutoSync.defaultDeps.mkdirSync("/tmp", { recursive: true })).not.toThrow();
-  });
-
-  it("defaultDeps.copyFileSync is callable", () => {
-    // copyFile adapter doesn't throw; it uses Result internally
-    expect(typeof GitAutoSync.defaultDeps.copyFileSync).toBe("function");
-    // Call with nonexistent source - the adapter handles errors internally
-    GitAutoSync.defaultDeps.copyFileSync("/tmp/nonexistent-pai-12345.txt", "/tmp/dest-pai-12345.txt");
-  });
-
-  it("defaultDeps.unlinkSync does not throw on missing file", () => {
-    expect(() => GitAutoSync.defaultDeps.unlinkSync("/tmp/nonexistent-pai-12345.txt")).not.toThrow();
+  it("defaultDeps.fileExists returns a boolean", () => {
+    expect(typeof GitAutoSync.defaultDeps.fileExists("/tmp")).toBe("boolean");
   });
 
   it("defaultDeps.getTimestamp returns a string", () => {
     expect(typeof GitAutoSync.defaultDeps.getTimestamp()).toBe("string");
-  });
-
-  it("defaultDeps.exit is a function", () => {
-    expect(typeof GitAutoSync.defaultDeps.exit).toBe("function");
   });
 });

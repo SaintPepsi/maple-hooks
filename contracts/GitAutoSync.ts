@@ -6,33 +6,31 @@
  * Always returns SilentOutput — never blocks session end.
  */
 
-import type { HookContract } from "../core/contract";
-import type { SessionEndInput } from "../core/types/hook-inputs";
-import type { SilentOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { fileExists, readFile, ensureDir, removeFile, copyFile } from "../core/adapters/fs";
-import { execSyncSafe, spawnBackground } from "../core/adapters/process";
+import type { HookContract } from "@hooks/core/contract";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { fileExists, readFile, ensureDir, removeFile, copyFile } from "@hooks/core/adapters/fs";
+import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import { join } from "path";
 import { homedir } from "os";
-import { getLocalTimestamp } from "../lib/time";
+import { getLocalTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface GitAutoSyncDeps {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => any;
-  spawn: (cmd: string, args: string[], opts?: Record<string, unknown>) => { unref(): void };
+  execSync: (cmd: string, opts?: { cwd?: string; timeout?: number }) => Result<string, PaiError>;
+  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, PaiError>;
+  fileExists: (path: string) => boolean;
+  readFile: (path: string) => Result<string, PaiError>;
+  ensureDir: (path: string) => Result<void, PaiError>;
+  copyFile: (src: string, dest: string) => Result<void, PaiError>;
+  removeFile: (path: string) => Result<void, PaiError>;
   dateNow: () => number;
-  exit: (code: number) => void;
+  getTimestamp: () => string;
   claudeDir: string;
   backupDir: string;
-  debug: boolean;
-  getTimestamp: () => string;
-  mkdirSync: (path: string, opts?: { recursive?: boolean }) => string | undefined;
-  copyFileSync: (src: string, dest: string) => void;
-  readFileSync: (path: string) => string;
-  existsSync: (path: string) => boolean;
-  unlinkSync: (path: string) => void;
   stderr: (msg: string) => void;
 }
 
@@ -43,10 +41,7 @@ interface BackupResult {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-export const CLAUDE_DIR = join(homedir(), ".claude");
-export const BACKUP_DIR = join(CLAUDE_DIR, ".backup");
 export const DEBOUNCE_MINUTES = 15;
-
 export const KEY_FILES = ["statusline-command.sh", "statusline-helpers.ts", "settings.json"];
 export const KEY_HOOK_PATTERN = /^hooks\/.*\.ts$/;
 
@@ -54,37 +49,63 @@ export const KEY_HOOK_PATTERN = /^hooks\/.*\.ts$/;
 
 function cleanupLock(deps: GitAutoSyncDeps): void {
   const lockPath = join(deps.claudeDir, ".git", "index.lock");
-  if (deps.existsSync(lockPath)) {
-    deps.unlinkSync(lockPath);
+  if (deps.fileExists(lockPath)) {
+    deps.removeFile(lockPath);
   }
+}
+
+function isDebounced(deps: GitAutoSyncDeps): boolean {
+  const lastCommitResult = deps.execSync(
+    'git log -1 --format=%ct --grep="auto-sync"',
+    { cwd: deps.claudeDir, timeout: 5000 },
+  );
+  if (!lastCommitResult.ok) return false;
+
+  const epoch = lastCommitResult.value.trim();
+  if (!epoch) return false;
+
+  const elapsedMinutes = (deps.dateNow() / 1000 - Number(epoch)) / 60;
+  if (elapsedMinutes < DEBOUNCE_MINUTES) {
+    deps.stderr(
+      `[GitAutoSync] Debounced (${Math.round(elapsedMinutes)}m since last, need ${DEBOUNCE_MINUTES}m)`,
+    );
+    return true;
+  }
+
+  return false;
 }
 
 function backupKeyFiles(deps: GitAutoSyncDeps): BackupResult | null {
   const files: string[] = [];
 
   for (const f of KEY_FILES) {
-    if (deps.existsSync(join(deps.claudeDir, f))) {
+    if (deps.fileExists(join(deps.claudeDir, f))) {
       files.push(f);
     }
   }
 
-  const hookFiles = String(deps.execSync("git ls-files hooks/", {
+  const hookFilesResult = deps.execSync("git ls-files hooks/", {
     cwd: deps.claudeDir,
-    encoding: "utf-8",
     timeout: 5000,
-  })).trim().split("\n").filter(f => KEY_HOOK_PATTERN.test(f));
-  files.push(...hookFiles);
+  });
+  if (hookFilesResult.ok) {
+    const hookFiles = hookFilesResult.value
+      .trim()
+      .split("\n")
+      .filter((f) => KEY_HOOK_PATTERN.test(f));
+    files.push(...hookFiles);
+  }
 
   if (files.length === 0) return null;
 
   const backupSetDir = join(deps.backupDir, String(deps.dateNow()));
-  deps.mkdirSync(backupSetDir, { recursive: true });
+  deps.ensureDir(backupSetDir);
 
   for (const file of files) {
     const src = join(deps.claudeDir, file);
-    if (deps.existsSync(src)) {
+    if (deps.fileExists(src)) {
       const flatName = file.replace(/\//g, "_") + ".pre-pull";
-      deps.copyFileSync(src, join(backupSetDir, flatName));
+      deps.copyFile(src, join(backupSetDir, flatName));
     }
   }
 
@@ -99,112 +120,38 @@ function checkPostMergeDiff(deps: GitAutoSyncDeps, backup: BackupResult): void {
     const backupFile = join(backup.dir, flatName);
     const currentFile = join(deps.claudeDir, file);
 
-    if (!deps.existsSync(backupFile) || !deps.existsSync(currentFile)) continue;
+    if (!deps.fileExists(backupFile) || !deps.fileExists(currentFile)) continue;
 
-    const backupContent = deps.readFileSync(backupFile);
-    const currentContent = deps.readFileSync(currentFile);
-    if (backupContent !== currentContent) {
+    const backupContent = deps.readFile(backupFile);
+    const currentContent = deps.readFile(currentFile);
+    if (!backupContent.ok || !currentContent.ok) continue;
+
+    if (backupContent.value !== currentContent.value) {
       deps.stderr(`GitAutoSync: WARNING — ${file} changed unexpectedly during merge pull`);
     }
   }
 }
 
-/**
- * Core git auto-sync pipeline.
- * Exported for backward compatibility with existing test suite.
- */
-export function runGitAutoSync(deps: GitAutoSyncDeps = defaultDeps): void {
-  try {
-    const status = deps.execSync("git status --porcelain", {
-      cwd: deps.claudeDir,
-      encoding: "utf-8",
-      timeout: 5000,
-    }).trim();
+// ─── Default Deps ────────────────────────────────────────────────────────────
 
-    if (!status) {
-      deps.exit(0);
-      return;
-    }
-
-    const lastCommitEpoch = deps.execSync(
-      'git log -1 --format=%ct --grep="auto-sync"',
-      { cwd: deps.claudeDir, encoding: "utf-8", timeout: 5000 }
-    ).trim();
-
-    if (lastCommitEpoch) {
-      const elapsedMinutes = (deps.dateNow() / 1000 - Number(lastCommitEpoch)) / 60;
-      if (elapsedMinutes < DEBOUNCE_MINUTES) {
-        if (deps.debug) {
-          deps.stderr(`GitAutoSync: debounced (${Math.round(elapsedMinutes)}m since last, need ${DEBOUNCE_MINUTES}m)`);
-        }
-        deps.exit(0);
-        return;
-      }
-    }
-
-    const timestamp = deps.getTimestamp();
-
-    deps.execSync("git add -A", { cwd: deps.claudeDir, timeout: 5000 });
-    deps.execSync(
-      `git commit -m "auto-sync: session end ${timestamp}"`,
-      { cwd: deps.claudeDir, timeout: 10000 }
-    );
-
-    const backup = backupKeyFiles(deps);
-
-    deps.execSync("git pull --no-rebase origin main", {
-      cwd: deps.claudeDir,
-      timeout: 15000,
-      stdio: "ignore",
-    });
-
-    if (backup) {
-      checkPostMergeDiff(deps, backup);
-    }
-
-    const child = deps.spawn("git", ["push", "origin", "main"], {
-      cwd: deps.claudeDir,
-      detached: true,
-      stdio: "ignore",
-    });
-    child.unref();
-  } catch (error: any) {
-    cleanupLock(deps);
-    if (deps.debug) {
-      deps.stderr(`GitAutoSync: ${error.message}`);
-    }
-  }
-}
-
-// ─── Contract ────────────────────────────────────────────────────────────────
+const BASE_DIR = join(homedir(), ".claude");
 
 const defaultDeps: GitAutoSyncDeps = {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => {
-    const r = execSyncSafe(cmd, { cwd: opts?.cwd as string, timeout: opts?.timeout as number, stdio: opts?.stdio });
-    if (!r.ok) throw r.error;
-    return r.value;
-  },
-  spawn: (cmd: string, args: string[], opts?: Record<string, unknown>) => {
-    spawnBackground(cmd, args, { cwd: opts?.cwd as string });
-    return { unref() {} };
-  },
+  execSync: execSyncSafe,
+  spawnBackground,
+  fileExists,
+  readFile,
+  ensureDir,
+  copyFile,
+  removeFile,
   dateNow: () => Date.now(),
-  exit: (code) => process.exit(code),
-  claudeDir: CLAUDE_DIR,
-  backupDir: BACKUP_DIR,
-  debug: !!process.env.DEBUG,
   getTimestamp: getLocalTimestamp,
-  mkdirSync: (path) => { ensureDir(path); return undefined; },
-  copyFileSync: (src, dest) => { copyFile(src, dest); },
-  readFileSync: (path) => {
-    const r = readFile(path);
-    if (!r.ok) throw r.error;
-    return r.value;
-  },
-  existsSync: fileExists,
-  unlinkSync: (path) => { removeFile(path); },
+  claudeDir: BASE_DIR,
+  backupDir: join(BASE_DIR, ".backup"),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
+
+// ─── Contract ────────────────────────────────────────────────────────────────
 
 export const GitAutoSync: HookContract<
   SessionEndInput,
@@ -222,9 +169,75 @@ export const GitAutoSync: HookContract<
     _input: SessionEndInput,
     deps: GitAutoSyncDeps,
   ): Result<SilentOutput, PaiError> {
-    // Suppress exit calls — the runner handles exit
-    const noExitDeps = { ...deps, exit: () => {} };
-    runGitAutoSync(noExitDeps);
+    // 1. Check for uncommitted changes
+    const statusResult = deps.execSync("git status --porcelain", {
+      cwd: deps.claudeDir,
+      timeout: 5000,
+    });
+    if (!statusResult.ok) {
+      cleanupLock(deps);
+      deps.stderr(`[GitAutoSync] git status failed: ${statusResult.error.message}`);
+      return ok({ type: "silent" });
+    }
+
+    if (!statusResult.value.trim()) {
+      deps.stderr("[GitAutoSync] No changes to sync");
+      return ok({ type: "silent" });
+    }
+
+    // 2. Debounce — skip if last auto-sync was recent
+    if (isDebounced(deps)) {
+      return ok({ type: "silent" });
+    }
+
+    // 3. Stage all changes
+    const addResult = deps.execSync("git add -A", {
+      cwd: deps.claudeDir,
+      timeout: 5000,
+    });
+    if (!addResult.ok) {
+      cleanupLock(deps);
+      deps.stderr(`[GitAutoSync] git add failed: ${addResult.error.message}`);
+      return ok({ type: "silent" });
+    }
+
+    // 4. Commit
+    const timestamp = deps.getTimestamp();
+    const commitResult = deps.execSync(
+      `git commit -m "auto-sync: session end ${timestamp}"`,
+      { cwd: deps.claudeDir, timeout: 10000 },
+    );
+    if (!commitResult.ok) {
+      cleanupLock(deps);
+      deps.stderr(`[GitAutoSync] git commit failed: ${commitResult.error.message}`);
+      return ok({ type: "silent" });
+    }
+
+    // 5. Backup key files before pull
+    const backup = backupKeyFiles(deps);
+
+    // 6. Pull with merge
+    const pullResult = deps.execSync("git pull --no-rebase origin main", {
+      cwd: deps.claudeDir,
+      timeout: 15000,
+    });
+    if (!pullResult.ok) {
+      cleanupLock(deps);
+      deps.stderr(`[GitAutoSync] git pull failed: ${pullResult.error.message}`);
+      return ok({ type: "silent" });
+    }
+
+    // 7. Verify no key files changed unexpectedly
+    if (backup) {
+      checkPostMergeDiff(deps, backup);
+    }
+
+    // 8. Push in background
+    deps.spawnBackground("git", ["push", "origin", "main"], {
+      cwd: deps.claudeDir,
+    });
+
+    deps.stderr("[GitAutoSync] Synced and pushing to origin");
     return ok({ type: "silent" });
   },
 
