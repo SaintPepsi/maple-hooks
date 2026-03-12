@@ -13,7 +13,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 | **DestructiveDeleteGuard** | PreToolUse | Blocks recursive force-delete patterns in Bash/Edit/Write (skips .md/.mdx files) |
 | **SecurityValidator** | PreToolUse | Validates Bash commands and file paths against YAML security patterns |
 | **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx files are Read |
-| **CodeQualityGuard** | PostToolUse | SOLID quality scoring |
+| **CodeQualityGuard** | PostToolUse | SOLID quality scoring (suppresses `type-import-ratio` and `options-object-width` for test files) |
 | **DocObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until docs updated |
 | **GitAutoSync** | SessionEnd | Auto-commits and pushes ~/.claude on session end (debounced, with key file backup) |
 | **HookExecutePermission** | PostToolUse | Auto-chmod on new hook files |

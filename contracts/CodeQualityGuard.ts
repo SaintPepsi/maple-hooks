@@ -9,15 +9,15 @@
  * quality delta and reports directional change (Phase 7d: QualityDelta).
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { fileExists, readFile, readJson } from "../core/adapters/fs";
-import { getLanguageProfile, isScorableFile } from "../core/language-profiles";
-import { scoreFile, formatAdvisory, formatDelta, type QualityScore } from "../core/quality-scorer";
-import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "../lib/signal-logger";
+import type { HookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { fileExists, readFile, readJson } from "@hooks/core/adapters/fs";
+import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
+import { scoreFile, formatAdvisory, formatDelta, type QualityScore } from "@hooks/core/quality-scorer";
+import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
 import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -46,6 +46,13 @@ function getFilePath(input: ToolHookInput): string | null {
     return (input.tool_input.file_path as string) ?? null;
   }
   return null;
+}
+
+const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
+const TEST_SUPPRESSED_CHECKS = new Set(["type-import-ratio", "options-object-width"]);
+
+function isTestFile(filePath: string): boolean {
+  return TEST_FILE_PATTERN.test(filePath);
 }
 
 function getBaselineScore(
@@ -116,6 +123,13 @@ export const CodeQualityGuard: HookContract<
     }
 
     const result = deps.scoreFile(contentResult.value, profile, filePath);
+
+    // Suppress false-positive checks for test files (type-import-ratio, options-object-width)
+    if (isTestFile(filePath)) {
+      result.violations = result.violations.filter(
+        (v) => !TEST_SUPPRESSED_CHECKS.has(v.check),
+      );
+    }
 
     // Phase 7d: QualityDelta — check for baseline and compute delta
     const baseline = getBaselineScore(filePath, input.session_id, deps);

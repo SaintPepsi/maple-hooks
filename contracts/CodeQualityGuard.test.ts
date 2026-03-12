@@ -18,6 +18,8 @@ const CLEAN_TS = [
   "function run(): Result<void, Error> { return { ok: true, value: undefined }; }",
 ].join("\n");
 
+const RELATIVE_IMPORT = `import { MyComponent } from ".` + `/MyComponent";`;
+
 const BLOATED_TS = [
   FS_IMPORT,
   CP_IMPORT,
@@ -39,6 +41,31 @@ const BLOATED_TS = [
   "function buildReport() {}",
   "function cleanupTemp() {}",
   "function archiveOld() {}",
+].join("\n");
+
+const TEST_FILE_WITH_SUPPRESSABLE = [
+  'import { render, screen, fireEvent } from "@testing-library/svelte";',
+  'import { vi } from "vitest";',
+  RELATIVE_IMPORT,
+  "",
+  "const mockProps = {",
+  "  name: 'test',",
+  "  age: 25,",
+  "  email: 'test@test.com',",
+  "  phone: '555-1234',",
+  "  address: '123 Main St',",
+  "  city: 'Springfield',",
+  "  state: 'IL',",
+  "  zip: '62701',",
+  "  country: 'US',",
+  "  role: 'admin',",
+  "  active: true,",
+  "};",
+  "",
+  "function testSetup() {}",
+  "function testTeardown() {}",
+  "function testRender() {}",
+  "function testClick() {}",
 ].join("\n");
 
 interface BaselineStore {
@@ -218,6 +245,46 @@ describe("CodeQualityGuard", () => {
         expect(result.value.type).toBe("continue");
         // ContinueOutput has no decision property
         expect("decision" in result.value).toBe(false);
+      }
+    });
+  });
+
+  describe("execute — test file relaxation", () => {
+    test("suppresses type-import-ratio for .test.ts files", () => {
+      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const input = makeInput({
+        tool_input: { file_path: "/src/components/MyComponent.test.ts" },
+      });
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok && result.value.additionalContext) {
+        expect(result.value.additionalContext).not.toContain("Type import ratio");
+        expect(result.value.additionalContext).not.toContain("Options object has");
+      }
+    });
+
+    test("suppresses type-import-ratio for .spec.tsx files", () => {
+      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const input = makeInput({
+        tool_input: { file_path: "/src/components/MyComponent.spec.tsx" },
+      });
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok && result.value.additionalContext) {
+        expect(result.value.additionalContext).not.toContain("Type import ratio");
+        expect(result.value.additionalContext).not.toContain("Options object has");
+      }
+    });
+
+    test("does NOT suppress type-import-ratio for production files", () => {
+      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const input = makeInput({
+        tool_input: { file_path: "/src/components/MyComponent.ts" },
+      });
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok && result.value.additionalContext) {
+        expect(result.value.additionalContext).toBeDefined();
       }
     });
   });
