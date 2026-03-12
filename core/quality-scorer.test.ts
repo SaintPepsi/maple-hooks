@@ -186,11 +186,10 @@ describe("quality-scorer", () => {
       expect(depthViolation!.value).toBeGreaterThanOrEqual(4);
     });
 
-    test("detects missing Deps interface in hook file", () => {
+    test("skips Deps check for hook shell files", () => {
       const result = scoreFile(NO_DEPS_HOOK, tsProfile, "hooks/MyHook.hook.ts");
       const depsViolation = result.violations.find((v) => v.check === "missing-deps-interface");
-      expect(depsViolation).toBeDefined();
-      expect(depsViolation!.severity).toBe("major");
+      expect(depsViolation).toBeUndefined();
     });
 
     test("skips Deps check for non-hook files", () => {

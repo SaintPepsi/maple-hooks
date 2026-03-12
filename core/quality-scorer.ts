@@ -11,7 +11,7 @@
  *   DIP enforcement (12): relative import depth
  */
 
-import type { LanguageProfile } from "./language-profiles";
+import type { LanguageProfile } from "@hooks/core/language-profiles";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -149,7 +149,7 @@ function typeImportRatio(content: string, profile: LanguageProfile): number {
 }
 
 function hasDepsInterface(content: string, filePath: string): boolean | null {
-  if (!filePath.endsWith(".hook.ts") && !filePath.includes("/contracts/")) return null;
+  if (!filePath.includes("/contracts/")) return null;
   return /interface\s+\w*Deps\b/m.test(content);
 }
 

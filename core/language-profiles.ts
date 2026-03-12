@@ -183,6 +183,8 @@ export const SKIP_FILENAMES = new Set([
   "vite.config.mjs",
   // Contains intentional violation strings as test fixtures
   "coding-standards-checks.test.ts",
+  // Contains intentional violation strings as test fixtures
+  "quality-scorer.test.ts",
 ]);
 
 /**

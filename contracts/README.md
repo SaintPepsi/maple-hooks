@@ -9,7 +9,7 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 | **BranchAwareness** | PostToolUse | Tracks git branch context |
 | **CheckVersion** | SessionStart | Notifies if Claude Code update available |
 | **CitationEnforcement** | PostToolUse | Ensures sources are cited after research |
-| **CodingStandardsEnforcer** | PreToolUse | Blocks Edit/Write on .ts/.tsx files with coding standard violations |
+| **CodingStandardsEnforcer** | PreToolUse | Blocks Edit/Write on .ts/.tsx files with coding standard violations (including export default) |
 | **DestructiveDeleteGuard** | PreToolUse | Blocks recursive force-delete patterns in Bash/Edit/Write (skips .md/.mdx files) |
 | **SecurityValidator** | PreToolUse | Validates Bash commands and file paths against YAML security patterns |
 | **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx files are Read |

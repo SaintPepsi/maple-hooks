@@ -93,6 +93,7 @@ function formatBlockMessage(violations: Violation[], filePath: string): string {
     "inline-import-type": "Inline import types (use top-level import type declarations):",
     "as-any": "Unsafe type casts (use proper types or unknown intermediate):",
     "relative-import": "Relative imports (use non-relative path aliases):",
+    "export-default": "Default exports (use named exports instead):",
   };
 
   for (const [category, label] of Object.entries(categoryLabels)) {
@@ -113,6 +114,7 @@ function formatBlockMessage(violations: Violation[], filePath: string): string {
     "inline-import-type": "Use top-level import type declarations (not inline import types)",
     "as-any": "Use proper types (not unsafe type casts)",
     "relative-import": "Use non-relative path aliases (not relative imports)",
+    "export-default": "Use named exports (not export default)",
   };
 
   sections.push("Coding Standards require:");
@@ -188,7 +190,7 @@ export const CodingStandardsEnforcer: HookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const violations = findAllViolations(contentToCheck);
+    const violations = findAllViolations(contentToCheck, filePath);
 
     if (violations.length === 0) {
       deps.stderr(`[CodingStandardsEnforcer] ${filePath}: clean`);

@@ -197,6 +197,33 @@ describe("CodingStandardsEnforcer", () => {
       expect(result.type).toBe("block");
     });
 
+    it("blocks export default function", () => {
+      const input = makeWriteInput(
+        "/src/handler.ts",
+        "export default function handler() { return 42; }",
+      );
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("block");
+    });
+
+    it("blocks export default object", () => {
+      const input = makeWriteInput(
+        "/src/config.ts",
+        "const cfg = { port: 3000 };\nexport default cfg;",
+      );
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("block");
+    });
+
+    it("allows named exports", () => {
+      const input = makeWriteInput(
+        "/src/math.ts",
+        "export function add(a: number, b: number): number {\n  return a + b;\n}\nexport const PI = 3.14;",
+      );
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("continue");
+    });
+
     it("allows process.env inside defaultDeps", () => {
       const content = [
         "const defaultDeps = {",
