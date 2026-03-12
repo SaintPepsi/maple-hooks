@@ -139,18 +139,36 @@ export function run(deps: ExportHooksDeps = defaultDeps): void {
   }
   const settings = JSON.parse(settingsResult.value!);
 
-  const sourcePrefix = process.argv[2] || "${PAI_DIR}/hooks/";
   const targetPrefix = `\${${envVar}}/hooks/`;
+  const sourcePrefix = process.argv[2] || targetPrefix;
 
   const extracted = extractHooksForRepo(settings, sourcePrefix, targetPrefix);
   const exported = filterToExistingFiles(extracted, repoRoot, deps.fileExists);
 
+  const matcherCount = Object.values(exported.hooks).flat().length;
+
+  // Safety guard: refuse to write empty hooks if settings.hooks.json already has content
+  if (matcherCount === 0) {
+    const outputPath = join(repoRoot, "settings.hooks.json");
+    if (deps.fileExists(outputPath)) {
+      const existing = deps.readFile(outputPath);
+      if (existing.ok) {
+        const parsed = JSON.parse(existing.value!);
+        const existingCount = Object.values(parsed.hooks || {}).flat().length;
+        if (existingCount > 0) {
+          deps.stderr(`[export-hooks] ABORT: Would overwrite ${existingCount} matcher groups with 0. Source prefix "${sourcePrefix}" matched nothing in settings.json. Keeping existing file.`);
+          return;
+        }
+      }
+    }
+  }
+
   const outputPath = join(repoRoot, "settings.hooks.json");
   deps.writeFile(outputPath, JSON.stringify(exported, null, 2) + "\n");
 
-  const skipped = Object.values(extracted.hooks).flat().length - Object.values(exported.hooks).flat().length;
+  const skipped = Object.values(extracted.hooks).flat().length - matcherCount;
   const skippedMsg = skipped > 0 ? ` (${skipped} skipped — no matching file in repo)` : "";
-  deps.stderr(`Exported ${Object.values(exported.hooks).flat().length} matcher groups to settings.hooks.json${skippedMsg}`);
+  deps.stderr(`Exported ${matcherCount} matcher groups to settings.hooks.json${skippedMsg}`);
 }
 
 if (import.meta.main) {
