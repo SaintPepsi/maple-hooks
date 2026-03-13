@@ -207,14 +207,26 @@ export function addToZshrc(content: string, envVar: string, relPath: string): st
   const block = buildZshrcBlock(envVar, relPath);
   const beginIdx = content.indexOf(ZSHRC_BEGIN);
   const endIdx = content.indexOf(ZSHRC_END);
+  const paiEndIdx = content.indexOf("# PAI-END");
 
   if (beginIdx !== -1 && endIdx !== -1) {
-    // Replace existing managed block
-    return content.slice(0, beginIdx) + block + content.slice(endIdx + ZSHRC_END.length);
+    // Remove existing managed block first
+    let stripped = content.slice(0, beginIdx) + content.slice(endIdx + ZSHRC_END.length);
+    // Clean up extra newlines left by removal
+    stripped = stripped.replace(/\n{3,}/g, "\n\n");
+
+    // Re-insert after PAI-END (ensures correct ordering even if block was misplaced)
+    const paiEndInStripped = stripped.indexOf("# PAI-END");
+    if (paiEndInStripped !== -1) {
+      const afterPaiEnd = paiEndInStripped + "# PAI-END".length;
+      return stripped.slice(0, afterPaiEnd) + "\n\n" + block + stripped.slice(afterPaiEnd);
+    }
+
+    // No PAI-END found, append to end
+    return stripped.trimEnd() + "\n\n" + block + "\n";
   }
 
-  // Append after PAI-END block if it exists, otherwise append to end
-  const paiEndIdx = content.indexOf("# PAI-END");
+  // Fresh install: append after PAI-END block if it exists, otherwise append to end
   if (paiEndIdx !== -1) {
     const afterPaiEnd = paiEndIdx + "# PAI-END".length;
     return content.slice(0, afterPaiEnd) + "\n\n" + block + content.slice(afterPaiEnd);

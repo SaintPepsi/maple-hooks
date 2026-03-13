@@ -152,6 +152,23 @@ describe("addToZshrc", () => {
     expect(result).toContain("# after");
   });
 
+  it("relocates block after PAI-END if it was placed before it", () => {
+    const zshrc = [
+      "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do not edit",
+      'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"',
+      "# PAI-HOOKS-END",
+      "",
+      "# PAI-BEGIN — managed by scripts/update.ts, do not edit",
+      'export PAI_DIR="$HOME/.claude"',
+      "# PAI-END",
+    ].join("\n");
+    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "pai-hooks");
+    const paiEndPos = result.indexOf("# PAI-END");
+    const hooksBeginPos = result.indexOf("# PAI-HOOKS-BEGIN");
+    expect(hooksBeginPos).toBeGreaterThan(paiEndPos);
+    expect(result).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"');
+  });
+
   it("appends to end if no PAI-END marker", () => {
     const zshrc = "# just some config\nexport PATH=/usr/bin";
     const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "pai-hooks");
