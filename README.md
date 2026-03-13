@@ -48,7 +48,7 @@ bun install
 bun run install-hooks
 ```
 
-This merges all hooks into `settings.json` (located via `$PAI_DIR`, defaulting to `~/.claude`) and adds `export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"` to your `~/.zshrc` in a managed block. Requires `$PAI_DIR` to be set in your shell (e.g., via PAI's own zshrc block).
+This merges all hooks into `settings.json` (located via `$PAI_DIR`, defaulting to `~/.claude`) and adds `export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"` to your `~/.zshrc` in a managed block. Requires `$PAI_DIR` to be set in your shell (e.g., via PAI's own zshrc block). The installer guarantees the managed block is placed after `# PAI-END` so that `$PAI_DIR` is always defined before `$SAINTPEPSI_PAI_HOOKS_DIR` — even on re-install if the block was previously misplaced.
 
 If you already have hooks with the same name from another source (e.g., a PAI install), the installer detects the conflict and asks whether to keep existing, replace, or keep both. Use `--replace`, `--keep`, or `--both` to skip the prompt:
 
