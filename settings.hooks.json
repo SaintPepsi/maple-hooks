@@ -183,6 +183,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityGuard.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/TypeCheckVerifier.hook.ts"
           }
         ]
       },
@@ -200,6 +204,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/HookExecutePermission.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/TypeCheckVerifier.hook.ts"
           }
         ]
       },
