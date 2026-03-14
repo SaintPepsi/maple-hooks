@@ -6,16 +6,18 @@ Pure business logic for PAI hooks. Each contract implements `HookContract<Input,
 
 | Contract | Event | Purpose |
 |----------|-------|---------|
+| **ArticleWriter** | SessionEnd | Spawns background agent to write Maple's Corner articles. Gates: mac-only, lock file (no concurrent), substance (PRD with 4+ checked ISC criteria). |
 | **BranchAwareness** | PostToolUse | Tracks git branch context |
 | **CheckVersion** | SessionStart | Notifies if Claude Code update available |
 | **CitationEnforcement** | PostToolUse | Ensures sources are cited after research |
-| **CodingStandardsEnforcer** | PreToolUse | Blocks Edit/Write on .ts/.tsx files with coding standard violations (including export default) |
-| **DestructiveDeleteGuard** | PreToolUse | Blocks destructive delete patterns in Bash/Edit/Write: `rm -r`, `find -delete`, `python rmtree`, `node/bun rmSync`, `rsync --delete`, `git clean -d`, `ruby rm_rf`, `perl rmtree` (skips .md/.mdx) |
+| **CodingStandardsEnforcer** | PreToolUse | Blocks Edit/Write on .ts/.tsx/.svelte files with coding standard violations (including export default). For .svelte files, extracts `<script lang="ts">` block before scanning. |
+| **DestructiveDeleteGuard** | PreToolUse | Blocks destructive delete patterns in Bash/Edit/Write: `rm -r`, `find -delete`, `python rmtree`, `node/bun rmSync`, `rsync --delete`, `git clean -d`, `ruby rm_rf`, `perl rmtree` (skips .md/.mdx). Allows plain `rm` of individual files, including paths with hyphens. |
 | **ExecutionEvidenceVerifier** | PostToolUse | Injects context reminder when state-changing Bash commands (git push, deploy, curl POST, etc.) produce thin/absent output. Never blocks — nudges the agent to show actual execution evidence. Classification logic in `lib/execution-classification.ts`. |
 | **SecurityValidator** | PreToolUse | Validates Bash commands and file paths against YAML security patterns |
 | **SonnetDelegation** | PostToolUse | Injects Sonnet subagent delegation guidance when executing-plans skill loads |
-| **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx files are Read |
-| **CodeQualityGuard** | PostToolUse | SOLID quality scoring (suppresses `type-import-ratio` and `options-object-width` for test files) |
+| **CodingStandardsAdvisor** | PostToolUse | Warns about violations when .ts/.tsx/.svelte files are Read. For .svelte files, extracts `<script lang="ts">` block before scanning. |
+| **CodeQualityGuard** | PostToolUse | SOLID quality scoring for .ts/.tsx/.svelte and other source files (suppresses `type-import-ratio` and `options-object-width` for test files). For .svelte files, extracts `<script lang="ts">` block before scoring. |
+| **CodeQualityBaseline** | PostToolUse | Stores quality baselines on Read for later delta comparison. Supports .svelte files via script block extraction. |
 | **DocObligationStateMachine** | PostToolUse + Stop | Tracks code edits, blocks stop until docs updated |
 | **GitAutoSync** | SessionEnd | Auto-commits and pushes ~/.claude on session end (debounced, with key file backup from `pai-hooks/hooks/`). Skips entirely if `.git/index.lock` exists to avoid racing with active sessions. Cleans up stale index.lock if a git operation fails and leaves one behind. |
 | **HookExecutePermission** | PostToolUse | Auto-chmod on new hook files |

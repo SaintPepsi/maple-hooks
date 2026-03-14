@@ -34,6 +34,7 @@ import {
 } from "@hooks/lib/coding-standards-checks";
 import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -188,6 +189,15 @@ export const CodingStandardsEnforcer: HookContract<
 
     if (!contentToCheck) {
       return ok({ type: "continue", continue: true });
+    }
+
+    // For Svelte files, only check the <script lang="ts"> block
+    if (isSvelteFile(filePath)) {
+      const scriptContent = extractSvelteScript(contentToCheck);
+      if (!scriptContent) {
+        return ok({ type: "continue", continue: true });
+      }
+      contentToCheck = scriptContent;
     }
 
     const violations = findAllViolations(contentToCheck, filePath);

@@ -182,7 +182,7 @@ export function findAsAnyCasts(lines: string[]): Violation[] {
 }
 
 /** Detect relative imports (./  or ../ paths). Use non-relative path aliases instead. */
-export function findRelativeImports(lines: string[]): Violation[] {
+export function findRelativeImports(lines: string[], filePath?: string): Violation[] {
   const violations: Violation[] = [];
   // Matches: from './..', from "../..", import('./..'), import("../.."), require('./..'), require("../..")
   // Note: checks original line (not stripped) because the import path IS the string content we need to inspect.
@@ -191,12 +191,16 @@ export function findRelativeImports(lines: string[]): Violation[] {
   const RELATIVE_REQUIRE = /\brequire\(\s*['"]\.\.?\//;
   // SvelteKit convention: ./$types is auto-generated per-route, must be imported relatively
   const DOLLAR_PREFIX_IMPORT = /\bfrom\s+['"]\.\/\$/;
+  // Svelte convention: sibling component imports use relative paths with .svelte extension
+  const SVELTE_COMPONENT_IMPORT = /\bfrom\s+['"][^'"]*\.svelte['"]/;
 
   for (let i = 0; i < lines.length; i++) {
     if (isCommentLine(lines[i])) continue;
 
     const line = lines[i];
     if (DOLLAR_PREFIX_IMPORT.test(line)) continue;
+    // Svelte components are imported relatively by convention — exempt .svelte imports
+    if (SVELTE_COMPONENT_IMPORT.test(line)) continue;
     if (RELATIVE_FROM.test(line) || RELATIVE_DYNAMIC.test(line) || RELATIVE_REQUIRE.test(line)) {
       violations.push({
         line: i + 1,
@@ -215,6 +219,8 @@ export function findExportDefaults(lines: string[], filePath?: string): Violatio
   if (filePath && /\.config\.(ts|js|mts|mjs)$/.test(filePath)) return [];
   // SpacetimeDB schema requires export default for `spacetime generate` CLI
   if (filePath && /spacetimedb\/src\/index\.ts$/.test(filePath)) return [];
+  // Svelte components use implicit default exports by framework convention
+  if (filePath && /\.svelte$/.test(filePath)) return [];
 
   const violations: Violation[] = [];
   for (let i = 0; i < lines.length; i++) {
@@ -235,7 +241,7 @@ export function findExportDefaults(lines: string[], filePath?: string): Violatio
 // ─── File Classification ─────────────────────────────────────────────────────
 
 export function isTypeScriptFile(filePath: string): boolean {
-  return /\.tsx?$/.test(filePath);
+  return /\.tsx?$/.test(filePath) || /\.svelte$/.test(filePath);
 }
 
 export function isSkippedFilename(filePath: string): boolean {
@@ -275,7 +281,7 @@ export function findAllViolations(content: string, filePath?: string): Violation
     ...findDirectEnvAccess(content, lines),
     ...findInlineImportTypes(lines),
     ...findAsAnyCasts(lines),
-    ...findRelativeImports(lines),
+    ...findRelativeImports(lines, filePath),
     ...findExportDefaults(lines, filePath),
   ];
 }

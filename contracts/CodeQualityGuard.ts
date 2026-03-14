@@ -18,6 +18,7 @@ import { fileExists, readFile, readJson } from "@hooks/core/adapters/fs";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
 import { scoreFile, formatAdvisory, formatDelta, type QualityScore } from "@hooks/core/quality-scorer";
 import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
+import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
 import { join } from "path";
 
 // ─── Violation Dedup Cache ────────────────────────────────────────────────────
@@ -130,7 +131,17 @@ export const CodeQualityGuard: HookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const result = deps.scoreFile(contentResult.value, profile, filePath);
+    // For Svelte files, only score the <script lang="ts"> block
+    let contentToScore = contentResult.value;
+    if (isSvelteFile(filePath)) {
+      const scriptContent = extractSvelteScript(contentToScore);
+      if (!scriptContent) {
+        return ok({ type: "continue", continue: true });
+      }
+      contentToScore = scriptContent;
+    }
+
+    const result = deps.scoreFile(contentToScore, profile, filePath);
 
     // Suppress false-positive checks for test files (type-import-ratio, options-object-width)
     if (isTestFile(filePath)) {

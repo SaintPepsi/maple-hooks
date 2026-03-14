@@ -16,6 +16,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -105,7 +106,7 @@ export function findAnyViolations(content: string): AnyViolation[] {
 }
 
 function isTypeScriptFile(filePath: string): boolean {
-  return /\.tsx?$/.test(filePath);
+  return /\.tsx?$/.test(filePath) || isSvelteFile(filePath);
 }
 
 function getNewContent(input: ToolHookInput): string | null {
@@ -180,10 +181,19 @@ export const TypeStrictness: HookContract<
     deps: TypeStrictnessDeps,
   ): Result<ContinueOutput | BlockOutput, PaiError> {
     const filePath = getFilePath(input)!;
-    const content = getNewContent(input);
+    let content = getNewContent(input);
 
     if (!content) {
       return ok({ type: "continue", continue: true });
+    }
+
+    // For Svelte files, only scan the <script lang="ts"> block
+    if (isSvelteFile(filePath)) {
+      const scriptContent = extractSvelteScript(content);
+      if (!scriptContent) {
+        return ok({ type: "continue", continue: true });
+      }
+      content = scriptContent;
     }
 
     const violations = findAnyViolations(content);

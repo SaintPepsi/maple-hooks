@@ -9,14 +9,15 @@
  * Skips small files (under 50 lines), non-source files, and test files.
  */
 
-import type { HookContract } from "../core/contract";
-import type { ToolHookInput } from "../core/types/hook-inputs";
-import type { ContinueOutput } from "../core/types/hook-outputs";
-import { ok, type Result } from "../core/result";
-import type { PaiError } from "../core/error";
-import { fileExists, readFile, readJson, writeJson, ensureDir } from "../core/adapters/fs";
-import { getLanguageProfile, isScorableFile } from "../core/language-profiles";
-import { scoreFile, formatAdvisory, type QualityScore } from "../core/quality-scorer";
+import type { HookContract } from "@hooks/core/contract";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { fileExists, readFile, readJson, writeJson, ensureDir } from "@hooks/core/adapters/fs";
+import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
+import { scoreFile, formatAdvisory, type QualityScore } from "@hooks/core/quality-scorer";
+import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
 import { join, dirname } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -129,7 +130,16 @@ export const CodeQualityBaseline: HookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const content = contentResult.value;
+    let content = contentResult.value;
+
+    // For Svelte files, only score the <script lang="ts"> block
+    if (isSvelteFile(filePath)) {
+      const scriptContent = extractSvelteScript(content);
+      if (!scriptContent) {
+        return ok({ type: "continue", continue: true });
+      }
+      content = scriptContent;
+    }
 
     // Skip small files
     if (countLines(content) < MIN_LINES) {

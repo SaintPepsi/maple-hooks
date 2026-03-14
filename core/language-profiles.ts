@@ -150,10 +150,22 @@ const csharp: LanguageProfile = {
   interfacePattern: /^(?:public\s+)?interface\s+I\w+/gm,
 };
 
+const svelte: LanguageProfile = {
+  name: "Svelte",
+  extensions: ["svelte"],
+  hasInterfaces: true,
+  hasImports: true,
+  commentPrefix: "//",
+  functionPattern: /(?:^|\s)(?:export\s+)?(?:async\s+)?function\s+\w+|(?:^|\s)(?:const|let)\s+\w+\s*=\s*(?:async\s+)?\(/gm,
+  importPattern: /^import\s+/gm,
+  typeImportPattern: /^import\s+type\s+/gm,
+  interfacePattern: /^(?:export\s+)?interface\s+\w+/gm,
+};
+
 // ─── Registry ────────────────────────────────────────────────────────────────
 
 const ALL_PROFILES: LanguageProfile[] = [
-  typescript, javascript, python, go, rust, java, ruby, php, swift, csharp,
+  typescript, javascript, python, go, rust, java, ruby, php, swift, csharp, svelte,
 ];
 
 const extensionMap = new Map<string, LanguageProfile>();
