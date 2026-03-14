@@ -2,16 +2,28 @@ import { describe, it, expect } from "bun:test";
 import {
   LearningActioner,
   buildAgentPrompt,
+  evaluateCredit,
   type LearningActionerDeps,
 } from "@hooks/contracts/LearningActioner";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { dirCreateFailed } from "@hooks/core/error";
 
+// Default readJson returns credit of 9.5 (just under threshold of 10)
+// and 0% utilization, so a single session pushes credit to 10.5 and triggers spawn.
 function makeDeps(overrides: Partial<LearningActionerDeps> = {}): LearningActionerDeps {
   return {
     ...LearningActioner.defaultDeps,
     fileExists: () => false,
     readDir: () => ({ ok: true, value: [] }),
+    readJson: (path: string) => {
+      if (path.includes("learning-agent-credit.json")) {
+        return { ok: true, value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" } };
+      }
+      if (path.includes("usage-cache.json")) {
+        return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
+      }
+      return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
+    },
     ensureDir: () => ({ ok: true, value: undefined }),
     writeFile: () => ({ ok: true, value: undefined }),
     removeFile: () => ({ ok: true, value: undefined }),
@@ -58,7 +70,7 @@ describe("LearningActioner contract", () => {
     expect(result.value.type).toBe("silent");
   });
 
-  it("cleans up stale .analyzing lock file (>10 min old)", () => {
+  it("cleans up stale .analyzing lock file (>45 min old)", () => {
     let removedPath = "";
     const deps = makeDeps({
       fileExists: (path: string) => {
@@ -68,7 +80,7 @@ describe("LearningActioner contract", () => {
       },
       stat: (path: string) => {
         if (path.endsWith(".analyzing")) {
-          return { ok: true, value: { mtimeMs: Date.now() - 11 * 60 * 1000 } };
+          return { ok: true, value: { mtimeMs: Date.now() - 46 * 60 * 1000 } };
         }
         return { ok: true, value: { mtimeMs: Date.now() } };
       },
@@ -123,18 +135,17 @@ describe("LearningActioner contract", () => {
     expect(spawnedArgs[1]).toBe("/tmp/test-pai");
   });
 
-  it("returns silent when cooldown file is fresh (< 6 hours)", () => {
+  it("returns silent when credit is below threshold", () => {
     const deps = makeDeps({
-      fileExists: (path: string) => {
-        if (path.endsWith(".last-analysis")) return true;
-        if (path.endsWith("algorithm-reflections.jsonl")) return true;
-        return false;
-      },
-      stat: (path: string) => {
-        if (path.endsWith(".last-analysis")) {
-          return { ok: true, value: { mtimeMs: Date.now() - 3600 * 1000 } }; // 1 hour ago
+      fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
+      readJson: (path: string) => {
+        if (path.includes("learning-agent-credit.json")) {
+          return { ok: true, value: { credit: 3.0, last_updated: "2026-01-01T00:00:00Z" } };
         }
-        return { ok: true, value: { mtimeMs: Date.now() } };
+        if (path.includes("usage-cache.json")) {
+          return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
+        }
+        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
       },
     });
     const result = LearningActioner.execute(makeInput(), deps);
@@ -142,24 +153,43 @@ describe("LearningActioner contract", () => {
     expect(result.value.type).toBe("silent");
   });
 
-  it("runs when cooldown file is stale (> 6 hours)", () => {
+  it("spawns when credit crosses threshold of 10", () => {
     let spawned = false;
     const deps = makeDeps({
-      fileExists: (path: string) => {
-        if (path.endsWith(".last-analysis")) return true;
-        if (path.endsWith("algorithm-reflections.jsonl")) return true;
-        return false;
-      },
-      stat: (path: string) => {
-        if (path.endsWith(".last-analysis")) {
-          return { ok: true, value: { mtimeMs: Date.now() - 7 * 3600 * 1000 } }; // 7 hours ago
+      fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
+      readJson: (path: string) => {
+        if (path.includes("learning-agent-credit.json")) {
+          return { ok: true, value: { credit: 9.5, last_updated: "2026-01-01T00:00:00Z" } };
         }
-        return { ok: true, value: { mtimeMs: Date.now() } };
+        if (path.includes("usage-cache.json")) {
+          return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
+        }
+        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
       },
       spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
     });
     LearningActioner.execute(makeInput(), deps);
     expect(spawned).toBe(true);
+  });
+
+  it("returns silent when projected 5h usage >= 100%", () => {
+    let spawned = false;
+    const deps = makeDeps({
+      fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
+      readJson: (path: string) => {
+        if (path.includes("learning-agent-credit.json")) {
+          return { ok: true, value: { credit: 9.99, last_updated: "2026-01-01T00:00:00Z" } };
+        }
+        if (path.includes("usage-cache.json")) {
+          // 80% with 4h remaining (1h elapsed) → projected 400%
+          return { ok: true, value: { five_hour: { utilization: 80, resets_at: new Date(Date.now() + 4 * 3600 * 1000).toISOString() } } };
+        }
+        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
+      },
+      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+    });
+    LearningActioner.execute(makeInput(), deps);
+    expect(spawned).toBe(false);
   });
 
   it("returns silent without spawning when ensureDir fails", () => {
@@ -233,7 +263,7 @@ describe("LearningActioner contract", () => {
       },
       stat: (path: string) => {
         if (path.endsWith(".analyzing")) {
-          return { ok: true, value: { mtimeMs: Date.now() - 11 * 60 * 1000 } };
+          return { ok: true, value: { mtimeMs: Date.now() - 46 * 60 * 1000 } };
         }
         return { ok: true, value: { mtimeMs: Date.now() } };
       },
@@ -269,6 +299,12 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("/home/test/.claude");
   });
 
+  it("interpolates baseDir in working directory and proposals path", () => {
+    const prompt = buildAgentPrompt("/Users/ian/.claude");
+    expect(prompt).toContain("WORKING DIRECTORY: /Users/ian/.claude");
+    expect(prompt).toContain("Write proposals to: /Users/ian/.claude/MEMORY/LEARNING/PROPOSALS/pending/");
+  });
+
   it("mentions learning source paths", () => {
     const prompt = buildAgentPrompt("/tmp/pai");
     expect(prompt).toContain("algorithm-reflections.jsonl");
@@ -296,6 +332,114 @@ describe("buildAgentPrompt", () => {
     expect(prompt).toContain("hook");
     expect(prompt).toContain("skill");
     expect(prompt).toContain("workflow");
+    expect(prompt).toContain("token-efficiency");
+  });
+
+  it("includes all 5 sections", () => {
+    const prompt = buildAgentPrompt("/tmp/pai");
+    expect(prompt).toContain("SECTION 1: LEARNING SOURCES");
+    expect(prompt).toContain("SECTION 2: SYSTEM STATE");
+    expect(prompt).toContain("SECTION 3: FEEDBACK CORPUS");
+    expect(prompt).toContain("SECTION 4: RECENT WORK CONTEXT");
+    expect(prompt).toContain("SECTION 5: PROPOSAL FORMAT");
+  });
+
+  it("includes confidence scoring template", () => {
+    const prompt = buildAgentPrompt("/tmp/pai");
+    expect(prompt).toContain("agent_score:");
+    expect(prompt).toContain("agent_reasoning:");
+    expect(prompt).toContain("similar_to_applied:");
+    expect(prompt).toContain("differs_from_rejected:");
+  });
+
+  it("includes system state awareness instructions", () => {
+    const prompt = buildAgentPrompt("/tmp/pai");
+    expect(prompt).toContain("CLAUDE.md");
+    expect(prompt).toContain("AISTEERINGRULES.md");
+    expect(prompt).toContain("skill-index.json");
+  });
+
+  it("includes feedback corpus instructions with context budget", () => {
+    const prompt = buildAgentPrompt("/tmp/pai");
+    expect(prompt).toContain("Read at most 10 most recent proposals");
+    expect(prompt).toContain("Backfilled");
+    expect(prompt).toContain("decision_rationale");
+  });
+
+  it("includes git diff instruction for applied proposals", () => {
+    const prompt = buildAgentPrompt("/tmp/pai");
+    expect(prompt).toContain("git log --oneline");
+  });
+});
+
+describe("evaluateCredit", () => {
+  function makeCreditDeps(opts: {
+    credit?: number;
+    creditMissing?: boolean;
+    utilization?: number;
+    resetsAt?: string;
+    usageMissing?: boolean;
+  } = {}): LearningActionerDeps {
+    return makeDeps({
+      readJson: (path: string) => {
+        if (path.includes("learning-agent-credit.json")) {
+          if (opts.creditMissing) return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
+          return { ok: true, value: { credit: opts.credit ?? 0, last_updated: "2026-01-01T00:00:00Z" } };
+        }
+        if (path.includes("usage-cache.json")) {
+          if (opts.usageMissing) return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
+          return { ok: true, value: { five_hour: { utilization: opts.utilization ?? 0, resets_at: opts.resetsAt ?? "" } } };
+        }
+        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as ReturnType<LearningActionerDeps["readJson"]>;
+      },
+    });
+  }
+
+  it("accumulates credit proportional to remaining headroom", () => {
+    const result = evaluateCredit("/tmp/test", makeCreditDeps({ utilization: 50, credit: 0 }));
+    expect(result.newCredit).toBeCloseTo(0.50);
+    expect(result.shouldSpawn).toBe(false);
+  });
+
+  it("spawns when credit crosses threshold of 10", () => {
+    const result = evaluateCredit("/tmp/test", makeCreditDeps({ utilization: 5, credit: 9.5 }));
+    expect(result.shouldSpawn).toBe(true);
+    expect(result.newCredit).toBe(0); // Reset after spawn
+  });
+
+  it("hard blocks when projected 5h usage >= 100%", () => {
+    const result = evaluateCredit("/tmp/test", makeCreditDeps({
+      utilization: 80,
+      resetsAt: new Date(Date.now() + 4 * 3600 * 1000).toISOString(), // 4h remaining = 1h elapsed
+      credit: 9.99,
+    }));
+    expect(result.shouldSpawn).toBe(false);
+    expect(result.newCredit).toBe(-1); // Blocked, no accumulation
+  });
+
+  it("does not accumulate credit when projection blocks", () => {
+    const result = evaluateCredit("/tmp/test", makeCreditDeps({
+      utilization: 95,
+      resetsAt: new Date(Date.now() + 4.5 * 3600 * 1000).toISOString(),
+      credit: 5.0,
+    }));
+    expect(result.newCredit).toBe(-1);
+  });
+
+  it("falls back to 0% utilization when usage-cache.json missing", () => {
+    const result = evaluateCredit("/tmp/test", makeCreditDeps({ usageMissing: true, credit: 0 }));
+    expect(result.newCredit).toBeCloseTo(1.0);
+  });
+
+  it("falls back to 0 credit when credit file missing", () => {
+    const result = evaluateCredit("/tmp/test", makeCreditDeps({ utilization: 50, creditMissing: true }));
+    expect(result.newCredit).toBeCloseTo(0.50);
+  });
+
+  it("resets credit to 0 on spawn", () => {
+    const result = evaluateCredit("/tmp/test", makeCreditDeps({ credit: 9.8, utilization: 0 }));
+    expect(result.shouldSpawn).toBe(true);
+    expect(result.newCredit).toBe(0);
   });
 });
 

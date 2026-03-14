@@ -1,9 +1,9 @@
 /**
- * Learning Agent Runner — Wrapper that runs claude synchronously and handles cleanup.
+ * Learning Agent Runner — Wrapper that runs claude (opus) synchronously and handles cleanup.
  *
  * Spawned by LearningActioner as a detached bun process.
  * Imports buildAgentPrompt directly, runs claude -p, then deterministically
- * cleans up lock/cooldown files regardless of claude's exit status.
+ * cleans up the lock file regardless of claude's exit status.
  *
  * This ensures infrastructure cleanup is code-based (guaranteed) rather than
  * prompt-based (unreliable). It also prevents recursive spawning: while claude
@@ -12,7 +12,7 @@
  */
 
 import { execSyncSafe } from "@hooks/core/adapters/process";
-import { writeFile, removeFile } from "@hooks/core/adapters/fs";
+import { removeFile } from "@hooks/core/adapters/fs";
 import { join } from "path";
 import { buildAgentPrompt } from "@hooks/contracts/LearningActioner";
 
@@ -23,16 +23,14 @@ const defaultDeps = {
 export function run(baseDir: string, cmd: string = "claude"): void {
   const proposalsDir = join(baseDir, "MEMORY/LEARNING/PROPOSALS");
   const lockPath = join(proposalsDir, ".analyzing");
-  const cooldownPath = join(proposalsDir, ".last-analysis");
 
   const prompt = buildAgentPrompt(baseDir);
 
-  const env = { ...defaultDeps.processEnv, CLAUDECODE: undefined };
-  const args = `${cmd} -p ${JSON.stringify(prompt)} --max-turns 10`;
-  execSyncSafe(args, { timeout: 10 * 60 * 1000 });
+  const args = `${cmd} -p ${JSON.stringify(prompt)} --max-turns 25 --model opus`;
+  execSyncSafe(args, { timeout: 30 * 60 * 1000 });
 
   // Cleanup — always runs after exec completes (success or failure)
-  writeFile(cooldownPath, new Date().toISOString());
+  // Credit accumulation in LearningActioner.execute replaces cooldown file
   removeFile(lockPath);
 }
 

@@ -366,8 +366,10 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
     // Only match category in YAML frontmatter (between --- delimiters)
     const frontmatter = content.value.match(/^---\n([\s\S]*?)\n---/);
     const categoryMatch = frontmatter?.[1]?.match(/^category:\s*(.+)$/m);
+    const confidenceMatch = frontmatter?.[1]?.match(/^\s*agent_score:\s*(\d+)/m);
+    const confidence = confidenceMatch ? ` | confidence: ${confidenceMatch[1]}` : "";
     if (titleMatch) {
-      summaries.push(`  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"})`);
+      summaries.push(`  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"}${confidence})`);
     }
   }
 
@@ -378,11 +380,11 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   return `\n## Pending Improvement Proposals\n\n` +
     `You have **${proposals.length}** pending improvement proposal${proposals.length === 1 ? "" : "s"} from recent learnings:\n` +
     summaries.join("\n") + more + "\n\n" +
-    `Present these to Ian for review. ` +
-    `Read each proposal file for full details.\n` +
+    `Present these to Ian for review using /review-proposals for structured batch review.\n` +
     `Path: MEMORY/LEARNING/PROPOSALS/pending/\n` +
-    `To approve: apply the change and move the file to PROPOSALS/applied/\n` +
-    `To reject: move the file to PROPOSALS/rejected/\n`;
+    `To approve: apply the change, annotate with rationale, move to PROPOSALS/applied/\n` +
+    `To reject: annotate with rationale, move to PROPOSALS/rejected/\n` +
+    `To defer: annotate with rationale, move to PROPOSALS/deferred/\n`;
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
