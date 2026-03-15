@@ -113,7 +113,60 @@ export function parseCriteriaCounts(content: string): { total: number; done: num
   return { total: done + todo, done };
 }
 
+// ─── Session Dir Extraction ──────────────────────────────────────────────────
+
+/**
+ * Extract the first directory component after MEMORY/WORK/ from a PRD file path.
+ * Returns null if the path doesn't contain MEMORY/WORK/ or has no directory after it.
+ */
+export function extractSessionDir(filePath: string): string | null {
+  const marker = "MEMORY/WORK/";
+  const idx = filePath.indexOf(marker);
+  if (idx === -1) return null;
+
+  const afterMarker = filePath.slice(idx + marker.length);
+  const slashIdx = afterMarker.indexOf("/");
+  if (slashIdx === -1) return null;
+
+  const dirName = afterMarker.slice(0, slashIdx);
+  return dirName || null;
+}
+
 // ─── Core Logic ──────────────────────────────────────────────────────────────
+
+/**
+ * Update the session state file (current-work-{sessionId}.json) to point
+ * to the correct session directory. Skips if no state file exists.
+ */
+function syncSessionState(
+  sessionId: string,
+  sessionDir: string,
+  prdPath: string,
+  deps: PRDSyncDeps,
+): void {
+  const stateFilePath = join(deps.baseDir, "MEMORY", "STATE", `current-work-${sessionId}.json`);
+
+  if (!deps.fileExists(stateFilePath)) {
+    deps.stderr(`[PRDSync] No session state file for ${sessionId}, skipping session state sync`);
+    return;
+  }
+
+  const readResult = deps.readJson<Record<string, unknown>>(stateFilePath);
+  if (!readResult.ok) {
+    deps.stderr(`[PRDSync] Failed to read session state: ${readResult.error.message}`);
+    return;
+  }
+
+  const state = readResult.value;
+  state.session_dir = sessionDir;
+
+  const writeResult = deps.writeFile(stateFilePath, JSON.stringify(state, null, 2));
+  if (!writeResult.ok) {
+    deps.stderr(`[PRDSync] Failed to write session state: ${writeResult.error.message}`);
+  } else {
+    deps.stderr(`[PRDSync] Updated session state → session_dir=${sessionDir}`);
+  }
+}
 
 /**
  * Read work.json, upsert the entry for the given slug, and write it back.
@@ -220,6 +273,13 @@ export const PRDSync: SyncHookContract<
       deps.stderr(`[PRDSync] Failed to write work.json: ${syncResult.error.message}`);
     } else {
       deps.stderr(`[PRDSync] Synced ${slug} → phase=${entry.phase} progress=${entry.progress}`);
+    }
+
+    // Sync session state file so downstream consumers (ArticleWriter, etc.)
+    // can find the PRD via the correct session directory
+    const sessionDir = extractSessionDir(filePath);
+    if (sessionDir) {
+      syncSessionState(input.session_id, sessionDir, filePath, deps);
     }
 
     return ok({ type: "continue", continue: true });
