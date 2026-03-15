@@ -11,11 +11,13 @@ import {
   appendFileSync,
   mkdirSync,
   unlinkSync,
+  rmSync,
   copyFileSync,
   statSync,
   readdirSync,
   symlinkSync,
   lstatSync,
+  utimesSync,
 } from "fs";
 import { dirname } from "path";
 import { type Result, ok, tryCatch } from "../result";
@@ -82,6 +84,20 @@ export function ensureDir(path: string): Result<void, PaiError> {
 export function removeFile(path: string): Result<void, PaiError> {
   return tryCatch(
     () => { unlinkSync(path); },
+    (e) => fileWriteFailed(path, e),
+  );
+}
+
+export function removeDir(path: string): Result<void, PaiError> {
+  return tryCatch(
+    () => { rmSync(path, { recursive: true, force: true }); },
+    (e) => dirCreateFailed(path, e),
+  );
+}
+
+export function setFileTimes(path: string, atime: Date, mtime: Date): Result<void, PaiError> {
+  return tryCatch(
+    () => { utimesSync(path, atime, mtime); },
     (e) => fileWriteFailed(path, e),
   );
 }

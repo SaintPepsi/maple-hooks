@@ -398,7 +398,7 @@ const CHECKS: CheckSpec[] = [
     direction: "above",
     compute: (c, _p, f) => {
       if (!f.includes("/contracts/") || f.includes(".test.")) return -1;
-      const hasExport = /export\s+const\s+\w+\s*:\s*HookContract/m.test(c);
+      const hasExport = /export\s+const\s+\w+\s*:\s*(?:Sync|Async)?HookContract/m.test(c);
       return hasExport ? 0 : 1;
     },
     skip: (_p, v) => v === -1,

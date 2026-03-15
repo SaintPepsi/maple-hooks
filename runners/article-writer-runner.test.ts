@@ -8,6 +8,7 @@ function makeDeps(overrides: Partial<RunnerDeps> = {}): RunnerDeps {
     spawnSyncSafe: () => ok({ stdout: "", exitCode: 0 }),
     writeFile: () => ok(undefined),
     removeFile: () => ok(undefined),
+    appendFile: () => ok(undefined),
     buildPrompt: () => "test prompt",
     env: { HOME: "/Users/hogers" },
     stderr: () => {},
@@ -98,5 +99,51 @@ describe("article-writer-runner", () => {
     });
     run("/base", "session-1", deps, "custom-claude");
     expect(cmdUsed).toBe("custom-claude");
+  });
+
+  test("logs START before spawn", () => {
+    const logged: string[] = [];
+    const deps = makeDeps({
+      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+    });
+    run("/base", "session-1", deps);
+    expect(logged.some((l) => l.includes("START"))).toBe(true);
+  });
+
+  test("logs COMPLETE on success", () => {
+    const logged: string[] = [];
+    const deps = makeDeps({
+      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+    });
+    run("/base", "session-1", deps);
+    expect(logged.some((l) => l.includes("COMPLETE exit=0"))).toBe(true);
+  });
+
+  test("logs ERROR on spawn failure", () => {
+    const logged: string[] = [];
+    const deps = makeDeps({
+      spawnSyncSafe: () => err(processSpawnFailed("claude", new Error("timeout"))),
+      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+    });
+    run("/base", "session-1", deps);
+    expect(logged.some((l) => l.includes("ERROR"))).toBe(true);
+  });
+
+  test("logs CLEANUP after completion", () => {
+    const logged: string[] = [];
+    const deps = makeDeps({
+      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+    });
+    run("/base", "session-1", deps);
+    expect(logged.some((l) => l.includes("CLEANUP"))).toBe(true);
+  });
+
+  test("writes log to .writing-log file", () => {
+    const logPaths: string[] = [];
+    const deps = makeDeps({
+      appendFile: (p) => { logPaths.push(p); return ok(undefined); },
+    });
+    run("/base", "session-1", deps);
+    expect(logPaths.every((p) => p.endsWith(".writing-log"))).toBe(true);
   });
 });

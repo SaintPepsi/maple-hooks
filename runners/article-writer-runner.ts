@@ -8,7 +8,7 @@
 
 import { join } from "path";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
-import { writeFile, removeFile } from "@hooks/core/adapters/fs";
+import { writeFile, removeFile, appendFile } from "@hooks/core/adapters/fs";
 import { buildArticlePrompt } from "@hooks/contracts/ArticleWriter";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -19,6 +19,7 @@ export interface RunnerDeps {
   spawnSyncSafe: typeof spawnSyncSafe;
   writeFile: typeof writeFile;
   removeFile: typeof removeFile;
+  appendFile: typeof appendFile;
   buildPrompt: typeof buildArticlePrompt;
   env: Record<string, string | undefined>;
   stderr: (msg: string) => void;
@@ -28,10 +29,18 @@ const defaultDeps: RunnerDeps = {
   spawnSyncSafe,
   writeFile,
   removeFile,
+  appendFile,
   buildPrompt: buildArticlePrompt,
   env: process.env as Record<string, string | undefined>,
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
+
+// ─── Logging ────────────────────────────────────────────────────────────────
+
+function logEntry(logPath: string, message: string, deps: RunnerDeps): void {
+  const timestamp = new Date().toISOString();
+  deps.appendFile(logPath, `${timestamp} ${message}\n`);
+}
 
 // ─── Runner ─────────────────────────────────────────────────────────────────
 
@@ -44,23 +53,31 @@ export function run(
   const articlesDir = join(baseDir, "MEMORY/ARTICLES");
   const lockPath = join(articlesDir, ".writing");
   const cooldownPath = join(articlesDir, ".last-article");
+  const logPath = join(articlesDir, ".writing-log");
 
   const prompt = deps.buildPrompt(baseDir, sessionId);
 
-  // spawnSyncSafe wraps the call in Result — no try-catch needed.
-  // It blocks until claude exits (success or failure), then we always clean up.
+  logEntry(logPath, "START article-writer-runner", deps);
+
+  // spawnSyncSafe wraps the call in Result — never throws. Cleanup below always runs.
   const envWithoutClaudeCode = { ...deps.env, CLAUDECODE: undefined, MAPLE_ARTICLE_AGENT: "1" };
-  deps.spawnSyncSafe(cmd, ["-p", prompt, "--max-turns", "25"], {
+  const result = deps.spawnSyncSafe(cmd, ["-p", prompt, "--max-turns", "25"], {
     cwd: WEBSITE_REPO,
     stdio: "ignore",
     timeout: 10 * 60 * 1000,
     env: envWithoutClaudeCode,
   });
 
-  // Cleanup runs unconditionally after the sync call returns (success or error).
-  // spawnSyncSafe never throws — it returns Result — so this always executes.
+  if (result.ok) {
+    logEntry(logPath, `COMPLETE exit=${result.value.exitCode}`, deps);
+  } else {
+    logEntry(logPath, `ERROR ${result.error.message}`, deps);
+  }
+
+  // Cleanup runs unconditionally after the sync call returns.
   deps.writeFile(cooldownPath, new Date().toISOString());
   deps.removeFile(lockPath);
+  logEntry(logPath, "CLEANUP lock removed, cooldown written", deps);
 }
 
 // ─── Script entry point ─────────────────────────────────────────────────────
