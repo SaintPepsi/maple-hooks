@@ -14,6 +14,7 @@ import type { PaiError } from "@hooks/core/error";
 import { writeFile, readFile, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import { join } from "path";
+import { projectHasHook } from "@hooks/contracts/DocObligationStateMachine";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,6 +89,7 @@ export const SpotCheckReview: SyncHookContract<
   event: "Stop",
 
   accepts(_input: StopInput): boolean {
+    if (projectHasHook("SpotCheckReview")) return false;
     return true;
   },
 

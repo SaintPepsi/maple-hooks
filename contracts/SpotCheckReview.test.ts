@@ -44,6 +44,11 @@ describe("SpotCheckReview", () => {
     expect(SpotCheckReview.accepts(makeStopInput("other-session"))).toBe(true);
   });
 
+  it("accepts returns true when no project-level hook exists", () => {
+    // In test environment, no .claude/hooks/ exists
+    expect(SpotCheckReview.accepts(makeStopInput())).toBe(true);
+  });
+
   // ── no unpushed changes → silent ──
 
   it("returns silent when no unpushed changes", () => {
