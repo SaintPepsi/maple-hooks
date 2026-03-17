@@ -28,6 +28,17 @@ export function isCommentLine(line: string): boolean {
   return trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*");
 }
 
+/** Check if a line (or the preceding line) contains @codingstandard-exempt. */
+export function isExempted(lines: string[], index: number): boolean {
+  const current = lines[index];
+  if (current && current.includes("@codingstandard-exempt")) return true;
+  if (index > 0) {
+    const prev = lines[index - 1];
+    if (prev && prev.includes("@codingstandard-exempt")) return true;
+  }
+  return false;
+}
+
 /** Strip string literal contents so pattern matching doesn't false-positive on message text. */
 export function stripStringLiterals(line: string): string {
   return line.replace(/"[^"]*"/g, '""').replace(/'[^']*'/g, "''").replace(/`[^`]*`/g, "``");
@@ -52,7 +63,7 @@ export const RAW_BUILTIN_PATTERNS: ReadonlyArray<{ regex: RegExp; module: string
 export function findRawImports(lines: string[]): Violation[] {
   const violations: Violation[] = [];
   for (let i = 0; i < lines.length; i++) {
-    if (isCommentLine(lines[i])) continue;
+    if (isCommentLine(lines[i]) || isExempted(lines, i)) continue;
     for (const pattern of RAW_BUILTIN_PATTERNS) {
       if (pattern.regex.test(lines[i])) {
         violations.push({
@@ -72,7 +83,7 @@ export function findRawImports(lines: string[]): Violation[] {
 export function findTryCatchFlowControl(lines: string[]): Violation[] {
   const violations: Violation[] = [];
   for (let i = 0; i < lines.length; i++) {
-    if (isCommentLine(lines[i])) continue;
+    if (isCommentLine(lines[i]) || isExempted(lines, i)) continue;
     if (/^\s*try\s*\{/.test(lines[i])) {
       violations.push({
         line: i + 1,
@@ -111,8 +122,8 @@ export function findDirectEnvAccess(content: string, lines: string[]): Violation
       }
     }
 
-    // Skip comments, defaultDeps blocks, and lines where env access is only in strings
-    if (inDefaultDeps || isCommentLine(line)) continue;
+    // Skip comments, defaultDeps blocks, exempted lines, and lines where env access is only in strings
+    if (inDefaultDeps || isCommentLine(line) || isExempted(lines, i)) continue;
 
     // Strip string literals so "process.env" inside error messages doesn't trigger
     const stripped = stripStringLiterals(line);
@@ -142,7 +153,7 @@ export function findInlineImportTypes(lines: string[]): Violation[] {
   const INLINE_IMPORT_TYPE = /import\(['"`][^'"`]+['"`]\)\.\w+/;
 
   for (let i = 0; i < lines.length; i++) {
-    if (isCommentLine(lines[i])) continue;
+    if (isCommentLine(lines[i]) || isExempted(lines, i)) continue;
 
     // Check original line (path content is inside quotes, must not be stripped).
     // Remove legitimate runtime dynamic imports before matching.
@@ -166,7 +177,7 @@ export function findAsAnyCasts(lines: string[]): Violation[] {
   const AS_ANY = /\bas\s+any\b/;
 
   for (let i = 0; i < lines.length; i++) {
-    if (isCommentLine(lines[i])) continue;
+    if (isCommentLine(lines[i]) || isExempted(lines, i)) continue;
 
     const stripped = stripStringLiterals(lines[i]);
     if (AS_ANY.test(stripped)) {
@@ -199,7 +210,7 @@ export function findRelativeImports(lines: string[], filePath?: string): Violati
   const SVELTE_COMPONENT_IMPORT = /\bfrom\s+['"][^'"]*\.svelte['"]/;
 
   for (let i = 0; i < lines.length; i++) {
-    if (isCommentLine(lines[i])) continue;
+    if (isCommentLine(lines[i]) || isExempted(lines, i)) continue;
 
     const line = lines[i];
     if (DOLLAR_PREFIX_IMPORT.test(line)) continue;
@@ -230,7 +241,7 @@ export function findExportDefaults(lines: string[], filePath?: string): Violatio
 
   const violations: Violation[] = [];
   for (let i = 0; i < lines.length; i++) {
-    if (isCommentLine(lines[i])) continue;
+    if (isCommentLine(lines[i]) || isExempted(lines, i)) continue;
     const stripped = stripStringLiterals(lines[i]);
     if (/\bexport\s+default\b/.test(stripped)) {
       violations.push({

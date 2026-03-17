@@ -4,6 +4,7 @@
 import { describe, it, expect } from "bun:test";
 import {
   isCommentLine,
+  isExempted,
   stripStringLiterals,
   findRawImports,
   findTryCatchFlowControl,
@@ -28,6 +29,47 @@ describe("isCommentLine", () => {
 
   it("rejects non-comment lines", () => {
     expect(isCommentLine("const x = 1;")).toBe(false);
+  });
+});
+
+describe("isExempted", () => {
+  it("exempts line with inline marker", () => {
+    const lines = ["try { // @codingstandard-exempt: boundary"];
+    expect(isExempted(lines, 0)).toBe(true);
+  });
+
+  it("exempts line preceded by marker comment", () => {
+    const lines = ["// @codingstandard-exempt: try-catch-boundary", "  try {"];
+    expect(isExempted(lines, 1)).toBe(true);
+  });
+
+  it("does not exempt unrelated lines", () => {
+    const lines = ["// normal comment", "  try {"];
+    expect(isExempted(lines, 1)).toBe(false);
+  });
+
+  it("does not exempt when marker is two lines above", () => {
+    const lines = ["// @codingstandard-exempt: boundary", "", "  try {"];
+    expect(isExempted(lines, 2)).toBe(false);
+  });
+});
+
+describe("findTryCatchFlowControl with exemption", () => {
+  it("skips exempted try-catch", () => {
+    const lines = [
+      "// @codingstandard-exempt: try-catch-boundary",
+      "  try {",
+      "    return ok(fn());",
+      "  } catch (e) {",
+      "    return err(e);",
+      "  }",
+    ];
+    expect(findTryCatchFlowControl(lines)).toHaveLength(0);
+  });
+
+  it("still catches non-exempted try-catch", () => {
+    const lines = ["  try {", "    doSomething();", "  } catch (e) {}"];
+    expect(findTryCatchFlowControl(lines)).toHaveLength(1);
   });
 });
 
