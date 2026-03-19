@@ -9,6 +9,7 @@ function makeDeps(overrides: Partial<ProtectedBranchGuardDeps> = {}): ProtectedB
   return {
     getBranch: () => "main",
     getCwd: () => "/Users/test/my-project",
+    getExemptDirs: () => [],
     stderr: () => {},
     ...overrides,
   };
@@ -204,6 +205,56 @@ describe("ProtectedBranchGuard", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
+  });
+
+  // ── Exempts directories from settings.json (via getExemptDirs) ──
+
+  it("allows git commit on main when CWD matches a user-configured exempt dir", () => {
+    const deps = makeDeps({
+      getBranch: () => "main",
+      getCwd: () => "/Users/test/Documents/repos/bd-knowledge-management",
+      getExemptDirs: () => ["bd-knowledge-management"],
+    });
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'feat: thing'"), deps) as GuardResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+  });
+
+  it("allows git push on main when CWD is a subdirectory of exempt dir", () => {
+    const deps = makeDeps({
+      getBranch: () => "main",
+      getCwd: () => "/Users/test/repos/my-project/src/tools",
+      getExemptDirs: () => ["my-project"],
+    });
+    const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps) as GuardResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+  });
+
+  it("blocks when CWD does not match any exempt dir", () => {
+    const deps = makeDeps({
+      getBranch: () => "main",
+      getCwd: () => "/Users/test/repos/other-project",
+      getExemptDirs: () => ["bd-knowledge-management"],
+    });
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps) as GuardResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("block");
+  });
+
+  it("handles empty exemptDirs gracefully", () => {
+    const deps = makeDeps({
+      getBranch: () => "main",
+      getCwd: () => "/Users/test/repos/some-project",
+      getExemptDirs: () => [],
+    });
+    const result = ProtectedBranchGuard.execute(makeInput("git commit -m 'test'"), deps) as GuardResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("block");
   });
 
   // ── Edge cases ──

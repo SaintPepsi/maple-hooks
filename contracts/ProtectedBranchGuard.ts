@@ -5,38 +5,51 @@
  * and merge commands, checks the current branch, and blocks if on a
  * protected branch (main/master).
  *
- * Exempts configurable directories from protection (defaults: ~/.claude).
+ * Exempts configurable directories from protection. Configure in
+ * ~/.claude/settings.json under hookConfig.protectedBranchGuard.exemptDirs.
  * Fails open if branch cannot be determined.
  *
  * Pattern: pai-hooks/contracts/BashWriteGuard.ts
  */
 
-import type { HookContract, SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
+import type { SyncHookContract } from "@hooks/core/contract";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type {
+  BlockOutput,
+  ContinueOutput,
+} from "@hooks/core/types/hook-outputs";
+import { getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface ProtectedBranchGuardDeps {
   getBranch: () => string | null;
   getCwd: () => string;
+  getExemptDirs: () => string[];
   stderr: (msg: string) => void;
+}
+
+interface SettingsJson {
+  hookConfig?: {
+    protectedBranchGuard?: {
+      exemptDirs?: string[];
+    };
+  };
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
 const PROTECTED_BRANCHES = ["main", "master"];
 
-// Directories exempt from branch protection. Paths matching any of these
-// patterns can commit/push/merge on protected branches.
-// ~/.claude is exempt because GitAutoSync legitimately commits there.
-const EXEMPT_DIR_PATTERNS: RegExp[] = [
-  /\/\.claude(?:\/|$)/,
-  /\/claude-on-blackberry(?:\/|$)/,
-];
+/**
+ * Built-in exempt directories. These are always exempt regardless of settings.
+ * ~/.claude is exempt because GitAutoSync legitimately commits there.
+ */
+const BUILTIN_EXEMPT_PATTERNS: RegExp[] = [/\/\.claude(?:\/|$)/];
 
 // Matches git commit, git push, git merge (the mutation commands)
 // Ref: https://git-scm.com/docs — these are the commands that modify history
@@ -55,9 +68,45 @@ function isGitMutation(command: string): boolean {
   return GIT_MUTATION_PATTERN.test(command);
 }
 
+/** Build regex patterns from user-configured directory names. */
+function buildExemptPatterns(dirs: string[]): RegExp[] {
+  return dirs.map((dir) => {
+    const escaped = dir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`\\/${escaped}(?:\\/|$)`);
+  });
+}
+
 /** Check if CWD is inside an exempt directory. */
-function isExemptDir(cwd: string): boolean {
-  return EXEMPT_DIR_PATTERNS.some(p => p.test(cwd));
+function isExemptDir(cwd: string, extraDirs: string[]): boolean {
+  const userPatterns = buildExemptPatterns(extraDirs);
+  const allPatterns = [...BUILTIN_EXEMPT_PATTERNS, ...userPatterns];
+  return allPatterns.some((p) => p.test(cwd));
+}
+
+/** Extract exemptDirs from a parsed settings object. */
+function extractExemptDirs(parsed: SettingsJson): string[] {
+  const dirs = parsed.hookConfig?.protectedBranchGuard?.exemptDirs;
+  if (!Array.isArray(dirs)) return [];
+  if (!dirs.every((d): d is string => typeof d === "string")) return [];
+  return dirs;
+}
+
+/**
+ * Read exemptDirs from settings.json at hookConfig.protectedBranchGuard.exemptDirs.
+ * Returns empty array if not configured or on any read/parse error (fails open).
+ */
+function readExemptDirsFromSettings(
+  settingsPath: string,
+  readFileFn: (path: string) => string | null,
+): string[] {
+  const raw = readFileFn(settingsPath);
+  if (!raw) return [];
+  const parseResult = tryCatch(
+    () => JSON.parse(raw) as SettingsJson,
+    (cause) => jsonParseFailed(raw.slice(0, 100), cause),
+  );
+  if (!parseResult.ok) return [];
+  return extractExemptDirs(parseResult.value);
 }
 
 // ─── Default Deps ───────────────────────────────────────────────────────────
@@ -69,6 +118,7 @@ const defaultDeps: ProtectedBranchGuardDeps = {
     return result.value.trim() || null;
   },
   getCwd: () => process.cwd(),
+  getExemptDirs: () => readExemptDirsFromSettings(getSettingsPath(), readFile),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
@@ -97,8 +147,9 @@ export const ProtectedBranchGuard: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    // Exempt configured directories (e.g. ~/.claude for GitAutoSync)
-    if (isExemptDir(deps.getCwd())) {
+    // Exempt configured directories (builtins + settings.json)
+    const extraDirs = deps.getExemptDirs();
+    if (isExemptDir(deps.getCwd(), extraDirs)) {
       return ok({ type: "continue", continue: true });
     }
 
@@ -107,7 +158,9 @@ export const ProtectedBranchGuard: SyncHookContract<
 
     // Fail open if branch cannot be determined
     if (!branch) {
-      deps.stderr("[ProtectedBranchGuard] Could not determine branch — allowing");
+      deps.stderr(
+        "[ProtectedBranchGuard] Could not determine branch — allowing",
+      );
       return ok({ type: "continue", continue: true });
     }
 
@@ -122,9 +175,14 @@ export const ProtectedBranchGuard: SyncHookContract<
         `  git checkout -b feature/your-feature`,
         "",
         "Then commit and push from the feature branch.",
+        "",
+        "To exempt this project, add to ~/.claude/settings.json:",
+        `  "hookConfig": { "protectedBranchGuard": { "exemptDirs": ["your-project-dir"] } }`,
       ].join("\n");
 
-      deps.stderr(`[ProtectedBranchGuard] BLOCK: git mutation on protected branch '${branch}'`);
+      deps.stderr(
+        `[ProtectedBranchGuard] BLOCK: git mutation on protected branch '${branch}'`,
+      );
 
       return ok({
         type: "block",
