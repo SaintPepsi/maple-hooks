@@ -267,6 +267,37 @@ describe("AgentLifecycleStop", () => {
     });
   });
 
+  describe("execute — crash recovery (corrupt file)", () => {
+    test("recovers from corrupt JSON in agent file", () => {
+      let writtenData: AgentFileData | null = null;
+      const deps = makeDeps({
+        fileExists: () => true,
+        readFile: () => ok("not-valid-json{{{"),
+        writeFile: (_path, content) => {
+          writtenData = JSON.parse(content) as AgentFileData;
+          return ok(undefined);
+        },
+      });
+      const result = AgentLifecycleStop.execute(stopInput, deps);
+      expect(result.ok).toBe(true);
+      expect(writtenData).not.toBeNull();
+      expect(writtenData!.agentId).toBe("abc123");
+      expect(writtenData!.completedAt).toBe("2026-03-19T15:10:00.000Z");
+      expect(writtenData!.startedAt).toBe("2026-03-19T15:10:00.000Z");
+    });
+
+    test("logs corrupt file recovery message", () => {
+      const messages: string[] = [];
+      const deps = makeDeps({
+        fileExists: () => true,
+        readFile: () => ok("corrupt"),
+        stderr: (msg) => messages.push(msg),
+      });
+      AgentLifecycleStop.execute(stopInput, deps);
+      expect(messages.some((m) => m.includes("corrupt"))).toBe(true);
+    });
+  });
+
   describe("execute — crash recovery (file missing)", () => {
     test("creates agent file when not found", () => {
       const writtenPaths: string[] = [];

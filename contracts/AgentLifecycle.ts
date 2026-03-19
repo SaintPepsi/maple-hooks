@@ -17,8 +17,8 @@ import type {
   SubagentStopInput,
 } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { type PaiError, jsonParseFailed } from "@hooks/core/error";
 import {
   readFile,
   writeFile,
@@ -95,7 +95,12 @@ function cleanupOrphans(
     const contentResult = deps.readFile(filePath);
     if (!contentResult.ok) continue;
 
-    const data = JSON.parse(contentResult.value) as AgentFileData;
+    const parseResult = tryCatch(
+      () => JSON.parse(contentResult.value) as AgentFileData,
+      (e) => jsonParseFailed(contentResult.value, e),
+    );
+    if (!parseResult.ok) continue;
+    const data = parseResult.value;
 
     // Only remove orphans: no completedAt and started > 30 min ago
     if (data.completedAt !== null) continue;
@@ -191,8 +196,25 @@ export const AgentLifecycleStop: SyncHookContract<
     if (deps.fileExists(filePath)) {
       const contentResult = deps.readFile(filePath);
       if (contentResult.ok) {
-        data = JSON.parse(contentResult.value) as AgentFileData;
-        data.completedAt = nowIso;
+        const parseResult = tryCatch(
+          () => JSON.parse(contentResult.value) as AgentFileData,
+          (e) => jsonParseFailed(contentResult.value, e),
+        );
+        if (parseResult.ok) {
+          data = parseResult.value;
+          data.completedAt = nowIso;
+        } else {
+          // Corrupt file — crash recovery
+          deps.stderr(
+            `[AgentLifecycle] Stop: corrupt file, crash recovery for ${input.session_id}`,
+          );
+          data = {
+            agentId: input.session_id,
+            agentType: "unknown",
+            startedAt: nowIso,
+            completedAt: nowIso,
+          };
+        }
       } else {
         // Read failed on existing file — crash recovery
         deps.stderr(
