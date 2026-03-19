@@ -88,10 +88,6 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentExecutionGuard.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentTrackerPre.hook.ts"
           }
         ]
       },
@@ -156,10 +152,6 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AlgorithmTracker.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentTrackerPost.hook.ts"
           }
         ]
       },
@@ -314,6 +306,26 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/TestObligationTracker.hook.ts"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycleStart.hook.ts"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/AgentLifecycleStop.hook.ts"
           }
         ]
       }
