@@ -188,6 +188,14 @@ export const AgentLifecycleStop: SyncHookContract<
     input: SubagentStopInput,
     deps: AgentLifecycleDeps,
   ): Result<SilentOutput, PaiError> {
+    const dirResult = deps.ensureDir(deps.getAgentsDir());
+    if (!dirResult.ok) {
+      deps.stderr(
+        `[AgentLifecycle] Stop: failed to ensure agents dir: ${dirResult.error}`,
+      );
+      return ok({ type: "silent" });
+    }
+
     const filePath = agentFilePath(deps, input.session_id);
     const nowIso = deps.now().toISOString();
 
