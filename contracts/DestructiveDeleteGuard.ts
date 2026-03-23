@@ -115,6 +115,13 @@ function isDocumentationFile(input: ToolHookInput): boolean {
   return /\.mdx?$/.test(filePath);
 }
 
+/** Check if the target file is a Dockerfile — rm -rf in containers is image cleanup, not host deletion. */
+function isDockerfile(input: ToolHookInput): boolean {
+  const filePath = (input.tool_input?.file_path as string) || "";
+  const basename = filePath.split("/").pop() || "";
+  return /^Dockerfile(\..+)?$/.test(basename) || basename === ".dockerignore";
+}
+
 /** Check if the target file is the fs adapter — the one place raw rmSync belongs. */
 function isFsAdapter(input: ToolHookInput): boolean {
   const filePath = (input.tool_input?.file_path as string) || "";
@@ -189,6 +196,11 @@ export const DestructiveDeleteGuard: SyncHookContract<
 
     // Edit/Write: skip markdown files — documentation mentioning delete patterns is normal
     if (isDocumentationFile(input)) {
+      return ok({ type: "continue", continue: true });
+    }
+
+    // Edit/Write: skip Dockerfiles — rm -rf in containers is image cleanup (apt lists, caches), not host deletion
+    if (isDockerfile(input)) {
       return ok({ type: "continue", continue: true });
     }
 

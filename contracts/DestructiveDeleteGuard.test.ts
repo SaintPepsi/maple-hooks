@@ -304,6 +304,34 @@ describe("DestructiveDeleteGuard markdown exclusion", () => {
   });
 });
 
+// ─── Dockerfile Exclusion ────────────────────────────────────────────────────
+
+describe("DestructiveDeleteGuard Dockerfile exclusion", () => {
+  test("allows Write to Dockerfile with apt cleanup", () => {
+    const content = ["RUN apt-get update && apt-get install -y curl && r", "m -rf /var/lib/apt/lists/*"].join("");
+    const result = DestructiveDeleteGuard.execute(writeInput(content, "/project/Dockerfile"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows Edit to Dockerfile with cache cleanup", () => {
+    const content = ["RUN pip install -r requirements.txt && r", "m -rf /root/.cache"].join("");
+    const result = DestructiveDeleteGuard.execute(editInput(content, "/project/Dockerfile"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("allows Write to Dockerfile.dev variant", () => {
+    const content = ["RUN r", "m -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"].join("");
+    const result = DestructiveDeleteGuard.execute(writeInput(content, "/project/Dockerfile.dev"), mockDeps);
+    expect(result.ok && result.value.type).toBe("continue");
+  });
+
+  test("still blocks same content in regular shell scripts", () => {
+    const content = ["#!/bin/bash\nr", "m -rf /var/lib/apt/lists/*"].join("");
+    const result = DestructiveDeleteGuard.execute(writeInput(content, "/project/cleanup.sh"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+});
+
 // ─── Bash: empty and string inputs ──────────────────────────────────────────
 
 describe("DestructiveDeleteGuard Bash edge cases", () => {
