@@ -108,7 +108,7 @@ export const CronCreateContract: SyncHookContract<
     const name = extractHumanSchedule(input.tool_response);
 
     // Extract fields from tool_input
-    const schedule = String(input.tool_input.schedule ?? "");
+    const schedule = String(input.tool_input.cron ?? input.tool_input.schedule ?? "");
     const recurring = Boolean(input.tool_input.recurring ?? true);
     const prompt = String(input.tool_input.prompt ?? "");
 
