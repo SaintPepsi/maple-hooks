@@ -1,0 +1,7 @@
+{
+  "SessionStart": [
+    {
+      "hooks": [{ "type": "command", "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronPrune/CronPrune.hook.ts" }]
+    }
+  ]
+}
