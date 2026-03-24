@@ -12,6 +12,7 @@
  * - Single-file rm (no recursive flag)
  * - Adapter functions like removeDir() (the safe alternative)
  * - Markdown files (.md, .mdx) — documentation mentioning patterns is normal
+ * - git rm --cached (only untracks files, doesn't delete from disk)
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
@@ -33,6 +34,9 @@ export interface DestructiveDeleteGuardDeps {
  * Covers rm -r, find -delete, python rmtree, rsync --delete, git clean -d, etc.
  */
 function detectsDestructiveDelete(command: string): boolean {
+  // git rm --cached only untracks files, doesn't delete from disk — always safe
+  if (/\bgit\s+rm\b/.test(command) && /--cached\b/.test(command)) return false;
+
   // rm with recursive flag (segmented to avoid matching grep -rf etc.)
   const rmSegments = command.match(/\brm\b[^|&;]*/g);
   if (rmSegments) {
@@ -70,22 +74,26 @@ function detectsDestructiveDelete(command: string): boolean {
  * Catches string literals, spawn arrays, template literals, and API calls.
  */
 function detectsDestructiveDeleteInCode(content: string): boolean {
+  // git rm --cached only untracks files — strip these lines before checking
+  // so test files and code mentioning them pass through
+  const cleaned = content.replace(/\bgit\s+rm\b[^\n]*--cached\b[^\n]*/g, "");
+
   // Spawn array patterns: "rm", "-r" or "rm", "-rf" etc.
-  if (/["']rm["']\s*,\s*["']-[a-z]*r[a-z]*["']/.test(content)) return true;
+  if (/["']rm["']\s*,\s*["']-[a-z]*r[a-z]*["']/.test(cleaned)) return true;
 
   // Python shutil.rmtree
-  if (/\bshutil\.rmtree\b/.test(content)) return true;
+  if (/\bshutil\.rmtree\b/.test(cleaned)) return true;
 
   // Generic rmtree( call (perl, etc.)
-  if (/\brmtree\s*\(/.test(content)) return true;
+  if (/\brmtree\s*\(/.test(cleaned)) return true;
 
   // Ruby FileUtils.rm_rf
-  if (/\bFileUtils\.rm_rf\b/.test(content)) return true;
+  if (/\bFileUtils\.rm_rf\b/.test(cleaned)) return true;
 
   // Node rmSync with recursive (whole-content check)
-  if (/\brmSync\b/.test(content) && /\brecursive\b/.test(content)) return true;
+  if (/\brmSync\b/.test(cleaned) && /\brecursive\b/.test(cleaned)) return true;
 
-  for (const line of content.split("\n")) {
+  for (const line of cleaned.split("\n")) {
     const trimmed = line.trim();
     // Skip comments, markdown headers, markdown tables, doc lines
     if (/^(\/\/|\/\*|\*|#[^!]|\||--)/.test(trimmed)) continue;
