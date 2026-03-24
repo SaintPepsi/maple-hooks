@@ -1,0 +1,13 @@
+{
+  "PostToolUse": [
+    {
+      "matcher": "CronDelete",
+      "hooks": [
+        {
+          "type": "command",
+          "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CronStatusLine/CronDelete/CronDelete.hook.ts"
+        }
+      ]
+    }
+  ]
+}
