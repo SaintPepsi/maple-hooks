@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { ArticleWriter } from "@hooks/contracts/ArticleWriter";
+import { ArticleWriter } from "./ArticleWriter.contract";
 
 if (import.meta.main) {
   runHook(ArticleWriter).catch(() => {

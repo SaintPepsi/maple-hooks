@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { RelationshipMemory, type RelationshipMemoryDeps } from "@hooks/contracts/RelationshipMemory";
+import { RelationshipMemory, type RelationshipMemoryDeps } from "./RelationshipMemory.contract";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Types (mirrored for test use) ───────────────────────────────────────────

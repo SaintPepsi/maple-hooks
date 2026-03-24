@@ -3,8 +3,8 @@ import {
   TypeCheckVerifier,
   discoverTypeCheck,
   parseTypeErrors,
-} from "@hooks/contracts/TypeCheckVerifier";
-import type { TypeCheckVerifierDeps } from "@hooks/contracts/TypeCheckVerifier";
+} from "./TypeCheckVerifier.contract";
+import type { TypeCheckVerifierDeps } from "./TypeCheckVerifier.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Discovery Tests ────────────────────────────────────────────────────────

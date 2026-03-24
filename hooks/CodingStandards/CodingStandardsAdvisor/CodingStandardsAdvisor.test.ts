@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   CodingStandardsAdvisor,
   type CodingStandardsAdvisorDeps,
-} from "@hooks/contracts/CodingStandardsAdvisor";
+} from "./CodingStandardsAdvisor.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

@@ -9,8 +9,8 @@
 
 import { describe, it, expect } from "bun:test";
 import { runHook, type RunHookOptions } from "@hooks/core/runner";
-import { CodingStandardsAdvisor } from "@hooks/contracts/CodingStandardsAdvisor";
-import { CodingStandardsEnforcer } from "@hooks/contracts/CodingStandardsEnforcer";
+import { CodingStandardsAdvisor } from "@hooks/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract";
+import { CodingStandardsEnforcer } from "@hooks/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract";
 import { join } from "path";
 
 // ─── Integration Guard ──────────────────────────────────────────────────────

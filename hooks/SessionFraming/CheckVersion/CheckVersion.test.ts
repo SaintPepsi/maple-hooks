@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { CheckVersion, type CheckVersionDeps } from "@hooks/contracts/CheckVersion";
+import { CheckVersion, type CheckVersionDeps } from "./CheckVersion.contract";
 import { ok, err } from "@hooks/core/result";
 import { processExecFailed } from "@hooks/core/error";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";

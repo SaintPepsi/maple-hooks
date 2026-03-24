@@ -6,7 +6,7 @@ import {
   findLazyUnknownUsage,
   TypeStrictness,
   type TypeStrictnessDeps,
-} from "@hooks/contracts/TypeStrictness";
+} from "./TypeStrictness.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Helper ──────────────────────────────────────────────────────────────────

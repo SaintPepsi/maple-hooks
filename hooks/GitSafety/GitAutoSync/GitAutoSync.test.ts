@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { GitAutoSync, STALE_LOCK_MINUTES, type GitAutoSyncDeps } from "@hooks/contracts/GitAutoSync";
+import { GitAutoSync, STALE_LOCK_MINUTES, type GitAutoSyncDeps } from "./GitAutoSync.contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ok, err } from "@hooks/core/result";
 import { ErrorCode, PaiError } from "@hooks/core/error";

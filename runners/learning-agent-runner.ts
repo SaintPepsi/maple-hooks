@@ -14,7 +14,7 @@
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import { removeFile } from "@hooks/core/adapters/fs";
 import { join } from "path";
-import { buildAgentPrompt } from "@hooks/contracts/LearningActioner";
+import { buildAgentPrompt } from "@hooks/hooks/LearningFeedback/LearningActioner/LearningActioner.contract";
 
 const defaultDeps = {
   processEnv: process.env as Record<string, string | undefined>,

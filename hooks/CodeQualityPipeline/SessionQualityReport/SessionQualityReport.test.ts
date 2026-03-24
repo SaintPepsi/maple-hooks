@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { SessionQualityReport, type SessionQualityReportDeps } from "@hooks/contracts/SessionQualityReport";
+import { SessionQualityReport, type SessionQualityReportDeps } from "./SessionQualityReport.contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ok, err, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";

@@ -4,7 +4,7 @@ import {
   buildArticlePrompt,
   type ArticleWriterDeps,
   type ArticlePromptContext,
-} from "@hooks/contracts/ArticleWriter";
+} from "./ArticleWriter.contract";
 import { ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { CodeQualityGuard } from "@hooks/contracts/CodeQualityGuard";
+import { CodeQualityGuard } from "./CodeQualityGuard.contract";
 
 if (import.meta.main) {
   runHook(CodeQualityGuard).catch(() => {

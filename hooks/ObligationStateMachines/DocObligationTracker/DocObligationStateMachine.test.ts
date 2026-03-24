@@ -1,10 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import {
-  DocObligationTracker,
-  DocObligationEnforcer,
-  projectHasHook,
-  type DocObligationDeps,
-} from "@hooks/contracts/DocObligationStateMachine";
+import { DocObligationTracker } from "@hooks/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.contract";
+import { DocObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.contract";
+import { projectHasHook, type DocObligationDeps } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, SilentOutput, BlockOutput } from "@hooks/core/types/hook-outputs";

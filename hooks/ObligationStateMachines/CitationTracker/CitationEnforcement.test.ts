@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import {
-  CitationTracker,
-  CitationEnforcement,
-  type CitationEnforcementDeps,
-} from "@hooks/contracts/CitationEnforcement";
+import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
+import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract";
+import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

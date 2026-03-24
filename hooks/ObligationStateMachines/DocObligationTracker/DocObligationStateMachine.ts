@@ -20,8 +20,6 @@ import { writeFile, readFile, fileExists as fsFileExists, removeFile, readDir as
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { join, dirname } from "path";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 
 // ─── Project Hook Deduplication ──────────────────────────────────────────────
 

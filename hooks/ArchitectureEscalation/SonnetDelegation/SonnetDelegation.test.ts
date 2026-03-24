@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   SonnetDelegation,
   type SonnetDelegationDeps,
-} from "@hooks/contracts/SonnetDelegation";
+} from "./SonnetDelegation.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

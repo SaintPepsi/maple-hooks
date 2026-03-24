@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { CodeQualityGuard, type CodeQualityGuardDeps } from "@hooks/contracts/CodeQualityGuard";
+import { CodeQualityGuard, type CodeQualityGuardDeps } from "./CodeQualityGuard.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { ok, err, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { GitignoreRecommender, type GitignoreRecommenderDeps } from "@hooks/contracts/GitignoreRecommender";
+import { GitignoreRecommender, type GitignoreRecommenderDeps } from "./GitignoreRecommender.contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

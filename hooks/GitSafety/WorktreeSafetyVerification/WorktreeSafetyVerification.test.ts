@@ -8,7 +8,7 @@ import {
   DEP_CONFIGS,
   TEST_CONFIGS,
   type WorktreeSafetyDeps,
-} from "@hooks/contracts/WorktreeSafetyVerification";
+} from "./WorktreeSafetyVerification.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

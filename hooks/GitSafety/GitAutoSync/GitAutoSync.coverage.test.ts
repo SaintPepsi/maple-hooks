@@ -5,7 +5,7 @@ import {
   KEY_FILES,
   DEBOUNCE_MINUTES,
   type GitAutoSyncDeps,
-} from "@hooks/contracts/GitAutoSync";
+} from "./GitAutoSync.contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ok, err } from "@hooks/core/result";
 import { PaiError, ErrorCode } from "@hooks/core/error";

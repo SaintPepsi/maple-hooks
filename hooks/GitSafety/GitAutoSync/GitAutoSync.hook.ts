@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { GitAutoSync } from "@hooks/contracts/GitAutoSync";
+import { GitAutoSync } from "./GitAutoSync.contract";
 
 if (import.meta.main) {
   runHook(GitAutoSync).catch(() => {

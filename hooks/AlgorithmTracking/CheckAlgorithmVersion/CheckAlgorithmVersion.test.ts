@@ -3,7 +3,7 @@ import {
   CheckAlgorithmVersion,
   isNewer,
   type CheckAlgorithmVersionDeps,
-} from "@hooks/contracts/CheckAlgorithmVersion";
+} from "./CheckAlgorithmVersion.contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { ok } from "@hooks/core/result";
 

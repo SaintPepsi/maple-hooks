@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { PRDSync } from "@hooks/contracts/PRDSync";
+import { PRDSync } from "./PRDSync.contract";
 
 if (import.meta.main) {
   runHook(PRDSync).catch(() => {

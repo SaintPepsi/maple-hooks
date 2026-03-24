@@ -57,9 +57,9 @@ describe("Proposal format parsing", () => {
 
 // ─── Section 2: Integration tests (red until Task 3 modifies LoadContext) ────
 
-import { loadPendingProposals } from "./LoadContext";
-import type { LoadContextDeps } from "./LoadContext";
-import { ok } from "../core/result";
+import { loadPendingProposals } from "./LoadContext.contract";
+import type { LoadContextDeps } from "./LoadContext.contract";
+import { ok } from "@hooks/core/result";
 
 const INT_TEST_DIR = join(import.meta.dir, "__test-lc-proposals-integration__");
 

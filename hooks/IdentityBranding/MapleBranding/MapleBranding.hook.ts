@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { MapleBranding } from "@hooks/contracts/MapleBranding";
+import { MapleBranding } from "./MapleBranding.contract";
 
 if (import.meta.main) {
   runHook(MapleBranding).catch(() => {

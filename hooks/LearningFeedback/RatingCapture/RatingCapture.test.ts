@@ -1,6 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
-import { RatingCapture, parseExplicitRating } from "@hooks/contracts/RatingCapture";
-import type { RatingCaptureDeps } from "@hooks/contracts/RatingCapture";
+import { RatingCapture, parseExplicitRating } from "./RatingCapture.contract";
+import type { RatingCaptureDeps } from "./RatingCapture.contract";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import { ok, err } from "@hooks/core/result";
 import { PaiError, ErrorCode } from "@hooks/core/error";

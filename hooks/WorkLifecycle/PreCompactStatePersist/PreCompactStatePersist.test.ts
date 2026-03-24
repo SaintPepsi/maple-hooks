@@ -6,7 +6,7 @@ import {
   buildContextSummary,
   type PreCompactStatePersistDeps,
   type PRDState,
-} from "@hooks/contracts/PreCompactStatePersist";
+} from "./PreCompactStatePersist.contract";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

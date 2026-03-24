@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { LearningActioner } from "@hooks/contracts/LearningActioner";
+import { LearningActioner } from "./LearningActioner.contract";
 
 if (import.meta.main) {
   runHook(LearningActioner).catch(() => {

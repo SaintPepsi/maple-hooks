@@ -1,6 +1,6 @@
 import { describe, test, expect } from "bun:test";
-import { DestructiveDeleteGuard } from "@hooks/contracts/DestructiveDeleteGuard";
-import type { DestructiveDeleteGuardDeps } from "@hooks/contracts/DestructiveDeleteGuard";
+import { DestructiveDeleteGuard } from "./DestructiveDeleteGuard.contract";
+import type { DestructiveDeleteGuardDeps } from "./DestructiveDeleteGuard.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   SpotCheckReview,
   type SpotCheckReviewDeps,
-} from "@hooks/contracts/SpotCheckReview";
+} from "@hooks/hooks/ObligationStateMachines/SpotCheckReview/SpotCheckReview.contract";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

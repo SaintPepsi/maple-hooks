@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { LoadContext } from "@hooks/contracts/LoadContext";
+import { LoadContext } from "./LoadContext.contract";
 
 if (import.meta.main) {
   runHook(LoadContext).catch(() => {

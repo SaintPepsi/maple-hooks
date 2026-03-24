@@ -1,9 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import {
-  TestObligationTracker,
-  TestObligationEnforcer,
-  type TestObligationDeps,
-} from "@hooks/contracts/TestObligationStateMachine";
+import { TestObligationTracker } from "@hooks/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.contract";
+import { TestObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract";
+import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, SilentOutput, BlockOutput } from "@hooks/core/types/hook-outputs";

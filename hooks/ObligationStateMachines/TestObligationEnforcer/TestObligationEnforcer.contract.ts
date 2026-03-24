@@ -1,0 +1,91 @@
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { StopInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { ok, type Result } from "@hooks/core/result";
+import type { PaiError } from "@hooks/core/error";
+import { join } from "path";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
+import {
+  type TestObligationDeps,
+  defaultDeps,
+  pendingPath,
+  blockCountPath,
+  MAX_BLOCKS,
+  buildBlockLimitReview,
+  hasTestFile,
+} from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+
+export const TestObligationEnforcer: SyncHookContract<
+  StopInput,
+  BlockOutput | SilentOutput,
+  TestObligationDeps
+> = {
+  name: "TestObligationEnforcer",
+  event: "Stop",
+
+  accepts(_input: StopInput): boolean {
+    return true;
+  },
+
+  execute(
+    input: StopInput,
+    deps: TestObligationDeps,
+  ): Result<BlockOutput | SilentOutput, PaiError> {
+    const flagFile = pendingPath(deps.stateDir, input.session_id);
+
+    if (!deps.fileExists(flagFile)) {
+      return ok({ type: "silent" });
+    }
+
+    const pending = deps.readPending(flagFile);
+    if (pending.length === 0) {
+      return ok({ type: "silent" });
+    }
+
+    const countFile = blockCountPath(deps.stateDir, input.session_id);
+    const blockCount = deps.readBlockCount(countFile);
+
+    if (blockCount >= MAX_BLOCKS) {
+      const reviewPath = join(deps.stateDir, `review-${input.session_id}.md`);
+      const review = buildBlockLimitReview("test", pending, blockCount);
+      deps.writeReview(reviewPath, review);
+      deps.removeFlag(flagFile);
+      deps.removeFlag(countFile);
+      deps.stderr(`[TestObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`);
+      return ok({ type: "silent" });
+    }
+
+    const needsWriting: string[] = [];
+    const needsRunning: string[] = [];
+
+    for (const file of pending) {
+      if (hasTestFile(file, deps.fileExists)) {
+        needsRunning.push(file);
+      } else {
+        needsWriting.push(file);
+      }
+    }
+
+    const opener = pickNarrative("TestObligationEnforcer", pending.length);
+    const sections: string[] = [];
+
+    if (needsWriting.length > 0) {
+      const list = needsWriting.map((f) => `  - ${f}`).join("\n");
+      sections.push(`Write and run tests for (no test file exists):\n${list}`);
+    }
+
+    if (needsRunning.length > 0) {
+      const list = needsRunning.map((f) => `  - ${f}`).join("\n");
+      sections.push(`Run existing tests for:\n${list}`);
+    }
+
+    const reason = `${opener}\n\n${sections.join("\n\n")}`;
+
+    deps.writeBlockCount(countFile, blockCount + 1);
+    deps.stderr(`[TestObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without tests`);
+
+    return ok({ type: "block", decision: "block", reason });
+  },
+
+  defaultDeps,
+};

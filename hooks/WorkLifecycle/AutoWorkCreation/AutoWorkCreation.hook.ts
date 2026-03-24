@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { AutoWorkCreation } from "@hooks/contracts/AutoWorkCreation";
+import { AutoWorkCreation } from "./AutoWorkCreation.contract";
 
 if (import.meta.main) {
   runHook(AutoWorkCreation).catch(() => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { ArchitectureEscalation } from "@hooks/contracts/ArchitectureEscalation";
+import { ArchitectureEscalation } from "./ArchitectureEscalation.contract";
 
 if (import.meta.main) {
   runHook(ArchitectureEscalation).catch(() => {

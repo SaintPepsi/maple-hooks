@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { GitignoreRecommender } from "@hooks/contracts/GitignoreRecommender";
+import { GitignoreRecommender } from "./GitignoreRecommender.contract";
 
 if (import.meta.main) {
   runHook(GitignoreRecommender).catch(() => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { PreCompactStatePersist } from "@hooks/contracts/PreCompactStatePersist";
+import { PreCompactStatePersist } from "./PreCompactStatePersist.contract";
 
 if (import.meta.main) {
   runHook(PreCompactStatePersist).catch(() => {

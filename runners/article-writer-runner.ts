@@ -9,7 +9,7 @@
 import { join } from "path";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import { fileExists, writeFile, removeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
-import { buildArticlePrompt } from "@hooks/contracts/ArticleWriter";
+import { buildArticlePrompt } from "@hooks/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract";
 import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
 
 // ─── Types ──────────────────────────────────────────────────────────────────

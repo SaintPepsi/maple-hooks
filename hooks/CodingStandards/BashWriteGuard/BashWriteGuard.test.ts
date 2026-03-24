@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { BashWriteGuard } from "@hooks/contracts/BashWriteGuard";
+import { BashWriteGuard } from "./BashWriteGuard.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

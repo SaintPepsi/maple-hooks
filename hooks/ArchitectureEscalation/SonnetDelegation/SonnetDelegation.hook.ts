@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { SonnetDelegation } from "@hooks/contracts/SonnetDelegation";
+import { SonnetDelegation } from "./SonnetDelegation.contract";
 
 if (import.meta.main) {
   runHook(SonnetDelegation).catch(() => {

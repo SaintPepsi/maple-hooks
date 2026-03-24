@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { CodingStandardsAdvisor } from "@hooks/contracts/CodingStandardsAdvisor";
+import { CodingStandardsAdvisor } from "./CodingStandardsAdvisor.contract";
 
 if (import.meta.main) {
   runHook(CodingStandardsAdvisor).catch(() => {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { runHook } from "@hooks/core/runner";
-import { RelationshipMemory } from "@hooks/contracts/RelationshipMemory";
+import { RelationshipMemory } from "./RelationshipMemory.contract";
 
 if (import.meta.main) {
   runHook(RelationshipMemory).catch(() => {

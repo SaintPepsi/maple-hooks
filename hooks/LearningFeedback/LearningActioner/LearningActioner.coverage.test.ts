@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { buildAgentPrompt } from "@hooks/contracts/LearningActioner";
+import { buildAgentPrompt } from "./LearningActioner.contract";
 
 describe("buildAgentPrompt", () => {
   const baseDir = "/home/testuser/.claude";

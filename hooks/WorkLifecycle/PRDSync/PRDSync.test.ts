@@ -4,8 +4,8 @@ import {
   parseFrontmatter,
   parseCriteriaCounts,
   PRDSync,
-} from "./PRDSync";
-import type { PRDSyncDeps } from "./PRDSync";
+} from "./PRDSync.contract";
+import type { PRDSyncDeps } from "./PRDSync.contract";
 import { ok } from "@hooks/core/result";
 import type { Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";

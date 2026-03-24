@@ -10,7 +10,7 @@ import { describe, it, expect } from "bun:test";
 import {
   HookExecutePermission,
   type HookExecutePermissionDeps,
-} from "@hooks/contracts/HookExecutePermission";
+} from "./HookExecutePermission.contract";
 import { ok, err } from "@hooks/core/result";
 import { processExecFailed } from "@hooks/core/error";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";

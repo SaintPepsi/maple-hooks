@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { join } from "path";
-import { LearningActioner, type LearningActionerDeps } from "@hooks/contracts/LearningActioner";
+import { LearningActioner, type LearningActionerDeps } from "./LearningActioner.contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ensureDir, writeFile, fileExists, removeDir, setFileTimes } from "@hooks/core/adapters/fs";
 

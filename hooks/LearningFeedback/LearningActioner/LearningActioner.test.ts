@@ -4,7 +4,7 @@ import {
   buildAgentPrompt,
   evaluateCredit,
   type LearningActionerDeps,
-} from "@hooks/contracts/LearningActioner";
+} from "./LearningActioner.contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { dirCreateFailed } from "@hooks/core/error";
 

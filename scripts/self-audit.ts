@@ -11,7 +11,7 @@
 import { join, relative } from "path";
 import { readFile, writeFile, readDir, ensureDir } from "@hooks/core/adapters/fs";
 import { findAllViolations, type Violation } from "@hooks/lib/coding-standards-checks";
-import { findAnyViolations } from "@hooks/contracts/TypeStrictness";
+import { findAnyViolations } from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
 import { scoreFile, type QualityScore } from "@hooks/core/quality-scorer";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
 

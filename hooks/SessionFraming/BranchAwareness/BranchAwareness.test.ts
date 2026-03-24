@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { BranchAwareness, type BranchAwarenessDeps } from "@hooks/contracts/BranchAwareness";
+import { BranchAwareness, type BranchAwarenessDeps } from "./BranchAwareness.contract";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import type { Result } from "@hooks/core/result";

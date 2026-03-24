@@ -1,6 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
-import { UpdateCounts } from "@hooks/contracts/UpdateCounts";
-import type { UpdateCountsDeps } from "@hooks/contracts/UpdateCounts";
+import { UpdateCounts } from "./UpdateCounts.contract";
+import type { UpdateCountsDeps } from "./UpdateCounts.contract";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { ok, err } from "@hooks/core/result";
 import { PaiError, ErrorCode } from "@hooks/core/error";

@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { ModeAnalytics, type ModeAnalyticsDeps } from "@hooks/contracts/ModeAnalytics";
+import { ModeAnalytics, type ModeAnalyticsDeps } from "./ModeAnalytics.contract";
 import { ok, err } from "@hooks/core/result";
 import { processExecFailed } from "@hooks/core/error";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";

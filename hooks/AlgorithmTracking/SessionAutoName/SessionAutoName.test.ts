@@ -5,7 +5,7 @@ import {
   extractFallbackName,
   isNameRelevantToPrompt,
   type SessionAutoNameDeps,
-} from "@hooks/contracts/SessionAutoName";
+} from "./SessionAutoName.contract";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import { ok, err } from "@hooks/core/result";
 import { PaiError, ErrorCode } from "@hooks/core/error";

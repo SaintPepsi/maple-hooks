@@ -1,0 +1,68 @@
+/**
+ * CitationEnforcement — Shared types, helpers, and default deps.
+ * Used by both CitationTracker and CitationEnforcement.
+ */
+
+import { writeFile, readFile, fileExists as fsFileExists } from "@hooks/core/adapters/fs";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { join } from "path";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface CitationEnforcementDeps {
+  stateDir: string;
+  fileExists: (path: string) => boolean;
+  writeFlag: (path: string) => void;
+  readReminded: (path: string) => string[];
+  writeReminded: (path: string, files: string[]) => void;
+  stderr: (msg: string) => void;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+export const RESEARCH_TOOLS = new Set(["WebSearch", "WebFetch"]);
+
+export function isResearchSkill(input: ToolHookInput): boolean {
+  if (input.tool_name !== "Skill") return false;
+  const toolInput = input.tool_input;
+  if (typeof toolInput !== "object" || toolInput === null) return false;
+  return (toolInput as Record<string, unknown>).skill === "Research";
+}
+
+export function getFilePath(input: ToolHookInput): string | null {
+  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
+  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
+}
+
+export function flagPath(stateDir: string): string {
+  return join(stateDir, "research-active");
+}
+
+export function remindedPath(stateDir: string): string {
+  return join(stateDir, "citation-reminded.json");
+}
+
+// ─── Default Deps ─────────────────────────────────────────────────────────────
+
+function getStateDir(): string {
+  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+  return join(paiDir, "MEMORY", "STATE", "citation");
+}
+
+export const defaultDeps: CitationEnforcementDeps = {
+  stateDir: getStateDir(),
+  fileExists: (path: string) => fsFileExists(path),
+  writeFlag: (path: string) => {
+    writeFile(path, new Date().toISOString());
+  },
+  readReminded: (path: string) => {
+    const result = readFile(path);
+    if (!result.ok) return [];
+    const parsed = JSON.parse(result.value);
+    return Array.isArray(parsed) ? parsed : [];
+  },
+  writeReminded: (path: string, files: string[]) => {
+    writeFile(path, JSON.stringify(files));
+  },
+  stderr: (msg) => process.stderr.write(msg + "\n"),
+};

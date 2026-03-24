@@ -8,7 +8,7 @@ import {
   saveState,
   buildWarningMessage,
   getStatePath,
-} from "@hooks/contracts/ArchitectureEscalation";
+} from "./ArchitectureEscalation.contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { ok, err, type Result } from "@hooks/core/result";
 import { PaiError, ErrorCode } from "@hooks/core/error";
