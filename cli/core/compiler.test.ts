@@ -75,6 +75,8 @@ function makeCompilerDeps(
       renameCalls.push({ src, dest });
       return ok(undefined);
     },
+    deleteFile: (_p: string): Result<void, PaihError> => ok(undefined),
+    removeDir: (_p: string): Result<void, PaihError> => ok(undefined),
   };
 
   return { deps, chmodCalls, renameCalls };
@@ -196,6 +198,8 @@ describe("compileHook", () => {
       },
       chmod: () => ok(undefined),
       rename: () => ok(undefined),
+      deleteFile: () => ok(undefined),
+      removeDir: () => ok(undefined),
     };
 
     const result = compileHook(makeOpts({ mode: "compiled" }), deps);
@@ -235,6 +239,8 @@ describe("compileHook", () => {
         if (c.ok) memDeps.writeFile(dest, c.value);
         return ok(undefined);
       },
+      deleteFile: () => ok(undefined),
+      removeDir: () => ok(undefined),
     };
 
     compileHook(makeOpts({ mode: "compiled" }), deps);
@@ -270,6 +276,8 @@ describe("compileHook", () => {
         if (c.ok) memDeps.writeFile(dest, c.value);
         return ok(undefined);
       },
+      deleteFile: () => ok(undefined),
+      removeDir: () => ok(undefined),
     };
 
     compileHook(makeOpts({ mode: "compiled-ts" }), deps);
@@ -304,6 +312,8 @@ describe("compileHook", () => {
         if (c.ok) memDeps.writeFile(dest, c.value);
         return ok(undefined);
       },
+      deleteFile: () => ok(undefined),
+      removeDir: () => ok(undefined),
     };
 
     compileHook(makeOpts({ mode: "compiled" }), deps);

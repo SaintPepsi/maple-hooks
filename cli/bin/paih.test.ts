@@ -49,11 +49,11 @@ describe("paih CLI", () => {
     expect(result.output).toContain("requires at least one");
   });
 
-  it("known stub command exits 0 with stub message", () => {
+  it("removed stub command treated as unknown", () => {
     const result = main(["status"]);
-    expect(result.exitCode).toBe(0);
-    expect(result.stream).toBe("stdout");
-    expect(result.output).toContain("status");
+    expect(result.exitCode).toBe(1);
+    expect(result.stream).toBe("stderr");
+    expect(result.output).toContain("Unknown command");
   });
 
   it("--help takes priority over command", () => {

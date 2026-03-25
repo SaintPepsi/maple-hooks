@@ -83,6 +83,8 @@ function makeCompilerDeps(fileTree: Record<string, string>): CompilerDeps {
       if (content.ok) memDeps.writeFile(dest, content.value);
       return ok(undefined);
     },
+    deleteFile: (): Result<void, PaihError> => ok(undefined),
+    removeDir: (): Result<void, PaihError> => ok(undefined),
   } as CompilerDeps & { getFiles: () => Map<string, string> };
 }
 

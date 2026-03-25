@@ -28,6 +28,7 @@ const VALID_LOCKFILE: Lockfile = {
       event: "PreToolUse",
       commandString: "./hooks/TestGroup/TestHook/TestHook.hook.ts",
       files: ["hooks/TestGroup/TestHook/TestHook.hook.ts"],
+      fileHashes: {},
     },
     {
       name: "AnotherHook",
@@ -35,6 +36,7 @@ const VALID_LOCKFILE: Lockfile = {
       event: "PostToolUse",
       commandString: "./hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts",
       files: ["hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts"],
+      fileHashes: {},
     },
   ],
 };
@@ -52,6 +54,7 @@ const ORPHANED_LOCKFILE: Lockfile = {
       event: "PreToolUse",
       commandString: "./hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts",
       files: ["hooks/OrphanGroup/OrphanHook/OrphanHook.hook.ts"],
+      fileHashes: {},
     },
   ],
 };
