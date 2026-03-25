@@ -11,6 +11,7 @@ import { resolve, dirname } from "path";
 import { validate, type ValidatorDeps, type ValidationReport } from "./validator";
 import {
   readFile as adapterReadFile,
+  readJson as adapterReadJson,
   fileExists as adapterFileExists,
 } from "@hooks/core/adapters/fs";
 import type { Result } from "@hooks/core/result";
@@ -22,6 +23,7 @@ const HOOKS_DIR = resolve(import.meta.dir, "../../hooks");
 
 const realDeps: ValidatorDeps = {
   readFile: adapterReadFile,
+  readJson: adapterReadJson,
   fileExists: adapterFileExists,
   dirname,
   resolve,

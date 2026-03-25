@@ -21,11 +21,10 @@ import type { PaiError } from "@hooks/core/error";
 import { fileNotFound, invalidInput } from "@hooks/core/error";
 import {
   readFile as adapterReadFile,
+  readJson as adapterReadJson,
   fileExists as adapterFileExists,
 } from "@hooks/core/adapters/fs";
 import type { HookManifest } from "@hooks/cli/types/manifest";
-import { tryCatch } from "@hooks/core/result";
-import { jsonParseFailed } from "@hooks/core/error";
 import { dirname as nodeDirname, resolve as nodeResolve } from "path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -49,6 +48,7 @@ export interface ValidationReport {
 
 export interface ValidatorDeps {
   readFile: (path: string) => Result<string, PaiError>;
+  readJson: (path: string) => Result<HookManifest, PaiError>;
   fileExists: (path: string) => boolean;
   dirname: (path: string) => string;
   resolve: (...segments: string[]) => string;
@@ -59,6 +59,7 @@ export interface ValidatorDeps {
 
 const defaultDeps: ValidatorDeps = {
   readFile: adapterReadFile,
+  readJson: adapterReadJson,
   fileExists: adapterFileExists,
   dirname: nodeDirname,
   resolve: nodeResolve,
@@ -183,15 +184,8 @@ export function validate(
   const contractResult = deps.readFile(contractPath);
   if (!contractResult.ok) return contractResult;
 
-  // Read manifest JSON
-  const manifestResult = deps.readFile(manifestPath);
-  if (!manifestResult.ok) return manifestResult;
-
-  // Parse manifest (safe — returns Result instead of throwing)
-  const manifestParseResult = tryCatch(
-    () => JSON.parse(manifestResult.value) as HookManifest,
-    (e) => jsonParseFailed(manifestResult.value, e),
-  );
+  // Read and parse manifest JSON (adapter handles try-catch)
+  const manifestParseResult = deps.readJson(manifestPath);
   if (!manifestParseResult.ok) return manifestParseResult;
   const manifest = manifestParseResult.value;
 

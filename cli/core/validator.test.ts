@@ -15,8 +15,10 @@ import { resolve, dirname } from "path";
 import { validate, type ValidatorDeps, type ValidationReport } from "./validator";
 import { ok, err, type Result } from "@hooks/core/result";
 import { PaiError, ErrorCode } from "@hooks/core/error";
+import type { HookManifest } from "@hooks/cli/types/manifest";
 import {
   readFile as adapterReadFile,
+  readJson as adapterReadJson,
   fileExists as adapterFileExists,
 } from "@hooks/core/adapters/fs";
 
@@ -36,6 +38,7 @@ function fixtureManifest(name: string): string {
 function makeDeps(overrides: Partial<ValidatorDeps> = {}): ValidatorDeps {
   return {
     readFile: adapterReadFile,
+    readJson: adapterReadJson,
     fileExists: adapterFileExists,
     dirname,
     resolve,
@@ -163,23 +166,23 @@ describe("validate", () => {
         "}",
       ].join("\n");
 
-      const manifestContent = JSON.stringify({
+      const manifestObj: HookManifest = {
         name: "SiblingTest",
         group: "TestGroup",
-        event: "PreToolUse",
+        event: "PreToolUse" as HookManifest["event"],
         description: "Test sibling imports ignored",
         schemaVersion: 1,
         deps: { core: ["result"], lib: [], adapters: [], shared: false },
         tags: [],
         presets: [],
-      });
+      };
 
       const deps = makeDeps({
         readFile: (path: string) => {
           if (path.endsWith(".ts")) return ok(contractContent);
-          if (path.endsWith(".json")) return ok(manifestContent);
           return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
         },
+        readJson: () => ok(manifestObj),
       });
 
       const result = validate("/fake/contract.ts", "/fake/hook.json", deps);
@@ -206,23 +209,23 @@ describe("validate", () => {
         "}",
       ].join("\n");
 
-      const manifestContent = JSON.stringify({
+      const manifestObj: HookManifest = {
         name: "MultiLineTest",
         group: "TestGroup",
-        event: "PreToolUse",
+        event: "PreToolUse" as HookManifest["event"],
         description: "Test multi-line imports",
         schemaVersion: 1,
         deps: { core: ["result"], lib: [], adapters: ["fs"], shared: false },
         tags: [],
         presets: [],
-      });
+      };
 
       const deps = makeDeps({
         readFile: (path: string) => {
           if (path.endsWith(".ts")) return ok(contractContent);
-          if (path.endsWith(".json")) return ok(manifestContent);
           return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
         },
+        readJson: () => ok(manifestObj),
       });
 
       const result = validate("/fake/contract.ts", "/fake/hook.json", deps);
@@ -253,9 +256,9 @@ describe("validate", () => {
       const deps = makeDeps({
         readFile: (path: string) => {
           if (path.endsWith(".ts")) return ok('import { ok } from "@hooks/core/result";');
-          if (path.endsWith(".json")) return ok("{ not valid json !!! }");
           return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
         },
+        readJson: () => err(new PaiError(ErrorCode.JsonParseFailed, "Invalid JSON")),
       });
 
       const result = validate("/fake/contract.ts", "/fake/hook.json", deps);
@@ -267,12 +270,8 @@ describe("validate", () => {
 
     it("returns err when manifest file cannot be read", () => {
       const deps = makeDeps({
-        readFile: (path: string) => {
-          if (path.endsWith(".json")) {
-            return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
-          }
-          return ok('import { ok } from "@hooks/core/result";');
-        },
+        readFile: (path: string) => ok('import { ok } from "@hooks/core/result";'),
+        readJson: (path: string) => err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`)),
       });
 
       const result = validate("/fake/contract.ts", "/fake/missing.json", deps);
