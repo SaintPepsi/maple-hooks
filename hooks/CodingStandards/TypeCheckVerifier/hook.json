@@ -1,0 +1,23 @@
+{
+  "name": "TypeCheckVerifier",
+  "group": "CodingStandards",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "signal-logger",
+      "svelte-utils"
+    ],
+    "adapters": [
+      "fs",
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

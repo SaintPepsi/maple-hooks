@@ -1,0 +1,19 @@
+{
+  "name": "ModeAnalytics",
+  "group": "IdentityBranding",
+  "event": "SessionEnd",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

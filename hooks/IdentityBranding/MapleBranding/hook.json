@@ -1,0 +1,17 @@
+{
+  "name": "MapleBranding",
+  "group": "IdentityBranding",
+  "event": "PreToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

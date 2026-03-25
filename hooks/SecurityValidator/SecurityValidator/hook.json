@@ -1,0 +1,24 @@
+{
+  "name": "SecurityValidator",
+  "group": "SecurityValidator",
+  "event": "PreToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [
+      "narrative-reader"
+    ],
+    "adapters": [
+      "fs",
+      "regex",
+      "yaml"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

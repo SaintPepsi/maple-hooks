@@ -1,0 +1,14 @@
+{
+  "name": "CronStatusLine",
+  "description": "",
+  "hooks": [
+    "CronCreate",
+    "CronDelete",
+    "CronFire",
+    "CronPrune",
+    "CronSessionEnd"
+  ],
+  "sharedFiles": [
+    "shared.ts"
+  ]
+}

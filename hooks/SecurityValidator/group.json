@@ -1,0 +1,8 @@
+{
+  "name": "SecurityValidator",
+  "description": "",
+  "hooks": [
+    "SecurityValidator"
+  ],
+  "sharedFiles": []
+}

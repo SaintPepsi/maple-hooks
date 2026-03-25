@@ -1,0 +1,24 @@
+{
+  "name": "CodeQualityGuard",
+  "group": "CodeQualityPipeline",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "language-profiles",
+      "quality-scorer",
+      "result"
+    ],
+    "lib": [
+      "signal-logger",
+      "svelte-utils"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

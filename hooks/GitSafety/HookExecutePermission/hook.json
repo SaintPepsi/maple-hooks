@@ -1,0 +1,19 @@
+{
+  "name": "HookExecutePermission",
+  "group": "GitSafety",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

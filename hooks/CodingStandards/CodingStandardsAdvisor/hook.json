@@ -1,0 +1,22 @@
+{
+  "name": "CodingStandardsAdvisor",
+  "group": "CodingStandards",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "coding-standards-checks",
+      "svelte-utils"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

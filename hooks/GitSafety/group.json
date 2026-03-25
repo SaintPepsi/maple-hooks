@@ -1,0 +1,12 @@
+{
+  "name": "GitSafety",
+  "description": "",
+  "hooks": [
+    "DestructiveDeleteGuard",
+    "GitAutoSync",
+    "HookExecutePermission",
+    "ProtectedBranchGuard",
+    "WorktreeSafetyVerification"
+  ],
+  "sharedFiles": []
+}

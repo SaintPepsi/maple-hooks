@@ -1,0 +1,12 @@
+{
+  "name": "CodeQualityPipeline",
+  "description": "",
+  "hooks": [
+    "CodeQualityBaseline",
+    "CodeQualityGuard",
+    "SessionQualityReport"
+  ],
+  "sharedFiles": [
+    "shared.ts"
+  ]
+}

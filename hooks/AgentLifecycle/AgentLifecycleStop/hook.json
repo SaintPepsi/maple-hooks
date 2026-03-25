@@ -1,0 +1,20 @@
+{
+  "name": "AgentLifecycleStop",
+  "group": "AgentLifecycle",
+  "event": "SubagentStop",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [],
+    "adapters": [],
+    "shared": [
+      "shared.ts"
+    ]
+  },
+  "tags": [],
+  "presets": []
+}

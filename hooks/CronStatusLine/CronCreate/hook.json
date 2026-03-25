@@ -1,0 +1,21 @@
+{
+  "name": "CronCreate",
+  "group": "CronStatusLine",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": [
+      "shared.ts"
+    ]
+  },
+  "tags": [],
+  "presets": []
+}

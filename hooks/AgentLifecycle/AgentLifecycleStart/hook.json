@@ -1,0 +1,19 @@
+{
+  "name": "AgentLifecycleStart",
+  "group": "AgentLifecycle",
+  "event": "SubagentStart",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [],
+    "shared": [
+      "shared.ts"
+    ]
+  },
+  "tags": [],
+  "presets": []
+}

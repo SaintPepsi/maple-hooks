@@ -1,0 +1,19 @@
+{
+  "name": "CheckVersion",
+  "group": "SessionFraming",
+  "event": "SessionStart",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

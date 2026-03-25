@@ -1,0 +1,18 @@
+{
+  "name": "ObligationStateMachines",
+  "description": "",
+  "hooks": [
+    "CitationEnforcement",
+    "CitationTracker",
+    "DocObligationEnforcer",
+    "DocObligationTracker",
+    "SpotCheckReview",
+    "TestObligationEnforcer",
+    "TestObligationTracker"
+  ],
+  "sharedFiles": [
+    "CitationEnforcement.shared.ts",
+    "DocObligationStateMachine.shared.ts",
+    "TestObligationStateMachine.shared.ts"
+  ]
+}

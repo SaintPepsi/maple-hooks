@@ -1,0 +1,24 @@
+{
+  "name": "RelationshipMemory",
+  "group": "LearningFeedback",
+  "event": "Stop",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [
+      "identity",
+      "paths",
+      "time"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

@@ -1,0 +1,23 @@
+{
+  "name": "SessionSummary",
+  "group": "WorkLifecycle",
+  "event": "SessionEnd",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [
+      "tab-setter",
+      "time"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

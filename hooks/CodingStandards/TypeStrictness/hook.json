@@ -1,0 +1,21 @@
+{
+  "name": "TypeStrictness",
+  "group": "CodingStandards",
+  "event": "PreToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "narrative-reader",
+      "signal-logger",
+      "svelte-utils"
+    ],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

@@ -1,0 +1,23 @@
+{
+  "name": "ProtectedBranchGuard",
+  "group": "GitSafety",
+  "event": "PreToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [
+      "paths"
+    ],
+    "adapters": [
+      "fs",
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

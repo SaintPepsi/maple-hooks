@@ -1,0 +1,8 @@
+{
+  "name": "ExecutionEvidence",
+  "description": "",
+  "hooks": [
+    "ExecutionEvidenceVerifier"
+  ],
+  "sharedFiles": []
+}

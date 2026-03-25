@@ -1,0 +1,8 @@
+{
+  "name": "StopOrchestrator",
+  "description": "",
+  "hooks": [
+    "StopOrchestrator"
+  ],
+  "sharedFiles": []
+}

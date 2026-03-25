@@ -1,0 +1,21 @@
+{
+  "name": "WorktreeSafetyVerification",
+  "group": "GitSafety",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs",
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

@@ -5,11 +5,22 @@
   "description": "Detect and record cron fires by matching user prompts against session crons",
   "schemaVersion": 1,
   "deps": {
-    "core": ["contract", "result", "error", "types/hook-inputs", "types/hook-outputs"],
+    "core": [
+      "result",
+      "types/hook-outputs"
+    ],
     "lib": [],
-    "adapters": ["fs"],
-    "shared": ["shared.ts"]
+    "adapters": [
+      "fs"
+    ],
+    "shared": [
+      "shared.ts"
+    ]
   },
-  "tags": ["cron"],
-  "presets": ["full"]
+  "tags": [
+    "cron"
+  ],
+  "presets": [
+    "full"
+  ]
 }

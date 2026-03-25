@@ -1,0 +1,22 @@
+{
+  "name": "AutoWorkCreation",
+  "group": "WorkLifecycle",
+  "event": "UserPromptSubmit",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "prd-template",
+      "time"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

@@ -1,0 +1,25 @@
+{
+  "name": "LoadContext",
+  "group": "SessionFraming",
+  "event": "SessionStart",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [
+      "identity",
+      "notifications",
+      "tab-setter"
+    ],
+    "adapters": [
+      "fs",
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}
