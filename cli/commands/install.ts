@@ -43,7 +43,7 @@ import {
   mergeHookEntry,
 } from "@hooks/cli/core/settings";
 import type { SettingsJson } from "@hooks/cli/core/settings";
-import { readLockfile, writeLockfile, addHookEntry } from "@hooks/cli/core/lockfile";
+import { readLockfile, writeLockfile, addHookEntry, computeFileHash } from "@hooks/cli/core/lockfile";
 import { generateTsconfig } from "@hooks/cli/core/tsconfig-gen";
 import { compileHook, compiledCommandString } from "@hooks/cli/core/compiler";
 import type { CompilerDeps } from "@hooks/cli/core/compiler";
@@ -187,12 +187,23 @@ export function install(
   lockfile = { ...lockfile, outputMode };
 
   for (const { hookDef, commandString, files } of installedEntries) {
+    // Compute file hashes for modification detection
+    const fileHashes: Record<string, string> = {};
+    for (const relFile of files) {
+      const absPath = `${claudeDir}/${relFile}`;
+      const hashResult = computeFileHash(absPath, deps);
+      if (hashResult.ok) {
+        fileHashes[relFile] = hashResult.value;
+      }
+    }
+
     const entry: LockfileHookEntry = {
       name: hookDef.manifest.name,
       group: hookDef.manifest.group,
       event: hookDef.manifest.event,
       commandString,
       files,
+      fileHashes,
     };
     lockfile = addHookEntry(lockfile, entry);
   }

@@ -34,6 +34,8 @@ const BOOLEAN_FLAGS = new Set([
   "--presets",
   "--compiled",
   "--compiled-ts",
+  "--fix",
+  "--installed",
 ]);
 
 /** Flags that take a string value. */

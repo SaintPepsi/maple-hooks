@@ -14,6 +14,9 @@ import type { Result } from "@hooks/cli/core/result";
 import { install } from "@hooks/cli/commands/install";
 import { list } from "@hooks/cli/commands/list";
 import { catalog } from "@hooks/cli/commands/catalog";
+import { uninstall } from "@hooks/cli/commands/uninstall";
+import { update } from "@hooks/cli/commands/update";
+import { verify } from "@hooks/cli/commands/verify";
 import { makeDefaultDeps } from "@hooks/cli/types/default-deps";
 
 // ─── Version ────────────────────────────────────────────────────────────────
@@ -30,22 +33,24 @@ Usage:
 Commands:
   install     Install hooks to target project
   uninstall   Remove hooks from target project
+  update      Re-install hooks whose source changed
+  verify      Validate hooks (source or installed)
   list        Show installed hooks and their status
   catalog     Show available hooks, groups, and presets
-  status      Show installed hook status
-  validate    Validate hook manifests
 
 Flags:
-  --help       Show this help message
-  --version    Show version
-  --to <dir>   Target project directory
-  --from <dir> Source hooks directory
-  --in <dir>   Working directory override
-  --force      Overwrite existing hooks
-  --dry-run    Preview changes without writing
-  --json       Output as JSON
-  --groups     Show group summary (catalog)
-  --presets    Show preset summary (catalog)
+  --help        Show this help message
+  --version     Show version
+  --to <dir>    Target project directory
+  --from <dir>  Source hooks directory
+  --in <dir>    Working directory override
+  --force       Overwrite existing hooks
+  --dry-run     Preview changes without writing
+  --json        Output as JSON
+  --groups      Show group summary (catalog)
+  --presets     Show preset summary (catalog)
+  --fix         Auto-fix derivable manifest fields (verify)
+  --installed   Verify installed hooks (verify)
 `;
 
 // ─── Known Commands ─────────────────────────────────────────────────────────
@@ -53,10 +58,10 @@ Flags:
 const KNOWN_COMMANDS = new Set([
   "install",
   "uninstall",
+  "update",
+  "verify",
   "list",
   "catalog",
-  "status",
-  "validate",
 ]);
 
 // ─── Exit Code Mapping ──────────────────────────────────────────────────────
@@ -71,6 +76,8 @@ const USER_ERROR_CODES = new Set<string>([
   PaihErrorCode.InvalidArgs,
   PaihErrorCode.SettingsConflict,
   PaihErrorCode.DepCycle,
+  PaihErrorCode.LockMissing,
+  PaihErrorCode.FileModified,
 ]);
 
 function exitCodeFromError(error: PaihError): number {
@@ -108,7 +115,7 @@ export function main(argv: string[]): { exitCode: number; output: string; stream
     return { exitCode: 1, output: `Unknown command: ${command}`, stream: "stderr" };
   }
 
-  // Route to subcommand (stubs for now — will be implemented in future issues)
+  // Route to subcommand
   const result = routeCommand(command, parsed.value);
   if (!result.ok) {
     return {
@@ -131,14 +138,16 @@ function routeCommand(
   switch (command) {
     case "install":
       return install(args, deps);
+    case "uninstall":
+      return uninstall(args, deps);
+    case "update":
+      return update(args, deps);
+    case "verify":
+      return verify(args, deps);
     case "list":
       return list(args, deps);
     case "catalog":
       return catalog(args, deps, deps.cwd());
-    case "uninstall":
-    case "status":
-    case "validate":
-      return { ok: true, value: `${command}: not yet implemented` };
     default:
       return { ok: true, value: "" };
   }
