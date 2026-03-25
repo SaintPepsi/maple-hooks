@@ -27,7 +27,7 @@ export interface CheckAlgorithmVersionDeps {
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
 const UPSTREAM_REPO = "danielmiessler/Personal_AI_Infrastructure";
-const UPSTREAM_PATH = "Releases/v3.0/.claude/PAI/Components/Algorithm/LATEST";
+const UPSTREAM_PATH = "Releases/v4.0.3/.claude/PAI/Algorithm/LATEST";
 
 export function isNewer(upstream: string, local: string): boolean {
   const parse = (v: string) => {
@@ -46,7 +46,7 @@ export function isNewer(upstream: string, local: string): boolean {
 }
 
 function defaultGetLocalVersion(homeDir: string): string {
-  const latestFile = join(homeDir, ".claude/PAI/Components/Algorithm/LATEST");
+  const latestFile = join(homeDir, ".claude/PAI/Algorithm/LATEST");
   const result = readFile(latestFile);
   return result.ok ? result.value.trim() : "unknown";
 }
@@ -63,7 +63,13 @@ async function defaultGetUpstreamVersion(): Promise<Result<string, PaiError>> {
   const output = await new Response(proc.stdout).text();
   clearTimeout(timeout);
 
-  const decoded = atob(output.trim());
+  const trimmed = output.trim();
+  const isValidBase64 = trimmed.length > 0 && /^[A-Za-z0-9+/\n=]+$/.test(trimmed);
+  if (!isValidBase64) {
+    return err({ code: "UPSTREAM_FETCH_FAILED", message: "GitHub API returned non-base64 response" });
+  }
+
+  const decoded = atob(trimmed);
   return ok(decoded.trim());
 }
 
