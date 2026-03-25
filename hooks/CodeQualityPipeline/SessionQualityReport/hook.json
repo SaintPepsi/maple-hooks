@@ -1,0 +1,21 @@
+{
+  "name": "SessionQualityReport",
+  "group": "CodeQualityPipeline",
+  "event": "SessionEnd",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "time"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

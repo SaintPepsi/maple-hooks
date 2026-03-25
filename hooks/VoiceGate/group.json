@@ -1,0 +1,8 @@
+{
+  "name": "VoiceGate",
+  "description": "",
+  "hooks": [
+    "VoiceGate"
+  ],
+  "sharedFiles": []
+}

@@ -1,0 +1,22 @@
+{
+  "name": "CronPrune",
+  "group": "CronStatusLine",
+  "event": "SessionStart",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": [
+      "shared.ts"
+    ]
+  },
+  "tags": [],
+  "presets": []
+}

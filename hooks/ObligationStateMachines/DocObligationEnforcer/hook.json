@@ -1,0 +1,19 @@
+{
+  "name": "DocObligationEnforcer",
+  "group": "ObligationStateMachines",
+  "event": "Stop",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "narrative-reader"
+    ],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

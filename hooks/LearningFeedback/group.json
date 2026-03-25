@@ -1,0 +1,10 @@
+{
+  "name": "LearningFeedback",
+  "description": "",
+  "hooks": [
+    "LearningActioner",
+    "RatingCapture",
+    "RelationshipMemory"
+  ],
+  "sharedFiles": []
+}

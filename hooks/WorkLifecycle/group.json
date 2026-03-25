@@ -1,0 +1,13 @@
+{
+  "name": "WorkLifecycle",
+  "description": "",
+  "hooks": [
+    "ArticleWriter",
+    "AutoWorkCreation",
+    "PRDSync",
+    "PreCompactStatePersist",
+    "SessionSummary",
+    "WorkCompletionLearning"
+  ],
+  "sharedFiles": []
+}

@@ -1,0 +1,21 @@
+{
+  "name": "CronSessionEnd",
+  "group": "CronStatusLine",
+  "event": "SessionEnd",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": [
+      "shared.ts"
+    ]
+  },
+  "tags": [],
+  "presets": []
+}

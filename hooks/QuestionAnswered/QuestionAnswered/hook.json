@@ -1,0 +1,19 @@
+{
+  "name": "QuestionAnswered",
+  "group": "QuestionAnswered",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "tab-setter"
+    ],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

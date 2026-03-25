@@ -1,0 +1,10 @@
+{
+  "name": "AlgorithmTracking",
+  "description": "",
+  "hooks": [
+    "AlgorithmTracker",
+    "CheckAlgorithmVersion",
+    "SessionAutoName"
+  ],
+  "sharedFiles": []
+}

@@ -1,0 +1,22 @@
+{
+  "name": "LearningActioner",
+  "group": "LearningFeedback",
+  "event": "SessionEnd",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "time"
+    ],
+    "adapters": [
+      "fs",
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

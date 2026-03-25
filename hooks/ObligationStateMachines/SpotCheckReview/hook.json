@@ -1,0 +1,20 @@
+{
+  "name": "SpotCheckReview",
+  "group": "ObligationStateMachines",
+  "event": "Stop",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs",
+      "process"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

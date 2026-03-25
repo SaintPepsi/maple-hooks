@@ -1,0 +1,24 @@
+{
+  "name": "CodingStandardsEnforcer",
+  "group": "CodingStandards",
+  "event": "PreToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "coding-standards-checks",
+      "narrative-reader",
+      "signal-logger",
+      "svelte-utils"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

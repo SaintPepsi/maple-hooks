@@ -1,0 +1,10 @@
+{
+  "name": "IdentityBranding",
+  "description": "",
+  "hooks": [
+    "MapleBranding",
+    "ModeAnalytics",
+    "UpdateCounts"
+  ],
+  "sharedFiles": []
+}

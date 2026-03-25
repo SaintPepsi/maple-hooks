@@ -1,0 +1,9 @@
+{
+  "name": "ArchitectureEscalation",
+  "description": "",
+  "hooks": [
+    "ArchitectureEscalation",
+    "SonnetDelegation"
+  ],
+  "sharedFiles": []
+}

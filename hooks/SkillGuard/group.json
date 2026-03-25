@@ -1,0 +1,8 @@
+{
+  "name": "SkillGuard",
+  "description": "",
+  "hooks": [
+    "SkillGuard"
+  ],
+  "sharedFiles": []
+}

@@ -1,0 +1,22 @@
+{
+  "name": "WorkCompletionLearning",
+  "group": "WorkLifecycle",
+  "event": "SessionEnd",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "learning-utils",
+      "time"
+    ],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

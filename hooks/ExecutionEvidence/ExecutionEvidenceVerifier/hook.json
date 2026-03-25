@@ -1,0 +1,19 @@
+{
+  "name": "ExecutionEvidenceVerifier",
+  "group": "ExecutionEvidence",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [
+      "execution-classification"
+    ],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

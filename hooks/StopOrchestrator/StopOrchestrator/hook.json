@@ -1,0 +1,19 @@
+{
+  "name": "StopOrchestrator",
+  "group": "StopOrchestrator",
+  "event": "Stop",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

@@ -1,0 +1,17 @@
+{
+  "name": "SonnetDelegation",
+  "group": "ArchitectureEscalation",
+  "event": "PostToolUse",
+  "description": "",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result"
+    ],
+    "lib": [],
+    "adapters": [],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}

@@ -1,0 +1,12 @@
+{
+  "name": "AgentLifecycle",
+  "description": "",
+  "hooks": [
+    "AgentExecutionGuard",
+    "AgentLifecycleStart",
+    "AgentLifecycleStop"
+  ],
+  "sharedFiles": [
+    "shared.ts"
+  ]
+}
