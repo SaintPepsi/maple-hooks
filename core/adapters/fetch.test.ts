@@ -9,7 +9,7 @@ describe("safeFetch", () => {
     const r = await safeFetch("http://192.0.2.1:1", { timeout: 500 });
     expect(r.ok).toBe(false);
     // Could be either timeout or connection refused depending on system
-    expect([ErrorCode.FetchFailed, ErrorCode.FetchTimeout]).toContain(r.error.code);
+    expect([ErrorCode.FetchFailed, ErrorCode.FetchTimeout]).toContain(r.error!.code);
   });
 
   it("returns result with status for successful fetch", async () => {

@@ -61,9 +61,7 @@ export function run(deps: ImportHooksDeps = defaultDeps): void {
   if (!settingsResult.ok) return;
   const settings = JSON.parse(settingsResult.value!);
 
-  // Use the repo root as the install path (same machine, same location)
-  const installPath = settings.env?.[manifest.envVar] || repoRoot;
-  const merged = mergeHooksIntoSettings(settings, exported, installPath);
+  const merged = mergeHooksIntoSettings(settings, exported);
   deps.writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n");
 
   deps.stderr("Imported settings.hooks.json into settings.json");

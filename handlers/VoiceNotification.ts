@@ -62,7 +62,7 @@ export interface VoiceNotificationDeps {
   getTimestamp: typeof getISOTimestamp;
   isValidVoiceCompletion: typeof isValidVoiceCompletion;
   getVoiceFallback: typeof getVoiceFallback;
-  fetch: typeof globalThis.fetch;
+  fetch: (url: string, init?: RequestInit) => Promise<Response>;
   baseDir: string;
   stderr: (msg: string) => void;
 }

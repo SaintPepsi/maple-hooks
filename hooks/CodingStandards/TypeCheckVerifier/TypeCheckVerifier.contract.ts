@@ -244,7 +244,7 @@ const defaultDeps: TypeCheckVerifierDeps = {
       cwd,
       timeout: timeoutMs,
       encoding: "utf-8",
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: "pipe",
     });
     if (!result.ok) {
       return { stdout: "", stderr: "", exitCode: 1, timedOut: false };

@@ -10,9 +10,9 @@
  * which previously existed but were never called.
  */
 
-import { algorithmEnd, sweepStaleActive, readState, writeState } from '../lib/algorithm-state';
-import type { AlgorithmCriterion, AlgorithmState } from '../lib/algorithm-state';
-import type { ParsedTranscript } from '../../PAI/Tools/TranscriptParser';
+import { algorithmEnd, sweepStaleActive, readState, writeState } from '@hooks/lib/algorithm-state';
+import type { AlgorithmCriterion, AlgorithmState } from '@hooks/lib/algorithm-state';
+import type { ParsedTranscript } from '@pai/Tools/TranscriptParser';
 
 // ── Extraction helpers ──
 

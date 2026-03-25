@@ -202,7 +202,7 @@ export function runBaselineTests(worktreePath: string, deps: WorktreeSafetyDeps)
 
 const defaultDeps: WorktreeSafetyDeps = {
   execSync: (cmd: string, opts?: Record<string, unknown>) => {
-    const r = execSyncSafe(cmd, { cwd: opts?.cwd as string, timeout: opts?.timeout as number, stdio: opts?.stdio });
+    const r = execSyncSafe(cmd, { cwd: opts?.cwd as string, timeout: opts?.timeout as number, stdio: opts?.stdio as "pipe" | "ignore" | "inherit" | undefined });
     if (!r.ok) throw r.error;
     return r.value;
   },

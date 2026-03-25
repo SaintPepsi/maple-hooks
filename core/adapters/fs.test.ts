@@ -36,13 +36,13 @@ describe("readFile", () => {
     writeFileSync(p, "hello world");
     const r = readFile(p);
     expect(r.ok).toBe(true);
-    expect(r.value).toBe("hello world");
+    expect(r.value!).toBe("hello world");
   });
 
   it("returns FILE_NOT_FOUND for missing file", () => {
     const r = readFile(join(TEST_DIR, "missing.txt"));
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileNotFound);
+    expect(r.error!.code).toBe(ErrorCode.FileNotFound);
   });
 });
 
@@ -54,7 +54,7 @@ describe("readJson", () => {
     writeFileSync(p, JSON.stringify({ name: "test" }));
     const r = readJson<{ name: string }>(p);
     expect(r.ok).toBe(true);
-    expect(r.value.name).toBe("test");
+    expect(r.value!.name).toBe("test");
   });
 
   it("returns error for invalid JSON", () => {
@@ -62,13 +62,13 @@ describe("readJson", () => {
     writeFileSync(p, "not json {{{");
     const r = readJson(p);
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileReadFailed);
+    expect(r.error!.code).toBe(ErrorCode.FileReadFailed);
   });
 
   it("returns FILE_NOT_FOUND for missing file", () => {
     const r = readJson(join(TEST_DIR, "missing.json"));
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileNotFound);
+    expect(r.error!.code).toBe(ErrorCode.FileNotFound);
   });
 });
 
@@ -155,7 +155,7 @@ describe("removeFile", () => {
   it("returns error for non-existent file", () => {
     const r = removeFile(join(TEST_DIR, "nope.txt"));
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileWriteFailed);
+    expect(r.error!.code).toBe(ErrorCode.FileWriteFailed);
   });
 });
 
@@ -171,7 +171,7 @@ describe("copyFile", () => {
     expect(existsSync(dest)).toBe(true);
     const content = readFile(dest);
     expect(content.ok).toBe(true);
-    expect(content.value).toBe("content");
+    expect(content.value!).toBe("content");
   });
 
   it("returns error when source missing", () => {
@@ -188,14 +188,14 @@ describe("stat", () => {
     writeFileSync(p, "hi");
     const r = stat(p);
     expect(r.ok).toBe(true);
-    expect(typeof r.value.mtimeMs).toBe("number");
-    expect(r.value.mtimeMs).toBeGreaterThan(0);
+    expect(typeof r.value!.mtimeMs).toBe("number");
+    expect(r.value!.mtimeMs).toBeGreaterThan(0);
   });
 
   it("returns error for non-existent file", () => {
     const r = stat(join(TEST_DIR, "nope.txt"));
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileReadFailed);
+    expect(r.error!.code).toBe(ErrorCode.FileReadFailed);
   });
 });
 
@@ -207,20 +207,20 @@ describe("readDir", () => {
     writeFileSync(join(TEST_DIR, "b.txt"), "b");
     const r = readDir(TEST_DIR);
     expect(r.ok).toBe(true);
-    expect(r.value.length).toBeGreaterThanOrEqual(2);
+    expect(r.value!.length).toBeGreaterThanOrEqual(2);
   });
 
   it("reads with withFileTypes", () => {
     writeFileSync(join(TEST_DIR, "typed.txt"), "t");
     const r = readDir(TEST_DIR, { withFileTypes: true });
     expect(r.ok).toBe(true);
-    expect(r.value.some((e: any) => typeof e.isDirectory === "function")).toBe(true);
+    expect(r.value!.some((e) => typeof e.isDirectory === "function")).toBe(true);
   });
 
   it("returns error for non-existent directory", () => {
     const r = readDir(join(TEST_DIR, "nope"));
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileReadFailed);
+    expect(r.error!.code).toBe(ErrorCode.FileReadFailed);
   });
 });
 
@@ -243,7 +243,7 @@ describe("symlink", () => {
     symlinkSync(target, linkPath);
     const r = symlink(target, linkPath);
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileWriteFailed);
+    expect(r.error!.code).toBe(ErrorCode.FileWriteFailed);
   });
 });
 
@@ -257,7 +257,7 @@ describe("lstat", () => {
     symlinkSync(target, linkPath);
     const r = lstat(linkPath);
     expect(r.ok).toBe(true);
-    expect(r.value.isSymbolicLink()).toBe(true);
+    expect(r.value!.isSymbolicLink()).toBe(true);
   });
 
   it("returns isSymbolicLink false for regular file", () => {
@@ -265,12 +265,12 @@ describe("lstat", () => {
     writeFileSync(p, "hi");
     const r = lstat(p);
     expect(r.ok).toBe(true);
-    expect(r.value.isSymbolicLink()).toBe(false);
+    expect(r.value!.isSymbolicLink()).toBe(false);
   });
 
   it("returns error for non-existent path", () => {
     const r = lstat(join(TEST_DIR, "nope"));
     expect(r.ok).toBe(false);
-    expect(r.error.code).toBe(ErrorCode.FileReadFailed);
+    expect(r.error!.code).toBe(ErrorCode.FileReadFailed);
   });
 });

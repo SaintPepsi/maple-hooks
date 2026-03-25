@@ -1,10 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { mergeHooksIntoSettings, isAlreadyInstalled, buildZshrcBlock, addToZshrc, removeFromZshrc } from "@hooks/install";
-
-interface MatcherGroup {
-  matcher: string;
-  hooks: { type: string; command: string }[];
-}
+import { mergeHooksIntoSettings, isAlreadyInstalled, buildZshrcBlock, addToZshrc, removeFromZshrc, type MatcherGroup } from "@hooks/install";
 
 describe("isAlreadyInstalled", () => {
   it("returns false when env var is not set and no hooks present", () => {

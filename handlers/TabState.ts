@@ -9,10 +9,10 @@
  * Pure handler: receives pre-parsed transcript data, updates Kitty tab.
  */
 
-import { setTabState, readTabState, stripPrefix, setPhaseTab } from '../lib/tab-setter';
-import { isValidCompletionTitle, gerundToPastTense } from '../lib/output-validators';
-import { getDAName } from '../lib/identity';
-import type { ParsedTranscript } from '../../PAI/Tools/TranscriptParser';
+import { setTabState, readTabState, stripPrefix, setPhaseTab } from '@hooks/lib/tab-setter';
+import { isValidCompletionTitle, gerundToPastTense } from '@hooks/lib/output-validators';
+import { getDAName } from '@hooks/lib/identity';
+import type { ParsedTranscript } from '@pai/Tools/TranscriptParser';
 
 /**
  * Extract tab title from voice line. Takes first sentence, caps at 4 words.
@@ -114,62 +114,58 @@ function extractFromResponseContent(responseText: string): string | null {
  * Handle tab state update with pre-parsed transcript data.
  */
 export async function handleTabState(parsed: ParsedTranscript, sessionId?: string): Promise<void> {
-  try {
-    // Don't overwrite question state — question hook owns that
-    if (parsed.responseState === 'awaitingInput') return;
+  // Don't overwrite question state — question hook owns that
+  if (parsed.responseState === 'awaitingInput') return;
 
-    // PRIMARY: Convert working title to past tense
-    let shortTitle: string | null = null;
-    const currentState = readTabState(sessionId);
-    if (currentState) {
-      let rawTitle = stripPrefix(currentState.title);
-      // Strip session prefix (e.g., "KITTY TAB | Removing redundancy." → "Removing redundancy.")
-      const pipeIdx = rawTitle.indexOf(' | ');
-      if (pipeIdx !== -1) {
-        rawTitle = rawTitle.slice(pipeIdx + 3);
+  // PRIMARY: Convert working title to past tense
+  let shortTitle: string | null = null;
+  const currentState = readTabState(sessionId);
+  if (currentState) {
+    let rawTitle = stripPrefix(currentState.title);
+    // Strip session prefix (e.g., "KITTY TAB | Removing redundancy." → "Removing redundancy.")
+    const pipeIdx = rawTitle.indexOf(' | ');
+    if (pipeIdx !== -1) {
+      rawTitle = rawTitle.slice(pipeIdx + 3);
+    }
+    if (rawTitle && rawTitle !== 'Done.' && rawTitle !== 'Processing.' && rawTitle !== 'Processing request.' && !rawTitle.endsWith('ready\u2026')) {
+      const words = rawTitle.replace(/\.$/, '').split(/\s+/);
+      if (words.length >= 2 && words[0].toLowerCase().endsWith('ing')) {
+        words[0] = gerundToPastTense(words[0]);
       }
-      if (rawTitle && rawTitle !== 'Done.' && rawTitle !== 'Processing.' && rawTitle !== 'Processing request.' && !rawTitle.endsWith('ready\u2026')) {
-        const words = rawTitle.replace(/\.$/, '').split(/\s+/);
-        if (words.length >= 2 && words[0].toLowerCase().endsWith('ing')) {
-          words[0] = gerundToPastTense(words[0]);
-        }
-        const candidate = words.join(' ') + '.';
-        if (isValidCompletionTitle(candidate)) {
-          shortTitle = candidate;
-        }
+      const candidate = words.join(' ') + '.';
+      if (isValidCompletionTitle(candidate)) {
+        shortTitle = candidate;
       }
     }
+  }
 
-    // FALLBACK 1: Extract from voice line
-    if (!shortTitle) {
-      shortTitle = extractTabTitle(parsed.plainCompletion);
-    }
+  // FALLBACK 1: Extract from voice line
+  if (!shortTitle) {
+    shortTitle = extractTabTitle(parsed.plainCompletion);
+  }
 
-    // FALLBACK 2: Extract from response content (TASK, SUMMARY sections)
-    if (!shortTitle) {
-      shortTitle = extractFromResponseContent(parsed.currentResponseText);
-      if (shortTitle) {
-        console.error(`[TabState] Extracted title from response content: "${shortTitle}"`);
-      }
+  // FALLBACK 2: Extract from response content (TASK, SUMMARY sections)
+  if (!shortTitle) {
+    shortTitle = extractFromResponseContent(parsed.currentResponseText);
+    if (shortTitle) {
+      console.error(`[TabState] Extracted title from response content: "${shortTitle}"`);
     }
+  }
 
-    // FALLBACK 3: Pass null — let setPhaseTab use session name
-    // "Task complete." is meaningless; the session name at least identifies the work
-    if (!shortTitle) {
-      console.error(`[TabState] All extraction strategies failed, deferring to session name`);
-    }
+  // FALLBACK 3: Pass null — let setPhaseTab use session name
+  // "Task complete." is meaningless; the session name at least identifies the work
+  if (!shortTitle) {
+    console.error(`[TabState] All extraction strategies failed, deferring to session name`);
+  }
 
-    if (sessionId) {
-      // Completion with session prefix: "NAME | summary"
-      setPhaseTab('COMPLETE', sessionId, shortTitle?.replace(/\.$/, '') || undefined);
-      console.error(`[TabState] Completion: "${shortTitle || '(session name fallback)'}"`);
-    } else {
-      // No session ID fallback: "✅ summary"
-      const tabTitle = `✅ ${shortTitle || 'Done.'}`;
-      console.error(`[TabState] ${parsed.responseState}: "${tabTitle}"`);
-      setTabState({ title: tabTitle, state: 'completed', sessionId: undefined });
-    }
-  } catch (error) {
-    console.error('[TabState] Failed:', error);
+  if (sessionId) {
+    // Completion with session prefix: "NAME | summary"
+    setPhaseTab('COMPLETE', sessionId, shortTitle?.replace(/\.$/, '') || undefined);
+    console.error(`[TabState] Completion: "${shortTitle || '(session name fallback)'}"`);
+  } else {
+    // No session ID fallback: "✅ summary"
+    const tabTitle = `✅ ${shortTitle || 'Done.'}`;
+    console.error(`[TabState] ${parsed.responseState}: "${tabTitle}"`);
+    setTabState({ title: tabTitle, state: 'completed', sessionId: undefined });
   }
 }

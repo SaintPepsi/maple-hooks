@@ -1,9 +1,11 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, type Mock } from "bun:test";
 import { handleVoice, type VoiceNotificationDeps } from "@hooks/handlers/VoiceNotification";
 import { ok, err } from "@hooks/core/result";
 import type { Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import type { ParsedTranscript } from "@pai/Tools/TranscriptParser";
+
+type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -41,8 +43,8 @@ function makeTranscript(overrides: Partial<ParsedTranscript> = {}): ParsedTransc
     currentResponseText: "Full response text from assistant",
     voiceCompletion: "Tests are passing and coverage looks solid",
     plainCompletion: "Tests passing.",
-    structured: {},
-    responseState: "completed",
+    structured: { sections: [] },
+    responseState: "complete",
     ...overrides,
   };
 }
@@ -51,11 +53,20 @@ function makeTranscript(overrides: Partial<ParsedTranscript> = {}): ParsedTransc
 // handleVoice — sends notification to voice server
 // ---------------------------------------------------------------------------
 
+type AppendFn = (path: string, content: string) => Result<void, PaiError>;
+type StderrFn = (msg: string) => void;
+
+function makeFetchMock(response: Response): Mock<FetchFn> {
+  return mock((_url: string, _init?: RequestInit) => Promise.resolve(response));
+}
+
+function makeOkFetchMock(): Mock<FetchFn> {
+  return makeFetchMock(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+}
+
 describe("handleVoice", () => {
   it("sends notification to voice server with correct payload", async () => {
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
+    const fetchMock = makeOkFetchMock();
     const deps = makeDeps({ fetch: fetchMock });
     const transcript = makeTranscript();
 
@@ -65,30 +76,26 @@ describe("handleVoice", () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe("http://localhost:8888/notify");
 
-    const body = JSON.parse(options.body);
+    const body = JSON.parse((options as RequestInit & { body: string }).body);
     expect(body.message).toBe("Tests are passing and coverage looks solid");
     expect(body.voice_enabled).toBe(true);
     expect(body.voice_id).toBe("kokoro-bf_emma");
   });
 
   it("includes identity name in notification title", async () => {
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
+    const fetchMock = makeOkFetchMock();
     const deps = makeDeps({ fetch: fetchMock });
     const transcript = makeTranscript();
 
     await handleVoice(transcript, "test-session-2", deps);
 
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit & { body: string }).body);
     expect(body.title).toBe("TestDA says");
   });
 
   it("uses fallback when voice completion is invalid", async () => {
-    const stderrMock = mock(() => {});
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
+    const stderrMock: Mock<StderrFn> = mock((_msg: string) => {});
+    const fetchMock = makeOkFetchMock();
 
     const deps = makeDeps({
       fetch: fetchMock,
@@ -102,19 +109,17 @@ describe("handleVoice", () => {
 
     // Should log the invalid completion
     expect(stderrMock).toHaveBeenCalled();
-    const stderrCall = (stderrMock.mock.calls[0][0]) as string;
+    const stderrCall = stderrMock.mock.calls[0][0];
     expect(stderrCall).toContain("[Voice] Invalid completion");
 
     // Should send the fallback message
-    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit & { body: string }).body);
     expect(body.message).toBe("Fallback completion message for testing");
   });
 
   it("skips when message is too short after fallback", async () => {
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
-    const stderrMock = mock(() => {});
+    const fetchMock = makeOkFetchMock();
+    const stderrMock: Mock<StderrFn> = mock((_msg: string) => {});
 
     const deps = makeDeps({
       fetch: fetchMock,
@@ -131,10 +136,8 @@ describe("handleVoice", () => {
   });
 
   it("skips when voice completion is under 5 characters", async () => {
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
-    const stderrMock = mock(() => {});
+    const fetchMock = makeOkFetchMock();
+    const stderrMock: Mock<StderrFn> = mock((_msg: string) => {});
 
     const deps = makeDeps({
       fetch: fetchMock,
@@ -150,10 +153,8 @@ describe("handleVoice", () => {
   });
 
   it("logs voice event on successful send", async () => {
-    const appendMock = mock((): Result<void, PaiError> => ok(undefined));
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
+    const appendMock: Mock<AppendFn> = mock((_path: string, _content: string) => ok(undefined));
+    const fetchMock = makeOkFetchMock();
 
     const deps = makeDeps({
       fetch: fetchMock,
@@ -164,14 +165,16 @@ describe("handleVoice", () => {
 
     // appendFile called for voice-events.jsonl logging
     expect(appendMock).toHaveBeenCalled();
-    const logPath = appendMock.mock.calls[0][0] as string;
+    const logPath = appendMock.mock.calls[0][0];
     expect(logPath).toContain("voice-events.jsonl");
   });
 
   it("logs failed event when fetch rejects", async () => {
-    const appendMock = mock((): Result<void, PaiError> => ok(undefined));
-    const stderrMock = mock(() => {});
-    const fetchMock = mock(() => Promise.reject(new Error("Connection refused")));
+    const appendMock: Mock<AppendFn> = mock((_path: string, _content: string) => ok(undefined));
+    const stderrMock: Mock<StderrFn> = mock((_msg: string) => {});
+    const fetchMock: Mock<FetchFn> = mock((_url: string, _init?: RequestInit) =>
+      Promise.reject(new Error("Connection refused")),
+    );
 
     const deps = makeDeps({
       fetch: fetchMock,
@@ -183,20 +186,20 @@ describe("handleVoice", () => {
 
     // stderr should log the failure
     expect(stderrMock).toHaveBeenCalled();
-    const stderrMsg = stderrMock.mock.calls[0][0] as string;
+    const stderrMsg = stderrMock.mock.calls[0][0];
     expect(stderrMsg).toContain("[Voice] Failed to send");
 
     // Should log a failed event
-    const loggedLine = appendMock.mock.calls[0][1] as string;
+    const loggedLine = appendMock.mock.calls[0][1];
     const parsed = JSON.parse(loggedLine.trim());
     expect(parsed.event_type).toBe("failed");
   });
 
   it("logs failed event when server returns error status", async () => {
-    const appendMock = mock((): Result<void, PaiError> => ok(undefined));
-    const stderrMock = mock(() => {});
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response("Internal Server Error", { status: 500, statusText: "Internal Server Error" })),
+    const appendMock: Mock<AppendFn> = mock((_path: string, _content: string) => ok(undefined));
+    const stderrMock: Mock<StderrFn> = mock((_msg: string) => {});
+    const fetchMock = makeFetchMock(
+      new Response("Internal Server Error", { status: 500, statusText: "Internal Server Error" }),
     );
 
     const deps = makeDeps({
@@ -212,19 +215,17 @@ describe("handleVoice", () => {
 
     // Should log failed event with status code
     const logCalls = appendMock.mock.calls.filter(
-      (call) => (call[0] as string).includes("voice-events.jsonl"),
+      (call) => call[0].includes("voice-events.jsonl"),
     );
     expect(logCalls.length).toBeGreaterThan(0);
-    const parsed = JSON.parse((logCalls[0][1] as string).trim());
+    const parsed = JSON.parse(logCalls[0][1].trim());
     expect(parsed.event_type).toBe("failed");
     expect(parsed.status_code).toBe(500);
   });
 
   it("writes to session work dir when active work state exists", async () => {
-    const appendMock = mock((): Result<void, PaiError> => ok(undefined));
-    const fetchMock = mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
+    const appendMock: Mock<AppendFn> = mock((_path: string, _content: string) => ok(undefined));
+    const fetchMock = makeOkFetchMock();
 
     const deps = makeDeps({
       fetch: fetchMock,
@@ -237,7 +238,7 @@ describe("handleVoice", () => {
     await handleVoice(makeTranscript(), "test-session-9", deps);
 
     // Should write to both global and session voice.jsonl
-    const logPaths = appendMock.mock.calls.map((call) => call[0] as string);
+    const logPaths = appendMock.mock.calls.map((call) => call[0]);
     const hasGlobal = logPaths.some((p) => p.includes("voice-events.jsonl"));
     const hasSession = logPaths.some((p) => p.includes("voice.jsonl") && p.includes("my-session-dir"));
     expect(hasGlobal).toBe(true);

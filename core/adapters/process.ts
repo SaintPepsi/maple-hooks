@@ -81,17 +81,17 @@ export function spawnBackground(
 
 export function execSyncSafe(
   cmd: string,
-  opts: { cwd?: string; timeout?: number; stdio?: any } = {},
+  opts: { cwd?: string; timeout?: number; stdio?: "pipe" | "inherit" | "ignore" } = {},
 ): Result<string, PaiError> {
   return tryCatch(
     () => {
       const result = execSync(cmd, {
         cwd: opts.cwd,
         timeout: opts.timeout,
-        encoding: "utf-8",
-        stdio: opts.stdio || ["pipe", "pipe", "pipe"],
+        encoding: "utf-8" as BufferEncoding,
+        stdio: opts.stdio ?? "pipe",
       });
-      return typeof result === "string" ? result : result.toString();
+      return result;
     },
     (e) => processExecFailed(cmd, e),
   );
@@ -100,19 +100,20 @@ export function execSyncSafe(
 export function spawnSyncSafe(
   cmd: string,
   args: string[],
-  opts: { cwd?: string; timeout?: number; stdio?: any; encoding?: string; env?: Record<string, string | undefined> } = {},
+  opts: { cwd?: string; timeout?: number; stdio?: "pipe" | "inherit" | "ignore"; encoding?: BufferEncoding; env?: Record<string, string | undefined> } = {},
 ): Result<{ stdout: string; exitCode: number }, PaiError> {
   return tryCatch(
     () => {
+      const encoding: BufferEncoding = opts.encoding ?? "utf-8";
       const result = spawnSync(cmd, args, {
         cwd: opts.cwd,
         timeout: opts.timeout,
-        encoding: opts.encoding || "utf-8",
-        stdio: opts.stdio,
-        env: opts.env as any,
+        encoding,
+        stdio: opts.stdio ?? "pipe",
+        env: opts.env as NodeJS.ProcessEnv,
       });
       return {
-        stdout: typeof result.stdout === "string" ? result.stdout : (result.stdout?.toString() || ""),
+        stdout: result.stdout ?? "",
         exitCode: result.status ?? -1,
       };
     },

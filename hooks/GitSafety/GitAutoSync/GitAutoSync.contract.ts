@@ -202,7 +202,7 @@ const defaultDeps: GitAutoSyncDeps = {
   readDir: (path: string) => {
     const result = readDir(path);
     if (!result.ok) return result;
-    return { ok: true, value: result.value.map((e: { name?: string }) => typeof e === "string" ? e : e.name ?? "") } as Result<string[], PaiError>;
+    return { ok: true, value: result.value.map((e) => typeof e === "string" ? e : (e as { name?: string }).name ?? "") } as Result<string[], PaiError>;
   },
   ensureDir,
   copyFile,

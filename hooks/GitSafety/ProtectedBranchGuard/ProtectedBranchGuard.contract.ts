@@ -118,7 +118,7 @@ const defaultDeps: ProtectedBranchGuardDeps = {
     return result.value.trim() || null;
   },
   getCwd: () => process.cwd(),
-  getExemptDirs: () => readExemptDirsFromSettings(getSettingsPath(), readFile),
+  getExemptDirs: () => readExemptDirsFromSettings(getSettingsPath(), (p) => { const r = readFile(p); return r.ok ? r.value : null; }),
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 

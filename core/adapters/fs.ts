@@ -18,6 +18,7 @@ import {
   symlinkSync,
   lstatSync,
   utimesSync,
+  type Dirent,
 } from "fs";
 import { dirname } from "path";
 import { type Result, ok, tryCatch } from "../result";
@@ -109,19 +110,21 @@ export function copyFile(src: string, dest: string): Result<void, PaiError> {
   );
 }
 
-export function stat(path: string): Result<{ mtimeMs: number }, PaiError> {
+export function stat(path: string): Result<{ mtimeMs: number; isDirectory(): boolean }, PaiError> {
   return tryCatch(
     () => {
       const s = statSync(path);
-      return { mtimeMs: s.mtimeMs };
+      return { mtimeMs: s.mtimeMs, isDirectory: () => s.isDirectory() };
     },
     (e) => fileReadFailed(path, e),
   );
 }
 
-export function readDir(path: string, opts?: { withFileTypes: true }): Result<any[], PaiError> {
+export function readDir(path: string, opts: { withFileTypes: true }): Result<Dirent[], PaiError>;
+export function readDir(path: string): Result<string[], PaiError>;
+export function readDir(path: string, opts?: { withFileTypes: true }): Result<Dirent[] | string[], PaiError> {
   return tryCatch(
-    () => readdirSync(path, opts) as any[],
+    () => opts ? readdirSync(path, opts) : readdirSync(path),
     (e) => fileReadFailed(path, e),
   );
 }

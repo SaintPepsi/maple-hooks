@@ -306,7 +306,7 @@ export const RatingCapture: AsyncHookContract<
             sentimentSummary: explicitResult.comment || `Explicit low rating: ${explicitResult.rating}/10`,
             detailedContext: responseContext,
             sessionId,
-          }).catch((e) => deps.stderr("[RatingCapture] captureFailure error: " + String(e)));
+          }).catch((e: Error) => deps.stderr("[RatingCapture] captureFailure error: " + e.message));
         }
       }
 
@@ -327,8 +327,7 @@ export const RatingCapture: AsyncHookContract<
     const inferenceResult = await tryCatchAsync<InferenceResult, null>(
       () => deps.inference({
         systemPrompt,
-        userPrompt,
-        expectJson: true,
+        prompt: userPrompt,
         timeout: 12000,
         level: "fast",
       }),
@@ -371,7 +370,7 @@ export const RatingCapture: AsyncHookContract<
             sentimentSummary: sentiment.summary,
             detailedContext: sentiment.detailed_context || "",
             sessionId,
-          }).catch((e) => deps.stderr("[RatingCapture] captureFailure error: " + String(e)));
+          }).catch((e: Error) => deps.stderr("[RatingCapture] captureFailure error: " + e.message));
         }
       }
 

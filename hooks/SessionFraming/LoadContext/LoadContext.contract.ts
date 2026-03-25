@@ -393,7 +393,8 @@ const defaultDeps: LoadContextDeps = {
   fileExists,
   readFile,
   readJson,
-  readDir,
+  readDir: (path: string, _opts?: { withFileTypes: true }) =>
+    readDir(path, { withFileTypes: true }) as Result<{ name: string; isDirectory(): boolean }[], PaiError>,
   stat,
   execSyncSafe,
   setTabState: (opts) => tryCatch(() => setTabState(opts as Parameters<typeof setTabState>[0]), (e) => unknownError(e)),

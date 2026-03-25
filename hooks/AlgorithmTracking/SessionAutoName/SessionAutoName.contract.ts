@@ -253,10 +253,10 @@ export const SessionAutoName: AsyncHookContract<
     let named = false;
     const inferenceResult = await deps.inference({
       systemPrompt: NAME_PROMPT,
-      userPrompt: prompt.slice(0, 800),
+      prompt: prompt.slice(0, 800),
       level: "fast",
       timeout: 10000,
-    }).catch((e) => { deps.stderr("[SessionAutoName] inference error: " + String(e)); return null; });
+    }).catch((e: Error) => { deps.stderr("[SessionAutoName] inference error: " + e.message); return null; });
 
     if (inferenceResult?.success && inferenceResult.output) {
       let label = inferenceResult.output.replace(/^["']|["']$/g, "").replace(/[.!?,;:]/g, "").trim();

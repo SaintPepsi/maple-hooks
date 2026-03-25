@@ -43,7 +43,7 @@ const defaultDeps: StartupGreetingDeps = {
     const bannerPath = join(paiDir, "PAI/Tools/Banner.ts");
     const result = spawnSyncSafe("bun", ["run", bannerPath], {
       encoding: "utf-8",
-      stdio: ["inherit", "pipe", "pipe"],
+      stdio: "pipe",
       env: {
         ...process.env,
         COLUMNS: process.env.COLUMNS,

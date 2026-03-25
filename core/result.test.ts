@@ -26,7 +26,7 @@ describe("ok", () => {
   it("works with complex types", () => {
     const r = ok({ name: "test", items: [1, 2] });
     expect(r.ok).toBe(true);
-    expect(r.value.name).toBe("test");
+    expect(r.value!.name).toBe("test");
   });
 });
 
@@ -34,14 +34,14 @@ describe("err", () => {
   it("creates Err result with error", () => {
     const r = err("bad");
     expect(r.ok).toBe(false);
-    expect(r.error).toBe("bad");
+    expect(r.error!).toBe("bad");
   });
 
   it("works with Error objects", () => {
     const e = new Error("fail");
     const r = err(e);
     expect(r.ok).toBe(false);
-    expect(r.error.message).toBe("fail");
+    expect(r.error!.message).toBe("fail");
   });
 });
 
