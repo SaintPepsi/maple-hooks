@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
 import { validate, type ValidatorDeps, type ValidationReport } from "./validator";
 import { ok, err, type Result } from "@hooks/core/result";
 import { PaiError, ErrorCode } from "@hooks/core/error";
@@ -37,6 +37,8 @@ function makeDeps(overrides: Partial<ValidatorDeps> = {}): ValidatorDeps {
   return {
     readFile: adapterReadFile,
     fileExists: adapterFileExists,
+    dirname,
+    resolve,
     stderr: () => {},
     ...overrides,
   };
@@ -245,6 +247,22 @@ describe("validate", () => {
 
       const result = validate("/fake/missing.ts", "/fake/hook.json", deps);
       expect(result.ok).toBe(false);
+    });
+
+    it("returns err with JSON_PARSE_FAILED when manifest contains malformed JSON", () => {
+      const deps = makeDeps({
+        readFile: (path: string) => {
+          if (path.endsWith(".ts")) return ok('import { ok } from "@hooks/core/result";');
+          if (path.endsWith(".json")) return ok("{ not valid json !!! }");
+          return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
+        },
+      });
+
+      const result = validate("/fake/contract.ts", "/fake/hook.json", deps);
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe(ErrorCode.JsonParseFailed);
+      }
     });
 
     it("returns err when manifest file cannot be read", () => {

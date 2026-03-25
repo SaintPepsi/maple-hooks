@@ -24,7 +24,9 @@ import {
   fileExists as adapterFileExists,
 } from "@hooks/core/adapters/fs";
 import type { HookManifest } from "@hooks/cli/types/manifest";
-import { dirname, resolve } from "path";
+import { tryCatch } from "@hooks/core/result";
+import { jsonParseFailed } from "@hooks/core/error";
+import { dirname as nodeDirname, resolve as nodeResolve } from "path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -48,6 +50,8 @@ export interface ValidationReport {
 export interface ValidatorDeps {
   readFile: (path: string) => Result<string, PaiError>;
   fileExists: (path: string) => boolean;
+  dirname: (path: string) => string;
+  resolve: (...segments: string[]) => string;
   stderr: (msg: string) => void;
 }
 
@@ -56,6 +60,8 @@ export interface ValidatorDeps {
 const defaultDeps: ValidatorDeps = {
   readFile: adapterReadFile,
   fileExists: adapterFileExists,
+  dirname: nodeDirname,
+  resolve: nodeResolve,
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
 
@@ -181,8 +187,13 @@ export function validate(
   const manifestResult = deps.readFile(manifestPath);
   if (!manifestResult.ok) return manifestResult;
 
-  // Parse manifest
-  const manifest = JSON.parse(manifestResult.value) as HookManifest;
+  // Parse manifest (safe — returns Result instead of throwing)
+  const manifestParseResult = tryCatch(
+    () => JSON.parse(manifestResult.value) as HookManifest,
+    (e) => jsonParseFailed(manifestResult.value, e),
+  );
+  if (!manifestParseResult.ok) return manifestParseResult;
+  const manifest = manifestParseResult.value;
 
   const diagnostics: ValidationDiagnostic[] = [];
 
@@ -221,10 +232,10 @@ export function validate(
   //    Shared files live at the GROUP directory level (parent of hook directory)
   //    e.g. hooks/CronStatusLine/shared.ts, not hooks/CronStatusLine/CronFire/shared.ts
   if (Array.isArray(manifest.deps.shared)) {
-    const hookDir = dirname(manifestPath);
-    const groupDir = dirname(hookDir);
+    const hookDir = deps.dirname(manifestPath);
+    const groupDir = deps.dirname(hookDir);
     for (const sharedFile of manifest.deps.shared) {
-      const sharedPath = resolve(groupDir, sharedFile);
+      const sharedPath = deps.resolve(groupDir, sharedFile);
       if (!deps.fileExists(sharedPath)) {
         diagnostics.push({
           code: "MANIFEST_SHARED_MISSING",

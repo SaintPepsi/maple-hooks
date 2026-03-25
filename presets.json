@@ -9,6 +9,6 @@
   },
   "full": {
     "description": "All hooks",
-    "groups": ["*"]
+    "includeAll": true
   }
 }

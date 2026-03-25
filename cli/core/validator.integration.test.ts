@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from "bun:test";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
 import { validate, type ValidatorDeps, type ValidationReport } from "./validator";
 import {
   readFile as adapterReadFile,
@@ -23,6 +23,8 @@ const HOOKS_DIR = resolve(import.meta.dir, "../../hooks");
 const realDeps: ValidatorDeps = {
   readFile: adapterReadFile,
   fileExists: adapterFileExists,
+  dirname,
+  resolve,
   stderr: () => {},
 };
 
