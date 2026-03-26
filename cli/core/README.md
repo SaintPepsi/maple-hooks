@@ -6,11 +6,11 @@ Core logic for the `paih` CLI. Business logic modules that power CLI commands.
 
 | Module | Purpose | Added in |
 |--------|---------|----------|
-| `validator.ts` | Bidirectional manifest validation (declared vs actual imports) | #4 |
+| `validator.ts` | Bidirectional manifest validation (contract + hook shell imports vs declared deps) | #4, #12 |
 | `error.ts` | `PaihErrorCode` enum + `PaihError` class + factory functions | #6 |
 | `result.ts` | Re-exports `ok`, `err`, `Result` from `@hooks/core/result` | #6 |
 | `pipe.ts` | `pipe()` combinator threading `Result` through steps, short-circuits on first Err | #6 |
-| `args.ts` | CLI argument parser: commands, multi-name positionals, known/unknown flags | #6 |
+| `args.ts` | CLI argument parser: commands, multi-name positionals, known/unknown flags, --preset value flag | #6, #14 |
 | `target.ts` | `resolveTarget()` walks up from CWD to find nearest `.claude/` directory | #6 |
 | `resolver.ts` | Resolve names to hooks (hook > group > preset priority, wildcard, cycle detection) | #6 |
 | `deps.ts` | `dedup()` for hook deduplication by identity (name + sourceDir) | #6 |
@@ -19,7 +19,7 @@ Core logic for the `paih` CLI. Business logic modules that power CLI commands.
 | `lockfile.ts` | Lockfile I/O (`readLockfile`, `writeLockfile`, `addHookEntry`, `computeFileHash`) | #7 |
 | `tsconfig-gen.ts` | Generate `tsconfig.json` with `@hooks/*` path aliases for installed hooks | #7 |
 | `manifest-loader.ts` | Build `ManifestIndex` from source repo hook/group/preset files | #7 |
-| `compiler.ts` | `compileHook()` for --compiled (Node) and --compiled-ts (Bun) output modes | #9 |
+| `compiler.ts` | `compileHook()` for --compiled (Node) and --compiled-ts (Bun) output modes. Uses --tsconfig-override for path alias resolution and stdin shim substitution. CompilerDeps = CliDeps (no extra methods) | #9, #13 |
 | `node-stdin-shim.ts` | Node-compatible stdin adapter replacing `Bun.stdin` in compiled output | #9 |
 
 ## Patterns

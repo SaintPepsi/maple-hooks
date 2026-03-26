@@ -14,5 +14,5 @@ Entry point for the `paih` CLI.
 paih <command> [names...] [flags]
 
 Commands: install, uninstall, update, verify, list, catalog
-Flags: --help, --version, --to, --from, --in, --force, --dry-run, --json, --groups, --presets, --compiled, --compiled-ts, --fix, --installed
+Flags: --help, --version, --to, --from, --in, --preset, --force, --dry-run, --json, --groups, --presets, --compiled, --compiled-ts, --fix, --installed
 ```
