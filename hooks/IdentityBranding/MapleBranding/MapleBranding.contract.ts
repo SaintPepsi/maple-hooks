@@ -76,11 +76,7 @@ export const MapleBranding: SyncHookContract<
       return ok({
         type: "block",
         decision: "block",
-        reason: [
-          opener,
-          "",
-          MAPLE_SIGNOFF,
-        ].join("\n"),
+        reason: `${opener}\n${MAPLE_SIGNOFF}`,
       });
     }
 
@@ -90,11 +86,7 @@ export const MapleBranding: SyncHookContract<
       return ok({
         type: "block",
         decision: "block",
-        reason: [
-          opener,
-          "",
-          MAPLE_SIGNOFF,
-        ].join("\n"),
+        reason: `${opener}\n${MAPLE_SIGNOFF}`,
       });
     }
 
