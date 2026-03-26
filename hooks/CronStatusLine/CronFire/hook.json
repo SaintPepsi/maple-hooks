@@ -7,6 +7,7 @@
   "deps": {
     "core": [
       "result",
+      "runner",
       "types/hook-outputs"
     ],
     "lib": [],

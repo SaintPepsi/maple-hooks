@@ -6,7 +6,8 @@
   "schemaVersion": 1,
   "deps": {
     "core": [
-      "result"
+      "result",
+      "runner"
     ],
     "lib": [],
     "adapters": [

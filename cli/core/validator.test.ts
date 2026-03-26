@@ -235,6 +235,102 @@ describe("validate", () => {
     });
   });
 
+  // ─── Hook Shell Import Scanning ─────────────────────────────────────
+
+  describe("hook shell import scanning", () => {
+    it("accepts core/runner in manifest when hook shell imports it", () => {
+      // Contract imports core/result only
+      const contractContent = [
+        'import { ok, type Result } from "@hooks/core/result";',
+        'import type { PaiError } from "@hooks/core/error";',
+        "",
+        "export const TestHook = { name: 'TestHook' };",
+      ].join("\n");
+
+      // Hook shell imports core/runner (as all hook shells do)
+      const hookShellContent = [
+        '#!/usr/bin/env bun',
+        'import { runHook } from "@hooks/core/runner";',
+        'import { TestHook } from "@hooks/hooks/TestGroup/TestHook/TestHook.contract";',
+        "",
+        "if (import.meta.main) { runHook(TestHook); }",
+      ].join("\n");
+
+      const manifestObj: HookManifest = {
+        name: "TestHook",
+        group: "TestGroup",
+        event: "PreToolUse" as HookManifest["event"],
+        description: "Test hook shell scanning",
+        schemaVersion: 1,
+        deps: { core: ["result", "runner"], lib: [], adapters: [], shared: false },
+        tags: [],
+        presets: [],
+      };
+
+      const deps = makeDeps({
+        readFile: (path: string) => {
+          if (path.endsWith(".contract.ts")) return ok(contractContent);
+          if (path.endsWith(".hook.ts")) return ok(hookShellContent);
+          return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
+        },
+        readJson: () => ok(manifestObj),
+        fileExists: (path: string) => path.endsWith(".hook.ts") || path.endsWith(".contract.ts"),
+      });
+
+      // Validator should NOT flag core/runner as ghost — hook shell imports it
+      const result = validate("/fake/TestHook.contract.ts", "/fake/hook.json", deps);
+      const report = expectOk(result);
+      expect(report.valid).toBe(true);
+      expect(report.diagnostics).toHaveLength(0);
+    });
+
+    it("flags ghost dep when neither contract nor hook shell imports it", () => {
+      const contractContent = [
+        'import { ok, type Result } from "@hooks/core/result";',
+        "",
+        "export const TestHook = { name: 'TestHook' };",
+      ].join("\n");
+
+      const hookShellContent = [
+        '#!/usr/bin/env bun',
+        'import { runHook } from "@hooks/core/runner";',
+        'import { TestHook } from "@hooks/hooks/TestGroup/TestHook/TestHook.contract";',
+        "",
+        "if (import.meta.main) { runHook(TestHook); }",
+      ].join("\n");
+
+      const manifestObj: HookManifest = {
+        name: "TestHook",
+        group: "TestGroup",
+        event: "PreToolUse" as HookManifest["event"],
+        description: "Test ghost dep still detected",
+        schemaVersion: 1,
+        deps: { core: ["result", "runner"], lib: ["identity"], adapters: [], shared: false },
+        tags: [],
+        presets: [],
+      };
+
+      const deps = makeDeps({
+        readFile: (path: string) => {
+          if (path.endsWith(".contract.ts")) return ok(contractContent);
+          if (path.endsWith(".hook.ts")) return ok(hookShellContent);
+          return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
+        },
+        readJson: () => ok(manifestObj),
+        fileExists: (path: string) => path.endsWith(".hook.ts") || path.endsWith(".contract.ts"),
+      });
+
+      // lib/identity is NOT imported by either file — should be ghost
+      const result = validate("/fake/TestHook.contract.ts", "/fake/hook.json", deps);
+      const report = expectOk(result);
+      expect(report.valid).toBe(false);
+      const ghost = report.diagnostics.find(
+        (d) => d.code === "MANIFEST_GHOST_DEP" && d.dep === "lib/identity",
+      );
+      expect(ghost).toBeDefined();
+    });
+  });
+
   // ─── Error Handling ───────────────────────────────────────────────────
 
   describe("error handling", () => {

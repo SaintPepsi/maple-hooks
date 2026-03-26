@@ -44,6 +44,7 @@ Flags:
   --to <dir>    Target project directory
   --from <dir>  Source hooks directory
   --in <dir>    Working directory override
+  --preset <n>  Install a preset by name (install)
   --force       Overwrite existing hooks
   --dry-run     Preview changes without writing
   --json        Output as JSON

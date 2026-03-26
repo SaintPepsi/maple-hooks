@@ -22,30 +22,18 @@ import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
-/** Track chmod calls for assertions. */
-interface ChmodCall {
-  path: string;
-  mode: number;
-}
-
-/** Track rename calls for assertions. */
-interface RenameCall {
-  src: string;
-  dest: string;
-}
-
 /**
- * Build a CompilerDeps from InMemoryDeps, adding exec/chmod/rename stubs.
+ * Build a CompilerDeps from InMemoryDeps with exec stub.
  *
- * The exec stub simulates bun build by writing a fake bundle to the --outfile path.
+ * The exec stub simulates bun build by writing a fake bundle to the --outfile path,
+ * and records all exec commands for assertion.
  */
 function makeCompilerDeps(
   fileTree: Record<string, string>,
   cwd = "/source",
-): { deps: CompilerDeps; chmodCalls: ChmodCall[]; renameCalls: RenameCall[] } {
+): { deps: CompilerDeps; execCmds: string[] } {
   const memDeps = new InMemoryDeps(fileTree, cwd);
-  const chmodCalls: ChmodCall[] = [];
-  const renameCalls: RenameCall[] = [];
+  const execCmds: string[] = [];
 
   const deps: CompilerDeps = {
     readFile: (p) => memDeps.readFile(p),
@@ -56,30 +44,23 @@ function makeCompilerDeps(
     stat: (p) => memDeps.stat(p),
     cwd: () => memDeps.cwd(),
     exec: (cmd: string): Result<ExecResult, PaihError> => {
+      execCmds.push(cmd);
       // Simulate bun build: extract --outfile path and write fake output
-      const outfileMatch = cmd.match(/--outfile=(\S+)/);
+      const outfileMatch = cmd.match(/--outfile[= ](\S+)/);
       if (outfileMatch) {
         const outfile = outfileMatch[1];
         memDeps.writeFile(outfile, "// compiled output\nconsole.log('hello');\n");
       }
       return ok({ stdout: "", stderr: "", exitCode: 0 });
     },
-    chmod: (path: string, mode: number): Result<void, PaihError> => {
-      chmodCalls.push({ path, mode });
+    deleteFile: (p: string): Result<void, PaihError> => {
+      memDeps.deleteFile(p);
       return ok(undefined);
     },
-    rename: (src: string, dest: string): Result<void, PaihError> => {
-      const content = memDeps.readFile(src);
-      if (!content.ok) return content;
-      memDeps.writeFile(dest, content.value);
-      renameCalls.push({ src, dest });
-      return ok(undefined);
-    },
-    deleteFile: (_p: string): Result<void, PaihError> => ok(undefined),
     removeDir: (_p: string): Result<void, PaihError> => ok(undefined),
   };
 
-  return { deps, chmodCalls, renameCalls };
+  return { deps, execCmds };
 }
 
 function makeOpts(overrides: Partial<CompileHookOpts> = {}): CompileHookOpts {
@@ -97,7 +78,7 @@ function makeOpts(overrides: Partial<CompileHookOpts> = {}): CompileHookOpts {
 
 describe("compileHook", () => {
   it("compiled mode — produces .js with node shebang", () => {
-    const { deps, chmodCalls, renameCalls } = makeCompilerDeps({
+    const { deps } = makeCompilerDeps({
       "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
     });
 
@@ -127,29 +108,17 @@ describe("compileHook", () => {
     expect(result.value.outputMode).toBe("compiled-ts");
   });
 
-  it("sets chmod 0o755 on output file", () => {
-    const { deps, chmodCalls } = makeCompilerDeps({
+  it("runs chmod 755 on output file via exec", () => {
+    const { deps, execCmds } = makeCompilerDeps({
       "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
     });
 
     const result = compileHook(makeOpts({ mode: "compiled" }), deps);
     expect(result.ok).toBe(true);
 
-    expect(chmodCalls).toHaveLength(1);
-    expect(chmodCalls[0].mode).toBe(0o755);
-  });
-
-  it("uses atomic rename (temp → final)", () => {
-    const { deps, renameCalls } = makeCompilerDeps({
-      "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
-    });
-
-    const result = compileHook(makeOpts({ mode: "compiled" }), deps);
-    expect(result.ok).toBe(true);
-
-    expect(renameCalls).toHaveLength(1);
-    expect(renameCalls[0].dest).toEndWith(".js");
-    expect(renameCalls[0].src).toContain(".tmp");
+    const chmodCmd = execCmds.find((c) => c.startsWith("chmod"));
+    expect(chmodCmd).toBeDefined();
+    expect(chmodCmd).toContain("755");
   });
 
   it("output file starts with shebang line", () => {
@@ -196,8 +165,6 @@ describe("compileHook", () => {
       exec: (): Result<ExecResult, PaihError> => {
         return ok({ stdout: "", stderr: "error: module not found", exitCode: 1 });
       },
-      chmod: () => ok(undefined),
-      rename: () => ok(undefined),
       deleteFile: () => ok(undefined),
       removeDir: () => ok(undefined),
     };
@@ -212,112 +179,34 @@ describe("compileHook", () => {
   });
 
   it("compiled mode passes --target=node to bun build", () => {
-    let capturedCmd = "";
-    const memDeps = new InMemoryDeps({
+    const { deps, execCmds } = makeCompilerDeps({
       "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
-    }, "/source");
-
-    const deps: CompilerDeps = {
-      readFile: (p) => memDeps.readFile(p),
-      writeFile: (p, c) => memDeps.writeFile(p, c),
-      fileExists: (p) => memDeps.fileExists(p),
-      readDir: (p) => memDeps.readDir(p),
-      ensureDir: (p) => memDeps.ensureDir(p),
-      stat: (p) => memDeps.stat(p),
-      cwd: () => memDeps.cwd(),
-      exec: (cmd: string): Result<ExecResult, PaihError> => {
-        capturedCmd = cmd;
-        const outfileMatch = cmd.match(/--outfile=(\S+)/);
-        if (outfileMatch) {
-          memDeps.writeFile(outfileMatch[1], "// output");
-        }
-        return ok({ stdout: "", stderr: "", exitCode: 0 });
-      },
-      chmod: () => ok(undefined),
-      rename: (src, dest) => {
-        const c = memDeps.readFile(src);
-        if (c.ok) memDeps.writeFile(dest, c.value);
-        return ok(undefined);
-      },
-      deleteFile: () => ok(undefined),
-      removeDir: () => ok(undefined),
-    };
+    });
 
     compileHook(makeOpts({ mode: "compiled" }), deps);
-    expect(capturedCmd).toContain("--target=node");
-    expect(capturedCmd).toContain("--alias");
+    const buildCmd = execCmds.find((c) => c.startsWith("bun build"));
+    expect(buildCmd).toContain("--target=node");
+    expect(buildCmd).toContain("--tsconfig-override");
   });
 
   it("compiled-ts mode does NOT pass --target=node", () => {
-    let capturedCmd = "";
-    const memDeps = new InMemoryDeps({
+    const { deps, execCmds } = makeCompilerDeps({
       "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
-    }, "/source");
-
-    const deps: CompilerDeps = {
-      readFile: (p) => memDeps.readFile(p),
-      writeFile: (p, c) => memDeps.writeFile(p, c),
-      fileExists: (p) => memDeps.fileExists(p),
-      readDir: (p) => memDeps.readDir(p),
-      ensureDir: (p) => memDeps.ensureDir(p),
-      stat: (p) => memDeps.stat(p),
-      cwd: () => memDeps.cwd(),
-      exec: (cmd: string): Result<ExecResult, PaihError> => {
-        capturedCmd = cmd;
-        const outfileMatch = cmd.match(/--outfile=(\S+)/);
-        if (outfileMatch) {
-          memDeps.writeFile(outfileMatch[1], "// output");
-        }
-        return ok({ stdout: "", stderr: "", exitCode: 0 });
-      },
-      chmod: () => ok(undefined),
-      rename: (src, dest) => {
-        const c = memDeps.readFile(src);
-        if (c.ok) memDeps.writeFile(dest, c.value);
-        return ok(undefined);
-      },
-      deleteFile: () => ok(undefined),
-      removeDir: () => ok(undefined),
-    };
+    });
 
     compileHook(makeOpts({ mode: "compiled-ts" }), deps);
-    expect(capturedCmd).not.toContain("--target=node");
+    const buildCmd = execCmds.find((c) => c.startsWith("bun build"));
+    expect(buildCmd).not.toContain("--target=node");
   });
 
   it("passes process.env define to prevent inlining", () => {
-    let capturedCmd = "";
-    const memDeps = new InMemoryDeps({
+    const { deps, execCmds } = makeCompilerDeps({
       "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
-    }, "/source");
-
-    const deps: CompilerDeps = {
-      readFile: (p) => memDeps.readFile(p),
-      writeFile: (p, c) => memDeps.writeFile(p, c),
-      fileExists: (p) => memDeps.fileExists(p),
-      readDir: (p) => memDeps.readDir(p),
-      ensureDir: (p) => memDeps.ensureDir(p),
-      stat: (p) => memDeps.stat(p),
-      cwd: () => memDeps.cwd(),
-      exec: (cmd: string): Result<ExecResult, PaihError> => {
-        capturedCmd = cmd;
-        const outfileMatch = cmd.match(/--outfile=(\S+)/);
-        if (outfileMatch) {
-          memDeps.writeFile(outfileMatch[1], "// output");
-        }
-        return ok({ stdout: "", stderr: "", exitCode: 0 });
-      },
-      chmod: () => ok(undefined),
-      rename: (src, dest) => {
-        const c = memDeps.readFile(src);
-        if (c.ok) memDeps.writeFile(dest, c.value);
-        return ok(undefined);
-      },
-      deleteFile: () => ok(undefined),
-      removeDir: () => ok(undefined),
-    };
+    });
 
     compileHook(makeOpts({ mode: "compiled" }), deps);
-    expect(capturedCmd).toContain("process.env=process.env");
+    const buildCmd = execCmds.find((c) => c.startsWith("bun build"));
+    expect(buildCmd).toContain("process.env=process.env");
   });
 });
 

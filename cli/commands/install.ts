@@ -62,7 +62,12 @@ export function install(
   deps: CliDeps,
   sourceRoot?: string,
 ): Result<string, PaihError> {
-  // Validate: need at least one name or --preset flag
+  // --preset flag: push preset name into names for resolution
+  if (typeof args.flags.preset === "string") {
+    args.names.unshift(args.flags.preset);
+  }
+
+  // Validate: need at least one name
   if (args.names.length === 0) {
     return err(invalidArgs("install requires at least one hook, group, or preset name"));
   }
@@ -149,7 +154,7 @@ export function install(
   if (outputMode !== "source") {
     const compilerDeps = deps as CompilerDeps;
     for (const { hookDef, staged } of stagedHooks) {
-      const hookEntryPath = `${ctx.hooksDir}/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
+      const hookEntryPath = `${source}/hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
       const outputDir = `${ctx.hooksDir}/${hookDef.manifest.group}/${hookDef.manifest.name}`;
       const compileResult = compileHook(
         { hookPath: hookEntryPath, mode: outputMode, outputDir, outputName: hookDef.manifest.name, sourceRoot: source },

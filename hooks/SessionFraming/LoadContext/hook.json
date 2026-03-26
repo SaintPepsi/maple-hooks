@@ -7,7 +7,8 @@
   "deps": {
     "core": [
       "error",
-      "result"
+      "result",
+      "runner"
     ],
     "lib": [
       "identity",

@@ -39,7 +39,7 @@ const BOOLEAN_FLAGS = new Set([
 ]);
 
 /** Flags that take a string value. */
-const VALUE_FLAGS = new Set(["--to", "--from", "--in"]);
+const VALUE_FLAGS = new Set(["--to", "--from", "--in", "--preset"]);
 
 const ALL_FLAGS = new Set([...BOOLEAN_FLAGS, ...VALUE_FLAGS]);
 

@@ -8,7 +8,8 @@
     "core": [
       "language-profiles",
       "quality-scorer",
-      "result"
+      "result",
+      "runner"
     ],
     "lib": [
       "signal-logger",

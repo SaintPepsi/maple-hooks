@@ -120,4 +120,13 @@ describe("parseArgs()", () => {
       expect(result.value.flags.compiledTs).toBe(true);
     }
   });
+
+  it("parses --preset value flag and adds to names", () => {
+    const result = parseArgs(["install", "--preset", "minimal", "--to", "/target"]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.flags.preset).toBe("minimal");
+      expect(result.value.flags.to).toBe("/target");
+    }
+  });
 });

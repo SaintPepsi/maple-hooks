@@ -36,12 +36,8 @@ export interface CompiledMeta {
   size: number;
 }
 
-export interface CompilerDeps extends CliDeps {
-  /** Set file permissions (chmod). */
-  chmod: (path: string, mode: number) => Result<void, PaihError>;
-  /** Rename a file atomically (temp → final). */
-  rename: (src: string, dest: string) => Result<void, PaihError>;
-}
+/** CompilerDeps is CliDeps — no additional methods needed. */
+export type CompilerDeps = CliDeps;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -86,7 +82,7 @@ export function compileHook(
   const finalPath = `${outputDir}/${outputName}${extension}`;
   const tempPath = `${finalPath}.tmp`;
 
-  // Step 1: Run bun build
+  // Step 1: Run bun build to temp file
   const buildResult = runBunBuild({ entryPath: hookPath, outfile: tempPath, mode, sourceRoot }, deps);
   if (!buildResult.ok) return buildResult;
 
@@ -96,24 +92,21 @@ export function compileHook(
     return err(buildFailed(`Failed to read build output at ${tempPath}`));
   }
 
-  // Step 3: Prepend shebang
-  const withShebang = `${shebang}\n${readResult.value}`;
-
-  // Step 4: Write shebanged content to a new temp file
-  const shebangTempPath = `${finalPath}.shebang.tmp`;
-  const writeResult = deps.writeFile(shebangTempPath, withShebang);
+  // Step 3: Write final file with shebang prepended (strip any existing shebang from build output)
+  const buildOutput = readResult.value.replace(/^#!.*\n/, "");
+  const withShebang = `${shebang}\n${buildOutput}`;
+  const writeResult = deps.writeFile(finalPath, withShebang);
   if (!writeResult.ok) {
-    return err(buildFailed(`Failed to write shebanged output at ${shebangTempPath}`));
+    return err(buildFailed(`Failed to write compiled output at ${finalPath}`));
   }
 
-  // Step 5: Atomic rename to final path
-  const renameResult = deps.rename(shebangTempPath, finalPath);
-  if (!renameResult.ok) {
-    return err(buildFailed(`Failed to rename ${shebangTempPath} → ${finalPath}`));
+  // Step 4: Clean up temp file
+  if (deps.fileExists(tempPath)) {
+    deps.deleteFile(tempPath);
   }
 
-  // Step 6: chmod 0o755
-  const chmodResult = deps.chmod(finalPath, EXECUTABLE_MODE);
+  // Step 5: chmod 0o755
+  const chmodResult = deps.exec(`chmod ${EXECUTABLE_MODE.toString(8)} ${finalPath}`);
   if (!chmodResult.ok) {
     return err(buildFailed(`Failed to chmod ${finalPath}`));
   }
@@ -167,12 +160,28 @@ function runBunBuild(
 
   let cmd: string;
   if (mode === "compiled") {
-    // Node target: substitute stdin adapter with node-stdin-shim
+    // Node target: use a temporary tsconfig that redirects core/adapters/stdin
+    // to the Node-compatible shim. The --alias flag is broken in bun build
+    // (causes "multiple entry points" error), so we use --tsconfig-override instead.
     const shimPath = `${sourceRoot}/cli/core/node-stdin-shim.ts`;
-    const aliasFlag = `--alias "@hooks/core/adapters/stdin"="${shimPath}"`;
-    cmd = `bun build ${entryPath} --target=node ${bundleFlags} ${aliasFlag} ${defineFlag} --outfile=${outfile}`;
+    const tsconfigOverride = JSON.stringify({
+      extends: `${sourceRoot}/tsconfig.json`,
+      compilerOptions: {
+        baseUrl: sourceRoot,
+        paths: {
+          "@hooks/*": ["./*"],
+          "@hooks/core/adapters/stdin": [shimPath],
+        },
+      },
+    });
+    const tsconfigPath = `${outfile}.tsconfig.json`;
+    const writeResult = deps.writeFile(tsconfigPath, tsconfigOverride);
+    if (!writeResult.ok) {
+      return err(buildFailed(`Failed to write temp tsconfig: ${writeResult.error.message}`));
+    }
+    cmd = `bun build ${entryPath} --target=node ${bundleFlags} --tsconfig-override ${tsconfigPath} ${defineFlag} --outfile=${outfile}`;
   } else {
-    // Bun target: no substitution needed
+    // Bun target: source repo tsconfig resolves @hooks/* automatically
     cmd = `bun build ${entryPath} ${bundleFlags} ${defineFlag} --outfile=${outfile}`;
   }
 
@@ -184,6 +193,14 @@ function runBunBuild(
   if (execResult.value.exitCode !== 0) {
     const stderr = execResult.value.stderr.trim();
     return err(buildFailed(`bun build exited with code ${execResult.value.exitCode}: ${stderr}`));
+  }
+
+  // Clean up temp tsconfig if created
+  if (mode === "compiled") {
+    const tsconfigPath = `${outfile}.tsconfig.json`;
+    if (deps.fileExists(tsconfigPath)) {
+      deps.deleteFile(tsconfigPath);
+    }
   }
 
   return ok(undefined);

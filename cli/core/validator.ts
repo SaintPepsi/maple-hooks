@@ -194,6 +194,18 @@ export function validate(
   // Parse imports from contract — two sets
   const { runtime: runtimeDeps, all: allDeps } = parseImports(contractResult.value);
 
+  // Also scan the hook shell file (sibling .hook.ts) for additional imports.
+  // Hook shells import core/runner which is a real runtime dep that manifests should declare.
+  const hookShellPath = contractPath.replace(/\.contract\.ts$/, ".hook.ts");
+  if (deps.fileExists(hookShellPath)) {
+    const hookShellResult = deps.readFile(hookShellPath);
+    if (hookShellResult.ok) {
+      const hookShellImports = parseImports(hookShellResult.value);
+      for (const dep of hookShellImports.runtime) runtimeDeps.add(dep);
+      for (const dep of hookShellImports.all) allDeps.add(dep);
+    }
+  }
+
   // Collect declared deps from manifest
   const declaredDeps = collectDeclaredDeps(manifest);
 
