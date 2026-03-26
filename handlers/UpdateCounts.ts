@@ -1,19 +1,18 @@
 /**
- * UpdateCounts.ts - Update settings.json with fresh system counts
+ * UpdateCounts.ts - Update MEMORY/STATE/counts.json with fresh system counts
  *
  * PURPOSE:
- * Updates the counts section of settings.json at the end of each session.
- * Banner and statusline then read from settings.json (instant, no execution).
+ * Updates counts.json at session start (background, non-blocking).
+ * Banner and statusline then read from counts.json (instant, no execution).
  *
  * ARCHITECTURE:
- * SessionEnd hook → spawns this as background process → settings.json
- * Session start → Banner reads settings.json (instant)
+ * SessionStart hook → spawns this as background process → MEMORY/STATE/counts.json
+ * Statusline reads counts.json (instant)
  *
  * Runs as a standalone script via `bun handlers/UpdateCounts.ts`.
- * Usage cache refresh is handled by the statusline independently.
  */
 
-import { readFile, writeFile, readDir, fileExists, stat } from "@hooks/core/adapters/fs";
+import { readFile, writeFile, readDir, fileExists, stat, ensureDir } from "@hooks/core/adapters/fs";
 import { getPaiDir, getSettingsPath } from "@hooks/lib/paths";
 import { join } from "path";
 
@@ -21,7 +20,6 @@ import { join } from "path";
 
 interface Counts {
   skills: number;
-  workflows: number;
   hooks: number;
   signals: number;
   files: number;
@@ -58,24 +56,6 @@ function countFilesRecursive(dir: string, extension?: string): number {
   return count;
 }
 
-function countWorkflowFiles(dir: string): number {
-  let count = 0;
-  const entries = readDir(dir, { withFileTypes: true });
-  if (!entries.ok) return 0;
-
-  for (const entry of entries.value) {
-    const fullPath = join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (entry.name.toLowerCase() === "workflows") {
-        count += countFilesRecursive(fullPath, ".md");
-      } else {
-        count += countWorkflowFiles(fullPath);
-      }
-    }
-  }
-  return count;
-}
-
 function countSkills(paiDir: string): number {
   let count = 0;
   const skillsDir = join(paiDir, "skills");
@@ -98,15 +78,25 @@ function countSkills(paiDir: string): number {
   return count;
 }
 
-function countHooks(paiDir: string): number {
-  let count = 0;
-  const hooksDir = join(paiDir, "pai-hooks", "hooks");
-  const entries = readDir(hooksDir, { withFileTypes: true });
-  if (!entries.ok) return 0;
+function countHooksFromSettings(settingsPath: string): number {
+  const content = readFile(settingsPath);
+  if (!content.ok) return 0;
 
-  for (const entry of entries.value) {
-    if (entry.isFile() && entry.name.endsWith(".ts")) {
-      count++;
+  const settings = JSON.parse(content.value) as Record<string, unknown>;
+  const hooks = settings["hooks"];
+  if (!hooks || typeof hooks !== "object") return 0;
+
+  // Structure: { EventName: [{ hooks: [{type, command}, ...] }, ...] }
+  let count = 0;
+  for (const eventGroups of Object.values(hooks as Record<string, unknown>)) {
+    if (!Array.isArray(eventGroups)) continue;
+    for (const group of eventGroups) {
+      if (group && typeof group === "object" && "hooks" in group) {
+        const innerHooks = (group as Record<string, unknown>)["hooks"];
+        if (Array.isArray(innerHooks)) {
+          count += innerHooks.length;
+        }
+      }
     }
   }
   return count;
@@ -125,12 +115,11 @@ function countSubdirs(dir: string): number {
   return entries.value.filter((e) => e.isDirectory()).length;
 }
 
-function getCounts(paiDir: string): Counts {
+function getCounts(paiDir: string, settingsPath: string): Counts {
   const ratingsPath = join(paiDir, "MEMORY/LEARNING/SIGNALS/ratings.jsonl");
   return {
     skills: countSkills(paiDir),
-    workflows: countWorkflowFiles(join(paiDir, "skills")),
-    hooks: countHooks(paiDir),
+    hooks: countHooksFromSettings(settingsPath),
     signals: countFilesRecursive(join(paiDir, "MEMORY/LEARNING"), ".md"),
     files: countFilesRecursive(join(paiDir, "PAI/USER")),
     work: countSubdirs(join(paiDir, "MEMORY/WORK")),
@@ -152,25 +141,19 @@ function run(config?: UpdateCountsConfig): void {
     stderr: (msg) => process.stderr.write(msg + "\n"),
   };
 
-  const counts = getCounts(cfg.paiDir);
+  const counts = getCounts(cfg.paiDir, cfg.settingsPath);
 
-  const settingsContent = readFile(cfg.settingsPath);
-  if (!settingsContent.ok) {
-    cfg.stderr(`[UpdateCounts] Failed to read settings: ${settingsContent.error.message}`);
-    return;
-  }
+  const countsPath = join(cfg.paiDir, "MEMORY", "STATE", "counts.json");
+  ensureDir(join(cfg.paiDir, "MEMORY", "STATE"));
 
-  const settings = JSON.parse(settingsContent.value) as Record<string, unknown>;
-  settings.counts = counts;
-
-  const writeResult = writeFile(cfg.settingsPath, JSON.stringify(settings, null, 2) + "\n");
+  const writeResult = writeFile(countsPath, JSON.stringify(counts, null, 2) + "\n");
   if (!writeResult.ok) {
-    cfg.stderr(`[UpdateCounts] Failed to write settings: ${writeResult.error.message}`);
+    cfg.stderr(`[UpdateCounts] Failed to write counts: ${writeResult.error.message}`);
     return;
   }
 
   cfg.stderr(
-    `[UpdateCounts] Updated: SK:${counts.skills} WF:${counts.workflows} HK:${counts.hooks} SIG:${counts.signals} F:${counts.files} W:${counts.work} SESS:${counts.sessions} RES:${counts.research} RAT:${counts.ratings}`,
+    `[UpdateCounts] Updated: SK:${counts.skills} HK:${counts.hooks} SIG:${counts.signals} F:${counts.files} W:${counts.work} SESS:${counts.sessions} RES:${counts.research} RAT:${counts.ratings}`,
   );
 }
 

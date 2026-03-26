@@ -1,9 +1,9 @@
 /**
  * UpdateCounts Contract — Spawn background process to refresh system counts.
  *
- * Fires the handler as a detached background process so it never blocks
- * the SessionEnd hook chain. The handler updates settings.json counts
- * (skills, hooks, etc.) asynchronously after the session exits.
+ * Fires the handler as a detached background process on SessionEnd so
+ * counts capture everything that happened during the session. The handler
+ * writes to MEMORY/STATE/counts.json (gitignored), not settings.json.
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
