@@ -79,7 +79,7 @@ export const MapleBranding: SyncHookContract<
         reason: [
           opener,
           "",
-          `Use this sign-off instead: ${MAPLE_SIGNOFF}`,
+          MAPLE_SIGNOFF,
         ].join("\n"),
       });
     }
@@ -93,7 +93,7 @@ export const MapleBranding: SyncHookContract<
         reason: [
           opener,
           "",
-          `Use this sign-off instead: ${MAPLE_SIGNOFF}`,
+          MAPLE_SIGNOFF,
         ].join("\n"),
       });
     }
