@@ -2,7 +2,7 @@
   "name": "MapleBranding",
   "group": "IdentityBranding",
   "event": "PreToolUse",
-  "description": "",
+  "description": "Blocks gh commands using Claude Code footer or emoji sign-off instead of HTML image sign-off",
   "schemaVersion": 1,
   "deps": {
     "core": [
