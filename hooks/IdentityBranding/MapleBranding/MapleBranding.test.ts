@@ -92,7 +92,6 @@ describe("MapleBranding", () => {
       if (result.ok) {
         expect(result.value.type).toBe("block");
         expect(result.value.decision).toBe("block");
-        expect(result.value.reason).toContain("Maple sign-off");
         expect(result.value.reason).toContain("img src");
       }
     });
@@ -202,7 +201,6 @@ describe("MapleBranding", () => {
       if (result.ok) {
         expect(result.value.type).toBe("block");
         expect(result.value.decision).toBe("block");
-        expect(result.value.reason).toContain("emoji");
         expect(result.value.reason).toContain("img src");
       }
     });

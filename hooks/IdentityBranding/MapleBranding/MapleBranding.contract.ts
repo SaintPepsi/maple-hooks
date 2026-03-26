@@ -79,11 +79,7 @@ export const MapleBranding: SyncHookContract<
         reason: [
           opener,
           "",
-          'Your gh command contains "Generated with [Claude Code]". Replace that entire line with the Maple sign-off:',
-          "",
-          MAPLE_SIGNOFF,
-          "",
-          "Then re-run the command.",
+          `Use this sign-off instead: ${MAPLE_SIGNOFF}`,
         ].join("\n"),
       });
     }
@@ -97,11 +93,7 @@ export const MapleBranding: SyncHookContract<
         reason: [
           opener,
           "",
-          "Your gh command uses the emoji sign-off (🍁 Maple). GitHub renders HTML, so use the image sign-off instead:",
-          "",
-          MAPLE_SIGNOFF,
-          "",
-          "Replace 🍁 Maple with the HTML image tag above, then re-run the command.",
+          `Use this sign-off instead: ${MAPLE_SIGNOFF}`,
         ].join("\n"),
       });
     }
