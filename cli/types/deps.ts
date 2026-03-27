@@ -22,6 +22,7 @@ export interface CliDeps {
   ensureDir: (path: string) => Result<void, PaihError>;
   removeDir: (path: string) => Result<void, PaihError>;
   stat: (path: string) => Result<{ isDirectory: boolean }, PaihError>;
+  chmod: (path: string, mode: number) => Result<void, PaihError>;
 
   // Process
   cwd: () => string;
@@ -146,6 +147,10 @@ export class InMemoryDeps implements CliDeps {
     return err(
       new PaihError(PaihErrorCode.ManifestMissing, `Not found: ${path}`, { path }),
     );
+  }
+
+  chmod(_path: string, _mode: number): Result<void, PaihError> {
+    return ok(undefined);
   }
 
   cwd(): string {

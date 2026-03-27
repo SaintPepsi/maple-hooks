@@ -6,6 +6,7 @@
  */
 
 import {
+  chmodSync,
   existsSync,
   readFileSync,
   writeFileSync,
@@ -110,6 +111,13 @@ function removeDirRecursive(dirPath: string): void {
     }
   }
   rmdirSync(dirPath);
+}
+
+export function chmod(path: string, mode: number): Result<void, PaihError> {
+  return tryCatch(
+    () => { chmodSync(path, mode); },
+    (e) => writeFailed(path, e instanceof Error ? e : new Error(String(e))),
+  );
 }
 
 export function stat(path: string): Result<{ isDirectory: boolean }, PaihError> {

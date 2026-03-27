@@ -18,6 +18,7 @@ import {
   ensureDir,
   removeDir,
   stat,
+  chmod,
 } from "@hooks/cli/adapters/fs";
 import { cwd, exec } from "@hooks/cli/adapters/process";
 
@@ -34,6 +35,7 @@ export function makeDefaultDeps(): CliDeps {
     ensureDir,
     removeDir,
     stat,
+    chmod,
     cwd,
     exec,
   };

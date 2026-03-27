@@ -35,7 +35,7 @@ interface TsConfigJson {
 
 /**
  * Generate tsconfig.json at .claude/hooks/ with path aliases pointing
- * to _core/ for shared dependencies.
+ * to pai-hooks/ for shared dependencies.
  */
 export function generateTsconfig(
   claudeDir: string,
@@ -55,7 +55,8 @@ export function generateTsconfig(
       types: ["bun-types"],
       baseUrl: ".",
       paths: {
-        "@hooks/*": ["./_core/*"],
+        "@hooks/hooks/*": ["./*"],
+        "@hooks/*": ["./pai-hooks/*"],
       },
     },
     include: ["**/*.ts"],

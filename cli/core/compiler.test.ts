@@ -58,6 +58,7 @@ function makeCompilerDeps(
       return ok(undefined);
     },
     removeDir: (_p: string): Result<void, PaihError> => ok(undefined),
+    chmod: (_p: string, _m: number): Result<void, PaihError> => ok(undefined),
   };
 
   return { deps, execCmds };
@@ -167,6 +168,7 @@ describe("compileHook", () => {
       },
       deleteFile: () => ok(undefined),
       removeDir: () => ok(undefined),
+      chmod: () => ok(undefined),
     };
 
     const result = compileHook(makeOpts({ mode: "compiled" }), deps);

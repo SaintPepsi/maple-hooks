@@ -273,11 +273,17 @@ function updateLockfileEntries(
 
 /**
  * Map a lockfile relative path (hooks/Group/Hook/file.ts) back to source repo path.
- * _core/ files map to source root (core/, lib/).
+ * pai-hooks/ (or legacy _core/) files map to source root (core/, lib/).
  * Hook files map to source hooks/ directory.
  */
 function mapToSourcePath(relFile: string, source: string): string | null {
-  // _core/ files: hooks/_core/core/result.ts → /source/core/result.ts
+  // pai-hooks/ files: hooks/pai-hooks/core/result.ts → /source/core/result.ts
+  if (relFile.startsWith("hooks/pai-hooks/")) {
+    const corePath = relFile.replace("hooks/pai-hooks/", "");
+    return `${source}/${corePath}`;
+  }
+
+  // Legacy _core/ files: hooks/_core/core/result.ts → /source/core/result.ts
   if (relFile.startsWith("hooks/_core/")) {
     const corePath = relFile.replace("hooks/_core/", "");
     return `${source}/${corePath}`;

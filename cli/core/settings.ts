@@ -64,25 +64,16 @@ export function readSettings(
   return ok(parsed.value as SettingsJson);
 }
 
-/** Write settings.json atomically via .tmp + rename pattern. */
+/** Write settings.json to the target directory. */
 export function writeSettings(
   claudeDir: string,
   settings: SettingsJson,
   deps: CliDeps,
 ): Result<void, PaihError> {
   const settingsPath = `${claudeDir}/settings.json`;
-  const tmpPath = `${settingsPath}.tmp`;
   const content = JSON.stringify(settings, null, 2) + "\n";
 
-  const writeResult = deps.writeFile(tmpPath, content);
-  if (!writeResult.ok) return writeResult;
-
-  // Rename .tmp to final — this is the fs adapter's writeFile since
-  // InMemoryDeps handles this as a simple set operation
-  const renameResult = deps.writeFile(settingsPath, content);
-  if (!renameResult.ok) return renameResult;
-
-  return ok(undefined);
+  return deps.writeFile(settingsPath, content);
 }
 
 // ─── Merge Logic ────────────────────────────────────────────────────────────

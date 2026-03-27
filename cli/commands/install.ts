@@ -148,6 +148,18 @@ export function install(
     return commitResult;
   }
 
+  // Step 8a: Remove legacy _core/ directory if it exists (migration to pai-hooks/)
+  const legacyCoreDir = `${ctx.hooksDir}/_core`;
+  if (deps.fileExists(legacyCoreDir)) {
+    deps.removeDir(legacyCoreDir);
+  }
+
+  // Step 8b: Make hook entry files executable
+  for (const { hookDef } of stagedHooks) {
+    const hookFilePath = `${ctx.hooksDir}/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
+    deps.chmod(hookFilePath, 0o755);
+  }
+
   // Step 9: Compile hooks if in compiled mode
   const installedEntries: Array<{ hookDef: HookDef; commandString: string; files: string[] }> = [];
 
@@ -165,6 +177,9 @@ export function install(
       const ext = outputMode === "compiled" ? ".js" : ".ts";
       const relPath = `./hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
       const cmdString = compiledCommandString(relPath, outputMode);
+      // Make compiled output executable
+      const compiledPath = `${outputDir}/${hookDef.manifest.name}${ext}`;
+      deps.chmod(compiledPath, 0o755);
       installedEntries.push({ hookDef, commandString: cmdString, files: staged.files });
     }
   } else {

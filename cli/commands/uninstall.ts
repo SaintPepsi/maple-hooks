@@ -2,7 +2,7 @@
  * uninstall command — Remove installed hooks from a target project.
  *
  * Supports hook-level and group-level uninstall with modification detection,
- * shared file ref-counting, and _core/ directory cleanup.
+ * shared file ref-counting, and pai-hooks/ directory cleanup.
  *
  * Pipeline: parseArgs → resolveTarget → readLockfile → detect modifications → remove files → update settings → update lockfile
  *
@@ -130,9 +130,9 @@ export function uninstall(
   // Step 9: Clean up empty directories
   cleanupEmptyDirs(plan, claudeDir, deps);
 
-  // Step 10: Remove _core/ if no hooks remain
+  // Step 10: Remove pai-hooks/ if no hooks remain
   if (plan.removeCoreDir) {
-    const corePath = `${claudeDir}/hooks/_core`;
+    const corePath = `${claudeDir}/hooks/pai-hooks`;
     if (deps.fileExists(corePath)) {
       deps.removeDir(corePath);
     }
@@ -184,7 +184,7 @@ function buildUninstallPlan(
   // Determine shared files to remove via ref-counting
   const sharedFilesToRemove = computeSharedFilesToRemove(hooksToRemove, lockfile);
 
-  // Determine if _core/ should be removed
+  // Determine if pai-hooks/ should be removed
   const remainingHooks = lockfile.hooks.filter((h) => !seenNames.has(h.name));
   const removeCoreDir = remainingHooks.length === 0;
 
@@ -341,7 +341,7 @@ function formatDryRun(plan: UninstallPlan): string {
     }
   }
   if (plan.removeCoreDir) {
-    lines.push("  Would remove _core/ directory (no hooks remaining)");
+    lines.push("  Would remove pai-hooks/ directory (no hooks remaining)");
   }
   return lines.join("\n");
 }

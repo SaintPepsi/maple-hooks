@@ -103,15 +103,15 @@ describe("install command", () => {
     expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
     expect(files.has("/project/.claude/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(true);
 
-    // Core dep deduped into _core/
-    expect(files.has("/project/.claude/hooks/_core/core/result.ts")).toBe(true);
+    // Core dep deduped into pai-hooks/
+    expect(files.has("/project/.claude/hooks/pai-hooks/core/result.ts")).toBe(true);
 
     // Settings merged
     const settingsContent = files.get("/project/.claude/settings.json")!;
     const settings: SettingsJson = JSON.parse(settingsContent);
     expect(settings.hooks?.PreToolUse).toBeDefined();
     expect(settings.hooks?.PreToolUse?.[0].hooks[0].command).toBe(
-      "./hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "bun ./hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
     );
 
     // Lockfile written
@@ -125,7 +125,8 @@ describe("install command", () => {
     // tsconfig.json generated
     expect(files.has("/project/.claude/hooks/tsconfig.json")).toBe(true);
     const tsconfig = JSON.parse(files.get("/project/.claude/hooks/tsconfig.json")!);
-    expect(tsconfig.compilerOptions.paths["@hooks/*"]).toEqual(["./_core/*"]);
+    expect(tsconfig.compilerOptions.paths["@hooks/hooks/*"]).toEqual(["./*"]);
+    expect(tsconfig.compilerOptions.paths["@hooks/*"]).toEqual(["./pai-hooks/*"]);
   });
 
   it("installs a group — all group hooks installed", () => {

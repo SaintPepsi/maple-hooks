@@ -9,7 +9,7 @@
  *   .claude/hooks/<Group>/<Hook>/<Hook>.hook.ts
  *   .claude/hooks/<Group>/<Hook>/<Hook>.contract.ts
  *   .claude/hooks/<Group>/shared.ts  (if group has shared deps)
- *   .claude/hooks/_core/<module>.ts   (deduped core deps)
+ *   .claude/hooks/pai-hooks/<module>.ts   (deduped core deps)
  */
 
 import type { Result } from "@hooks/cli/core/result";
@@ -112,23 +112,23 @@ export function stageHook(
     }
   }
 
-  const commandString = `./hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
+  const commandString = `bun ./hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
 
   return ok({ files, commandString });
 }
 
 /**
- * Stage core dependency modules into _core/ for deduplication.
+ * Stage core dependency modules into pai-hooks/ for deduplication.
  *
  * Core deps (from core/*.ts, core/adapters/*.ts, core/types/*.ts, lib/*.ts)
- * are copied once into .claude/hooks/_core/ and shared across all hooks.
+ * are copied once into .claude/hooks/pai-hooks/ and shared across all hooks.
  */
 export function stageCoreModules(
   ctx: StagingContext,
   coreDeps: Set<string>,
   deps: CliDeps,
 ): Result<string[], PaihError> {
-  const coreDir = `${ctx.stagingDir}/_core`;
+  const coreDir = `${ctx.stagingDir}/pai-hooks`;
   const ensureResult = deps.ensureDir(coreDir);
   if (!ensureResult.ok) return ensureResult;
 
@@ -146,7 +146,7 @@ export function stageCoreModules(
 
     const copyResult = copyFile(sourcePath, destPath, deps);
     if (!copyResult.ok) return copyResult;
-    files.push(`hooks/_core/${dep}.ts`);
+    files.push(`hooks/pai-hooks/${dep}.ts`);
   }
 
   return ok(files);

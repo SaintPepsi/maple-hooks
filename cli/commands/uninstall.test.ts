@@ -1,6 +1,6 @@
 /**
  * Uninstall command tests — hook-level, group-level, modification detection,
- * shared file ref-counting, _core/ cleanup, dry-run, and idempotency.
+ * shared file ref-counting, pai-hooks/ cleanup, dry-run, and idempotency.
  *
  * Uses InMemoryDeps from cli/types/deps.ts.
  * Tests the uninstall function from cli/commands/uninstall.ts.
@@ -242,15 +242,15 @@ describe("uninstall command", () => {
     expect(files.has("/project/.claude/hooks/SharedGroup/shared.ts")).toBe(true);
   });
 
-  it("all hooks removed → _core/ cleaned", () => {
+  it("all hooks removed → pai-hooks/ cleaned", () => {
     const deps = setupInstalled(["TypeStrictness"]);
 
     const result = uninstall(uninstallArgs(["TypeStrictness"]), deps);
     expect(result.ok).toBe(true);
 
     const files = deps.getFiles();
-    // _core/ directory contents should be removed
-    expect(files.has("/project/.claude/hooks/_core/core/result.ts")).toBe(false);
+    // pai-hooks/ directory contents should be removed
+    expect(files.has("/project/.claude/hooks/pai-hooks/core/result.ts")).toBe(false);
   });
 
   it("returns LOCK_MISSING when no lockfile exists", () => {
