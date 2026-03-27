@@ -1,0 +1,21 @@
+{
+  "name": "MergeGate",
+  "group": "GitSafety",
+  "event": "PreToolUse",
+  "description": "Blocks gh pr merge when CI is failing or no approved review exists",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result",
+      "runner"
+    ],
+    "lib": [],
+    "adapters": [
+      "process"
+    ],
+    "shared": true
+  },
+  "tags": [],
+  "presets": []
+}

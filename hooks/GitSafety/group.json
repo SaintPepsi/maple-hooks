@@ -2,11 +2,15 @@
   "name": "GitSafety",
   "description": "",
   "hooks": [
+    "ApprovalGate",
     "DestructiveDeleteGuard",
     "GitAutoSync",
     "HookExecutePermission",
+    "MergeGate",
     "ProtectedBranchGuard",
     "WorktreeSafetyVerification"
   ],
-  "sharedFiles": []
+  "sharedFiles": [
+    "shared.ts"
+  ]
 }

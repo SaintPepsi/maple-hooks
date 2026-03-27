@@ -1,0 +1,21 @@
+{
+  "name": "ApprovalGate",
+  "group": "GitSafety",
+  "event": "PreToolUse",
+  "description": "Blocks gh pr review --approve when CI is failing, injects verification reminder when passing",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result",
+      "runner"
+    ],
+    "lib": [],
+    "adapters": [
+      "process"
+    ],
+    "shared": true
+  },
+  "tags": [],
+  "presets": []
+}
