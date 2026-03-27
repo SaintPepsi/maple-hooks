@@ -35,6 +35,13 @@ export interface ContextOutput {
   content: string;
 }
 
+// ─── UpdatedInput (PreToolUse — modify tool input before execution) ──────────
+
+export interface UpdatedInputOutput {
+  type: "updatedInput";
+  updatedInput: Record<string, unknown>;
+}
+
 // ─── Silent (Stop, some SessionEnd — no stdout needed) ───────────────────────
 
 export interface SilentOutput {
@@ -48,6 +55,7 @@ export type HookOutput =
   | BlockOutput
   | AskOutput
   | ContextOutput
+  | UpdatedInputOutput
   | SilentOutput;
 
 // ─── Factories ───────────────────────────────────────────────────────────────
@@ -68,6 +76,10 @@ export function ask(message: string): AskOutput {
 
 export function context(content: string): ContextOutput {
   return { type: "context", content };
+}
+
+export function updatedInput(input: Record<string, unknown>): UpdatedInputOutput {
+  return { type: "updatedInput", updatedInput: input };
 }
 
 export function silent(): SilentOutput {

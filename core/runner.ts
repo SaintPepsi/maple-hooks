@@ -59,6 +59,13 @@ function formatOutput(output: HookOutput, eventName: string): string | null {
     }
     case "ask":
       return JSON.stringify({ decision: "ask", message: output.message });
+    case "updatedInput":
+      return JSON.stringify({
+        hookSpecificOutput: {
+          hookEventName: eventName,
+          updatedInput: output.updatedInput,
+        },
+      });
     case "context":
       return output.content;
     case "silent":

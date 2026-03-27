@@ -77,6 +77,12 @@ All 48 hooks are consolidated here. Settings.json references them via `${SAINTPE
 | VoiceGate | VoiceGate | PreToolUse |
 | WorkCompletionLearning | WorkCompletionLearning | SessionEnd |
 | WorktreeSafetyVerification | WorktreeSafetyVerification | PostToolUse |
+| | | |
+| **KoordDaemon group** (`KoordDaemon/`) | | |
+| SessionIdRegister | KoordDaemon/SessionIdRegister | SessionStart |
+| AgentPrepromptInjector | KoordDaemon/AgentPrepromptInjector | PreToolUse |
+| AgentSpawnTracker | KoordDaemon/AgentSpawnTracker | PostToolUse |
+| AgentCompleteTracker | KoordDaemon/AgentCompleteTracker | PostToolUse |
 
 ## Registration
 
