@@ -1,0 +1,23 @@
+{
+  "name": "DuplicationChecker",
+  "group": "DuplicationDetection",
+  "event": "PreToolUse",
+  "description": "Advisory: warns before writing functions that duplicate existing code (3+ signal dimensions)",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": [
+      "shared.ts",
+      "parser.ts"
+    ]
+  },
+  "tags": ["quality", "duplication"],
+  "presets": []
+}
