@@ -115,18 +115,18 @@ describe("install command", () => {
     );
 
     // Lockfile written
-    expect(files.has("/project/.claude/hooks/paih.lock.json")).toBe(true);
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    expect(files.has("/project/.claude/hooks/pai-hooks/paih.lock.json")).toBe(true);
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock = JSON.parse(lockContent);
     expect(lock.lockfileVersion).toBe(1);
     expect(lock.hooks).toHaveLength(1);
     expect(lock.hooks[0].name).toBe("TypeStrictness");
 
     // tsconfig.json generated
-    expect(files.has("/project/.claude/hooks/tsconfig.json")).toBe(true);
-    const tsconfig = JSON.parse(files.get("/project/.claude/hooks/tsconfig.json")!);
+    expect(files.has("/project/.claude/hooks/pai-hooks/tsconfig.json")).toBe(true);
+    const tsconfig = JSON.parse(files.get("/project/.claude/hooks/pai-hooks/tsconfig.json")!);
     expect(tsconfig.compilerOptions.paths["@hooks/hooks/*"]).toEqual(["./*"]);
-    expect(tsconfig.compilerOptions.paths["@hooks/*"]).toEqual(["./pai-hooks/*"]);
+    expect(tsconfig.compilerOptions.paths["@hooks/*"]).toEqual(["./*"]);
   });
 
   it("installs a group — all group hooks installed", () => {
@@ -140,7 +140,7 @@ describe("install command", () => {
     expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
     expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts")).toBe(true);
 
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock = JSON.parse(lockContent);
     expect(lock.hooks).toHaveLength(2);
   });

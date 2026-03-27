@@ -96,7 +96,7 @@ describe("update command", () => {
     expect(content).toContain("v2 — UPDATED");
 
     // Verify lockfile updated
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.hooks[0].name).toBe("TypeStrictness");
   });
@@ -212,7 +212,7 @@ describe("update command", () => {
 
     // Read lockfile and verify outputMode is preserved
     const lockBefore = JSON.parse(
-      deps.getFiles().get("/project/.claude/hooks/paih.lock.json")!,
+      deps.getFiles().get("/project/.claude/hooks/pai-hooks/paih.lock.json")!,
     ) as Lockfile;
     const originalMode = lockBefore.outputMode;
 
@@ -226,7 +226,7 @@ describe("update command", () => {
     expect(result.ok).toBe(true);
 
     const lockAfter = JSON.parse(
-      deps.getFiles().get("/project/.claude/hooks/paih.lock.json")!,
+      deps.getFiles().get("/project/.claude/hooks/pai-hooks/paih.lock.json")!,
     ) as Lockfile;
     expect(lockAfter.outputMode).toBe(originalMode);
   });

@@ -130,11 +130,15 @@ export function uninstall(
   // Step 9: Clean up empty directories
   cleanupEmptyDirs(plan, claudeDir, deps);
 
-  // Step 10: Remove pai-hooks/ if no hooks remain
+  // Step 10: Remove pai-hooks/ subdirectories if no hooks remain (preserve lockfile/tsconfig)
   if (plan.removeCoreDir) {
-    const corePath = `${claudeDir}/hooks/pai-hooks`;
-    if (deps.fileExists(corePath)) {
-      deps.removeDir(corePath);
+    const paiHooksPath = `${claudeDir}/hooks/pai-hooks`;
+    // Remove core/, lib/, and empty group dirs — but not paih.lock.json or tsconfig.json
+    for (const subdir of ["core", "lib"]) {
+      const subdirPath = `${paiHooksPath}/${subdir}`;
+      if (deps.fileExists(subdirPath)) {
+        deps.removeDir(subdirPath);
+      }
     }
   }
 
@@ -305,7 +309,7 @@ function cleanupEmptyDirs(
 ): void {
   // Collect hook directories that may now be empty
   for (const hook of plan.hooksToRemove) {
-    const hookDir = `${claudeDir}/hooks/${hook.group}/${hook.name}`;
+    const hookDir = `${claudeDir}/hooks/pai-hooks/${hook.group}/${hook.name}`;
     if (deps.fileExists(hookDir)) {
       const entries = deps.readDir(hookDir);
       if (entries.ok && entries.value.length === 0) {
@@ -314,7 +318,7 @@ function cleanupEmptyDirs(
     }
 
     // Check if group directory is now empty
-    const groupDir = `${claudeDir}/hooks/${hook.group}`;
+    const groupDir = `${claudeDir}/hooks/pai-hooks/${hook.group}`;
     if (deps.fileExists(groupDir)) {
       const entries = deps.readDir(groupDir);
       if (entries.ok && entries.value.length === 0) {

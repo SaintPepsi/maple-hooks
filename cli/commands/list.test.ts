@@ -77,7 +77,7 @@ function makeArgs(flags: Record<string, boolean | string> = {}): ParsedArgs {
 describe("list command", () => {
   it("shows all columns for valid lockfile with existing files", () => {
     const deps = new InMemoryDeps({
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
       "/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
       "/project/.claude/hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
     }, "/project");
@@ -99,7 +99,7 @@ describe("list command", () => {
   it("shows MISSING status for orphaned hooks", () => {
     // Lockfile references files that don't exist on disk
     const deps = new InMemoryDeps({
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify(ORPHANED_LOCKFILE),
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(ORPHANED_LOCKFILE),
     }, "/project");
 
     const result = list(makeArgs(), deps);
@@ -113,7 +113,7 @@ describe("list command", () => {
 
   it("returns LOCK_CORRUPT error for corrupt lockfile", () => {
     const deps = new InMemoryDeps({
-      "/project/.claude/hooks/paih.lock.json": "not valid json {{{",
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": "not valid json {{{",
     }, "/project");
 
     const result = list(makeArgs(), deps);
@@ -125,7 +125,7 @@ describe("list command", () => {
 
   it("shows empty state message when no hooks installed", () => {
     const deps = new InMemoryDeps({
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify(EMPTY_LOCKFILE),
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(EMPTY_LOCKFILE),
     }, "/project");
 
     const result = list(makeArgs(), deps);
@@ -149,7 +149,7 @@ describe("list command", () => {
 
   it("outputs valid JSON with --json flag", () => {
     const deps = new InMemoryDeps({
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
       "/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
       "/project/.claude/hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
     }, "/project");
@@ -169,7 +169,7 @@ describe("list command", () => {
 
   it("outputs empty JSON array with --json when no hooks", () => {
     const deps = new InMemoryDeps({
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify(EMPTY_LOCKFILE),
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(EMPTY_LOCKFILE),
     }, "/project");
 
     const result = list(makeArgs({ json: true }), deps);
@@ -181,7 +181,7 @@ describe("list command", () => {
 
   it("reads from --in path instead of CWD", () => {
     const deps = new InMemoryDeps({
-      "/other/project/.claude/hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
+      "/other/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(VALID_LOCKFILE),
       "/other/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts": "// hook",
       "/other/project/.claude/hooks/pai-hooks/AnotherGroup/AnotherHook/AnotherHook.hook.ts": "// hook",
     }, "/somewhere/else");
@@ -208,7 +208,7 @@ describe("list command", () => {
 
   it("--json outputs MISSING status in JSON", () => {
     const deps = new InMemoryDeps({
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify(ORPHANED_LOCKFILE),
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(ORPHANED_LOCKFILE),
     }, "/project");
 
     const result = list(makeArgs({ json: true }), deps);

@@ -24,13 +24,17 @@ export function readLockfile(
   claudeDir: string,
   deps: CliDeps,
 ): Result<Lockfile | null, PaihError> {
-  const lockPath = `${claudeDir}/hooks/paih.lock.json`;
+  const lockPath = `${claudeDir}/hooks/pai-hooks/paih.lock.json`;
 
-  if (!deps.fileExists(lockPath)) {
+  // Backward compat: check legacy location too
+  const legacyPath = `${claudeDir}/hooks/paih.lock.json`;
+
+  if (!deps.fileExists(lockPath) && !deps.fileExists(legacyPath)) {
     return ok(null);
   }
 
-  const content = deps.readFile(lockPath);
+  const actualPath = deps.fileExists(lockPath) ? lockPath : legacyPath;
+  const content = deps.readFile(actualPath);
   if (!content.ok) return content;
 
   const parsed = safeJsonParse(content.value, lockPath);
@@ -63,10 +67,10 @@ export function writeLockfile(
   lockfile: Lockfile,
   deps: CliDeps,
 ): Result<void, PaihError> {
-  const lockPath = `${claudeDir}/hooks/paih.lock.json`;
+  const lockPath = `${claudeDir}/hooks/pai-hooks/paih.lock.json`;
   const content = JSON.stringify(lockfile, null, 2) + "\n";
 
-  const ensureResult = deps.ensureDir(`${claudeDir}/hooks`);
+  const ensureResult = deps.ensureDir(`${claudeDir}/hooks/pai-hooks`);
   if (!ensureResult.ok) return ensureResult;
 
   return deps.writeFile(lockPath, content);

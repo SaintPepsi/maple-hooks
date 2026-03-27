@@ -142,7 +142,7 @@ describe("uninstall command", () => {
     expect(commands.filter((c) => c.includes("TypeStrictness"))).toHaveLength(0);
 
     // Lockfile updated
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.hooks.filter((h) => h.name === "TypeStrictness")).toHaveLength(0);
   });
@@ -161,7 +161,7 @@ describe("uninstall command", () => {
     expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts")).toBe(false);
 
     // Lockfile empty
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.hooks).toHaveLength(0);
   });

@@ -40,7 +40,7 @@ describe("readLockfile", () => {
 
   it("parses existing lockfile", () => {
     const deps = new InMemoryDeps({
-      "/test/.claude/hooks/paih.lock.json": JSON.stringify(SAMPLE_LOCKFILE),
+      "/test/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(SAMPLE_LOCKFILE),
     });
     const result = readLockfile("/test/.claude", deps);
     expect(result.ok).toBe(true);
@@ -53,7 +53,7 @@ describe("readLockfile", () => {
 
   it("returns error for corrupt lockfile", () => {
     const deps = new InMemoryDeps({
-      "/test/.claude/hooks/paih.lock.json": "not json",
+      "/test/.claude/hooks/pai-hooks/paih.lock.json": "not json",
     });
     const result = readLockfile("/test/.claude", deps);
     expect(result.ok).toBe(false);
@@ -62,7 +62,7 @@ describe("readLockfile", () => {
   it("returns error for unsupported lockfile version", () => {
     const badVersion = { ...SAMPLE_LOCKFILE, lockfileVersion: 99 };
     const deps = new InMemoryDeps({
-      "/test/.claude/hooks/paih.lock.json": JSON.stringify(badVersion),
+      "/test/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify(badVersion),
     });
     const result = readLockfile("/test/.claude", deps);
     expect(result.ok).toBe(false);
@@ -70,15 +70,15 @@ describe("readLockfile", () => {
 });
 
 describe("writeLockfile", () => {
-  it("writes lockfile to .claude/hooks/paih.lock.json", () => {
+  it("writes lockfile to .claude/hooks/pai-hooks/paih.lock.json", () => {
     const deps = new InMemoryDeps({});
     const result = writeLockfile("/test/.claude", SAMPLE_LOCKFILE, deps);
     expect(result.ok).toBe(true);
 
     const files = deps.getFiles();
-    expect(files.has("/test/.claude/hooks/paih.lock.json")).toBe(true);
+    expect(files.has("/test/.claude/hooks/pai-hooks/paih.lock.json")).toBe(true);
 
-    const content = files.get("/test/.claude/hooks/paih.lock.json")!;
+    const content = files.get("/test/.claude/hooks/pai-hooks/paih.lock.json")!;
     const parsed = JSON.parse(content);
     expect(parsed.lockfileVersion).toBe(1);
   });

@@ -108,7 +108,7 @@ describe("install --compiled", () => {
     const files = (deps as CompilerDeps & { getFiles: () => Map<string, string> }).getFiles();
 
     // Lockfile records compiled mode
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.outputMode).toBe("compiled");
 
@@ -131,7 +131,7 @@ describe("install --compiled-ts", () => {
 
     const files = (deps as CompilerDeps & { getFiles: () => Map<string, string> }).getFiles();
 
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.outputMode).toBe("compiled-ts");
 
@@ -146,7 +146,7 @@ describe("mode change detection", () => {
   it("rejects mode change without --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -172,7 +172,7 @@ describe("mode change detection", () => {
   it("allows mode change with --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -194,7 +194,7 @@ describe("mode change detection", () => {
   it("allows same mode without --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -218,7 +218,7 @@ describe("lockfile backward compatibility", () => {
   it("old lockfile without outputMode defaults to source", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -240,7 +240,7 @@ describe("lockfile backward compatibility", () => {
   it("old lockfile without outputMode requires --force for compiled mode", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -273,7 +273,7 @@ describe("install source mode unchanged", () => {
     const files = memDeps.getFiles();
     expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
 
-    const lockContent = files.get("/project/.claude/hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.outputMode).toBe("source");
   });

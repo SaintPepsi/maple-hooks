@@ -41,8 +41,8 @@ export function generateTsconfig(
   claudeDir: string,
   deps: CliDeps,
 ): Result<void, PaihError> {
-  const hooksDir = `${claudeDir}/hooks`;
-  const tsconfigPath = `${hooksDir}/tsconfig.json`;
+  const paiHooksDir = `${claudeDir}/hooks/pai-hooks`;
+  const tsconfigPath = `${paiHooksDir}/tsconfig.json`;
 
   const config: TsConfigJson = {
     compilerOptions: {
@@ -56,7 +56,7 @@ export function generateTsconfig(
       baseUrl: ".",
       paths: {
         "@hooks/hooks/*": ["./*"],
-        "@hooks/*": ["./pai-hooks/*"],
+        "@hooks/*": ["./*"],
       },
     },
     include: ["**/*.ts"],
@@ -65,7 +65,7 @@ export function generateTsconfig(
 
   const content = JSON.stringify(config, null, 2) + "\n";
 
-  const ensureResult = deps.ensureDir(hooksDir);
+  const ensureResult = deps.ensureDir(paiHooksDir);
   if (!ensureResult.ok) return ensureResult;
 
   return deps.writeFile(tsconfigPath, content);
