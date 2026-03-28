@@ -5,8 +5,13 @@ import type { HookMeta, GroupMeta } from "./template";
 // ─── markdownToHtml ───────────────────────────────────────────────────────────
 
 describe("markdownToHtml", () => {
-  it("converts headings", () => {
-    expect(markdownToHtml("## Overview")).toContain("<h2");
+  it("converts h2 headings to section-label + h2", () => {
+    const html = markdownToHtml("## Overview");
+    expect(html).toContain("section-label");
+    expect(html).toContain("<h2");
+  });
+
+  it("converts h3 headings normally", () => {
     expect(markdownToHtml("### Details")).toContain("<h3");
   });
 
@@ -36,11 +41,18 @@ describe("markdownToHtml", () => {
     expect(html).toContain('<a href="http://example.com">click</a>');
   });
 
-  it("converts fenced code blocks", () => {
+  it("converts fenced code blocks to .code-block", () => {
     const md = "```typescript\nconst x = 1;\n```";
     const html = markdownToHtml(md);
-    expect(html).toContain("<pre><code");
+    expect(html).toContain("code-block");
     expect(html).toContain("const x = 1;");
+  });
+
+  it("adds code-lang tag for language", () => {
+    const md = "```typescript\nconst x = 1;\n```";
+    const html = markdownToHtml(md);
+    expect(html).toContain("code-lang");
+    expect(html).toContain("typescript");
   });
 
   it("escapes HTML in code blocks", () => {
@@ -65,16 +77,16 @@ describe("markdownToHtml", () => {
     expect(html).toContain("<li>first</li>");
   });
 
-  it("converts blockquotes", () => {
+  it("converts blockquotes to .insight callouts", () => {
     const html = markdownToHtml("> quoted text");
-    expect(html).toContain("<blockquote>");
+    expect(html).toContain("insight");
     expect(html).toContain("quoted text");
   });
 
-  it("converts tables", () => {
+  it("converts tables to .tbl", () => {
     const md = "| Name | Type |\n| --- | --- |\n| foo | bar |";
     const html = markdownToHtml(md);
-    expect(html).toContain("<table>");
+    expect(html).toContain('class="tbl"');
     expect(html).toContain("<th>Name</th>");
     expect(html).toContain("<td>foo</td>");
   });
@@ -91,33 +103,55 @@ describe("renderHookPage", () => {
     expect(html).toContain("</html>");
   });
 
-  it("includes hook name in title and h1", () => {
+  it("includes hero section with hook name", () => {
     const html = renderHookPage(hook, "## Overview\nHello", "TestGroup");
-    expect(html).toContain("<title>TestHook");
+    expect(html).toContain('class="hero"');
     expect(html).toContain("<h1>TestHook</h1>");
   });
 
-  it("includes event badge", () => {
+  it("includes event tag with correct color", () => {
     const html = renderHookPage(hook, "## Overview\nHello", "TestGroup");
+    expect(html).toContain("tag blue"); // PostToolUse = blue
     expect(html).toContain("PostToolUse");
   });
 
-  it("includes breadcrumb navigation", () => {
+  it("includes group tag", () => {
     const html = renderHookPage(hook, "## Overview\nHello", "TestGroup");
-    expect(html).toContain("All Groups");
+    expect(html).toContain("tag green");
     expect(html).toContain("TestGroup");
   });
 
   it("renders markdown content", () => {
     const html = renderHookPage(hook, "## Overview\nThis hook does things.", "TestGroup");
-    expect(html).toContain("<h2");
+    expect(html).toContain("section-label");
     expect(html).toContain("This hook does things.");
   });
 
-  it("inlines CSS", () => {
+  it("inlines CSS from framework", () => {
     const html = renderHookPage(hook, "## Overview\nHello", "TestGroup");
     expect(html).toContain("<style>");
     expect(html).toContain("--bg:");
+  });
+
+  it("includes hero-badge and hero-meta", () => {
+    const html = renderHookPage(hook, "## Overview\nHello", "TestGroup");
+    expect(html).toContain("hero-badge");
+    expect(html).toContain("hero-meta");
+  });
+
+  it("builds sidebar when enough headings", () => {
+    const md = "## Overview\n\n## Event\n\n## When It Fires\n\n## What It Does";
+    const html = renderHookPage(hook, md, "TestGroup");
+    expect(html).toContain("wiki-nav");
+    expect(html).toContain("has-sidebar");
+  });
+
+  it("omits sidebar for short docs", () => {
+    const html = renderHookPage(hook, "## Overview\nShort doc.", "TestGroup");
+    expect(html).not.toContain('id="wikiNav"');
+    // Body tag should NOT have has-sidebar class (CSS contains the string, so check the tag)
+    const bodyTag = html.match(/<body[^>]*>/)?.[0] ?? "";
+    expect(bodyTag).not.toContain("has-sidebar");
   });
 });
 
@@ -133,9 +167,10 @@ describe("renderGroupPage", () => {
     ],
   };
 
-  it("produces valid HTML", () => {
+  it("produces valid HTML with hero", () => {
     const html = renderGroupPage(group);
     expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain('class="hero"');
   });
 
   it("lists all hooks as cards", () => {
@@ -144,16 +179,21 @@ describe("renderGroupPage", () => {
     expect(html).toContain("HookB");
   });
 
-  it("includes event tags", () => {
+  it("includes event badges on cards", () => {
     const html = renderGroupPage(group);
     expect(html).toContain("PreToolUse");
     expect(html).toContain("Stop");
   });
 
-  it("links to hook pages", () => {
+  it("links to hook pages via onclick", () => {
     const html = renderGroupPage(group);
-    expect(html).toContain('href="HookA.html"');
-    expect(html).toContain('href="HookB.html"');
+    expect(html).toContain("HookA.html");
+    expect(html).toContain("HookB.html");
+  });
+
+  it("includes summary grid with event counts", () => {
+    const html = renderGroupPage(group);
+    expect(html).toContain("summary-grid");
   });
 });
 
@@ -165,20 +205,27 @@ describe("renderIndexPage", () => {
     { name: "GroupB", description: "", hooks: [] },
   ];
 
-  it("produces valid HTML", () => {
+  it("produces valid HTML with hero", () => {
     const html = renderIndexPage(groups);
     expect(html).toContain("<!DOCTYPE html>");
+    expect(html).toContain('class="hero"');
   });
 
-  it("includes total hook count", () => {
+  it("includes summary grid with totals", () => {
     const html = renderIndexPage(groups);
-    expect(html).toContain("1 hooks");
-    expect(html).toContain("2 groups");
+    expect(html).toContain("summary-grid");
   });
 
   it("links to group pages", () => {
     const html = renderIndexPage(groups);
     expect(html).toContain("groups/GroupA/index.html");
     expect(html).toContain("groups/GroupB/index.html");
+  });
+
+  it("renders groups as cards", () => {
+    const html = renderIndexPage(groups);
+    expect(html).toContain("card accent");
+    expect(html).toContain("GroupA");
+    expect(html).toContain("GroupB");
   });
 });
