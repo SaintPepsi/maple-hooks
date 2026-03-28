@@ -229,9 +229,6 @@ describe("generate", () => {
     expect(manifest.group).toBe("TestGroup");
     expect(manifest.event).toBe("PreToolUse");
     expect(manifest.schemaVersion).toBe(1);
-    expect(manifest.deps.core).toEqual(["result"]);
-    expect(manifest.deps.adapters).toEqual(["fs"]);
-    expect(manifest.deps.shared).toBe(false);
     expect(manifest.tags).toEqual([]);
     expect(manifest.presets).toEqual([]);
   });
@@ -306,7 +303,6 @@ describe("generate", () => {
       event: "PreToolUse",
       description: "My custom description",
       schemaVersion: 1,
-      deps: { core: [], lib: [], adapters: [], shared: false },
       tags: ["security", "essential"],
       presets: ["minimal"],
     };
@@ -336,86 +332,6 @@ describe("generate", () => {
     expect(manifest.tags).toEqual(["security", "essential"]);
     expect(manifest.presets).toEqual(["minimal"]);
 
-    // Derivable fields overwritten
-    expect(manifest.deps.core).toEqual(["result"]);
-    expect(manifest.deps.adapters).toEqual(["fs"]);
-  });
-
-  it("populates shared deps when hook imports from group shared file", () => {
-    const contractWithShared = `
-import type { SyncHookContract } from "@hooks/core/contract";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readCronFile } from "@hooks/hooks/MyCronGroup/shared";
-import { readFile } from "@hooks/core/adapters/fs";
-
-export const MyHook = {
-  name: "MyHook",
-  event: "PostToolUse",
-  accepts() { return true; },
-  execute() { return ok({ type: "silent" }); },
-  defaultDeps: {},
-};
-`;
-
-    const deps = makeFs(
-      {
-        "/hooks/MyCronGroup/MyHook/MyHook.contract.ts": contractWithShared,
-      },
-      {
-        "/hooks": ["MyCronGroup"],
-        "/hooks/MyCronGroup": ["MyHook", "shared.ts"],
-      },
-    );
-
-    const result = generate(baseOptions("/hooks", "/repo"), deps);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    const hookFile = result.value.files.find((f) =>
-      f.path.endsWith("hook.json") && f.path.includes("MyHook"),
-    );
-    const manifest = JSON.parse(hookFile!.content) as HookManifest;
-    expect(manifest.deps.shared).toEqual(["shared.ts"]);
-  });
-
-  it("populates shared deps for Name.shared.ts import pattern", () => {
-    const contractWithNamedShared = `
-import type { SyncHookContract } from "@hooks/core/contract";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { enforce } from "@hooks/hooks/ObligationGroup/Citation.shared";
-import { readFile } from "@hooks/core/adapters/fs";
-
-export const MyEnforcer = {
-  name: "MyEnforcer",
-  event: "PostToolUse",
-  accepts() { return true; },
-  execute() { return ok({ type: "silent" }); },
-  defaultDeps: {},
-};
-`;
-
-    const deps = makeFs(
-      {
-        "/hooks/ObligationGroup/MyEnforcer/MyEnforcer.contract.ts": contractWithNamedShared,
-      },
-      {
-        "/hooks": ["ObligationGroup"],
-        "/hooks/ObligationGroup": ["MyEnforcer", "Citation.shared.ts", "Other.shared.ts"],
-      },
-    );
-
-    const result = generate(baseOptions("/hooks", "/repo"), deps);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    const hookFile = result.value.files.find((f) =>
-      f.path.endsWith("hook.json") && f.path.includes("MyEnforcer"),
-    );
-    const manifest = JSON.parse(hookFile!.content) as HookManifest;
-    // Should only include the shared file actually imported, not all shared files
-    expect(manifest.deps.shared).toEqual(["Citation.shared.ts"]);
   });
 
   it("generates group.json with hooks sorted alphabetically", () => {

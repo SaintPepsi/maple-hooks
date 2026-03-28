@@ -4,20 +4,6 @@
   "event": "SessionStart",
   "description": "Removes expired cron jobs on session start",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "error",
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs"
-    ],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

@@ -20,7 +20,7 @@ import { dirname, join } from "path";
 // ─── Derivable Field Comparison ─────────────────────────────────────────────
 
 /** Fields in hook.json that the generator controls (not human-curated). */
-const HOOK_DERIVABLE_KEYS = ["name", "group", "event", "deps", "schemaVersion"] as const;
+const HOOK_DERIVABLE_KEYS = ["name", "group", "event", "schemaVersion"] as const;
 
 /** All fields in group.json are derivable except description. */
 const GROUP_DERIVABLE_KEYS = ["name", "hooks", "sharedFiles"] as const;

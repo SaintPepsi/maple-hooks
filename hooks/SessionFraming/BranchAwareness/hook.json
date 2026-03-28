@@ -4,17 +4,6 @@
   "event": "SessionStart",
   "description": "Injects current git branch context",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

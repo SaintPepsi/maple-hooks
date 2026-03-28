@@ -4,18 +4,6 @@
   "event": "SessionStart",
   "description": "Suggests .gitignore improvements",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "error",
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

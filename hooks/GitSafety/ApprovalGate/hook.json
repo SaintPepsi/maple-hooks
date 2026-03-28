@@ -4,20 +4,6 @@
   "event": "PreToolUse",
   "description": "Blocks gh pr review --approve when CI is failing, injects verification reminder when passing",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner",
-      "types/hook-outputs"
-    ],
-    "lib": [],
-    "adapters": [
-      "process"
-    ],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

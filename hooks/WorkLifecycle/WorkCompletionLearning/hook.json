@@ -4,20 +4,6 @@
   "event": "SessionEnd",
   "description": "Extracts learning signals from completed work",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "learning-utils",
-      "time"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

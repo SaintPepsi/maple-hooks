@@ -4,20 +4,6 @@
   "event": "PostToolUse",
   "description": "Notifies Koord daemon when a background agent is spawned",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner",
-      "types/hook-outputs"
-    ],
-    "lib": ["paths"],
-    "adapters": [
-      "fetch"
-    ],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [
     "koord"
   ],

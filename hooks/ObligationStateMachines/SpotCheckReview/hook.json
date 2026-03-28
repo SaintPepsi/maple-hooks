@@ -4,20 +4,6 @@
   "event": "Stop",
   "description": "Performs spot checks on completed work",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs",
-      "process"
-    ],
-    "shared": [
-      "DocObligationStateMachine.shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

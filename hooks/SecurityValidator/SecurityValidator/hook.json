@@ -4,22 +4,6 @@
   "event": "PreToolUse",
   "description": "Blocks writes to protected files",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "error",
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "narrative-reader"
-    ],
-    "adapters": [
-      "fs",
-      "regex",
-      "yaml"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

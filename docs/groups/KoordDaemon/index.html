@@ -1367,7 +1367,7 @@
     <h1>KoordDaemon</h1>
     <p>Koord agent-to-agent daemon lifecycle hooks</p>
     <div class="hero-meta">
-      <span>4 hooks</span>
+      <span>6 hooks</span>
       <span>pai-hooks</span>
     </div>
   </div>
@@ -1375,9 +1375,9 @@
 
 <div class="container">
   <div class="summary-grid">
-    <div class="summary-item"><div class="num">2</div><div class="label">PostToolUse</div></div>
+    <div class="summary-item"><div class="num">3</div><div class="label">PostToolUse</div></div>
     <div class="summary-item"><div class="num">1</div><div class="label">PreToolUse</div></div>
-    <div class="summary-item"><div class="num">1</div><div class="label">SessionStart</div></div>
+    <div class="summary-item"><div class="num">2</div><div class="label">SessionStart</div></div>
   </div>
 
   <div class="section-label">Hooks</div>
@@ -1409,6 +1409,24 @@
           <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
         </div>
         <p>Notifies Koord daemon when a background agent is spawned</p>
+      </div>
+
+      <div class="card blue" style="cursor:pointer;" onclick="location.href='MessageQueueRelay.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>MessageQueueRelay</h3>
+          <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
+        </div>
+        <p>Detects mq-watcher Bash exit and relays queued messages to the agent</p>
+      </div>
+
+      <div class="card green" style="cursor:pointer;" onclick="location.href='MessageQueueServer.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>MessageQueueServer</h3>
+          <span class="card-badge" style="background:var(--green-dim);color:var(--green);">SessionStart</span>
+        </div>
+        <p>Spawns message queue HTTP server for realtime Koord daemon relay</p>
       </div>
 
       <div class="card green" style="cursor:pointer;" onclick="location.href='SessionIdRegister.html'">

@@ -14,7 +14,6 @@ function makeHookDef(name: string, sourceDir: string): HookDef {
     event: "PreToolUse",
     description: `Test hook ${name}`,
     schemaVersion: 1,
-    deps: { core: [], lib: [], adapters: [], shared: false },
     tags: [],
     presets: [],
   };

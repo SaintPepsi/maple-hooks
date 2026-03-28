@@ -4,17 +4,6 @@
   "event": "UserPromptSubmit",
   "description": "Auto-names sessions from first prompt",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

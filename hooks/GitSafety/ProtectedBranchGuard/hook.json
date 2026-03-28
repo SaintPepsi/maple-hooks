@@ -4,21 +4,6 @@
   "event": "PreToolUse",
   "description": "Prevents writes to protected git branches",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "error",
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "paths"
-    ],
-    "adapters": [
-      "fs",
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

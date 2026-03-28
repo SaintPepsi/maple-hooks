@@ -4,21 +4,6 @@
   "event": "SessionEnd",
   "description": "Generates article drafts from session content",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "identity",
-      "time"
-    ],
-    "adapters": [
-      "fs",
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

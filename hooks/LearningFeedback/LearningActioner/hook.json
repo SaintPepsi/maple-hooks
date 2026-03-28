@@ -4,20 +4,6 @@
   "event": "SessionEnd",
   "description": "Spawns agent to analyze session learnings",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "time"
-    ],
-    "adapters": [
-      "fs",
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

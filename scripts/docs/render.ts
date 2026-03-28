@@ -67,11 +67,13 @@ for (const groupName of groupDirs) {
     const hookJson = readJsonFile<RawHookJson>(join(hookDir, "hook.json"));
     if (!hookJson) continue;
 
+    const docPath = join(hookDir, docFileName);
     hookMetas.push({
       name: hookJson.name,
       group: groupName,
       event: hookJson.event,
       description: hookJson.description ?? "",
+      hasDoc: existsSync(docPath),
     });
   }
 

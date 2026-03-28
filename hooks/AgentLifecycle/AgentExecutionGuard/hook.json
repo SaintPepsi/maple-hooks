@@ -4,15 +4,6 @@
   "event": "PreToolUse",
   "description": "Controls agent spawning permissions",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

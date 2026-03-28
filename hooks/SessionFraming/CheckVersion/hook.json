@@ -4,17 +4,6 @@
   "event": "SessionStart",
   "description": "Checks for Claude Code updates",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

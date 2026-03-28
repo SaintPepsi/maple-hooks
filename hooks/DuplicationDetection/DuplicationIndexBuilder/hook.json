@@ -4,21 +4,9 @@
   "event": "PostToolUse",
   "description": "Builds duplication detection index on first .ts file write per session",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs"
-    ],
-    "shared": [
-      "shared.ts",
-      "parser.ts",
-      "index-builder-logic.ts"
-    ]
-  },
-  "tags": ["quality", "duplication"],
+  "tags": [
+    "quality",
+    "duplication"
+  ],
   "presets": []
 }

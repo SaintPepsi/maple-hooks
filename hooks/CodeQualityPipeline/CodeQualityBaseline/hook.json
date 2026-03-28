@@ -4,21 +4,6 @@
   "event": "PostToolUse",
   "description": "Tracks quality scores over time",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "language-profiles",
-      "quality-scorer",
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "svelte-utils"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

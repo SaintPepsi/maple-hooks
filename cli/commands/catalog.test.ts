@@ -19,7 +19,6 @@ const HOOK_MANIFEST: HookManifest = {
   event: "PreToolUse",
   description: "A test hook for catalog validation",
   schemaVersion: 1,
-  deps: { core: ["contract.ts"], lib: [], adapters: [], shared: false },
   tags: ["test", "validation"],
   presets: ["default"],
 };

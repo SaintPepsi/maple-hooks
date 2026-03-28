@@ -17,7 +17,7 @@ import { PaihErrorCode } from "@hooks/cli/core/error";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
-/** Source repo with a hook whose manifest matches its imports. */
+/** Source repo with a hook whose manifest is well-formed. */
 function makeCleanSourceRepo(): Record<string, string> {
   return {
     "/source/hooks/TestGroup/group.json": JSON.stringify({
@@ -32,7 +32,6 @@ function makeCleanSourceRepo(): Record<string, string> {
       event: "PreToolUse",
       description: "A test hook",
       schemaVersion: 1,
-      deps: { core: ["result"], lib: [], adapters: ["fs"], shared: false },
       tags: [],
       presets: [],
     }),
@@ -42,44 +41,9 @@ function makeCleanSourceRepo(): Record<string, string> {
       "export default {};",
     ].join("\n"),
     "/source/hooks/TestGroup/TestHook/TestHook.contract.ts":
-      "export default {};",
+      'import { ok } from "@hooks/core/result";\nimport { readFile } from "@hooks/core/adapters/fs";\nexport default {};',
     "/source/core/result.ts": "export const ok = true;",
     "/source/presets.json": "{}",
-  };
-}
-
-/** Source repo where manifest is missing a dep that the contract imports. */
-function makeMissingDepRepo(): Record<string, string> {
-  return {
-    ...makeCleanSourceRepo(),
-    // Manifest declares core: ["result"] but contract also imports adapters/fs
-    "/source/hooks/TestGroup/TestHook/hook.json": JSON.stringify({
-      name: "TestHook",
-      group: "TestGroup",
-      event: "PreToolUse",
-      description: "A test hook",
-      schemaVersion: 1,
-      deps: { core: ["result"], lib: [], adapters: [], shared: false },
-      tags: [],
-      presets: [],
-    }),
-  };
-}
-
-/** Source repo where manifest declares a dep the contract does not import. */
-function makeGhostDepRepo(): Record<string, string> {
-  return {
-    ...makeCleanSourceRepo(),
-    "/source/hooks/TestGroup/TestHook/hook.json": JSON.stringify({
-      name: "TestHook",
-      group: "TestGroup",
-      event: "PreToolUse",
-      description: "A test hook",
-      schemaVersion: 1,
-      deps: { core: ["result", "error"], lib: [], adapters: ["fs"], shared: false },
-      tags: [],
-      presets: [],
-    }),
   };
 }
 
@@ -115,41 +79,17 @@ describe("verify source-mode", () => {
     }
   });
 
-  it("missing dep reported", () => {
-    const deps = new InMemoryDeps(makeMissingDepRepo(), "/source");
+  it("missing contract reported", () => {
+    // Create a repo where the contract file doesn't exist
+    const repo = makeCleanSourceRepo();
+    delete (repo as Record<string, string>)["/source/hooks/TestGroup/TestHook/TestHook.contract.ts"];
+    const deps = new InMemoryDeps(repo, "/source");
     const result = verify(sourceVerifyArgs(), deps, "/source");
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value).toContain("MANIFEST_MISSING_DEP");
-      expect(result.value).toContain("adapters/fs");
+      expect(result.value).toContain("CONTRACT_MISSING");
     }
-  });
-
-  it("ghost dep reported", () => {
-    const deps = new InMemoryDeps(makeGhostDepRepo(), "/source");
-    const result = verify(sourceVerifyArgs(), deps, "/source");
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value).toContain("MANIFEST_GHOST_DEP");
-      expect(result.value).toContain("core/error");
-    }
-  });
-
-  it("--fix rewrites manifest to match actual imports", () => {
-    const deps = new InMemoryDeps(makeMissingDepRepo(), "/source");
-    const result = verify(sourceVerifyArgs({ fix: true }), deps, "/source");
-
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.value).toContain("Fixed 1 hook manifest");
-    }
-
-    // Verify the manifest was rewritten
-    const manifestContent = deps.getFiles().get("/source/hooks/TestGroup/TestHook/hook.json")!;
-    const manifest = JSON.parse(manifestContent);
-    expect(manifest.deps.adapters).toContain("fs");
   });
 
   it("no hooks/ directory → nothing to verify", () => {

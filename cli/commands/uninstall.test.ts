@@ -79,10 +79,11 @@ function makeSharedDepsRepo(): Record<string, string> {
       event: "PreToolUse",
       description: "Hook A with shared dep",
       schemaVersion: 1,
-      deps: { core: ["result"], lib: [], adapters: [], shared: ["shared.ts"] },
       tags: [],
       presets: [],
     }),
+    "/source/hooks/SharedGroup/HookA/HookA.contract.ts":
+      'import { ok } from "@hooks/core/result";\nimport { shared } from "@hooks/hooks/SharedGroup/shared";\nexport const HookA = { name: "HookA", event: "PreToolUse" };\n',
     "/source/hooks/SharedGroup/HookA/HookA.hook.ts":
       '// HookA hook\nexport default {};\n',
     "/source/hooks/SharedGroup/HookC/hook.json": JSON.stringify({
@@ -91,10 +92,11 @@ function makeSharedDepsRepo(): Record<string, string> {
       event: "PreToolUse",
       description: "Hook C without shared dep",
       schemaVersion: 1,
-      deps: { core: ["result"], lib: [], adapters: [], shared: false },
       tags: [],
       presets: [],
     }),
+    "/source/hooks/SharedGroup/HookC/HookC.contract.ts":
+      'import { ok } from "@hooks/core/result";\nexport const HookC = { name: "HookC", event: "PreToolUse" };\n',
     "/source/hooks/SharedGroup/HookC/HookC.hook.ts":
       '// HookC hook\nexport default {};\n',
     "/source/core/result.ts": '// core result module\nexport const ok = true;\n',

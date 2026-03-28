@@ -4,17 +4,6 @@
   "event": "PreToolUse",
   "description": "Block voice notification curls from subagent sessions",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [
     "safety"
   ],

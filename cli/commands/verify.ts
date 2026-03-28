@@ -147,16 +147,17 @@ interface ManifestValidationResult {
 }
 
 /**
- * Validate a single hook manifest against its contract imports.
- * Optionally fix derivable fields (deps) in the manifest.
+ * Validate a single hook manifest is well-formed.
+ * Dependencies are auto-discovered from imports at install time,
+ * so no deps validation is needed here.
  */
 function validateHookManifest(
   hookName: string,
   hookDir: string,
   manifestPath: string,
-  groupDir: string,
+  _groupDir: string,
   deps: CliDeps,
-  fix: boolean,
+  _fix: boolean,
 ): ManifestValidationResult {
   const diagnostics: VerifyDiagnostic[] = [];
 
@@ -182,170 +183,17 @@ function validateHookManifest(
     return { diagnostics, fixed: false };
   }
 
-  const manifest = parsed.value;
-
-  // Find contract file (scan both .contract.ts and .hook.ts)
+  // Verify contract file exists
   const contractPath = `${hookDir}/${hookName}.contract.ts`;
-  const hookFilePath = `${hookDir}/${hookName}.hook.ts`;
-  const filesToScan = [contractPath, hookFilePath].filter((p) => deps.fileExists(p));
-
-  if (filesToScan.length === 0) {
-    return { diagnostics, fixed: false };
-  }
-
-  // Parse imports from all source files
-  const allImports = new Set<string>();
-  for (const filePath of filesToScan) {
-    const content = deps.readFile(filePath);
-    if (!content.ok) continue;
-    const imports = parseRuntimeImports(content.value);
-    for (const imp of imports) {
-      allImports.add(imp);
-    }
-  }
-
-  // Collect declared deps from manifest
-  const depsObj = manifest.deps as { core?: string[]; lib?: string[]; adapters?: string[]; shared?: string[] | false } | undefined;
-  if (!depsObj) return { diagnostics, fixed: false };
-
-  const declaredDeps = new Set<string>();
-  for (const dep of depsObj.core ?? []) declaredDeps.add(`core/${dep}`);
-  for (const dep of depsObj.lib ?? []) declaredDeps.add(`lib/${dep}`);
-  for (const dep of depsObj.adapters ?? []) declaredDeps.add(`adapters/${dep}`);
-
-  // Bidirectional comparison
-  const missing: string[] = [];
-  const ghost: string[] = [];
-
-  for (const imp of allImports) {
-    if (!declaredDeps.has(imp)) {
-      missing.push(imp);
-      diagnostics.push({
-        hookName,
-        code: "MANIFEST_MISSING_DEP",
-        message: `Contract imports ${imp} but manifest does not declare it`,
-      });
-    }
-  }
-
-  for (const dec of declaredDeps) {
-    if (!allImports.has(dec)) {
-      ghost.push(dec);
-      diagnostics.push({
-        hookName,
-        code: "MANIFEST_GHOST_DEP",
-        message: `Manifest declares ${dec} but contract does not import it`,
-      });
-    }
-  }
-
-  // Check shared file existence
-  if (Array.isArray(depsObj.shared)) {
-    for (const sharedFile of depsObj.shared) {
-      const sharedPath = `${groupDir}/${sharedFile}`;
-      if (!deps.fileExists(sharedPath)) {
-        diagnostics.push({
-          hookName,
-          code: "MANIFEST_SHARED_MISSING",
-          message: `Shared file ${sharedFile} not found at ${sharedPath}`,
-        });
-      }
-    }
-  }
-
-  // Fix mode: rewrite manifest deps to match actual imports
-  if (fix && (missing.length > 0 || ghost.length > 0)) {
-    const newCore: string[] = [];
-    const newLib: string[] = [];
-    const newAdapters: string[] = [];
-
-    for (const imp of allImports) {
-      if (imp.startsWith("core/")) newCore.push(imp.slice(5));
-      else if (imp.startsWith("lib/")) newLib.push(imp.slice(4));
-      else if (imp.startsWith("adapters/")) newAdapters.push(imp.slice(9));
-    }
-
-    const updatedManifest = {
-      ...manifest,
-      deps: {
-        ...depsObj,
-        core: newCore.sort(),
-        lib: newLib.sort(),
-        adapters: newAdapters.sort(),
-      },
-    };
-
-    const newContent = JSON.stringify(updatedManifest, null, 2) + "\n";
-    deps.writeFile(manifestPath, newContent);
-
-    return { diagnostics: [], fixed: true };
+  if (!deps.fileExists(contractPath)) {
+    diagnostics.push({
+      hookName,
+      code: "CONTRACT_MISSING",
+      message: `Contract file not found: ${hookName}.contract.ts`,
+    });
   }
 
   return { diagnostics, fixed: false };
-}
-
-// ─── Import Parsing ─────────────────────────────────────────────────────────
-
-/**
- * Parse runtime @hooks/* imports from TypeScript source.
- * Returns categorized dep keys like "core/result", "lib/paths", "adapters/fs".
- * Skips type-only imports.
- */
-function parseRuntimeImports(source: string): Set<string> {
-  const result = new Set<string>();
-
-  // Normalize multi-line imports
-  const normalized = source.replace(
-    /import\s+([\s\S]*?)\s+from\s+["']([^"']+)["']\s*;/g,
-    (_fullMatch, importClause: string, modulePath: string) => {
-      const collapsed = importClause.replace(/\s+/g, " ").trim();
-      return `import ${collapsed} from "${modulePath}";`;
-    },
-  );
-
-  const importRegex = /^import\s+(.*?)\s+from\s+["'](@hooks\/[^"']+)["']\s*;/gm;
-
-  let match: RegExpExecArray | null = importRegex.exec(normalized);
-  while (match !== null) {
-    const importClause = match[1];
-    const modulePath = match[2];
-
-    // Skip pure type imports
-    if (importClause.startsWith("type ")) {
-      match = importRegex.exec(normalized);
-      continue;
-    }
-
-    const categorized = categorizeImport(modulePath);
-    if (categorized) {
-      result.add(categorized);
-    }
-
-    match = importRegex.exec(normalized);
-  }
-
-  return result;
-}
-
-/**
- * Categorize a @hooks/* import path into "core/X", "lib/X", or "adapters/X".
- * Returns null for paths that should be ignored (hooks/*, cli/*).
- */
-function categorizeImport(modulePath: string): string | null {
-  // Ignore sibling hook imports and CLI imports
-  if (modulePath.startsWith("@hooks/hooks/")) return null;
-  if (modulePath.startsWith("@hooks/cli/")) return null;
-
-  const adapterMatch = modulePath.match(/^@hooks\/core\/adapters\/(.+)$/);
-  if (adapterMatch) return `adapters/${adapterMatch[1]}`;
-
-  const coreMatch = modulePath.match(/^@hooks\/core\/(.+)$/);
-  if (coreMatch) return `core/${coreMatch[1]}`;
-
-  const libMatch = modulePath.match(/^@hooks\/lib\/(.+)$/);
-  if (libMatch) return `lib/${libMatch[1]}`;
-
-  return null;
 }
 
 // ─── Installed Mode ─────────────────────────────────────────────────────────

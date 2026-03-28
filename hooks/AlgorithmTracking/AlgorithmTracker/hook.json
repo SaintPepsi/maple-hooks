@@ -4,20 +4,6 @@
   "event": "PostToolUse",
   "description": "Track algorithm phase transitions, criteria, and agent spawns from tool events",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "algorithm-state",
-      "tab-setter"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [
     "tracking"
   ],

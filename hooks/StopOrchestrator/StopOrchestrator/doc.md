@@ -1,0 +1,66 @@
+# StopOrchestrator
+
+## Overview
+
+StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to four handlers in parallel: VoiceNotification, TabState, RebuildSkill, and AlgorithmEnrichment.
+
+Voice notifications are only enabled for main terminal sessions (identified via Kitty session tracking files), preventing subagent sessions from triggering speech output.
+
+## Event
+
+`Stop` — fires when Claude Code generates a response, parsing the transcript once and distributing to all Stop-event handlers in parallel.
+
+## When It Fires
+
+- A Stop event occurs with a valid `transcript_path`
+- The transcript file exists and can be parsed
+
+It does **not** fire when:
+
+- No `transcript_path` is provided in the input (accepts returns false)
+- The transcript file does not exist or cannot be read
+
+## What It Does
+
+1. Waits 150ms for the transcript file to be fully written
+2. Parses the transcript using `TranscriptParser` to extract completion text
+3. Determines if this is a main session by checking for a Kitty session file (`MEMORY/STATE/kitty-sessions/{session_id}.json`)
+4. Runs handlers in parallel via `Promise.allSettled`:
+   - **VoiceNotification** (main sessions only): Speaks the completion summary via TTS
+   - **TabState**: Updates the Kitty terminal tab with session state
+   - **RebuildSkill**: Checks if skills need rebuilding
+   - **AlgorithmEnrichment**: Enriches algorithm state from the response
+5. Logs any handler failures without blocking other handlers
+
+```typescript
+// Parse once, distribute to all handlers in parallel
+const parsed = deps.parseTranscript(input.transcript_path!);
+const handlers = [
+  deps.handleTabState(parsed, input.session_id),
+  deps.handleRebuildSkill(),
+  deps.handleAlgorithmEnrichment(parsed, input.session_id),
+];
+if (voiceEnabled) handlers.unshift(deps.handleVoice(parsed, input.session_id));
+await Promise.allSettled(handlers);
+```
+
+## Examples
+
+### Example 1: Main session with voice
+
+> Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript, detects a Kitty session file for the session ID, and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
+
+### Example 2: Subagent session (no voice)
+
+> A spawned subagent (e.g., from ArticleWriter) completes a response. StopOrchestrator parses the transcript but finds no Kitty session file for the subagent's session ID. It runs TabState, RebuildSkill, and AlgorithmEnrichment but skips VoiceNotification.
+
+## Dependencies
+
+| Dependency | Type | Purpose |
+| --- | --- | --- |
+| `TranscriptParser` | tool | Parses JSONL transcript into structured completion data |
+| `handlers/VoiceNotification` | handler | TTS announcement of completion summaries |
+| `handlers/TabState` | handler | Updates Kitty terminal tab styling |
+| `handlers/RebuildSkill` | handler | Checks and rebuilds stale skills |
+| `handlers/AlgorithmEnrichment` | handler | Enriches algorithm state from responses |
+| `core/adapters/fs` | adapter | Checks Kitty session file existence |

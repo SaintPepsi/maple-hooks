@@ -25,6 +25,7 @@ export interface HookMeta {
   group: string;
   event: string;
   description: string;
+  hasDoc?: boolean;
 }
 
 export interface GroupMeta {
@@ -583,8 +584,12 @@ export function renderGroupPage(group: GroupMeta): string {
   const cards = group.hooks
     .map((h) => {
       const color = eventColor(h.event);
+      const clickable = h.hasDoc !== false;
+      const interactiveAttrs = clickable
+        ? ` style="cursor:pointer;" onclick="location.href='${esc(h.name)}.html'"`
+        : ` style="opacity:0.6;"`;
       return `
-      <div class="card ${color}" style="cursor:pointer;" onclick="location.href='${esc(h.name)}.html'">
+      <div class="card ${color}"${interactiveAttrs}>
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>${esc(h.name)}</h3>

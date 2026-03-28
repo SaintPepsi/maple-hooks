@@ -4,20 +4,6 @@
   "event": "UserPromptSubmit",
   "description": "Creates MEMORY/WORK directories for new tasks",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "prd-template",
-      "time"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

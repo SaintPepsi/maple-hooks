@@ -4,19 +4,6 @@
   "event": "PostToolUse",
   "description": "Records new cron job creation",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs"
-    ],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

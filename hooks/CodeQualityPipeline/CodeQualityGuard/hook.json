@@ -4,22 +4,6 @@
   "event": "PostToolUse",
   "description": "Blocks low-quality code patterns",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "language-profiles",
-      "quality-scorer",
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "signal-logger",
-      "svelte-utils"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

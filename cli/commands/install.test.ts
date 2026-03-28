@@ -256,10 +256,11 @@ describe("install command", () => {
         event: "SubagentStart",
         description: "Start hook",
         schemaVersion: 1,
-        deps: { core: ["result"], lib: [], adapters: [], shared: ["shared.ts"] },
         tags: [],
         presets: [],
       }),
+      "/source/hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.contract.ts":
+        'import { ok } from "@hooks/core/result";\nimport { shared } from "@hooks/hooks/AgentLifecycle/shared";\nexport const AgentLifecycleStart = { name: "AgentLifecycleStart", event: "SubagentStart" };\n',
       "/source/hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts":
         "// hook\nexport default {};\n",
     };
