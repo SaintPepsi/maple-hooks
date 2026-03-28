@@ -32,12 +32,31 @@ Test files (`.test.ts`, `.spec.ts`, `.test.tsx`, `.spec.tsx`) are exempted from 
 
 ### Framework-required exceptions
 
-Some frameworks require `export default`. These are exempted in `findExportDefaults()`:
+Some frameworks require `export default`. Built-in exclusions are defined in the `DEFAULT_EXPORT_EXCLUSIONS` array in `findExportDefaults()`:
 
 - `.config.(ts|js|mts|mjs)` files — build tool convention
 - `spacetimedb/src/index.ts` — SpacetimeDB's `spacetime generate` CLI requires `export default` on the schema object
 - `.svelte` files — Svelte components use implicit default exports by framework convention
 - `.storybook/` directory — Storybook config files (`main.ts`, `preview.ts`) require `export default`
+
+### Configurable export-default exclusions
+
+Additional exclusion patterns can be configured in `settings.json` without modifying source code:
+
+```json
+{
+  "codingStandards": {
+    "exportDefault": {
+      "allowPatterns": [
+        "\\.config\\.(ts|js|mts|mjs)$",
+        "/\\.storybook/"
+      ]
+    }
+  }
+}
+```
+
+The CodingStandardsEnforcer reads these patterns at runtime via `getExportDefaultExclusions()` and passes them to `findAllViolations()` as `ViolationCheckOptions.exportDefaultExclusions`. Built-in defaults always apply; settings patterns are additive.
 
 ### Svelte conventions
 
@@ -48,6 +67,7 @@ Svelte files (`.svelte`) receive special treatment:
 - **Script extraction**: Guards use `extractSvelteScript()` from `svelte-utils.ts` to extract only the `<script lang="ts">` block before scanning, avoiding false positives from HTML template and `<style>` sections
 - **Svelte 5 runes** (`$state`, `$derived`, `$effect`, `$props`, `$bindable`) are valid Svelte syntax and do not trigger any-type violations
 
-### Adding new auto-generated exclusions
+### Adding new exclusions
 
-Add a regex to the `AUTO_GENERATED_DIRS` array in `coding-standards-checks.ts`. Both Enforcer and Advisor inherit it automatically.
+- **Auto-generated directories:** Add a regex to `AUTO_GENERATED_DIRS` in `coding-standards-checks.ts`. Both Enforcer and Advisor inherit it automatically.
+- **Export-default framework conventions:** Add a string regex pattern to `settings.json` under `codingStandards.exportDefault.allowPatterns`. No code changes needed.

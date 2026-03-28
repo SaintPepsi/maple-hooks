@@ -112,8 +112,8 @@ describe("DestructiveDeleteGuard Bash detection", () => {
     expect(result.ok && result.value.type).toBe("block");
   });
 
-  test("returns block decision with command details", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /tmp/build"), mockDeps);
+  test("returns block decision with command details for non-artifact dirs", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /home/user/Documents"), mockDeps);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("block");
@@ -122,6 +122,64 @@ describe("DestructiveDeleteGuard Bash detection", () => {
         expect(result.value.reason).toContain("Destructive");
       }
     }
+  });
+});
+
+// ─── Bash: Artifact Directory Ask ───────────────────────────────────────────
+
+describe("DestructiveDeleteGuard artifact directory ask", () => {
+  test("returns ask for rm -rf on node_modules", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf node_modules"), mockDeps);
+    expect(result.ok && result.value.type).toBe("ask");
+  });
+
+  test("returns ask for rm -rf on playwright-report", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf sveltekit/playwright-report/"), mockDeps);
+    expect(result.ok && result.value.type).toBe("ask");
+  });
+
+  test("returns ask for rm -rf on dist", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf ./dist"), mockDeps);
+    expect(result.ok && result.value.type).toBe("ask");
+  });
+
+  test("returns ask for rm -rf on .next", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /project/.next"), mockDeps);
+    expect(result.ok && result.value.type).toBe("ask");
+  });
+
+  test("returns ask for rm -rf on .svelte-kit", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf .svelte-kit"), mockDeps);
+    expect(result.ok && result.value.type).toBe("ask");
+  });
+
+  test("returns ask for rm -rf on coverage", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf coverage"), mockDeps);
+    expect(result.ok && result.value.type).toBe("ask");
+  });
+
+  test("returns ask for rm -rf on build after cd", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("cd /project && rm -rf build"), mockDeps);
+    expect(result.ok && result.value.type).toBe("ask");
+  });
+
+  test("returns ask with message containing the command", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf node_modules"), mockDeps);
+    expect(result.ok).toBe(true);
+    if (result.ok && result.value.type === "ask") {
+      expect(result.value.decision).toBe("ask");
+      expect(result.value.message).toContain("node_modules");
+    }
+  });
+
+  test("still blocks rm -rf on non-artifact dirs", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /home/user/projects"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
+  });
+
+  test("still blocks rm -rf on root paths", () => {
+    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /"), mockDeps);
+    expect(result.ok && result.value.type).toBe("block");
   });
 });
 

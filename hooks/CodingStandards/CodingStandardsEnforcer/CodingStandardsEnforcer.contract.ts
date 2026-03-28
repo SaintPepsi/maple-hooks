@@ -18,14 +18,16 @@
  * for pattern analysis.
  */
 
+import { join } from "path";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
+import { readFile as adapterReadFile, readJson as adapterReadJson } from "@hooks/core/adapters/fs";
 import {
   type Violation,
+  type ViolationCheckOptions,
   findAllViolations,
   isTypeScriptFile,
   isAdapterFile,
@@ -38,10 +40,20 @@ import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+interface CodingStandardsSettings {
+  codingStandards?: {
+    exportDefault?: {
+      allowPatterns?: string[];
+    };
+  };
+}
+
 export interface CodingStandardsEnforcerDeps {
   readFile: (path: string) => string | null;
+  readSettings: () => CodingStandardsSettings;
   signal: SignalLoggerDeps;
   stderr: (msg: string) => void;
+  baseDir: string;
 }
 
 // ─── Pure Functions ──────────────────────────────────────────────────────────
@@ -128,15 +140,30 @@ function formatBlockMessage(violations: Violation[], filePath: string): string {
   return sections.join("\n");
 }
 
+/** Read export-default exclusion patterns from settings.json codingStandards config. */
+function getExportDefaultExclusions(deps: CodingStandardsEnforcerDeps): ViolationCheckOptions | undefined {
+  const settings = deps.readSettings();
+  const patterns = settings.codingStandards?.exportDefault?.allowPatterns;
+  if (!patterns?.length) return undefined;
+  return { exportDefaultExclusions: patterns.map(p => new RegExp(p)) };
+}
+
 // ─── Contract ────────────────────────────────────────────────────────────────
+
+const baseDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
 
 const defaultDeps: CodingStandardsEnforcerDeps = {
   readFile: (path: string): string | null => {
     const result = adapterReadFile(path);
     return result.ok ? result.value : null;
   },
+  readSettings: (): CodingStandardsSettings => {
+    const result = adapterReadJson<CodingStandardsSettings>(join(baseDir, "settings.json"));
+    return result.ok ? result.value : {};
+  },
   signal: defaultSignalLoggerDeps,
   stderr: (msg) => process.stderr.write(msg + "\n"),
+  baseDir,
 };
 
 export const CodingStandardsEnforcer: SyncHookContract<
@@ -200,7 +227,8 @@ export const CodingStandardsEnforcer: SyncHookContract<
       contentToCheck = scriptContent;
     }
 
-    const violations = findAllViolations(contentToCheck, filePath);
+    const options = getExportDefaultExclusions(deps);
+    const violations = findAllViolations(contentToCheck, filePath, options);
 
     if (violations.length === 0) {
       deps.stderr(`[CodingStandardsEnforcer] ${filePath}: clean`);

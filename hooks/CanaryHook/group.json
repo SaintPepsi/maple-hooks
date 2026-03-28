@@ -1,0 +1,8 @@
+{
+  "name": "CanaryHook",
+  "description": "Debug canary for verifying hook propagation",
+  "hooks": [
+    "CanaryHook"
+  ],
+  "sharedFiles": []
+}

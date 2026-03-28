@@ -19,12 +19,14 @@ function makeDeps(
 ): CodingStandardsEnforcerDeps {
   return {
     readFile: () => null,
+    readSettings: () => ({}),
     signal: {
       baseDir: "/tmp/test-pai",
       appendFile: () => ({ ok: true, value: undefined }),
       ensureDir: () => ({ ok: true, value: undefined }),
     },
     stderr: () => {},
+    baseDir: "/tmp/test-pai",
     ...overrides,
   };
 }

@@ -1,25 +1,59 @@
 /**
- * DestructiveDeleteGuard Contract — Block destructive delete patterns.
+ * DestructiveDeleteGuard Contract — Guard against destructive delete patterns.
  *
  * PreToolUse hook that fires on Bash, Edit, and Write tools.
- * - Bash: Detects recursive/destructive delete commands and BLOCKs.
- *   Covers: rm -r, find -delete, python rmtree, perl rmtree, ruby rm_rf,
- *   node/bun rmSync, rsync --delete, git clean -d.
- * - Edit/Write: Detects code containing destructive delete patterns
- *   (string literals, spawn arrays, template literals, API calls) and BLOCKs.
  *
- * Does NOT block:
- * - Single-file rm (no recursive flag)
- * - Adapter functions like removeDir() (the safe alternative)
- * - Markdown files (.md, .mdx) — documentation mentioning patterns is normal
- * - git rm --cached (only untracks files, doesn't delete from disk)
+ * Bash behavior:
+ *   Detects dangerous directory-removal commands (rm -r, find -delete, python/perl
+ *   tree removal, node/bun sync removal, rsync --delete, git clean -d).
+ *   Returns ASK for known artifact directories (node_modules, dist, build, etc.)
+ *   so the user confirms with one click. Returns BLOCK for all other targets.
+ *
+ * Edit/Write behavior:
+ *   Detects code containing dangerous delete patterns (string literals, spawn
+ *   arrays, template literals, API calls) and BLOCKs.
+ *
+ * Exclusions (returns CONTINUE):
+ *   - Single-file rm (no directory-traversal flag)
+ *   - Adapter functions like removeDir() (the safe alternative)
+ *   - Markdown files (.md, .mdx) — documentation mentioning patterns is normal
+ *   - Dockerfiles — container image cleanup is not host deletion
+ *   - git rm --cached (only untracks files, doesn't delete from disk)
+ *   - This guard's own test file (test strings legitimately contain the patterns)
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
+import type { ContinueOutput, BlockOutput, AskOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
+
+// ─── Artifact Allowlist ─────────────────────────────────────────────────────
+
+/** Directories that are trivially regenerated and safe to rm -rf with user confirmation. */
+const ARTIFACT_DIRS = new Set([
+  "playwright-report",
+  "test-results",
+  "node_modules",
+  ".next",
+  "dist",
+  "build",
+  ".svelte-kit",
+  ".turbo",
+  ".cache",
+  "coverage",
+  ".nyc_output",
+  "tmp",
+  ".temp",
+  ".output",
+  "__pycache__",
+  ".pytest_cache",
+  "target",
+  ".parcel-cache",
+  ".vite",
+  "out",
+  ".nuxt",
+]);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -136,6 +170,12 @@ function isFsAdapter(input: ToolHookInput): boolean {
   return filePath.endsWith("core/adapters/fs.ts");
 }
 
+/** Check if the target file is this guard's own test — test strings legitimately contain destructive patterns. */
+function isOwnTestFile(input: ToolHookInput): boolean {
+  const filePath = (input.tool_input?.file_path as string) || "";
+  return filePath.endsWith("DestructiveDeleteGuard/DestructiveDeleteGuard.test.ts");
+}
+
 /** Extract content to check from Edit or Write tool input. */
 function getContentToCheck(input: ToolHookInput): string {
   if (input.tool_name === "Write") {
@@ -153,6 +193,36 @@ function getCommand(input: ToolHookInput): string {
   return (input.tool_input?.command as string) || "";
 }
 
+/**
+ * Extract the leaf directory name from a rm -rf command's target path.
+ * Returns the last path segment, or empty string if extraction fails.
+ */
+function extractRmTarget(command: string): string {
+  // Match rm with recursive flags, capture the last argument (the path)
+  const match = command.match(/\brm\b\s+(?:-[a-z]*r[a-z]*\s+|--recursive\s+)*([^\s|&;]+)\s*$/);
+  if (!match) {
+    // Try after && or ; chains: get the rm segment
+    const segments = command.split(/[;&]/).map(s => s.trim());
+    for (const seg of segments) {
+      const segMatch = seg.match(/\brm\b\s+(?:-[a-z]*\s+)*([^\s|&;]+)\s*$/);
+      if (segMatch) {
+        const path = segMatch[1].replace(/\/+$/, "");
+        return path.split("/").pop() || "";
+      }
+    }
+    return "";
+  }
+  // Strip trailing slashes before extracting leaf dir
+  const path = match[1].replace(/\/+$/, "");
+  return path.split("/").pop() || "";
+}
+
+/** Check if a bash rm -rf command targets a known artifact directory. */
+function isArtifactDirCleanup(command: string): boolean {
+  const leafDir = extractRmTarget(command);
+  return ARTIFACT_DIRS.has(leafDir);
+}
+
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: DestructiveDeleteGuardDeps = {
@@ -161,7 +231,7 @@ const defaultDeps: DestructiveDeleteGuardDeps = {
 
 export const DestructiveDeleteGuard: SyncHookContract<
   ToolHookInput,
-  ContinueOutput | BlockOutput,
+  ContinueOutput | BlockOutput | AskOutput,
   DestructiveDeleteGuardDeps
 > = {
   name: "DestructiveDeleteGuard",
@@ -174,13 +244,23 @@ export const DestructiveDeleteGuard: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: DestructiveDeleteGuardDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput | AskOutput, PaiError> {
     // Bash: detect destructive delete patterns, BLOCK
     if (input.tool_name === "Bash") {
       const command = getCommand(input);
       if (!command) return ok({ type: "continue", continue: true });
 
       if (detectsDestructiveDelete(command)) {
+        // Artifact directories get a softer "ask" instead of hard block
+        if (isArtifactDirCleanup(command)) {
+          deps.stderr(`[DestructiveDeleteGuard] ASK: artifact dir cleanup — ${command.slice(0, 120)}`);
+          return ok({
+            type: "ask",
+            decision: "ask",
+            message: `Destructive delete on artifact directory: ${command.slice(0, 200)}. Proceed?`,
+          });
+        }
+
         const reason = [
           "Destructive delete pattern detected in Bash command.",
           "",
@@ -214,6 +294,11 @@ export const DestructiveDeleteGuard: SyncHookContract<
 
     // Edit/Write: skip the fs adapter — it is the safe wrapper, raw rmSync belongs there
     if (isFsAdapter(input)) {
+      return ok({ type: "continue", continue: true });
+    }
+
+    // Edit/Write: skip this guard's own test file — test strings legitimately contain destructive patterns
+    if (isOwnTestFile(input)) {
       return ok({ type: "continue", continue: true });
     }
 
