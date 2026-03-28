@@ -157,6 +157,63 @@ The repo keeps `settings.hooks.json` as the portable hook registry:
 - **Post-merge** (consumer workflow): `import-hooks.ts` merges `settings.hooks.json` back into `settings.json` after pulling updates
 - **Install/Uninstall**: `install.ts` and `uninstall.ts` handle first-time setup and clean removal
 
+## Hook Documentation
+
+Every hook can have a `doc.md` file that gets rendered into a styled HTML documentation site using the [Agent HTML Design Framework](scripts/docs/agent-html-design-framework.html).
+
+### Writing docs
+
+Create `hooks/{Group}/{Hook}/doc.md` with these sections:
+
+```markdown
+## Overview
+One-paragraph summary of what this hook does.
+
+## Event
+Which event triggers it and why.
+
+## When It Fires
+- Condition A
+- Condition B
+
+## What It Does
+1. Step one
+2. Step two
+
+## Examples
+### Example 1: Happy path
+> User does X
+> Hook responds with Y
+
+## Dependencies
+| Dep | Type | Purpose |
+| --- | --- | --- |
+| fs | adapter | File I/O |
+```
+
+Bullet lists render as reason boxes, numbered lists as flow steps, code blocks as macOS-style code windows, blockquotes as conversation panels, and tables as styled data tables.
+
+### Generating & checking
+
+```bash
+bun run docs:render    # Generate HTML site to docs/
+bun run docs:check     # Verify all hooks have valid doc.md
+```
+
+The **HookDocEnforcer** hook automatically blocks session end if you modify hook source files without updating their `doc.md`. Configure via `hookConfig.hookDocEnforcer` in `settings.json`:
+
+```json
+{
+  "hookConfig": {
+    "hookDocEnforcer": {
+      "enabled": true,
+      "blocking": true,
+      "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"]
+    }
+  }
+}
+```
+
 ## Testing
 
 ```bash
