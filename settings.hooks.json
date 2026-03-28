@@ -88,6 +88,14 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
           }
         ]
       },
@@ -109,6 +117,14 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/WhileLoopGuard/WhileLoopGuard.hook.ts"
           }
         ]
       },
@@ -230,6 +246,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
       },
@@ -251,6 +271,10 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.hook.ts"
+          },
+          {
+            "type": "command",
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
       },

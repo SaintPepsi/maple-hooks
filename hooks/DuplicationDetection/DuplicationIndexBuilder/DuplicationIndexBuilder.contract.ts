@@ -39,6 +39,7 @@ export interface DuplicationIndexBuilderDeps {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
+const INDEX_DIR = ".claude";
 const INDEX_FILENAME = ".duplication-index.json";
 const FRESHNESS_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -141,7 +142,8 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const indexPath = deps.indexBuilderDeps.join(projectRoot, INDEX_FILENAME);
+    const indexDir = deps.indexBuilderDeps.join(projectRoot, INDEX_DIR);
+    const indexPath = deps.indexBuilderDeps.join(indexDir, INDEX_FILENAME);
 
     // Skip if index is fresh
     if (isIndexFresh(indexPath, deps)) {
@@ -159,7 +161,8 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    // Write the index
+    // Ensure .claude/ directory exists and write the index
+    ensureDir(indexDir);
     const json = JSON.stringify(index);
     const written = deps.writeFile(indexPath, json);
 

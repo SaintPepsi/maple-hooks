@@ -13,7 +13,7 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { readFile as adapterReadFile, fileExists } from "@hooks/core/adapters/fs";
+import { readFile as adapterReadFile, fileExists, appendFile as adapterAppendFile, ensureDir as adapterEnsureDir } from "@hooks/core/adapters/fs";
 import {
   loadIndex,
   findIndexPath,
@@ -28,6 +28,8 @@ import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 export interface DuplicationCheckerDeps {
   readFile: (path: string) => string | null;
   exists: (path: string) => boolean;
+  appendFile: (path: string, content: string) => void;
+  ensureDir: (path: string) => void;
   stderr: (msg: string) => void;
   now: () => number;
 }
@@ -60,6 +62,12 @@ const defaultDeps: DuplicationCheckerDeps = {
     return result.ok ? result.value : null;
   },
   exists: (path: string): boolean => fileExists(path),
+  appendFile: (path: string, content: string): void => {
+    adapterAppendFile(path, content);
+  },
+  ensureDir: (path: string): void => {
+    adapterEnsureDir(path);
+  },
   stderr: (msg) => process.stderr.write(msg + "\n"),
   now: () => Date.now(),
 };
@@ -121,6 +129,23 @@ export const DuplicationCheckerContract: SyncHookContract<
       : filePath;
 
     const matches = checkFunctions(functions, index, relPath);
+
+    // Log all checks (findings or clean) to .claude/.duplication-checker.log
+    const logDir = indexPath.replace(/\/\.duplication-index\.json$/, "");
+    deps.ensureDir(logDir);
+    const logPath = logDir + "/.duplication-checker.log";
+    const logEntry = {
+      ts: new Date(deps.now()).toISOString(),
+      file: relPath,
+      functions: functions.length,
+      matches: matches.map((m) => ({
+        fn: m.functionName,
+        target: `${m.targetFile}:${m.targetName}`,
+        signals: m.signals,
+        score: Math.round(m.topScore * 100),
+      })),
+    };
+    deps.appendFile(logPath, JSON.stringify(logEntry) + "\n");
 
     if (matches.length === 0) {
       deps.stderr(`[DuplicationChecker] ${filePath}: clean`);

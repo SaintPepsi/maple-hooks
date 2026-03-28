@@ -41,6 +41,8 @@ beforeEach(() => {
 const mockDeps: DuplicationCheckerDeps = {
   readFile: (path) => require("fs").readFileSync(path, "utf-8") as string,
   exists: (path) => require("fs").existsSync(path) as boolean,
+  appendFile: () => {},
+  ensureDir: () => {},
   stderr: () => {},
   now: () => Date.now(),
 };

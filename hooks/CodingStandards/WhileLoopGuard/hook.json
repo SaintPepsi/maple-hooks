@@ -1,0 +1,23 @@
+{
+  "name": "WhileLoopGuard",
+  "group": "CodingStandards",
+  "event": "PreToolUse",
+  "description": "Blocks while and do...while loops in code files. State-checks the full file after edit.",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "result",
+      "runner"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [
+    "coding-standards",
+    "loop-guard"
+  ],
+  "presets": []
+}

@@ -76,7 +76,7 @@ export function findIndexPath(filePath: string, deps: SharedDeps): string | null
   const { dirname, join } = require("path");
   let dir = dirname(filePath) as string;
   for (let i = 0; i < 10; i++) {
-    const candidate = join(dir, ".duplication-index.json") as string;
+    const candidate = join(dir, ".claude", ".duplication-index.json") as string;
     if (deps.exists(candidate)) return candidate;
     const parent = dirname(dir) as string;
     if (parent === dir) break;

@@ -11,7 +11,8 @@
     "baseUrl": ".",
     "paths": {
       "@hooks/*": ["./*"],
-      "@pai/*": ["stubs/pai/*"]
+      "@pai/*": ["stubs/pai/*"],
+      "@tools/pattern-detector/*": ["hooks/DuplicationDetection/research/*"]
     }
   },
   "include": ["**/*.ts"],

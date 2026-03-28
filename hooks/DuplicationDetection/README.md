@@ -14,19 +14,22 @@ See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for
 
 Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. If a function matches on 3 or more dimensions (body hash, name frequency, signature + fingerprint similarity), it surfaces an advisory via `additionalContext`. The agent can proceed — this hook never blocks.
 
+Every check (clean or with findings) is logged to `<project>/.claude/.duplication-checker.log` as JSONL for later inspection.
+
 ## How They Work Together
 
 ```
 Write/Edit .ts file
        │
        ├─► PreToolUse: DuplicationChecker
-       │     reads .duplication-index.json
+       │     reads .claude/.duplication-index.json
        │     parses incoming content
        │     emits additionalContext if duplicates found
+       │     logs check to .claude/.duplication-checker.log
        │
        └─► PostToolUse: DuplicationIndexBuilder
              scans project root
-             writes .duplication-index.json
+             writes .claude/.duplication-index.json
              (skips if index is fresh)
 ```
 
@@ -70,3 +73,20 @@ bun Tools/pattern-detector/variants/index-builder.ts build /Users/hogers/.claude
 ```
 
 The index is written to `.duplication-index.json` in the target directory.
+
+## Inspecting the Log
+
+Every DuplicationChecker invocation logs a JSONL entry to `<project>/.claude/.duplication-checker.log`:
+
+```sh
+# View all entries
+cat <project>/.claude/.duplication-checker.log | jq .
+
+# View only findings (non-empty matches)
+cat <project>/.claude/.duplication-checker.log | jq 'select(.matches | length > 0)'
+
+# Count findings per file
+cat <project>/.claude/.duplication-checker.log | jq -r 'select(.matches | length > 0) | .file' | sort | uniq -c | sort -rn
+```
+
+Both the index and the log live in `.claude/` which is typically gitignored.
