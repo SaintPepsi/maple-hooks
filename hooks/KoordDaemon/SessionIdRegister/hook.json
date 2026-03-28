@@ -4,19 +4,6 @@
   "event": "SessionStart",
   "description": "Registers session ID with Koord daemon for thread agents",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": ["paths"],
-    "adapters": [
-      "fetch"
-    ],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [
     "koord"
   ],

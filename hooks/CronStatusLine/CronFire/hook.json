@@ -4,20 +4,6 @@
   "event": "UserPromptSubmit",
   "description": "Detect and record cron fires by matching user prompts against session crons",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner",
-      "types/hook-outputs"
-    ],
-    "lib": [],
-    "adapters": [
-      "fs"
-    ],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [
     "cron"
   ],

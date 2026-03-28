@@ -4,21 +4,6 @@
   "event": "PostToolUse",
   "description": "Runs TypeScript type checking on code changes",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "signal-logger",
-      "svelte-utils"
-    ],
-    "adapters": [
-      "fs",
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

@@ -4,19 +4,6 @@
   "event": "Stop",
   "description": "Enforces test obligations",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "narrative-reader"
-    ],
-    "adapters": [],
-    "shared": [
-      "TestObligationStateMachine.shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

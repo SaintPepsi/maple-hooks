@@ -4,17 +4,6 @@
   "event": "SessionEnd",
   "description": "Updates hook/file/signal counters for dashboard",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

@@ -4,20 +4,6 @@
   "event": "SessionStart",
   "description": "Displays PAI banner and system status",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "tab-setter"
-    ],
-    "adapters": [
-      "fs",
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

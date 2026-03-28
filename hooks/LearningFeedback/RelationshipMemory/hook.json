@@ -4,22 +4,6 @@
   "event": "Stop",
   "description": "Persists relationship context to memory",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "error",
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "identity",
-      "paths",
-      "time"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

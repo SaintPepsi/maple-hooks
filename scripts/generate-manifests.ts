@@ -30,6 +30,9 @@ import { MANIFEST_SCHEMA_VERSION } from "@hooks/cli/types/manifest";
 import type { HookEventType } from "@hooks/core/types/hook-inputs";
 import { join, basename, dirname } from "path";
 
+// Re-export for backward compatibility with tests
+export { parseImports, hookUsesShared } from "@hooks/lib/import-parser";
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface GeneratorDeps {
@@ -68,93 +71,6 @@ const defaultDeps: GeneratorDeps = {
   fileExists: adapterFileExists,
   stderr: (msg) => process.stderr.write(msg + "\n"),
 };
-
-// ─── Import Parser ──────────────────────────────────────────────────────────
-
-interface ClassifiedDeps {
-  core: string[];
-  lib: string[];
-  adapters: string[];
-}
-
-/**
- * Categorize a single @hooks/* import path.
- * Returns null for paths that should be ignored (hooks/*, cli/*).
- */
-function categorizeImport(
-  modulePath: string,
-): { category: "core" | "lib" | "adapters"; dep: string } | null {
-  // Ignore sibling hook imports
-  if (modulePath.startsWith("@hooks/hooks/")) return null;
-  // Ignore CLI imports
-  if (modulePath.startsWith("@hooks/cli/")) return null;
-  // Ignore script imports
-  if (modulePath.startsWith("@hooks/scripts/")) return null;
-
-  // @hooks/core/adapters/* → adapters category
-  const adapterMatch = modulePath.match(/^@hooks\/core\/adapters\/(.+)$/);
-  if (adapterMatch) return { category: "adapters", dep: adapterMatch[1] };
-
-  // @hooks/core/* → core category
-  const coreMatch = modulePath.match(/^@hooks\/core\/(.+)$/);
-  if (coreMatch) return { category: "core", dep: coreMatch[1] };
-
-  // @hooks/lib/* → lib category
-  const libMatch = modulePath.match(/^@hooks\/lib\/(.+)$/);
-  if (libMatch) return { category: "lib", dep: libMatch[1] };
-
-  return null;
-}
-
-/**
- * Parse runtime imports from contract source. Excludes `import type` statements.
- * Returns classified deps.
- */
-export function parseImports(source: string): ClassifiedDeps {
-  const core = new Set<string>();
-  const lib = new Set<string>();
-  const adapters = new Set<string>();
-
-  // Normalize multi-line imports into single lines
-  const normalized = source.replace(
-    /import\s+([\s\S]*?)\s+from\s+["']([^"']+)["']\s*;/g,
-    (_fullMatch, importClause: string, modulePath: string) => {
-      const collapsed = importClause.replace(/\s+/g, " ").trim();
-      return `import ${collapsed} from "${modulePath}";`;
-    },
-  );
-
-  const importRegex = /^import\s+(.*?)\s+from\s+["'](@hooks\/[^"']+)["']\s*;/gm;
-
-  let match: RegExpExecArray | null = importRegex.exec(normalized);
-  while (match !== null) {
-    const importClause = match[1];
-    const modulePath = match[2];
-
-    // Skip pure type imports
-    if (importClause.startsWith("type ")) {
-      match = importRegex.exec(normalized);
-      continue;
-    }
-
-    const categorized = categorizeImport(modulePath);
-    if (categorized) {
-      const bucket =
-        categorized.category === "core" ? core :
-        categorized.category === "lib" ? lib :
-        adapters;
-      bucket.add(categorized.dep);
-    }
-
-    match = importRegex.exec(normalized);
-  }
-
-  return {
-    core: [...core].sort(),
-    lib: [...lib].sort(),
-    adapters: [...adapters].sort(),
-  };
-}
 
 // ─── Event Extractor ────────────────────────────────────────────────────────
 
@@ -232,7 +148,7 @@ export function discoverHooks(
  * Find *.shared.ts or shared.ts files in a group directory.
  * Returns filenames (not full paths).
  */
-function discoverSharedFiles(
+function discoverSharedFilesViaManifest(
   groupDir: string,
   deps: GeneratorDeps,
 ): string[] {
@@ -242,28 +158,6 @@ function discoverSharedFiles(
   return result.value
     .filter((f) => f === "shared.ts" || f.endsWith(".shared.ts"))
     .sort();
-}
-
-/**
- * Determine which shared files a hook imports from its group.
- * Matches both `@hooks/hooks/Group/shared` and `@hooks/hooks/Group/Name.shared`.
- * Returns the list of matched shared filenames (e.g., ["shared.ts", "Name.shared.ts"]).
- */
-export function hookUsesShared(
-  source: string,
-  groupName: string,
-  availableSharedFiles: string[],
-): string[] {
-  const used: string[] = [];
-  for (const sharedFile of availableSharedFiles) {
-    // shared.ts → import stem is "shared"
-    // Name.shared.ts → import stem is "Name.shared"
-    const stem = sharedFile.replace(/\.ts$/, "");
-    if (source.includes(`@hooks/hooks/${groupName}/${stem}`)) {
-      used.push(sharedFile);
-    }
-  }
-  return used.sort();
 }
 
 // ─── Duplicate Check ────────────────────────────────────────────────────────
@@ -291,7 +185,6 @@ function checkDuplicateNames(
 function buildHookManifest(
   hook: DiscoveredHook,
   source: string,
-  sharedFiles: string[],
   existing: Partial<HookManifest> | null,
 ): Result<HookManifest, PaiError> {
   const eventResult = extractEvent(source);
@@ -301,9 +194,6 @@ function buildHookManifest(
     );
   }
 
-  const deps = parseImports(source);
-  const usedSharedFiles = hookUsesShared(source, hook.group, sharedFiles);
-
   const manifest: HookManifest = {
     name: hook.name,
     group: hook.group,
@@ -311,12 +201,6 @@ function buildHookManifest(
     // Preserve human-curated fields if they exist
     description: existing?.description ?? "",
     schemaVersion: MANIFEST_SCHEMA_VERSION,
-    deps: {
-      core: deps.core,
-      lib: deps.lib,
-      adapters: deps.adapters,
-      shared: usedSharedFiles.length > 0 ? usedSharedFiles : false,
-    },
     tags: existing?.tags ?? [],
     presets: existing?.presets ?? [],
   };
@@ -374,8 +258,6 @@ export function generate(
       );
     }
 
-    const sharedFiles = discoverSharedFiles(hook.groupDir, deps);
-
     // Read existing hook.json for merge mode
     const existingPath = join(hook.hookDir, "hook.json");
     let existing: Partial<HookManifest> | null = null;
@@ -389,7 +271,6 @@ export function generate(
     const manifestResult = buildHookManifest(
       hook,
       sourceResult.value,
-      sharedFiles,
       existing,
     );
     if (!manifestResult.ok) return manifestResult;
@@ -402,7 +283,7 @@ export function generate(
   for (const [groupName, groupHooks] of groups) {
     const groupDir = groupHooks[0].groupDir;
     const hookNames = groupHooks.map((h) => h.name);
-    const sharedFiles = discoverSharedFiles(groupDir, deps);
+    const sharedFiles = discoverSharedFilesViaManifest(groupDir, deps);
 
     // Read existing group.json for merge mode
     const groupJsonPath = join(groupDir, "group.json");

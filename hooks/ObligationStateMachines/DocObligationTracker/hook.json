@@ -4,17 +4,6 @@
   "event": "PostToolUse",
   "description": "Tracks doc changes alongside code",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [],
-    "shared": [
-      "DocObligationStateMachine.shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

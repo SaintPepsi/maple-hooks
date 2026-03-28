@@ -4,15 +4,6 @@
   "event": "PostToolUse",
   "description": "Routes sub-agent work to appropriate models",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

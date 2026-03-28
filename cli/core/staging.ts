@@ -63,12 +63,13 @@ export function createStaging(
  * Stage a single hook's files into the staging directory.
  *
  * Copies: hook.ts, contract.ts from sourceDir.
- * Copies shared.ts from group dir if manifest declares shared deps.
+ * Copies shared files from group dir if any are used.
  * Core deps are handled separately via stageCoreModules.
  */
 export function stageHook(
   ctx: StagingContext,
   hookDef: HookDef,
+  sharedFiles: string[],
   deps: CliDeps,
 ): Result<StagedFiles, PaihError> {
   const { manifest, sourceDir } = hookDef;
@@ -98,10 +99,10 @@ export function stageHook(
     files.push(`hooks/pai-hooks/${groupName}/${hookName}/${hookName}.contract.ts`);
   }
 
-  // Copy shared.ts if declared
-  if (Array.isArray(manifest.deps.shared)) {
+  // Copy shared files discovered from imports
+  if (sharedFiles.length > 0) {
     const groupSourceDir = sourceDir.substring(0, sourceDir.lastIndexOf("/"));
-    for (const sharedFile of manifest.deps.shared) {
+    for (const sharedFile of sharedFiles) {
       const sharedSrc = `${groupSourceDir}/${sharedFile}`;
       const sharedDest = `${ctx.stagingDir}/pai-hooks/${groupName}/${sharedFile}`;
       if (deps.fileExists(sharedSrc)) {

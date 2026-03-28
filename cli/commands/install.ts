@@ -47,6 +47,7 @@ import { readLockfile, writeLockfile, addHookEntry, computeFileHash } from "@hoo
 import { generateTsconfig } from "@hooks/cli/core/tsconfig-gen";
 import { compileHook, compiledCommandString } from "@hooks/cli/core/compiler";
 import type { CompilerDeps } from "@hooks/cli/core/compiler";
+import { parseImports, discoverSharedFiles, hookUsesShared } from "@hooks/lib/import-parser";
 
 // ─── Install Pipeline ───────────────────────────────────────────────────────
 
@@ -149,13 +150,24 @@ export function install(
   }
 
   for (const hookDef of hooks) {
-    const stageResult = stageHook(ctx, hookDef, deps);
+    // Parse imports directly from contract source to discover deps
+    const contractSource = deps.readFile(hookDef.contractPath);
+    if (!contractSource.ok) {
+      cleanStaging(ctx.stagingDir, deps);
+      return contractSource;
+    }
+    const parsedDeps = parseImports(contractSource.value);
+    const groupDir = hookDef.sourceDir.substring(0, hookDef.sourceDir.lastIndexOf("/"));
+    const availableShared = discoverSharedFiles(groupDir, deps);
+    const sharedFiles = hookUsesShared(contractSource.value, hookDef.manifest.group, availableShared);
+
+    const stageResult = stageHook(ctx, hookDef, sharedFiles, deps);
     if (!stageResult.ok) {
       cleanStaging(ctx.stagingDir, deps);
       return stageResult;
     }
     stagedHooks.push({ hookDef, staged: stageResult.value });
-    collectCoreDeps(hookDef, allCoreDeps);
+    collectCoreDeps(parsedDeps, allCoreDeps);
   }
 
   // Step 7: Stage core modules (deduped)
@@ -275,17 +287,15 @@ export function install(
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Collect core/lib/adapter deps from a hook manifest into a shared set. */
-function collectCoreDeps(hookDef: HookDef, coreDeps: Set<string>): void {
-  const { deps } = hookDef.manifest;
-
-  for (const dep of deps.core) {
+/** Collect core/lib/adapter deps from parsed imports into a shared set. */
+function collectCoreDeps(parsedDeps: { core: string[]; lib: string[]; adapters: string[] }, coreDeps: Set<string>): void {
+  for (const dep of parsedDeps.core) {
     coreDeps.add(`core/${dep}`);
   }
-  for (const dep of deps.lib) {
+  for (const dep of parsedDeps.lib) {
     coreDeps.add(`lib/${dep}`);
   }
-  for (const dep of deps.adapters) {
+  for (const dep of parsedDeps.adapters) {
     coreDeps.add(`core/adapters/${dep}`);
   }
 }

@@ -4,17 +4,6 @@
   "event": "PostToolUse",
   "description": "Tracks AskUserQuestion responses",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "tab-setter"
-    ],
-    "adapters": [],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

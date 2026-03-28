@@ -14,14 +14,13 @@ import type { HookDef } from "@hooks/cli/types/resolved";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
-function makeHookDef(name: string, group: string, shared: string[] | false = false): HookDef {
+function makeHookDef(name: string, group: string): HookDef {
   const manifest: HookManifest = {
     name,
     group,
     event: "PreToolUse",
     description: `Test hook ${name}`,
     schemaVersion: 1,
-    deps: { core: ["result"], lib: [], adapters: ["fs"], shared },
     tags: [],
     presets: [],
   };
@@ -187,8 +186,8 @@ describe("resolver", () => {
 
   // 9. Shared deps are co-dependencies, not cycles
   it("shared deps do not cause false cycle detection", () => {
-    const hookA = makeHookDef("HookA", "Cycle", ["shared.ts"]);
-    const hookB = makeHookDef("HookB", "Cycle", ["shared.ts"]);
+    const hookA = makeHookDef("HookA", "Cycle");
+    const hookB = makeHookDef("HookB", "Cycle");
     const group = makeGroup("Cycle", ["HookA", "HookB"]);
     const index = makeIndex([hookA, hookB], [group]);
 

@@ -15,17 +15,6 @@ export const MANIFEST_SCHEMA_VERSION = 1;
 
 // ─── Hook Manifest ──────────────────────────────────────────────────────────
 
-export interface HookDeps {
-  /** Core modules: contract, result, error, types/hook-inputs, adapters/fs, etc. */
-  core: string[];
-  /** Lib utilities: paths, algorithm-state, identity, etc. */
-  lib: string[];
-  /** Adapter modules: fs, process, fetch, stdin, etc. */
-  adapters: string[];
-  /** Shared files within the group. false = no shared deps. string[] = specific filenames. */
-  shared: string[] | false;
-}
-
 export interface HookManifest {
   /** Hook name matching the contract export name. */
   name: string;
@@ -37,8 +26,6 @@ export interface HookManifest {
   description: string;
   /** Schema version for forward compatibility. */
   schemaVersion: number;
-  /** Categorized dependency declarations. */
-  deps: HookDeps;
   /** Searchable tags for catalog filtering. */
   tags: string[];
   /** Preset names this hook belongs to. */

@@ -4,21 +4,6 @@
   "event": "UserPromptSubmit",
   "description": "Captures user ratings for learning signals",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "identity",
-      "learning-utils",
-      "time"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

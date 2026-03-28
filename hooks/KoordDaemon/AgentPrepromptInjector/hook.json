@@ -4,20 +4,6 @@
   "event": "PreToolUse",
   "description": "Injects worker preprompt into background agent prompts",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner",
-      "types/hook-outputs"
-    ],
-    "lib": ["paths"],
-    "adapters": [
-      "fs"
-    ],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [
     "koord"
   ],

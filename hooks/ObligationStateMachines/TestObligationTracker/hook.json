@@ -4,17 +4,6 @@
   "event": "PostToolUse",
   "description": "Tracks test changes alongside code",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [],
-    "shared": [
-      "TestObligationStateMachine.shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

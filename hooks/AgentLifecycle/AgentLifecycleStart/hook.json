@@ -4,17 +4,6 @@
   "event": "SubagentStart",
   "description": "Initializes agent lifecycle on subagent start",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

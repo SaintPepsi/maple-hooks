@@ -4,18 +4,6 @@
   "event": "SubagentStop",
   "description": "Cleans up agent lifecycle on subagent stop",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "error",
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [],
-    "shared": [
-      "shared.ts"
-    ]
-  },
   "tags": [],
   "presets": []
 }

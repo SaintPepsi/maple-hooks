@@ -4,20 +4,6 @@
   "event": "PostToolUse",
   "description": "Suggests improvements post-Read",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "coding-standards-checks",
-      "svelte-utils"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

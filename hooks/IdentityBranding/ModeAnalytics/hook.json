@@ -4,17 +4,6 @@
   "event": "SessionEnd",
   "description": "Tracks Algorithm/Native/Minimal mode usage",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [],
-    "adapters": [
-      "process"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

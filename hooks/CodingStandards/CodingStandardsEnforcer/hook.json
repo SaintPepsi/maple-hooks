@@ -4,22 +4,6 @@
   "event": "PreToolUse",
   "description": "Enforces coding standards on Write/Edit",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "coding-standards-checks",
-      "narrative-reader",
-      "signal-logger",
-      "svelte-utils"
-    ],
-    "adapters": [
-      "fs"
-    ],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

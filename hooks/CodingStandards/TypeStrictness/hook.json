@@ -4,19 +4,6 @@
   "event": "PreToolUse",
   "description": "Hard-blocks any types in TypeScript",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "narrative-reader",
-      "signal-logger",
-      "svelte-utils"
-    ],
-    "adapters": [],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

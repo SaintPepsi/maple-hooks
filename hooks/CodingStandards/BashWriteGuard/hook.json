@@ -4,17 +4,6 @@
   "event": "PreToolUse",
   "description": "Prevents bypassing Edit/Write via Bash sed/echo",
   "schemaVersion": 1,
-  "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
-    "lib": [
-      "narrative-reader"
-    ],
-    "adapters": [],
-    "shared": false
-  },
   "tags": [],
   "presets": []
 }

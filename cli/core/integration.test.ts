@@ -35,7 +35,6 @@ describe("integration: resolver + adapters through pipe()", () => {
         event: "PreToolUse",
         description: "Validates security",
         schemaVersion: 1,
-        deps: { core: ["result"], lib: [], adapters: ["fs"], shared: false },
         tags: ["security"],
         presets: ["standard"],
       },
