@@ -22,3 +22,55 @@ Contracts use narrowed types from `core/contract.ts`:
 - No direct `process.env` outside `defaultDeps`
 - Use `@hooks/*` path aliases, not relative imports
 - Use `import type` for type-only imports
+
+## Hook Documentation
+
+Every hook should have a `doc.md` file in its directory. The HookDocEnforcer hook will block session end if you modify hook source files (`.contract.ts`, `hook.json`, `group.json`) without updating docs.
+
+### Writing a doc.md
+
+Create `hooks/{Group}/{Hook}/doc.md` with these required sections:
+
+```markdown
+## Overview
+## Event
+## When It Fires
+## What It Does
+## Examples
+## Dependencies
+```
+
+Content within each section maps to framework components automatically:
+- **Bullet lists** → reason boxes
+- **Numbered lists** → flow steps
+- **Code blocks** → code windows (macOS-style)
+- **Blockquotes** → use-case example panels
+- **Tables** → styled data tables
+
+### Generating HTML docs
+
+```bash
+bun run docs:render              # Generate HTML to docs/
+bun run docs:check               # Verify all hooks have valid doc.md
+bun run docs:render --out ./out  # Custom output directory
+```
+
+### Configuring the enforcer
+
+In `~/.claude/settings.json`:
+
+```json
+{
+  "hookConfig": {
+    "hookDocEnforcer": {
+      "enabled": true,
+      "blocking": true,
+      "docFileName": "doc.md",
+      "requiredSections": ["## Overview", "## Event", "## When It Fires", "## What It Does", "## Examples", "## Dependencies"],
+      "watchPatterns": ["\\.contract\\.ts$", "hook\\.json$", "group\\.json$"]
+    }
+  }
+}
+```
+
+Set `"blocking": false` to get advisory warnings instead of session blocks.
