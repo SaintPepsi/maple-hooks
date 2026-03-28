@@ -1,0 +1,21 @@
+{
+  "name": "AgentList",
+  "group": "SessionFraming",
+  "event": "SessionStart",
+  "description": "Inject a persistent agent checklist at session start from PAI/AGENT-LIST.md",
+  "schemaVersion": 1,
+  "deps": {
+    "core": [
+      "error",
+      "result",
+      "runner"
+    ],
+    "lib": [],
+    "adapters": [
+      "fs"
+    ],
+    "shared": false
+  },
+  "tags": [],
+  "presets": []
+}
