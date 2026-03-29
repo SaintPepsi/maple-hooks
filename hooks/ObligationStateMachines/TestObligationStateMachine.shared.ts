@@ -11,8 +11,11 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
+import { jsonParseFailed } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
+import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +29,11 @@ export interface TestObligationDeps {
   writeBlockCount: (path: string, count: number) => void;
   writeReview: (path: string, content: string) => void;
   stderr: (msg: string) => void;
+}
+
+/** Narrow extension used only by TestObligationTracker (not the enforcer). */
+export interface TestTrackerExcludeDeps {
+  getExcludePatterns: () => string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -142,13 +150,46 @@ export function hasTestFile(sourcePath: string, fileExists: (path: string) => bo
   return deriveTestPaths(sourcePath).some(fileExists);
 }
 
+// ─── Exclude Pattern Helpers ──────────────────────────────────────────────────
+
+interface TestObligationSettingsJson {
+  hookConfig?: {
+    testObligation?: {
+      excludePatterns?: string[];
+    };
+  };
+}
+
+/** Read excludePatterns from settings.json hookConfig.testObligation.excludePatterns. */
+export function readTestExcludePatterns(settingsPath?: string): string[] {
+  const path = settingsPath ?? getSettingsPath();
+  const result = readFile(path);
+  if (!result.ok) return [];
+  const parsed = tryCatch(
+    () => JSON.parse(result.value) as TestObligationSettingsJson,
+    (cause) => jsonParseFailed(result.value.slice(0, 100), cause),
+  );
+  if (!parsed.ok) return [];
+  const patterns = parsed.value?.hookConfig?.testObligation?.excludePatterns;
+  return Array.isArray(patterns) ? patterns : [];
+}
+
+/** Returns true if filePath matches any of the given glob patterns. */
+export function matchesExcludePattern(filePath: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => new Bun.Glob(pattern).match(filePath));
+}
+
 // ─── Default Deps ─────────────────────────────────────────────────────────────
 
 function getStateDir(baseDir: string): string {
   return join(baseDir, "MEMORY", "STATE", "test-obligation");
 }
 
-const stderr = (msg: string) => process.stderr.write(`${msg}\n`);
+const stderr = (msg: string) => defaultStderr(msg);
+
+export const defaultTrackerExcludeDeps: TestTrackerExcludeDeps = {
+  getExcludePatterns: () => readTestExcludePatterns(),
+};
 
 export const defaultDeps: TestObligationDeps = {
   stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),

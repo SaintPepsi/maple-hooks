@@ -5,15 +5,15 @@ import { err, ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { DocObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.contract";
+import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
-  type DocObligationDeps,
-  projectHasHook,
-} from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
-import { DocObligationTracker } from "@hooks/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.contract";
+  DocObligationTracker,
+  type DocTrackerDeps,
+} from "@hooks/hooks/ObligationStateMachines/DocObligationTracker/DocObligationTracker.contract";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeTrackerDeps(overrides: Partial<DocObligationDeps> = {}): DocObligationDeps {
+function makeTrackerDeps(overrides: Partial<DocTrackerDeps> = {}): DocTrackerDeps {
   return {
     stateDir: "/tmp/pai-doc-obligation",
     fileExists: () => false,
@@ -24,6 +24,7 @@ function makeTrackerDeps(overrides: Partial<DocObligationDeps> = {}): DocObligat
     writeBlockCount: () => {},
     writeReview: () => {},
     stderr: () => {},
+    getExcludePatterns: () => [],
     ...overrides,
   };
 }
@@ -577,6 +578,82 @@ describe("DocObligationEnforcer", () => {
 
     // Should clean up pending flag and block count file
     expect(removedPaths.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+// ─── DocObligationTracker excludePatterns ─────────────────────────────────────
+
+describe("DocObligationTracker excludePatterns", () => {
+  it("does not add file to pending when it matches an exclude pattern", () => {
+    let writtenFiles: string[] | null = null;
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/generated/**"],
+    });
+
+    DocObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/generated/schema.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toBeNull();
+  });
+
+  it("still adds file when pattern does not match", () => {
+    let writtenFiles: string[] = [];
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/generated/**"],
+    });
+
+    DocObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/handlers/user.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toContain("/src/handlers/user.ts");
+  });
+
+  it("adds file normally when excludePatterns is empty (backward compatible)", () => {
+    let writtenFiles: string[] = [];
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => [],
+    });
+
+    DocObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/app.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toContain("/src/app.ts");
+  });
+
+  it("excludes file when any pattern in the list matches", () => {
+    let writtenFiles: string[] | null = null;
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/vendor/**", "**/generated/**", "**/*.pb.ts"],
+    });
+
+    DocObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/proto/types.pb.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toBeNull();
   });
 });
 

@@ -5,11 +5,14 @@ import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { TestObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract";
 import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
-import { TestObligationTracker } from "@hooks/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.contract";
+import {
+  TestObligationTracker,
+  type TestTrackerDeps,
+} from "@hooks/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.contract";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeTrackerDeps(overrides: Partial<TestObligationDeps> = {}): TestObligationDeps {
+function makeTrackerDeps(overrides: Partial<TestTrackerDeps> = {}): TestTrackerDeps {
   return {
     stateDir: "/tmp/pai-test-obligation",
     fileExists: () => false,
@@ -20,6 +23,7 @@ function makeTrackerDeps(overrides: Partial<TestObligationDeps> = {}): TestOblig
     writeBlockCount: () => {},
     writeReview: () => {},
     stderr: () => {},
+    getExcludePatterns: () => [],
     ...overrides,
   };
 }
@@ -780,6 +784,82 @@ describe("TestObligationEnforcer", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
+  });
+});
+
+// ─── TestObligationTracker excludePatterns ────────────────────────────────────
+
+describe("TestObligationTracker excludePatterns", () => {
+  it("does not add file to pending when it matches an exclude pattern", () => {
+    let writtenFiles: string[] | null = null;
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/generated/**"],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/generated/schema.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toBeNull();
+  });
+
+  it("still adds file when pattern does not match", () => {
+    let writtenFiles: string[] = [];
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/generated/**"],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/handlers/user.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toContain("/src/handlers/user.ts");
+  });
+
+  it("adds file normally when excludePatterns is empty (backward compatible)", () => {
+    let writtenFiles: string[] = [];
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => [],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/app.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toContain("/src/app.ts");
+  });
+
+  it("excludes file when any pattern in the list matches", () => {
+    let writtenFiles: string[] | null = null;
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/vendor/**", "**/generated/**", "**/*.pb.ts"],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/proto/types.pb.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toBeNull();
   });
 });
 
