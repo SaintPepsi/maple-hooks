@@ -32,6 +32,7 @@ function createMockIO(): MockIO & RunHookOptions {
     exit: (code: number) => {
       io.exitCode = code;
     },
+    isDuplicate: () => false,
     get stdoutLines() {
       return io.stdoutLines;
     },
