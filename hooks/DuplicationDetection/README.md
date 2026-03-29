@@ -35,12 +35,16 @@ Write/Edit .ts file
 
 The builder produces the index; the checker reads it. On a first run (no index yet) the checker skips silently and the builder creates the index after the write completes. Subsequent writes benefit from the index immediately.
 
+### Branch Awareness
+
+The index records the git branch it was built on. When the checker loads an index, it compares the stored branch against the current branch. If they differ, the index is discarded and the checker skips until the builder produces a fresh index for the new branch. This prevents stale cross-branch matches after switching branches. The branch is also recorded in each log entry for filtering.
+
 ## File Structure
 
 ```
 DuplicationDetection/
 ├── README.md                          — this file
-├── shared.ts                          — index types, loading, cache, check logic, formatting
+├── shared.ts                          — index types, loading, cache, check logic, formatting, getCurrentBranch
 ├── parser.ts                          — TypeScript function extraction
 ├── index-builder-logic.ts             — file scanning and index construction
 ├── DuplicationIndexBuilder/

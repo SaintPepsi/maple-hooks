@@ -7,6 +7,8 @@
  * Parsing logic lives in parser.ts (separate concern).
  */
 
+import { execSyncSafe } from "@hooks/core/adapters/process";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ExtractedFunction } from "@hooks/hooks/DuplicationDetection/parser";
 
 // ─── Index Types ────────────────────────────────────────────────────────────
@@ -25,6 +27,7 @@ export interface IndexEntry {
 export interface DuplicationIndex {
   version: number;
   root: string;
+  branch?: string;
   builtAt: string;
   fileCount: number;
   functionCount: number;
@@ -51,6 +54,43 @@ export interface SharedDeps {
   exists: (path: string) => boolean;
 }
 
+// ─── Tool Input Helpers ────────────────────────────────────────────────────
+
+/** Extract file_path from tool_input. Shared across Checker and Builder. */
+export function getFilePath(input: ToolHookInput): string | null {
+  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
+  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
+}
+
+/** Extract content from Write tool_input. */
+export function getWriteContent(input: ToolHookInput): string | null {
+  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
+  return ((input.tool_input as Record<string, unknown>).content as string) ?? null;
+}
+
+/** Apply an Edit operation to existing file content. */
+export function simulateEdit(currentContent: string, input: ToolHookInput): string {
+  const toolInput = input.tool_input as Record<string, unknown>;
+  const oldStr = toolInput.old_string as string | undefined;
+  const newStr = toolInput.new_string as string | undefined;
+  if (oldStr && newStr !== undefined) return currentContent.replace(oldStr, newStr);
+  return currentContent;
+}
+
+// ─── Branch Detection ──────────────────────────────────────────────────────
+
+/**
+ * Get the current git branch name. Returns null if not in a git repo
+ * or git is unavailable. Shared across the hook group so both the
+ * builder and checker use the same branch resolution.
+ */
+export function getCurrentBranch(): string | null {
+  const result = execSyncSafe("git rev-parse --abbrev-ref HEAD");
+  if (!result.ok) return null;
+  const branch = result.value.trim();
+  return branch.length > 0 ? branch : null;
+}
+
 // ─── Index Loading ──────────────────────────────────────────────────────────
 
 let cachedIndex: DuplicationIndex | null = null;
@@ -62,6 +102,13 @@ export function loadIndex(indexPath: string, deps: SharedDeps): DuplicationIndex
   if (!content) return null;
   const parsed = JSON.parse(content) as DuplicationIndex;
   if (!parsed.version || !parsed.entries) return null;
+
+  // Discard index if it was built on a different branch
+  if (parsed.branch) {
+    const currentBranch = getCurrentBranch();
+    if (currentBranch && parsed.branch !== currentBranch) return null;
+  }
+
   cachedIndex = parsed;
   cachedIndexPath = indexPath;
   return parsed;
@@ -105,7 +152,10 @@ export function fingerprintSimilarity(a: string, b: string): number {
 
 // ─── Checking Logic ─────────────────────────────────────────────────────────
 
-const DIMENSION_THRESHOLD = 3;
+/** Minimum signal count to log a match (2/4 = log, 4/4 = block). */
+export const LOG_THRESHOLD = 2;
+/** Signal count at which the match becomes a block (all 4 dimensions). */
+export const BLOCK_THRESHOLD = 4;
 const FINGERPRINT_THRESHOLD = 0.5;
 const MAX_FINDINGS = 3;
 
@@ -165,7 +215,7 @@ export function checkFunctions(
       }
     }
 
-    if (signals.length >= DIMENSION_THRESHOLD && bestTarget) {
+    if (signals.length >= LOG_THRESHOLD && bestTarget) {
       matches.push({
         functionName: fn.name,
         line: fn.line,

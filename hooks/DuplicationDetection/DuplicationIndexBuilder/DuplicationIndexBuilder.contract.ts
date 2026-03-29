@@ -4,8 +4,6 @@
  * Builds the duplication index (.duplication-index.json) on the first .ts file
  * write in a session. Subsequent writes skip if the index is fresh (<30 min).
  * No additionalContext — this is a silent background operation.
- *
- * Design: docs/plans/2026-03-27-duplication-index-builder-hook-design.md
  */
 
 import {
@@ -24,6 +22,7 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import { getFilePath } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,11 +43,6 @@ const INDEX_FILENAME = ".duplication-index.json";
 const FRESHNESS_MS = 30 * 60 * 1000; // 30 minutes
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
-}
 
 function defaultFindProjectRoot(filePath: string): string | null {
   const { dirname, join } = require("node:path");

@@ -10,7 +10,11 @@
 
 import type { ParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
-import type { DuplicationIndex, IndexEntry } from "@hooks/hooks/DuplicationDetection/shared";
+import {
+  getCurrentBranch,
+  type DuplicationIndex,
+  type IndexEntry,
+} from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
@@ -92,9 +96,12 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
     }
   }
 
+  const branch = getCurrentBranch();
+
   return {
     version: 1,
     root,
+    branch: branch ?? undefined,
     builtAt: new Date().toISOString(),
     fileCount: files.length,
     functionCount: entries.length,

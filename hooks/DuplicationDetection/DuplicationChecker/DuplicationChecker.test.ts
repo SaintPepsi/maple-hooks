@@ -2,12 +2,16 @@ import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   DuplicationCheckerContract,
   type DuplicationCheckerDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract";
-import { clearIndexCache } from "@hooks/hooks/DuplicationDetection/shared";
+import {
+  checkFunctions,
+  clearIndexCache,
+  type DuplicationIndex,
+} from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -48,6 +52,7 @@ const mockDeps: DuplicationCheckerDeps = {
   ensureDir: () => {},
   stderr: () => {},
   now: () => Date.now(),
+  blocking: true,
 };
 
 function makeWriteInput(filePath: string, content: string): ToolHookInput {
@@ -74,7 +79,7 @@ function makeInput(toolName: string, filePath: string): ToolHookInput {
   };
 }
 
-function unwrap(result: Result<ContinueOutput, PaiError>): ContinueOutput {
+function unwrap(result: Result<ContinueOutput | BlockOutput, PaiError>): ContinueOutput | BlockOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }
@@ -121,33 +126,15 @@ describe("DuplicationCheckerContract", () => {
         "export function foo() { return 1; }",
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.continue).toBe(true);
-      expect(output.additionalContext).toBeUndefined();
+      expect(output.type).toBe("continue");
+      if (output.type === "continue") {
+        expect(output.additionalContext).toBeUndefined();
+      }
     });
 
-    test("returns continue with additionalContext when writing content that duplicates runHook", () => {
-      // Real content from RatingCapture.hook.test.ts which contains runHook —
-      // a function likely indexed in the duplication index.
-      const realContent = require("node:fs").readFileSync(
-        `${PAI_HOOKS_ROOT}/hooks/LearningFeedback/RatingCapture/RatingCapture.hook.test.ts`,
-        "utf-8",
-      ) as string;
-
-      const input = makeWriteInput(
-        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
-        realContent,
-      );
-      const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
-      expect(output.continue).toBe(true);
-      // The index may or may not flag it depending on threshold — just verify it runs cleanly
-      // (additionalContext may or may not be present)
-      expect(typeof output.continue).toBe("boolean");
-    });
-
-    test("detects getFilePath duplication from contract content", () => {
+    test("blocks when writing content with 4/4 signal match (exact duplicate)", () => {
       // CodingStandardsAdvisor.contract.ts contains getFilePath — a function
-      // that is also defined in DuplicationChecker.contract.ts, so it should
-      // appear in the index multiple times.
+      // duplicated across multiple contracts with all 4 signals matching.
       const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
         "utf-8",
@@ -158,17 +145,44 @@ describe("DuplicationCheckerContract", () => {
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
-      expect(output.continue).toBe(true);
-      // getFilePath is duplicated across multiple contracts — expect advisory
-      if (output.additionalContext) {
-        expect(output.additionalContext).toContain("getFilePath");
+      expect(output.type).toBe("block");
+      if (output.type === "block") {
+        expect(output.reason).toContain("Exact duplicate");
       }
     });
 
-    test("returns clean for genuinely unique content", () => {
+    test("logs but does not block for 2-3 signal matches", () => {
+      // Craft content with a function that shares name+sig but NOT body hash
+      // with existing functions (2/4 signals = log only, not block)
+      const partialMatchContent = `
+export function makeDeps(x: string): Record<string, unknown> {
+  // Unique body that won't hash-match any indexed function
+  const uniqueValue = "partial-match-test-" + Date.now().toString(36);
+  return { x, uniqueValue, created: true };
+}
+      `.trim();
+
+      const stderrMessages: string[] = [];
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        stderr: (msg) => stderrMessages.push(msg),
+      };
+
+      const input = makeWriteInput(
+        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        partialMatchContent,
+      );
+      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      expect(output.type).toBe("continue");
+    });
+
+    test("returns continue for genuinely unique content", () => {
+      // Use a truly unique signature to avoid sig+body matches
       const uniqueContent = `
-export function veryUniquelyNamedXyz99Function(x: number): number {
-  return x * 1337 + 42;
+export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: boolean, deltaEpsilon: Map<string, number>): [string, boolean] {
+  const result = alphaOmega + String(betaGamma);
+  deltaEpsilon.set(result, deltaEpsilon.size + 42);
+  return [result, deltaEpsilon.size > 1337];
 }
       `.trim();
 
@@ -183,13 +197,10 @@ export function veryUniquelyNamedXyz99Function(x: number): number {
         uniqueContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.continue).toBe(true);
-      expect(output.additionalContext).toBeUndefined();
-      expect(stderrMessages.some((m) => m.includes("clean"))).toBe(true);
+      expect(output.type).toBe("continue");
     });
 
-    test("outputs include signal names (hash, name, sig, body)", () => {
-      // Use real content known to have duplicates (getFilePath pattern)
+    test("block reason lists duplicate targets", () => {
       const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
         "utf-8",
@@ -200,19 +211,16 @@ export function veryUniquelyNamedXyz99Function(x: number): number {
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
-      if (output.additionalContext) {
-        const signals = ["hash", "name", "sig", "body"];
-        const hasAnySignal = signals.some((s) => output.additionalContext!.includes(s));
-        expect(hasAnySignal).toBe(true);
+      if (output.type === "block") {
+        expect(output.reason).toContain("duplicates");
+        expect(output.reason).toContain("Reuse the existing function");
       }
     });
 
-    test("handles stale index (mocked now > 5 min after builtAt)", () => {
-      // Load the real index to get its builtAt timestamp
+    test("block reason includes stale warning when index is old", () => {
       const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
       const index = JSON.parse(indexContent) as { builtAt: string };
       const builtAtMs = new Date(index.builtAt).getTime();
-      // Mock now() to return a time 6 minutes after builtAt
       const SIX_MINUTES_MS = 6 * 60 * 1000;
 
       const deps: DuplicationCheckerDeps = {
@@ -230,10 +238,96 @@ export function veryUniquelyNamedXyz99Function(x: number): number {
         realContent,
       );
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      expect(output.continue).toBe(true);
-      if (output.additionalContext) {
-        expect(output.additionalContext).toMatch(/^stale:/);
+      expect(output.type).toBe("block");
+      if (output.type === "block") {
+        expect(output.reason).toContain("stale");
       }
     });
+    test("continues instead of blocking when blocking config is false", () => {
+      const realContent = require("node:fs").readFileSync(
+        `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
+        "utf-8",
+      ) as string;
+
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        blocking: false,
+      };
+
+      const input = makeWriteInput(
+        `${PAI_HOOKS_ROOT}/hooks/SomeNewHook/SomeNewHook.ts`,
+        realContent,
+      );
+      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
+      expect(output.type).toBe("continue");
+    });
+  });
+});
+
+// ─── checkFunctions — name-only bestTarget branch ──────────────────────────
+
+describe("checkFunctions", () => {
+  test("sets bestTarget from name peers when no hash match exists", () => {
+    // 32-char hex fingerprint — identical across all entries for guaranteed similarity
+    const fp = "aa".repeat(16);
+    const index: DuplicationIndex = {
+      version: 1,
+      root: "/repo",
+      builtAt: "2026-01-01",
+      fileCount: 3,
+      functionCount: 3,
+      entries: [
+        { f: "a.ts", n: "helper", l: 10, h: "hash-a", p: "string", r: "void", fp, s: 5 },
+        { f: "b.ts", n: "helper", l: 20, h: "hash-b", p: "string", r: "void", fp, s: 5 },
+        { f: "c.ts", n: "helper", l: 30, h: "hash-c", p: "string", r: "void", fp, s: 5 },
+      ],
+      hashGroups: [],
+      nameGroups: [["helper", [0, 1, 2]]],
+      sigGroups: [["(string)→void", [0, 1, 2]]],
+    };
+
+    const functions = [
+      {
+        name: "helper",
+        line: 1,
+        bodyHash: "no-match-hash",
+        paramSig: "string",
+        returnType: "void",
+        fingerprint: fp,
+        bodyLines: 5,
+      },
+    ];
+
+    const matches = checkFunctions(functions, index, "new-file.ts");
+    expect(matches.length).toBeGreaterThanOrEqual(1);
+    expect(matches[0].targetFile).toBe("a.ts");
+    expect(matches[0].signals).toContain("name");
+  });
+});
+
+// ─── defaultDeps ────────────────────────────────────────────────────────────
+
+describe("DuplicationCheckerContract defaultDeps", () => {
+  test("defaultDeps.readFile returns null for missing file", () => {
+    expect(DuplicationCheckerContract.defaultDeps.readFile("/tmp/pai-nonexistent-dc.ts")).toBeNull();
+  });
+
+  test("defaultDeps.exists returns false for missing path", () => {
+    expect(DuplicationCheckerContract.defaultDeps.exists("/tmp/pai-nonexistent-dc-idx.json")).toBe(
+      false,
+    );
+  });
+
+  test("defaultDeps.appendFile does not throw", () => {
+    const tmpPath = `/tmp/pai-test-dc-append-${Date.now()}.jsonl`;
+    expect(() => DuplicationCheckerContract.defaultDeps.appendFile(tmpPath, "test\n")).not.toThrow();
+  });
+
+  test("defaultDeps.ensureDir does not throw", () => {
+    expect(() => DuplicationCheckerContract.defaultDeps.ensureDir("/tmp")).not.toThrow();
+  });
+
+  test("defaultDeps.stderr writes without throwing", () => {
+    expect(() => DuplicationCheckerContract.defaultDeps.stderr("test")).not.toThrow();
   });
 });

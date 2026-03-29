@@ -1,11 +1,14 @@
 /**
- * DuplicationChecker Contract — PreToolUse advisory for Write/Edit on .ts files.
+ * DuplicationChecker Contract — PreToolUse tiered response for Write/Edit on .ts files.
+ *
+ * Signal thresholds (4 dimensions: hash, name, sig, body):
+ *   - 1/4: ignore
+ *   - 2/4 or 3/4: log to file only
+ *   - 4/4: block
  *
  * Thin contract shell. Logic lives in:
- *   - shared.ts: index loading, checking, formatting
+ *   - shared.ts: index loading, checking, formatting, tool input helpers
  *   - parser.ts: SWC function extraction
- *
- * Design: docs/plans/2026-03-27-duplication-checker-hook-design.md
  */
 
 import {
@@ -13,18 +16,25 @@ import {
   ensureDir as adapterEnsureDir,
   readFile as adapterReadFile,
   fileExists,
+  readJson,
 } from "@hooks/core/adapters/fs";
+import { getSettingsPath } from "@hooks/lib/paths";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import {
+  BLOCK_THRESHOLD,
   checkFunctions,
   findIndexPath,
   formatFindings,
+  getCurrentBranch,
+  getFilePath,
+  getWriteContent,
   loadIndex,
+  simulateEdit,
   STALENESS_SECONDS,
 } from "@hooks/hooks/DuplicationDetection/shared";
 
@@ -37,26 +47,21 @@ export interface DuplicationCheckerDeps {
   ensureDir: (path: string) => void;
   stderr: (msg: string) => void;
   now: () => number;
+  /** When true, 4/4 signal matches block the operation. When false, they log only. */
+  blocking: boolean;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Config ─────────────────────────────────────────────────────────────────
 
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
-}
-
-function getWriteContent(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).content as string) ?? null;
-}
-
-function simulateEdit(currentContent: string, input: ToolHookInput): string {
-  const toolInput = input.tool_input as Record<string, unknown>;
-  const oldStr = toolInput.old_string as string | undefined;
-  const newStr = toolInput.new_string as string | undefined;
-  if (oldStr && newStr !== undefined) return currentContent.replace(oldStr, newStr);
-  return currentContent;
+function readBlockingConfig(): boolean {
+  const settingsResult = readJson(getSettingsPath());
+  if (!settingsResult.ok) return true;
+  const settings = settingsResult.value as Record<string, unknown>;
+  const hookConfig = settings.hookConfig as Record<string, unknown> | undefined;
+  if (!hookConfig) return true;
+  const dcConfig = hookConfig.duplicationChecker as Record<string, unknown> | undefined;
+  if (!dcConfig) return true;
+  return dcConfig.blocking !== false;
 }
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -75,11 +80,12 @@ const defaultDeps: DuplicationCheckerDeps = {
   },
   stderr: (msg) => process.stderr.write(`${msg}\n`),
   now: () => Date.now(),
+  blocking: readBlockingConfig(),
 };
 
 export const DuplicationCheckerContract: SyncHookContract<
   ToolHookInput,
-  ContinueOutput,
+  ContinueOutput | BlockOutput,
   DuplicationCheckerDeps
 > = {
   name: "DuplicationChecker",
@@ -94,7 +100,7 @@ export const DuplicationCheckerContract: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput, deps: DuplicationCheckerDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: DuplicationCheckerDeps): Result<ContinueOutput | BlockOutput, PaiError> {
     const filePath = getFilePath(input)!;
 
     const indexPath = findIndexPath(filePath, deps);
@@ -138,6 +144,7 @@ export const DuplicationCheckerContract: SyncHookContract<
     const logPath = `${logDir}/.duplication-checker.log`;
     const logEntry = {
       ts: new Date(deps.now()).toISOString(),
+      branch: getCurrentBranch() ?? "unknown",
       file: relPath,
       functions: functions.length,
       matches: matches.map((m) => ({
@@ -154,14 +161,34 @@ export const DuplicationCheckerContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const advisory = formatFindings(matches, isStale);
-    deps.stderr(`[DuplicationChecker] ${filePath}: ${matches.length} finding(s)`);
+    // Check if any match has all 4 dimensions (hash+name+sig+body) → block
+    const blockMatches = matches.filter((m) => m.signals.length >= BLOCK_THRESHOLD);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: advisory,
-    });
+    if (blockMatches.length > 0) {
+      const reason = [
+        "Exact duplicate function(s) detected:",
+        "",
+        ...blockMatches.map(
+          (m) => `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
+        ),
+        "",
+        "Reuse the existing function instead of duplicating it.",
+        isStale ? "(Note: duplication index is stale — rebuild with DuplicationIndexBuilder)" : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      if (deps.blocking) {
+        deps.stderr(`[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`);
+        return ok({ type: "block", decision: "block", reason });
+      }
+
+      deps.stderr(`[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`);
+    }
+
+    // 2-3 signals: log only, no additionalContext, no block
+    deps.stderr(`[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`);
+    return ok({ type: "continue", continue: true });
   },
 
   defaultDeps,
