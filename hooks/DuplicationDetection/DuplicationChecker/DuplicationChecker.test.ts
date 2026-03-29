@@ -156,7 +156,7 @@ describe("DuplicationCheckerContract", () => {
       const output = unwrap(DuplicationCheckerContract.execute(input, deps));
       expect(output.type).toBe("block");
       if (output.type === "block") {
-        expect(output.reason).toContain("Exact duplicate");
+        expect(output.reason).toContain("duplicates");
       }
     });
 

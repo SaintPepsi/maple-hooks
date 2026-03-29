@@ -25,6 +25,7 @@ import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
 import {
   BLOCK_THRESHOLD,
   checkFunctions,
@@ -165,8 +166,9 @@ export const DuplicationCheckerContract: SyncHookContract<
     const blockMatches = matches.filter((m) => m.signals.length >= BLOCK_THRESHOLD);
 
     if (blockMatches.length > 0) {
+      const opener = pickNarrative("DuplicationChecker", blockMatches.length, import.meta.dir);
       const reason = [
-        "Exact duplicate function(s) detected:",
+        opener,
         "",
         ...blockMatches.map(
           (m) => `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
