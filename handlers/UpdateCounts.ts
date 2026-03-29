@@ -12,9 +12,9 @@
  * Runs as a standalone script via `bun handlers/UpdateCounts.ts`.
  */
 
-import { readFile, writeFile, readDir, fileExists, stat, ensureDir } from "@hooks/core/adapters/fs";
+import { join } from "node:path";
+import { ensureDir, fileExists, readDir, readFile, stat, writeFile } from "@hooks/core/adapters/fs";
 import { getPaiDir, getSettingsPath } from "@hooks/lib/paths";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -83,7 +83,7 @@ function countHooksFromSettings(settingsPath: string): number {
   if (!content.ok) return 0;
 
   const settings = JSON.parse(content.value) as Record<string, unknown>;
-  const hooks = settings["hooks"];
+  const hooks = settings.hooks;
   if (!hooks || typeof hooks !== "object") return 0;
 
   // Structure: { EventName: [{ hooks: [{type, command}, ...] }, ...] }
@@ -92,7 +92,7 @@ function countHooksFromSettings(settingsPath: string): number {
     if (!Array.isArray(eventGroups)) continue;
     for (const group of eventGroups) {
       if (group && typeof group === "object" && "hooks" in group) {
-        const innerHooks = (group as Record<string, unknown>)["hooks"];
+        const innerHooks = (group as Record<string, unknown>).hooks;
         if (Array.isArray(innerHooks)) {
           count += innerHooks.length;
         }
@@ -138,7 +138,7 @@ function run(config?: UpdateCountsConfig): void {
   const cfg: UpdateCountsConfig = config ?? {
     paiDir: getPaiDir(),
     settingsPath: getSettingsPath(),
-    stderr: (msg) => process.stderr.write(msg + "\n"),
+    stderr: (msg) => process.stderr.write(`${msg}\n`),
   };
 
   const counts = getCounts(cfg.paiDir, cfg.settingsPath);
@@ -146,7 +146,7 @@ function run(config?: UpdateCountsConfig): void {
   const countsPath = join(cfg.paiDir, "MEMORY", "STATE", "counts.json");
   ensureDir(join(cfg.paiDir, "MEMORY", "STATE"));
 
-  const writeResult = writeFile(countsPath, JSON.stringify(counts, null, 2) + "\n");
+  const writeResult = writeFile(countsPath, `${JSON.stringify(counts, null, 2)}\n`);
   if (!writeResult.ok) {
     cfg.stderr(`[UpdateCounts] Failed to write counts: ${writeResult.error.message}`);
     return;

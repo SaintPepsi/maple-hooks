@@ -9,7 +9,7 @@ Contracts never import Node builtins directly — all I/O goes through these ada
 | Adapter | Wraps | Key exports |
 |---------|-------|-------------|
 | `fs.ts` | `fs` (readFileSync, writeFileSync, etc.) | `readFile`, `writeFile`, `readJson`, `writeJson`, `fileExists`, `stat`, `ensureDir`, `removeFile`, `copyFile`, `readDir`, `appendFile`, `symlink`, `lstat` |
-| `process.ts` | `child_process` (execSync, spawnSync, spawn) | `exec`, `execSyncSafe`, `spawnSyncSafe`, `spawnBackground` |
+| `process.ts` | `child_process` (execSync, spawnSync, spawn) | `exec`, `execSyncSafe`, `spawnSyncSafe`, `spawnBackground`, `shellForPlatform`, `getEnv` |
 | `stdin.ts` | `process.stdin` | `readStdin(timeoutMs)` — reads stdin with timeout, returns `Result<string, PaiError>` |
 | `log.ts` | `fs.appendFileSync` | `appendHookLog(entry)` — structured JSON logging for hook execution |
 | `fetch.ts` | `globalThis.fetch` | `fetchJson`, `fetchText` — HTTP requests with timeout, returns `Result<T, PaiError>` |
@@ -31,6 +31,10 @@ export function readFile(path: string): Result<string, PaiError> {
 ## Testing
 
 Tests mock the `Deps` interface in contracts, never the adapters directly. Adapter tests (`*.test.ts`) use real filesystem operations in temp directories.
+
+## Platform Awareness
+
+`process.ts` provides `shellForPlatform(platform?)` which returns the correct shell command array for the current OS: `["cmd.exe", "/c"]` on `win32`, `["sh", "-c"]` on POSIX systems. The `exec()` function accepts an optional `platform` parameter in its opts for testability. `getEnv(key)` wraps `process.env` access for dependency injection.
 
 ## Type Safety
 

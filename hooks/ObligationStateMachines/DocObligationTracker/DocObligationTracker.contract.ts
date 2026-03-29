@@ -1,17 +1,17 @@
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import {
   type DocObligationDeps,
   defaultDeps,
-  projectHasHook,
+  getFilePath,
   isDocFile,
   isNonTestCodeFile,
   isRelatedDoc,
-  getFilePath,
   pendingPath,
+  projectHasHook,
 } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 
 export const DocObligationTracker: SyncHookContract<
@@ -30,10 +30,7 @@ export const DocObligationTracker: SyncHookContract<
     return isDocFile(filePath) || isNonTestCodeFile(filePath);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: DocObligationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: DocObligationDeps): Result<ContinueOutput, PaiError> {
     const filePath = getFilePath(input);
     if (!filePath) {
       return ok({ type: "continue", continue: true });
@@ -54,7 +51,9 @@ export const DocObligationTracker: SyncHookContract<
         deps.stderr("[DocObligationTracker] All pending files documented — clearing flag");
       } else {
         deps.writePending(flagFile, remaining);
-        deps.stderr(`[DocObligationTracker] Cleared documented files, ${remaining.length} still pending`);
+        deps.stderr(
+          `[DocObligationTracker] Cleared documented files, ${remaining.length} still pending`,
+        );
       }
 
       return ok({ type: "continue", continue: true });

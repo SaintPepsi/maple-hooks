@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { join } from "path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
+import { ensureDir, fileExists, removeDir, setFileTimes, writeFile } from "@hooks/core/adapters/fs";
 import { LearningActioner, type LearningActionerDeps } from "./LearningActioner.contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { ensureDir, writeFile, fileExists, removeDir, setFileTimes } from "@hooks/core/adapters/fs";
 
 const TEST_DIR = join(import.meta.dir, "__test-learning-actioner__");
 
@@ -38,7 +37,7 @@ describe("LearningActioner integration", () => {
   it("creates lock + prompt files and calls spawnBackground when reflections exist", () => {
     writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
-      '{"timestamp":"2026-01-01","reflection_q1":"test"}\n'
+      '{"timestamp":"2026-01-01","reflection_q1":"test"}\n',
     );
 
     let spawnedCmd = "";
@@ -63,7 +62,10 @@ describe("LearningActioner integration", () => {
   it("skips when no learning sources exist", () => {
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
 
     const result = LearningActioner.execute({ session_id: "int-test" }, deps);
@@ -75,16 +77,16 @@ describe("LearningActioner integration", () => {
   it("skips when fresh lock file exists on real filesystem", () => {
     writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
-      '{"timestamp":"2026-01-01"}\n'
+      '{"timestamp":"2026-01-01"}\n',
     );
-    writeFile(
-      join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
-      new Date().toISOString()
-    );
+    writeFile(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"), new Date().toISOString());
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
 
     const result = LearningActioner.execute({ session_id: "int-test" }, deps);
@@ -96,7 +98,7 @@ describe("LearningActioner integration", () => {
   it("cleans stale lock and proceeds on real filesystem", () => {
     writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
-      '{"timestamp":"2026-01-01"}\n'
+      '{"timestamp":"2026-01-01"}\n',
     );
     const lockPath = join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing");
     writeFile(lockPath, "stale");
@@ -106,7 +108,10 @@ describe("LearningActioner integration", () => {
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
 
     const result = LearningActioner.execute({ session_id: "int-test" }, deps);
@@ -118,7 +123,7 @@ describe("LearningActioner integration", () => {
   it("skips when credit is below spawn threshold", () => {
     writeFile(
       join(TEST_DIR, "MEMORY/LEARNING/REFLECTIONS/algorithm-reflections.jsonl"),
-      '{"timestamp":"2026-01-01"}\n'
+      '{"timestamp":"2026-01-01"}\n',
     );
     // Override credit to below SPAWN_CREDIT_THRESHOLD (10, contract.ts:54)
     writeFile(
@@ -128,7 +133,10 @@ describe("LearningActioner integration", () => {
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
 
     const result = LearningActioner.execute({ session_id: "int-test" }, deps);
@@ -139,14 +147,14 @@ describe("LearningActioner integration", () => {
 
   it("detects learning sources in LEARNING_DIRS with real files", () => {
     ensureDir(join(TEST_DIR, "MEMORY/LEARNING/ALGORITHM"));
-    writeFile(
-      join(TEST_DIR, "MEMORY/LEARNING/ALGORITHM/test-learning.md"),
-      "# Test learning"
-    );
+    writeFile(join(TEST_DIR, "MEMORY/LEARNING/ALGORITHM/test-learning.md"), "# Test learning");
 
     let spawned = false;
     const deps = makeLiveDeps({
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
 
     LearningActioner.execute({ session_id: "int-test" }, deps);

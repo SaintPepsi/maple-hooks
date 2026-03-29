@@ -68,7 +68,7 @@ export function stdinReadFailed(cause: unknown): PaiError {
 }
 
 export function jsonParseFailed(raw: string, cause: unknown): PaiError {
-  const preview = raw.length > 80 ? raw.slice(0, 80) + "..." : raw;
+  const preview = raw.length > 80 ? `${raw.slice(0, 80)}...` : raw;
   return new PaiError(ErrorCode.JsonParseFailed, `Invalid JSON: ${preview}`, cause);
 }
 

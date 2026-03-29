@@ -1,16 +1,16 @@
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { pickNarrative } from "@hooks/lib/narrative-reader";
 import {
   type CitationEnforcementDeps,
   defaultDeps,
-  getFilePath,
   flagPath,
+  getFilePath,
   remindedPath,
 } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 function buildCitationReminder(): string {
   const opener = pickNarrative("CitationEnforcement", 1);
@@ -36,10 +36,7 @@ export const CitationEnforcement: SyncHookContract<
     return input.tool_name === "Write" || input.tool_name === "Edit";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: CitationEnforcementDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, PaiError> {
     const flag = flagPath(deps.stateDir);
     if (!deps.fileExists(flag)) {
       return ok({ type: "continue", continue: true });

@@ -105,8 +105,8 @@ const READ_ONLY_PATTERNS: ReadonlyArray<RegExp> = [
 const DRY_RUN_PATTERNS = [
   /\s--dry-run\b/,
   /\s--help\b/,
-  /\s-h\s/,       // -h must be surrounded by whitespace (not part of --hard)
-  /\s-h$/,        // -h at end of command
+  /\s-h\s/, // -h must be surrounded by whitespace (not part of --hard)
+  /\s-h$/, // -h at end of command
   /\s--version\b/,
 ];
 
@@ -190,10 +190,7 @@ const HELP_BLOCK_PATTERN = /^(Usage:|Options:|USAGE:|Commands:)/;
 export function hasSubstantiveOutput(toolResponse: unknown): boolean {
   if (toolResponse === null || toolResponse === undefined) return false;
 
-  const text =
-    typeof toolResponse === "string"
-      ? toolResponse
-      : String(toolResponse);
+  const text = typeof toolResponse === "string" ? toolResponse : String(toolResponse);
 
   const trimmed = text.trim();
 
@@ -207,18 +204,13 @@ export function hasSubstantiveOutput(toolResponse: unknown): boolean {
 // ─── Reminder Builder ────────────────────────────────────────────────────────
 
 const EVIDENCE_REQUIREMENTS: Record<CommandCategory, string> = {
-  "git-write":
-    "Commit hash(es), branch names, lines changed, or push confirmation from remote",
+  "git-write": "Commit hash(es), branch names, lines changed, or push confirmation from remote",
   deploy:
     "Full command output including deployment log, resource status, or confirmation from target",
-  "api-mutation":
-    "HTTP status code and response body (or first 500 chars)",
-  package:
-    "Package name(s) installed/removed, version numbers, or error output",
-  database:
-    "Rows affected, migration names run, or query results",
-  "file-destruction":
-    "Confirm what was moved/copied/deleted, verify destination exists",
+  "api-mutation": "HTTP status code and response body (or first 500 chars)",
+  package: "Package name(s) installed/removed, version numbers, or error output",
+  database: "Rows affected, migration names run, or query results",
+  "file-destruction": "Confirm what was moved/copied/deleted, verify destination exists",
   "read-only": "",
 };
 
@@ -228,17 +220,14 @@ const EVIDENCE_REQUIREMENTS: Record<CommandCategory, string> = {
 function summarizeCommand(command: string): string {
   const trimmed = command.trim();
   if (trimmed.length <= 80) return trimmed;
-  return trimmed.slice(0, 77) + "...";
+  return `${trimmed.slice(0, 77)}...`;
 }
 
 /**
  * Build the additionalContext reminder string for a state-changing
  * command that produced thin output.
  */
-export function buildReminder(
-  command: string,
-  classification: Classification,
-): string {
+export function buildReminder(command: string, classification: Classification): string {
   const summary = summarizeCommand(command);
   const evidence = EVIDENCE_REQUIREMENTS[classification.category];
 

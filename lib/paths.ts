@@ -9,9 +9,9 @@
  *   const paiDir = getPaiDir(); // Always returns expanded absolute path
  */
 
-import { homedir } from 'os';
-import { join } from 'path';
-import { getEnv } from '@hooks/core/adapters/process';
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { getEnv } from "@hooks/core/adapters/process";
 
 /**
  * Expand shell variables in a path string
@@ -31,27 +31,27 @@ export function expandPath(path: string): string {
  * Priority: PAI_DIR env var (expanded) → ~/.claude
  */
 export function getPaiDir(): string {
-  const envResult = getEnv('PAI_DIR');
+  const envResult = getEnv("PAI_DIR");
 
   if (envResult.ok) {
     return expandPath(envResult.value);
   }
 
-  return join(homedir(), '.claude');
+  return join(homedir(), ".claude");
 }
 
 /**
  * Factory function for defaultDeps.stderr — avoids inline process.stderr in every contract.
  */
 export function defaultStderr(msg: string): void {
-  process.stderr.write(msg + "\n");
+  process.stderr.write(`${msg}\n`);
 }
 
 /**
  * Get the settings.json path
  */
 export function getSettingsPath(): string {
-  return join(getPaiDir(), 'settings.json');
+  return join(getPaiDir(), "settings.json");
 }
 
 /**
@@ -65,19 +65,19 @@ export function paiPath(...segments: string[]): string {
  * Get the hooks directory
  */
 export function getHooksDir(): string {
-  return paiPath('hooks');
+  return paiPath("hooks");
 }
 
 /**
  * Get the skills directory
  */
 export function getSkillsDir(): string {
-  return paiPath('skills');
+  return paiPath("skills");
 }
 
 /**
  * Get the MEMORY directory
  */
 export function getMemoryDir(): string {
-  return paiPath('MEMORY');
+  return paiPath("MEMORY");
 }

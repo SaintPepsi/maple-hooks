@@ -2,7 +2,7 @@
  * paih CLI entry point tests.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { main } from "@hooks/cli/bin/paih";
 
 describe("paih CLI", () => {

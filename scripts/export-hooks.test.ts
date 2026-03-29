@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { extractHooksForRepo } from "@hooks/scripts/export-hooks";
 
 describe("extractHooksForRepo", () => {
@@ -17,11 +17,15 @@ describe("extractHooksForRepo", () => {
       },
     };
 
-    const result = extractHooksForRepo(settings, "${PAI_DIR}/hooks/", "${SAINTPEPSI_PAI_HOOKS_DIR}/");
+    const result = extractHooksForRepo(
+      settings,
+      "${PAI_DIR}/hooks/",
+      "${SAINTPEPSI_PAI_HOOKS_DIR}/",
+    );
 
     expect(result.hooks.PreToolUse).toHaveLength(1);
     expect(result.hooks.PreToolUse[0].hooks[0].command).toBe(
-      "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts"
+      "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts",
     );
   });
 
@@ -31,15 +35,17 @@ describe("extractHooksForRepo", () => {
         PreToolUse: [
           {
             matcher: "Bash",
-            hooks: [
-              { type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" },
-            ],
+            hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
           },
         ],
       },
     };
 
-    const result = extractHooksForRepo(settings, "${PAI_DIR}/hooks/", "${SAINTPEPSI_PAI_HOOKS_DIR}/");
+    const result = extractHooksForRepo(
+      settings,
+      "${PAI_DIR}/hooks/",
+      "${SAINTPEPSI_PAI_HOOKS_DIR}/",
+    );
     expect(result.hooks.PreToolUse[0].matcher).toBe("Bash");
   });
 
@@ -49,15 +55,17 @@ describe("extractHooksForRepo", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [
-              { type: "command", command: "/other/path/MyHook.hook.ts" },
-            ],
+            hooks: [{ type: "command", command: "/other/path/MyHook.hook.ts" }],
           },
         ],
       },
     };
 
-    const result = extractHooksForRepo(settings, "${PAI_DIR}/hooks/", "${SAINTPEPSI_PAI_HOOKS_DIR}/");
+    const result = extractHooksForRepo(
+      settings,
+      "${PAI_DIR}/hooks/",
+      "${SAINTPEPSI_PAI_HOOKS_DIR}/",
+    );
     expect(result.hooks.PreToolUse).toBeUndefined();
   });
 
@@ -67,15 +75,17 @@ describe("extractHooksForRepo", () => {
         SessionEnd: [
           {
             matcher: "*",
-            hooks: [
-              { type: "command", command: "/unrelated/hook.ts" },
-            ],
+            hooks: [{ type: "command", command: "/unrelated/hook.ts" }],
           },
         ],
       },
     };
 
-    const result = extractHooksForRepo(settings, "${PAI_DIR}/hooks/", "${SAINTPEPSI_PAI_HOOKS_DIR}/");
+    const result = extractHooksForRepo(
+      settings,
+      "${PAI_DIR}/hooks/",
+      "${SAINTPEPSI_PAI_HOOKS_DIR}/",
+    );
     expect(Object.keys(result.hooks)).toHaveLength(0);
   });
 });

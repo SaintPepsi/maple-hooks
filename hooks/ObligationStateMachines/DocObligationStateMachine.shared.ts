@@ -3,12 +3,18 @@
  * Used by DocObligationTracker, DocObligationEnforcer, and SpotCheckReview.
  */
 
-import { writeFile, readFile, fileExists as fsFileExists, removeFile, readDir as fsReadDir } from "@hooks/core/adapters/fs";
-import { isScorableFile } from "@hooks/core/language-profiles";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { Result } from "@hooks/core/result";
+import { dirname, join } from "node:path";
+import {
+  fileExists as fsFileExists,
+  readDir as fsReadDir,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { PaiError } from "@hooks/core/error";
-import { join, dirname } from "path";
+import { isScorableFile } from "@hooks/core/language-profiles";
+import type { Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Project Hook Deduplication ───────────────────────────────────────────────
 
@@ -61,7 +67,7 @@ export function isRelatedDoc(docPath: string, codePath: string): boolean {
 
 export function getFilePath(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 export function pendingPath(stateDir: string, sessionId: string): string {
@@ -128,7 +134,7 @@ export function buildDocSuggestions(pending: string[], deps: DocObligationDeps):
     }
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 // ─── Default Deps ─────────────────────────────────────────────────────────────
@@ -156,7 +162,7 @@ export const defaultDeps: DocObligationDeps = {
     const result = readFile(path);
     if (!result.ok) return 0;
     const n = parseInt(result.value.trim(), 10);
-    return isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
     writeFile(path, String(count));
@@ -164,5 +170,5 @@ export const defaultDeps: DocObligationDeps = {
   writeReview: (path: string, content: string) => {
     writeFile(path, content);
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };

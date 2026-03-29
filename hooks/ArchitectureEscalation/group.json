@@ -1,9 +1,6 @@
 {
   "name": "ArchitectureEscalation",
   "description": "Failure escalation and model delegation",
-  "hooks": [
-    "ArchitectureEscalation",
-    "SonnetDelegation"
-  ],
+  "hooks": ["ArchitectureEscalation", "SonnetDelegation"],
   "sharedFiles": []
 }

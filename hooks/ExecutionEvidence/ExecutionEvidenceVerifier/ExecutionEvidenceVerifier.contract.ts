@@ -12,14 +12,14 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import {
+  buildReminder,
   classifyCommand,
   hasSubstantiveOutput,
-  buildReminder,
 } from "@hooks/lib/execution-classification";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ export interface ExecutionEvidenceVerifierDeps {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: ExecutionEvidenceVerifierDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

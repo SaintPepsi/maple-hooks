@@ -1,18 +1,18 @@
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import { checkObligation } from "@hooks/lib/obligation-machine";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
-import { pickNarrative } from "@hooks/lib/narrative-reader";
 import {
+  buildDocSuggestions,
   defaultDeps,
   HOOK_DOC_CONFIG,
   readHookDocSettings,
-  buildDocSuggestions,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
+import { checkObligation } from "@hooks/lib/obligation-machine";
 
 export const HookDocEnforcer: SyncHookContract<
   StopInput,
@@ -28,10 +28,7 @@ export const HookDocEnforcer: SyncHookContract<
     return settings.enabled;
   },
 
-  execute(
-    input: StopInput,
-    deps: ObligationDeps,
-  ): Result<BlockOutput | SilentOutput, PaiError> {
+  execute(input: StopInput, deps: ObligationDeps): Result<BlockOutput | SilentOutput, PaiError> {
     const result = checkObligation(deps, HOOK_DOC_CONFIG, input.session_id);
 
     if (result.action === "silent" || result.action === "release") {
@@ -41,7 +38,9 @@ export const HookDocEnforcer: SyncHookContract<
     const settings = readHookDocSettings();
 
     if (!settings.blocking) {
-      deps.stderr(`[HookDocEnforcer] ${result.pending.length} hook(s) need docs (non-blocking mode)`);
+      deps.stderr(
+        `[HookDocEnforcer] ${result.pending.length} hook(s) need docs (non-blocking mode)`,
+      );
       return ok({ type: "silent" });
     }
 

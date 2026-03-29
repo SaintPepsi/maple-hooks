@@ -1,8 +1,11 @@
-import { describe, test, expect } from "bun:test";
-import { AgentCompleteTracker, type AgentCompleteTrackerDeps } from "./AgentCompleteTracker.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { invalidInput } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  AgentCompleteTracker,
+  type AgentCompleteTrackerDeps,
+} from "./AgentCompleteTracker.contract";
 
 function makeDeps(overrides: Partial<AgentCompleteTrackerDeps> = {}): AgentCompleteTrackerDeps {
   return {
@@ -19,6 +22,7 @@ function makeDeps(overrides: Partial<AgentCompleteTrackerDeps> = {}): AgentCompl
 
 function makeCompletionInput(threadId?: string): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PostToolUse",
     tool_name: "Agent",
     tool_input: { prompt: "do something" },
@@ -30,6 +34,7 @@ function makeCompletionInput(threadId?: string): ToolHookInput {
 
 function makeSpawnInput(): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PostToolUse",
     tool_name: "Agent",
     tool_input: { prompt: "do something", run_in_background: true },
@@ -49,6 +54,7 @@ describe("AgentCompleteTracker", () => {
 
   test("rejects non-Agent tool inputs", () => {
     const input: ToolHookInput = {
+      session_id: "test",
       hook_type: "PostToolUse",
       tool_name: "Bash",
       tool_input: { command: "ls" },
@@ -59,7 +65,10 @@ describe("AgentCompleteTracker", () => {
   test("skips spawn events (run_in_background: true)", async () => {
     let fetchCalled = false;
     const deps = makeDeps({
-      safeFetch: async () => { fetchCalled = true; return ok({ status: 200, body: "{}", headers: {} }); },
+      safeFetch: async () => {
+        fetchCalled = true;
+        return ok({ status: 200, body: "{}", headers: {} });
+      },
     });
     const result = await AgentCompleteTracker.execute(makeSpawnInput(), deps);
     expect(result.ok).toBe(true);
@@ -70,7 +79,10 @@ describe("AgentCompleteTracker", () => {
   test("returns continue when no thread_id in output", async () => {
     let fetchCalled = false;
     const deps = makeDeps({
-      safeFetch: async () => { fetchCalled = true; return ok({ status: 200, body: "{}", headers: {} }); },
+      safeFetch: async () => {
+        fetchCalled = true;
+        return ok({ status: 200, body: "{}", headers: {} });
+      },
     });
     const result = await AgentCompleteTracker.execute(makeCompletionInput(), deps);
     expect(result.ok).toBe(true);
@@ -85,6 +97,7 @@ describe("AgentCompleteTracker", () => {
     });
     // Use input with a discord-format thread ID in the output
     const input: ToolHookInput = {
+      session_id: "test",
       hook_type: "PostToolUse",
       tool_name: "Agent",
       tool_input: { prompt: "test" },
@@ -97,6 +110,7 @@ describe("AgentCompleteTracker", () => {
 
   test("returns continue even when fetch fails", async () => {
     const input: ToolHookInput = {
+      session_id: "test",
       hook_type: "PostToolUse",
       tool_name: "Agent",
       tool_input: { prompt: "test" },

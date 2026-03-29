@@ -1,18 +1,18 @@
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import {
-  type TestObligationDeps,
   defaultDeps,
+  extractTestedSourceFiles,
+  getCommand,
+  getFilePath,
   isNonTestCodeFile,
   isTestCommand,
-  extractTestedSourceFiles,
   pendingMatchesSource,
-  getFilePath,
-  getCommand,
   pendingPath,
+  type TestObligationDeps,
 } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
 
 export const TestObligationTracker: SyncHookContract<
@@ -35,10 +35,7 @@ export const TestObligationTracker: SyncHookContract<
     return false;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: TestObligationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: TestObligationDeps): Result<ContinueOutput, PaiError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (input.tool_name === "Bash") {
@@ -60,7 +57,9 @@ export const TestObligationTracker: SyncHookContract<
             deps.stderr("[TestObligationTracker] All pending files tested — clearing flag");
           } else {
             deps.writePending(flagFile, remaining);
-            deps.stderr(`[TestObligationTracker] Cleared tested files, ${remaining.length} still pending`);
+            deps.stderr(
+              `[TestObligationTracker] Cleared tested files, ${remaining.length} still pending`,
+            );
           }
         }
       }

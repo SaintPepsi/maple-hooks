@@ -6,15 +6,14 @@
  * offer to add it. Skips when running in the PAI root (~/.claude).
  */
 
+import { join } from "node:path";
+import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import { tryCatch } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { fileReadFailed } from "@hooks/core/error";
-import { fileExists, readFile } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +32,7 @@ const defaultDeps: GitignoreRecommenderDeps = {
   readFile,
   cwd: () => process.cwd(),
   paiRoot: join(process.env.HOME ?? "/", ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Pure Logic ───────────────────────────────────────────────────────────────
@@ -43,7 +42,7 @@ const RECOMMENDATION_CONTEXT = [
   "Consider asking the user:",
   "  'This project doesn't have respectGitignore enabled in .claude/settings.local.json.",
   "   Would you like me to add it? This prevents reading gitignored files like .env and credentials.'",
-  "If they approve, write {\"respectGitignore\": true} to .claude/settings.local.json",
+  'If they approve, write {"respectGitignore": true} to .claude/settings.local.json',
   "(merging with existing content if the file exists).",
 ].join(" ");
 
@@ -54,10 +53,7 @@ function parseJson(content: string, path: string): Result<Record<string, unknown
   );
 }
 
-function fileHasRespectGitignore(
-  path: string,
-  deps: GitignoreRecommenderDeps,
-): boolean {
+function fileHasRespectGitignore(path: string, deps: GitignoreRecommenderDeps): boolean {
   if (!deps.fileExists(path)) return false;
   const readResult = deps.readFile(path);
   if (!readResult.ok) return false;

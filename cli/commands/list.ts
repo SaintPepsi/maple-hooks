@@ -7,15 +7,14 @@
  * Uses resolveTarget from cli/core/target.ts for --in flag / CWD walk-up.
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { PaihErrorCode } from "@hooks/cli/core/error";
 import type { ParsedArgs } from "@hooks/cli/core/args";
+import type { PaihError } from "@hooks/cli/core/error";
+import { readLockfile } from "@hooks/cli/core/lockfile";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
+import { resolveTarget } from "@hooks/cli/core/target";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
-import { readLockfile } from "@hooks/cli/core/lockfile";
-import { resolveTarget } from "@hooks/cli/core/target";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,10 +28,7 @@ export interface ListEntry {
 
 // ─── Command ─────────────────────────────────────────────────────────────────
 
-export function list(
-  args: ParsedArgs,
-  deps: CliDeps,
-): Result<string, PaihError> {
+export function list(args: ParsedArgs, deps: CliDeps): Result<string, PaihError> {
   // Resolve target: --in flag or CWD walk-up
   const inPath = args.flags.in as string | undefined;
   const targetResult = resolveTarget(deps, inPath);
@@ -74,11 +70,7 @@ export function list(
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function buildEntries(
-  lockfile: Lockfile,
-  claudeDir: string,
-  deps: CliDeps,
-): ListEntry[] {
+function buildEntries(lockfile: Lockfile, claudeDir: string, deps: CliDeps): ListEntry[] {
   return lockfile.hooks.map((hook) => ({
     name: hook.name,
     group: hook.group,
@@ -88,11 +80,7 @@ function buildEntries(
   }));
 }
 
-function checkStatus(
-  hook: LockfileHookEntry,
-  claudeDir: string,
-  deps: CliDeps,
-): "ok" | "MISSING" {
+function checkStatus(hook: LockfileHookEntry, claudeDir: string, deps: CliDeps): "ok" | "MISSING" {
   for (const file of hook.files) {
     const fullPath = `${claudeDir}/${file}`;
     if (!deps.fileExists(fullPath)) {
@@ -105,9 +93,7 @@ function checkStatus(
 function formatTable(entries: ListEntry[]): string {
   const header = padRow("Name", "Group", "Event", "Output Mode", "Status");
   const separator = padRow("────", "─────", "─────", "───────────", "──────");
-  const rows = entries.map((e) =>
-    padRow(e.name, e.group, e.event, e.outputMode, e.status),
-  );
+  const rows = entries.map((e) => padRow(e.name, e.group, e.event, e.outputMode, e.status));
 
   const lines = [header, separator, ...rows];
 
@@ -128,11 +114,7 @@ function padRow(
   outputMode: string,
   status: string,
 ): string {
-  return [
-    name.padEnd(24),
-    group.padEnd(20),
-    event.padEnd(16),
-    outputMode.padEnd(14),
-    status,
-  ].join("  ");
+  return [name.padEnd(24), group.padEnd(20), event.padEnd(16), outputMode.padEnd(14), status].join(
+    "  ",
+  );
 }

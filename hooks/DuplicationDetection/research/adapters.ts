@@ -2,37 +2,41 @@
 // Wraps throwing APIs (fs, crypto, SWC parseSync) behind null-returning interfaces.
 // try-catch is confined to this adapter boundary per coding standards.
 
-import { parseSync } from "@swc/core";
 import type { Module } from "@swc/core";
+import { parseSync } from "@swc/core";
 
 // ─── Filesystem Adapters ────────────────────────────────────────────────────
 
 export function readFileSafe(path: string): string | null {
-  const fs = require("fs");
+  const fs = require("node:fs");
   if (!fs.existsSync(path)) return null;
   return fs.readFileSync(path, "utf-8") as string;
 }
 
 export function readDirSafe(path: string): string[] | null {
-  const fs = require("fs");
+  const fs = require("node:fs");
   if (!fs.existsSync(path)) return null;
   return fs.readdirSync(path) as string[];
 }
 
 export function isDirectorySafe(path: string): boolean {
-  const fs = require("fs");
+  const fs = require("node:fs");
   if (!fs.existsSync(path)) return false;
   return fs.statSync(path).isDirectory() as boolean;
 }
 
 export function existsSafe(path: string): boolean {
-  return require("fs").existsSync(path) as boolean;
+  return require("node:fs").existsSync(path) as boolean;
 }
 
 // ─── Crypto Adapter ─────────────────────────────────────────────────────────
 
 export function sha256Short(content: string): string {
-  return require("crypto").createHash("sha256").update(content).digest("hex").slice(0, 16) as string;
+  return require("node:crypto")
+    .createHash("sha256")
+    .update(content)
+    .digest("hex")
+    .slice(0, 16) as string;
 }
 
 // ─── SWC Parse Adapter ──────────────────────────────────────────────────────
@@ -54,11 +58,11 @@ export function parseTsSourceSafe(source: string, isTsx: boolean): Module | null
 // ─── Path Adapters ──────────────────────────────────────────────────────────
 
 export function joinPath(...parts: string[]): string {
-  return require("path").join(...parts) as string;
+  return require("node:path").join(...parts) as string;
 }
 
 export function resolvePath(path: string): string {
-  return require("path").resolve(path) as string;
+  return require("node:path").resolve(path) as string;
 }
 
 // ─── Environment Adapter ───────────────────────────────────────────────────

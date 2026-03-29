@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import { MessageQueueRelay, type MessageQueueRelayDeps } from "./MessageQueueRelay.contract";
+import { describe, expect, test } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { MessageQueueRelay, type MessageQueueRelayDeps } from "./MessageQueueRelay.contract";
 
 const mockDeps: MessageQueueRelayDeps = {
   stderr: () => {},
@@ -8,6 +8,7 @@ const mockDeps: MessageQueueRelayDeps = {
 
 function makeInput(command: string, response?: string): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PostToolUse",
     tool_name: "Bash",
     tool_input: { command },
@@ -28,6 +29,7 @@ describe("MessageQueueRelay", () => {
 
     test("rejects non-Bash tool inputs", () => {
       const input: ToolHookInput = {
+        session_id: "test",
         hook_type: "PostToolUse",
         tool_name: "Read",
         tool_input: { file_path: "/tmp/test" },

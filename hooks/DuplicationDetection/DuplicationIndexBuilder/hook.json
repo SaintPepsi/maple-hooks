@@ -4,9 +4,6 @@
   "event": "PostToolUse",
   "description": "Builds duplication detection index on first .ts file write per session",
   "schemaVersion": 1,
-  "tags": [
-    "quality",
-    "duplication"
-  ],
+  "tags": ["quality", "duplication"],
   "presets": []
 }

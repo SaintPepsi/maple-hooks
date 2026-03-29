@@ -1,14 +1,14 @@
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import {
   type CitationEnforcementDeps,
   defaultDeps,
-  RESEARCH_TOOLS,
-  isResearchSkill,
   flagPath,
+  isResearchSkill,
+  RESEARCH_TOOLS,
 } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
 
 export const CitationTracker: SyncHookContract<
@@ -25,10 +25,7 @@ export const CitationTracker: SyncHookContract<
     return false;
   },
 
-  execute(
-    _input: ToolHookInput,
-    deps: CitationEnforcementDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(_input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, PaiError> {
     const flag = flagPath(deps.stateDir);
     deps.writeFlag(flag);
     deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");

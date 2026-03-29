@@ -6,16 +6,16 @@
  * correct and the validator works against real-world import patterns.
  */
 
-import { describe, it, expect } from "bun:test";
-import { resolve, dirname } from "path";
-import { validate, type ValidatorDeps, type ValidationReport } from "./validator";
+import { describe, expect, it } from "bun:test";
+import { dirname, resolve } from "node:path";
 import {
+  fileExists as adapterFileExists,
   readFile as adapterReadFile,
   readJson as adapterReadJson,
-  fileExists as adapterFileExists,
 } from "@hooks/core/adapters/fs";
-import type { Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { type ValidationReport, type ValidatorDeps, validate } from "./validator";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -51,13 +51,19 @@ function expectValid(result: Result<ValidationReport, PaiError>, hookName: strin
 
 describe("manifest integration — real hooks", () => {
   it("DestructiveDeleteGuard: zero-lib manifest validates", () => {
-    const contract = resolve(HOOKS_DIR, "GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.contract.ts");
+    const contract = resolve(
+      HOOKS_DIR,
+      "GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.contract.ts",
+    );
     const manifest = resolve(HOOKS_DIR, "GitSafety/DestructiveDeleteGuard/hook.json");
     expectValid(validate(contract, manifest, realDeps), "DestructiveDeleteGuard");
   });
 
   it("AlgorithmTracker: multi-lib manifest validates", () => {
-    const contract = resolve(HOOKS_DIR, "AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.contract.ts");
+    const contract = resolve(
+      HOOKS_DIR,
+      "AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.contract.ts",
+    );
     const manifest = resolve(HOOKS_DIR, "AlgorithmTracking/AlgorithmTracker/hook.json");
     expectValid(validate(contract, manifest, realDeps), "AlgorithmTracker");
   });
@@ -75,7 +81,10 @@ describe("manifest integration — real hooks", () => {
   });
 
   it("CitationEnforcement: named-shared manifest validates", () => {
-    const contract = resolve(HOOKS_DIR, "ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract.ts");
+    const contract = resolve(
+      HOOKS_DIR,
+      "ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract.ts",
+    );
     const manifest = resolve(HOOKS_DIR, "ObligationStateMachines/CitationEnforcement/hook.json");
     expectValid(validate(contract, manifest, realDeps), "CitationEnforcement");
   });

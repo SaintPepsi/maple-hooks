@@ -8,19 +8,19 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/adapters/fs.ts).
  */
 
-import type { CliDeps } from "@hooks/cli/types/deps";
 import {
-  readFile,
-  writeFile,
+  chmod,
   deleteFile,
+  ensureDir,
   fileExists,
   readDir,
-  ensureDir,
+  readFile,
   removeDir,
   stat,
-  chmod,
+  writeFile,
 } from "@hooks/cli/adapters/fs";
 import { cwd, exec } from "@hooks/cli/adapters/process";
+import type { CliDeps } from "@hooks/cli/types/deps";
 
 // ─── Factory ────────────────────────────────────────────────────────────────
 

@@ -19,11 +19,11 @@
  *   });
  */
 
-import type { HookEventType } from "../core/types/hook-inputs";
-import type { Result } from "../core/result";
-import type { PaiError } from "../core/error";
+import { join } from "node:path";
 import { appendFile, ensureDir } from "../core/adapters/fs";
-import { join } from "path";
+import type { PaiError } from "../core/error";
+import type { Result } from "../core/result";
+import type { HookEventType } from "../core/types/hook-inputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,11 +61,7 @@ export const defaultSignalLoggerDeps: SignalLoggerDeps = {
  * Automatically prepends a timestamp. The `logFile` parameter is the
  * filename only (e.g. "type-strictness.jsonl"), not a full path.
  */
-export function logSignal(
-  deps: SignalLoggerDeps,
-  logFile: string,
-  entry: SignalEntry,
-): void {
+export function logSignal(deps: SignalLoggerDeps, logFile: string, entry: SignalEntry): void {
   const signalsDir = join(deps.baseDir, "MEMORY/LEARNING/SIGNALS");
   deps.ensureDir(signalsDir);
 
@@ -74,5 +70,5 @@ export function logSignal(
     ...entry,
   };
 
-  deps.appendFile(join(signalsDir, logFile), JSON.stringify(fullEntry) + "\n");
+  deps.appendFile(join(signalsDir, logFile), `${JSON.stringify(fullEntry)}\n`);
 }

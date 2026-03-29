@@ -7,10 +7,10 @@
  * Usage: bun run scripts/docs/render.ts [--out <dir>] [--doc-name <filename>]
  */
 
-import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync } from "fs";
-import { join, resolve } from "path";
-import { renderHookPage, renderGroupPage, renderIndexPage } from "./template";
-import type { HookMeta, GroupMeta } from "./template";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import type { GroupMeta, HookMeta } from "./template";
+import { renderGroupPage, renderHookPage, renderIndexPage } from "./template";
 
 // ─── CLI Args ─────────────────────────────────────────────────────────────────
 

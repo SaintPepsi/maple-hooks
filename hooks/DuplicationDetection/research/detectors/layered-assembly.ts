@@ -1,9 +1,12 @@
-import type { Cluster, ClusterMember, ParsedFunction } from "@tools/pattern-detector/types";
-import { avg, intersectImports } from "@tools/pattern-detector/detectors/layered-scoring";
 import type { ScoredPair } from "@tools/pattern-detector/detectors/layered-clusters";
+import { avg, intersectImports } from "@tools/pattern-detector/detectors/layered-scoring";
+import type { Cluster, ClusterMember, ParsedFunction } from "@tools/pattern-detector/types";
 
 function memberHash(fns: ParsedFunction[]): string {
-  const names = fns.map((f) => `${f.file}:${f.name}`).sort().join(",");
+  const names = fns
+    .map((f) => `${f.file}:${f.name}`)
+    .sort()
+    .join(",");
   let h = 0;
   for (let i = 0; i < names.length; i++) h = (Math.imul(31, h) + names.charCodeAt(i)) | 0;
   return Math.abs(h).toString(16);
@@ -24,9 +27,8 @@ function buildMember(
   const scores = pairs.filter(([a, b]) => a === fn || b === fn).map(([, , s]) => s);
   const score = scores.length > 0 ? avg(scores) : fallback;
   const shared = intersectImports([fn, ...peers]);
-  const overlapNote = shared.length > 0
-    ? `import overlap: ${sharedLabel(shared)}`
-    : "import overlap: none";
+  const overlapNote =
+    shared.length > 0 ? `import overlap: ${sharedLabel(shared)}` : "import overlap: none";
   return {
     file: fn.file,
     functionName: fn.name,
@@ -48,7 +50,12 @@ export function assembleCluster(
     label: `Functions sharing imports (${sharedLabel(shared)}) with body similarity ${(confidence * 100).toFixed(0)}%`,
     confidence,
     members: memberList.map((fn) =>
-      buildMember(fn, memberList.filter((m) => m !== fn), pairs, confidence),
+      buildMember(
+        fn,
+        memberList.filter((m) => m !== fn),
+        pairs,
+        confidence,
+      ),
     ),
     reason: `${memberList.length} functions share import patterns and similar body structure (avg score ${confidence.toFixed(3)})`,
   };

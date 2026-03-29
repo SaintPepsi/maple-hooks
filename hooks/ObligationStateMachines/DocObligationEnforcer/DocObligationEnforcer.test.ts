@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
-import { DocObligationEnforcer } from "./DocObligationEnforcer.contract";
-import type { DocObligationDeps } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
+import { describe, expect, test } from "bun:test";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
+import type { DocObligationDeps } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
+import { DocObligationEnforcer } from "./DocObligationEnforcer.contract";
 
 const mockInput: StopInput = {
   hook_type: "Stop",
@@ -17,7 +17,7 @@ function makeDeps(overrides: Partial<DocObligationDeps> = {}): DocObligationDeps
     readBlockCount: () => 0,
     removeFlag: () => {},
     writeReview: () => {},
-    readFile: () => ({ ok: true as const, value: "", error: undefined }),
+    writePending: () => {},
     stderr: () => {},
     ...overrides,
   };
@@ -58,7 +58,9 @@ describe("DocObligationEnforcer", () => {
     let writtenCount = -1;
     const deps = makeDeps({
       readBlockCount: () => 0,
-      writeBlockCount: (_path, count) => { writtenCount = count; },
+      writeBlockCount: (_path, count) => {
+        writtenCount = count;
+      },
     });
     DocObligationEnforcer.execute(mockInput, deps);
     expect(writtenCount).toBe(1);
@@ -69,8 +71,12 @@ describe("DocObligationEnforcer", () => {
     let flagRemoved = false;
     const deps = makeDeps({
       readBlockCount: () => 1, // MAX_BLOCKS is 1
-      writeReview: () => { reviewWritten = true; },
-      removeFlag: () => { flagRemoved = true; },
+      writeReview: () => {
+        reviewWritten = true;
+      },
+      removeFlag: () => {
+        flagRemoved = true;
+      },
     });
     const result = DocObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);

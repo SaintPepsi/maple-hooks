@@ -3,10 +3,16 @@
  * Used by both TestObligationTracker and TestObligationEnforcer.
  */
 
-import { writeFile, readFile, readJson, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
+import { join } from "node:path";
+import {
+  fileExists as fsFileExists,
+  readFile,
+  readJson,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { join } from "path";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,7 +30,13 @@ export interface TestObligationDeps {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const TEST_FILE_PATTERNS = [/\.test\.\w+$/, /\.spec\.\w+$/, /__tests__\//, /Test\.php$/, /\/tests\/(?:Feature|Unit)\//];
+const TEST_FILE_PATTERNS = [
+  /\.test\.\w+$/,
+  /\.spec\.\w+$/,
+  /__tests__\//,
+  /Test\.php$/,
+  /\/tests\/(?:Feature|Unit)\//,
+];
 
 const TEST_COMMANDS = [
   /\bbun\s+test\b/,
@@ -59,17 +71,17 @@ export function extractTestedSourceFiles(command: string): string[] | null {
 
 /** Check if a pending file matches a tested source file (by ending match). */
 export function pendingMatchesSource(pendingFile: string, sourceFile: string): boolean {
-  return pendingFile.endsWith(sourceFile) || pendingFile.endsWith("/" + sourceFile);
+  return pendingFile.endsWith(sourceFile) || pendingFile.endsWith(`/${sourceFile}`);
 }
 
 export function getFilePath(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 export function getCommand(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).command as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).command as string) ?? null;
 }
 
 export function pendingPath(stateDir: string, sessionId: string): string {
@@ -82,7 +94,11 @@ export function blockCountPath(stateDir: string, sessionId: string): string {
 
 export const MAX_BLOCKS = 2;
 
-export function buildBlockLimitReview(obligationType: string, pendingFiles: string[], blockCount: number): string {
+export function buildBlockLimitReview(
+  obligationType: string,
+  pendingFiles: string[],
+  blockCount: number,
+): string {
   const timestamp = new Date().toISOString();
   const fileList = pendingFiles.map((f) => `- ${f}`).join("\n");
   return `# ${obligationType === "test" ? "Test" : "Doc"} Obligation Review
@@ -132,7 +148,7 @@ function getStateDir(baseDir: string): string {
   return join(baseDir, "MEMORY", "STATE", "test-obligation");
 }
 
-const stderr = (msg: string) => process.stderr.write(msg + "\n");
+const stderr = (msg: string) => process.stderr.write(`${msg}\n`);
 
 export const defaultDeps: TestObligationDeps = {
   stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
@@ -145,7 +161,7 @@ export const defaultDeps: TestObligationDeps = {
       }
       return [];
     }
-    return Array.isArray(result.value) ? result.value as string[] : [];
+    return Array.isArray(result.value) ? (result.value as string[]) : [];
   },
   writePending: (path: string, files: string[]) => {
     const result = writeFile(path, JSON.stringify(files));
@@ -163,7 +179,7 @@ export const defaultDeps: TestObligationDeps = {
     const result = readFile(path);
     if (!result.ok) return 0;
     const n = parseInt(result.value.trim(), 10);
-    return isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
     const result = writeFile(path, String(count));

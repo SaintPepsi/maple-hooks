@@ -8,22 +8,18 @@
  * (schema defined in cli/types/lockfile.ts).
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import { tryCatch } from "@hooks/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
-import { lockCorrupt, PaihErrorCode, PaihError as PaihErrorClass } from "@hooks/cli/core/error";
+import { lockCorrupt, PaihError as PaihErrorClass, PaihErrorCode } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
-import { DEFAULT_OUTPUT_MODE } from "@hooks/cli/types/lockfile";
+import { tryCatch } from "@hooks/core/result";
 
 // ─── Read / Write ───────────────────────────────────────────────────────────
 
 /** Read paih.lock.json. Returns null if file does not exist. */
-export function readLockfile(
-  claudeDir: string,
-  deps: CliDeps,
-): Result<Lockfile | null, PaihError> {
+export function readLockfile(claudeDir: string, deps: CliDeps): Result<Lockfile | null, PaihError> {
   const lockPath = `${claudeDir}/hooks/pai-hooks/paih.lock.json`;
 
   if (!deps.fileExists(lockPath)) {
@@ -52,7 +48,7 @@ export function writeLockfile(
   deps: CliDeps,
 ): Result<void, PaihError> {
   const lockPath = `${claudeDir}/hooks/pai-hooks/paih.lock.json`;
-  const content = JSON.stringify(lockfile, null, 2) + "\n";
+  const content = `${JSON.stringify(lockfile, null, 2)}\n`;
 
   const ensureResult = deps.ensureDir(`${claudeDir}/hooks/pai-hooks`);
   if (!ensureResult.ok) return ensureResult;
@@ -63,13 +59,8 @@ export function writeLockfile(
 // ─── Mutation ───────────────────────────────────────────────────────────────
 
 /** Add a hook entry to the lockfile. Deduplicates by commandString. */
-export function addHookEntry(
-  lockfile: Lockfile,
-  entry: LockfileHookEntry,
-): Lockfile {
-  const existing = lockfile.hooks.findIndex(
-    (h) => h.commandString === entry.commandString,
-  );
+export function addHookEntry(lockfile: Lockfile, entry: LockfileHookEntry): Lockfile {
+  const existing = lockfile.hooks.findIndex((h) => h.commandString === entry.commandString);
 
   const hooks = [...lockfile.hooks];
   if (existing >= 0) {
@@ -82,19 +73,13 @@ export function addHookEntry(
 }
 
 /** Remove a hook entry from the lockfile by name. */
-export function removeHookEntry(
-  lockfile: Lockfile,
-  hookName: string,
-): Lockfile {
+export function removeHookEntry(lockfile: Lockfile, hookName: string): Lockfile {
   const hooks = lockfile.hooks.filter((h) => h.name !== hookName);
   return { ...lockfile, hooks };
 }
 
 /** Compute SHA-256 content hash of a file. */
-export function computeFileHash(
-  filePath: string,
-  deps: CliDeps,
-): Result<string, PaihError> {
+export function computeFileHash(filePath: string, deps: CliDeps): Result<string, PaihError> {
   const content = deps.readFile(filePath);
   if (!content.ok) return content;
 
@@ -109,10 +94,9 @@ export function computeFileHash(
 function safeJsonParse(content: string, path: string): Result<Lockfile, PaihError> {
   return tryCatch(
     () => JSON.parse(content) as Lockfile,
-    () => new PaihErrorClass(
-      PaihErrorCode.LockCorrupt,
-      `Failed to parse lockfile at ${path}`,
-      { path },
-    ),
+    () =>
+      new PaihErrorClass(PaihErrorCode.LockCorrupt, `Failed to parse lockfile at ${path}`, {
+        path,
+      }),
   );
 }

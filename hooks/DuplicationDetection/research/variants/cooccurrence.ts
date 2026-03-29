@@ -21,10 +21,10 @@ import type { ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
 interface FunctionTuple {
   names: string[];
-  support: number;        // number of files containing all names
-  files: string[];        // file paths
+  support: number; // number of files containing all names
+  files: string[]; // file paths
   avgBodySimilarity: number;
-  isTemplate: boolean;    // avg body sim > threshold across files
+  isTemplate: boolean; // avg body sim > threshold across files
 }
 
 function minePairs(
@@ -216,8 +216,8 @@ function filterMaximal(tuples: FunctionTuple[]): FunctionTuple[] {
 // ─── Output ─────────────────────────────────────────────────────────────────
 
 function shortenPath(filePath: string): string {
-  const home = require("os").homedir() as string;
-  if (filePath.startsWith(home)) return "~" + filePath.slice(home.length);
+  const home = require("node:os").homedir() as string;
+  if (filePath.startsWith(home)) return `~${filePath.slice(home.length)}`;
   return filePath;
 }
 
@@ -233,7 +233,9 @@ function formatResults(
 
   lines.push("\nFunction Co-occurrence Mining (Cycle 8)");
   lines.push("═".repeat(42));
-  lines.push(`Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`);
+  lines.push(
+    `Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`,
+  );
   lines.push(`Total tuples found: ${tuples.length} | Maximal tuples: ${maximalTuples.length}`);
 
   // Tuple size distribution
@@ -254,7 +256,9 @@ function formatResults(
   lines.push(`Found ${templates.length} template tuple(s)\n`);
 
   for (const t of templates.slice(0, top)) {
-    lines.push(`  {${t.names.join(", ")}} — ${t.support} files, ${(t.avgBodySimilarity * 100).toFixed(0)}% avg body sim`);
+    lines.push(
+      `  {${t.names.join(", ")}} — ${t.support} files, ${(t.avgBodySimilarity * 100).toFixed(0)}% avg body sim`,
+    );
     for (const f of t.files.slice(0, 5)) {
       lines.push(`    - ${shortenPath(f).replace(/.*pai-hooks\//, "")}`);
     }
@@ -269,7 +273,9 @@ function formatResults(
     lines.push(`--- Coincidental Co-occurrences (low body similarity) ---`);
     lines.push(`Found ${nonTemplates.length} non-template tuple(s)\n`);
     for (const t of nonTemplates.slice(0, 5)) {
-      lines.push(`  {${t.names.join(", ")}} — ${t.support} files, ${(t.avgBodySimilarity * 100).toFixed(0)}% avg body sim (not a template)`);
+      lines.push(
+        `  {${t.names.join(", ")}} — ${t.support} files, ${(t.avgBodySimilarity * 100).toFixed(0)}% avg body sim (not a template)`,
+      );
     }
   }
 
@@ -282,7 +288,9 @@ const args = process.argv.slice(2);
 const directory = args.find((a) => !a.startsWith("--"));
 
 if (!directory) {
-  process.stderr.write("Usage: bun Tools/pattern-detector/variants/cooccurrence.ts <directory> [--min-support 3] [--max-tuple 6] [--top 25]\n");
+  process.stderr.write(
+    "Usage: bun Tools/pattern-detector/variants/cooccurrence.ts <directory> [--min-support 3] [--max-tuple 6] [--top 25]\n",
+  );
   process.exit(1);
 }
 
@@ -301,7 +309,9 @@ const files = parseDirectory(directory);
 const parseTimeMs = performance.now() - parseStart;
 const functionCount = files.reduce((s, f) => s + f.functions.length, 0);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 const detectStart = performance.now();
 const pairs = minePairs(files, minSupport);
@@ -318,6 +328,10 @@ maximal.sort((a, b) => {
 });
 
 const detectTimeMs = performance.now() - detectStart;
-process.stderr.write(`Filtered to ${maximal.length} maximal tuples in ${detectTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Filtered to ${maximal.length} maximal tuples in ${detectTimeMs.toFixed(0)}ms\n`,
+);
 
-process.stdout.write(formatResults(validated, maximal, files.length, functionCount, parseTimeMs, top) + "\n");
+process.stdout.write(
+  `${formatResults(validated, maximal, files.length, functionCount, parseTimeMs, top)}\n`,
+);

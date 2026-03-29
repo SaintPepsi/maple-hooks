@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { AgentSpawnTracker, type AgentSpawnTrackerDeps } from "./AgentSpawnTracker.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { invalidInput } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { AgentSpawnTracker, type AgentSpawnTrackerDeps } from "./AgentSpawnTracker.contract";
 
 function makeDeps(overrides: Partial<AgentSpawnTrackerDeps> = {}): AgentSpawnTrackerDeps {
   return {
@@ -19,6 +19,7 @@ function makeDeps(overrides: Partial<AgentSpawnTrackerDeps> = {}): AgentSpawnTra
 
 function makeSpawnInput(overrides: Record<string, unknown> = {}): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PostToolUse",
     tool_name: "Agent",
     tool_input: {
@@ -43,6 +44,7 @@ describe("AgentSpawnTracker", () => {
 
   test("rejects non-Agent tool inputs", () => {
     const input: ToolHookInput = {
+      session_id: "test",
       hook_type: "PostToolUse",
       tool_name: "Bash",
       tool_input: { command: "ls" },
@@ -53,7 +55,10 @@ describe("AgentSpawnTracker", () => {
   test("skips foreground agent calls (no run_in_background)", async () => {
     let fetchCalled = false;
     const deps = makeDeps({
-      safeFetch: async () => { fetchCalled = true; return ok({ status: 200, body: "{}", headers: {} }); },
+      safeFetch: async () => {
+        fetchCalled = true;
+        return ok({ status: 200, body: "{}", headers: {} });
+      },
     });
     const input = makeSpawnInput({ run_in_background: false });
     const result = await AgentSpawnTracker.execute(input, deps);
@@ -65,7 +70,10 @@ describe("AgentSpawnTracker", () => {
   test("skips when no valid thread_id", async () => {
     let fetchCalled = false;
     const deps = makeDeps({
-      safeFetch: async () => { fetchCalled = true; return ok({ status: 200, body: "{}", headers: {} }); },
+      safeFetch: async () => {
+        fetchCalled = true;
+        return ok({ status: 200, body: "{}", headers: {} });
+      },
     });
     const input = makeSpawnInput({ thread_id: undefined });
     const result = await AgentSpawnTracker.execute(input, deps);

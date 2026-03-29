@@ -4,19 +4,19 @@
  * Used by AgentLifecycleStart and AgentLifecycleStop contracts.
  */
 
+import { join } from "node:path";
+import {
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { tryCatch } from "@hooks/core/result";
-import { type PaiError, jsonParseFailed } from "@hooks/core/error";
-import {
-  readFile,
-  writeFile,
-  fileExists,
-  ensureDir,
-  readDir,
-  removeFile,
-} from "@hooks/core/adapters/fs";
 import { getPaiDir } from "@hooks/lib/paths";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ export const defaultDeps: AgentLifecycleDeps = {
   readDir: (path) => readDir(path) as Result<string[], PaiError>,
   removeFile,
   getAgentsDir: () => join(getPaiDir(), "MEMORY", "STATE", "agents"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   now: () => new Date(),
 };
 
@@ -61,10 +61,7 @@ export function agentFilePath(deps: AgentLifecycleDeps, sessionId: string): stri
   return join(deps.getAgentsDir(), `agent-${sessionId}.json`);
 }
 
-export function cleanupOrphans(
-  deps: AgentLifecycleDeps,
-  currentSessionId: string,
-): void {
+export function cleanupOrphans(deps: AgentLifecycleDeps, currentSessionId: string): void {
   const dirResult = deps.readDir(deps.getAgentsDir());
   if (!dirResult.ok) return;
 
@@ -96,9 +93,7 @@ export function cleanupOrphans(
     const startedMs = new Date(data.startedAt).getTime();
     if (nowMs - startedMs > ORPHAN_THRESHOLD_MS) {
       deps.removeFile(filePath);
-      deps.stderr(
-        `[AgentLifecycle] Cleaned up orphan agent: ${data.agentId}`,
-      );
+      deps.stderr(`[AgentLifecycle] Cleaned up orphan agent: ${data.agentId}`);
     }
   }
 }

@@ -5,15 +5,9 @@
   "description": "Canary hook — writes timestamp to log file and opens it. For verifying hook propagation to subagents.",
   "schemaVersion": 1,
   "deps": {
-    "core": [
-      "result",
-      "runner"
-    ],
+    "core": ["result", "runner"],
     "lib": [],
-    "adapters": [
-      "fs",
-      "process"
-    ],
+    "adapters": ["fs", "process"],
     "shared": false
   },
   "tags": ["canary", "debug"],

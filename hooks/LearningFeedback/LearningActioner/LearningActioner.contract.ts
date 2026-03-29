@@ -14,22 +14,22 @@
  * - max-turns (25) and model (opus) cap agent cost
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { join } from "node:path";
 import {
+  ensureDir,
   fileExists,
   readDir,
   readJson,
-  writeFile,
   removeFile,
-  ensureDir,
   stat,
+  writeFile,
 } from "@hooks/core/adapters/fs";
 import { spawnBackground } from "@hooks/core/adapters/process";
-import { join } from "path";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getISOTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -272,7 +272,7 @@ function hasLearningSources(baseDir: string, deps: LearningActionerDeps): boolea
 function isTimestampFresh(path: string, maxAgeMs: number, deps: LearningActionerDeps): boolean {
   const s = deps.stat(path);
   if (!s.ok) return false;
-  return (Date.now() - s.value.mtimeMs) < maxAgeMs;
+  return Date.now() - s.value.mtimeMs < maxAgeMs;
 }
 
 // ─── Credit Accumulation ────────────────────────────────────────────────────
@@ -283,7 +283,7 @@ function isTimestampFresh(path: string, maxAgeMs: number, deps: LearningActioner
  */
 function projectFiveHourUsage(utilization: number, resetsAt: string): number | null {
   const resetDate = new Date(resetsAt);
-  if (isNaN(resetDate.getTime())) return null;
+  if (Number.isNaN(resetDate.getTime())) return null;
   const remainingSec = Math.max(0, (resetDate.getTime() - Date.now()) / 1000);
   const elapsedSec = FIVE_HOUR_WINDOW_SEC - remainingSec;
   if (elapsedSec < 300) return null; // Not enough data to project
@@ -296,10 +296,7 @@ function projectFiveHourUsage(utilization: number, resetsAt: string): number | n
  *
  * newCredit of -1 means projection blocked — don't persist anything.
  */
-export function evaluateCredit(
-  baseDir: string,
-  deps: LearningActionerDeps,
-): CreditResult {
+export function evaluateCredit(baseDir: string, deps: LearningActionerDeps): CreditResult {
   const usagePath = join(baseDir, "MEMORY/STATE/usage-cache.json");
   const creditPath = join(baseDir, "MEMORY/STATE/learning-agent-credit.json");
 
@@ -312,7 +309,11 @@ export function evaluateCredit(
   if (resetsAt) {
     const projected = projectFiveHourUsage(utilization, resetsAt);
     if (projected !== null && projected >= 100) {
-      return { shouldSpawn: false, newCredit: -1, reason: `projected 5h usage ${projected}% >= 100%` };
+      return {
+        shouldSpawn: false,
+        newCredit: -1,
+        reason: `projected 5h usage ${projected}% >= 100%`,
+      };
     }
   }
 
@@ -325,10 +326,18 @@ export function evaluateCredit(
   const newCredit = currentCredit + increment;
 
   if (newCredit >= SPAWN_CREDIT_THRESHOLD) {
-    return { shouldSpawn: true, newCredit: 0, reason: `credit ${newCredit.toFixed(2)} >= ${SPAWN_CREDIT_THRESHOLD} (reset to 0)` };
+    return {
+      shouldSpawn: true,
+      newCredit: 0,
+      reason: `credit ${newCredit.toFixed(2)} >= ${SPAWN_CREDIT_THRESHOLD} (reset to 0)`,
+    };
   }
 
-  return { shouldSpawn: false, newCredit, reason: `credit ${newCredit.toFixed(2)} < ${SPAWN_CREDIT_THRESHOLD} (+${increment.toFixed(2)} at ${utilization}% usage)` };
+  return {
+    shouldSpawn: false,
+    newCredit,
+    reason: `credit ${newCredit.toFixed(2)} < ${SPAWN_CREDIT_THRESHOLD} (+${increment.toFixed(2)} at ${utilization}% usage)`,
+  };
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -344,7 +353,7 @@ const defaultDeps: LearningActionerDeps = {
   spawnBackground,
   getISOTimestamp,
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const LearningActioner: SyncHookContract<
@@ -359,10 +368,7 @@ export const LearningActioner: SyncHookContract<
     return true;
   },
 
-  execute(
-    _input: SessionEndInput,
-    deps: LearningActionerDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(_input: SessionEndInput, deps: LearningActionerDeps): Result<SilentOutput, PaiError> {
     const proposalsDir = join(deps.baseDir, "MEMORY/LEARNING/PROPOSALS");
     const lockPath = join(proposalsDir, ".analyzing");
 
@@ -376,7 +382,9 @@ export const LearningActioner: SyncHookContract<
       deps.stderr("[LearningActioner] Cleaning up stale lock file");
       const removeResult = deps.removeFile(lockPath);
       if (!removeResult.ok) {
-        deps.stderr(`[LearningActioner] Failed to remove stale lock: ${removeResult.error.message}`);
+        deps.stderr(
+          `[LearningActioner] Failed to remove stale lock: ${removeResult.error.message}`,
+        );
       }
     }
 
@@ -388,7 +396,11 @@ export const LearningActioner: SyncHookContract<
     if (creditResult.newCredit >= 0) {
       deps.writeFile(
         creditPath,
-        JSON.stringify({ credit: creditResult.newCredit, last_updated: deps.getISOTimestamp() }, null, 2),
+        JSON.stringify(
+          { credit: creditResult.newCredit, last_updated: deps.getISOTimestamp() },
+          null,
+          2,
+        ),
       );
     }
 

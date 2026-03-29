@@ -9,19 +9,19 @@
  * Rating/sentiment writes happen as side effects via deps.
  */
 
-import type { HookContract, AsyncHookContract } from "@hooks/core/contract";
+import { join } from "node:path";
+import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
+import type { AsyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput } from "@hooks/core/types/hook-outputs";
-import { ok, tryCatch, tryCatchAsync, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { fileExists, readFile, writeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
-import { join } from "path";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
-import { inference, type InferenceResult } from "@pai/Tools/Inference";
 import { getIdentity, getPrincipal, getPrincipalName } from "@hooks/lib/identity";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp, getLocalComponents } from "@hooks/lib/time";
 import { captureFailure } from "@pai/Tools/FailureCapture";
+import { type InferenceResult, inference } from "@pai/Tools/Inference";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -94,7 +94,8 @@ export function parseExplicitRating(prompt: string): { rating: number; comment?:
   if (rating < 1 || rating > 10) return null;
 
   if (comment) {
-    const sentenceStarters = /^(items?|things?|steps?|files?|lines?|bugs?|issues?|errors?|times?|minutes?|hours?|days?|seconds?|percent|%|th\b|st\b|nd\b|rd\b|of\b|in\b|at\b|to\b|the\b|a\b|an\b)/i;
+    const sentenceStarters =
+      /^(items?|things?|steps?|files?|lines?|bugs?|issues?|errors?|times?|minutes?|hours?|days?|seconds?|percent|%|th\b|st\b|nd\b|rd\b|of\b|in\b|at\b|to\b|the\b|a\b|an\b)/i;
     if (sentenceStarters.test(comment)) return null;
   }
 
@@ -192,7 +193,10 @@ function getRecentContext(transcriptPath: string, deps: RatingCaptureDeps): stri
       const text = extractTextFromEntry(entry);
       if (text) {
         const summaryMatch = text.match(/SUMMARY:\s*([^\n]+)/i);
-        turns.push({ role: "Assistant", text: summaryMatch ? summaryMatch[1] : text.slice(0, 150) });
+        turns.push({
+          role: "Assistant",
+          text: summaryMatch ? summaryMatch[1] : text.slice(0, 150),
+        });
       }
     }
   }
@@ -202,7 +206,10 @@ function getRecentContext(transcriptPath: string, deps: RatingCaptureDeps): stri
 }
 
 /** Extract the last assistant response context from a transcript file. */
-function getLastAssistantContext(transcriptPath: string | undefined, deps: RatingCaptureDeps): string {
+function getLastAssistantContext(
+  transcriptPath: string | undefined,
+  deps: RatingCaptureDeps,
+): string {
   if (!transcriptPath) return "";
   const txResult = deps.readFile(transcriptPath);
   if (!txResult.ok) return "";
@@ -302,16 +309,25 @@ export const RatingCapture: AsyncHookContract<
       if (explicitResult.rating < 5) {
         const responseContext = getLastAssistantContext(input.transcript_path, deps);
 
-        captureLowRatingLearning(explicitResult.rating, explicitResult.comment || "", responseContext, "explicit", deps);
+        captureLowRatingLearning(
+          explicitResult.rating,
+          explicitResult.comment || "",
+          responseContext,
+          "explicit",
+          deps,
+        );
 
         if (explicitResult.rating <= 3) {
-          await deps.captureFailure({
-            transcriptPath: input.transcript_path ?? "",
-            rating: explicitResult.rating,
-            sentimentSummary: explicitResult.comment || `Explicit low rating: ${explicitResult.rating}/10`,
-            detailedContext: responseContext,
-            sessionId,
-          }).catch((e: Error) => deps.stderr("[RatingCapture] captureFailure error: " + e.message));
+          await deps
+            .captureFailure({
+              transcriptPath: input.transcript_path ?? "",
+              rating: explicitResult.rating,
+              sentimentSummary:
+                explicitResult.comment || `Explicit low rating: ${explicitResult.rating}/10`,
+              detailedContext: responseContext,
+              sessionId,
+            })
+            .catch((e: Error) => deps.stderr(`[RatingCapture] captureFailure error: ${e.message}`));
         }
       }
 
@@ -330,12 +346,13 @@ export const RatingCapture: AsyncHookContract<
     const userPrompt = context ? `CONTEXT:\n${context}\n\nCURRENT MESSAGE:\n${prompt}` : prompt;
 
     const inferenceResult = await tryCatchAsync<InferenceResult, null>(
-      () => deps.inference({
-        systemPrompt,
-        prompt: userPrompt,
-        timeout: 12000,
-        level: "fast",
-      }),
+      () =>
+        deps.inference({
+          systemPrompt,
+          prompt: userPrompt,
+          timeout: 12000,
+          level: "fast",
+        }),
       () => null,
     );
 
@@ -349,7 +366,9 @@ export const RatingCapture: AsyncHookContract<
       }
 
       if (sentiment.confidence < MIN_CONFIDENCE) {
-        deps.stderr(`[RatingCapture] Confidence ${sentiment.confidence} below ${MIN_CONFIDENCE}, skipping`);
+        deps.stderr(
+          `[RatingCapture] Confidence ${sentiment.confidence} below ${MIN_CONFIDENCE}, skipping`,
+        );
         return ok({ type: "context", content: reminder });
       }
 
@@ -366,20 +385,30 @@ export const RatingCapture: AsyncHookContract<
       deps.spawnTrending();
 
       if (sentiment.rating < 5) {
-        captureLowRatingLearning(sentiment.rating, sentiment.summary, sentiment.detailed_context || "", "implicit", deps);
+        captureLowRatingLearning(
+          sentiment.rating,
+          sentiment.summary,
+          sentiment.detailed_context || "",
+          "implicit",
+          deps,
+        );
 
         if (sentiment.rating <= 3) {
-          await deps.captureFailure({
-            transcriptPath: input.transcript_path ?? "",
-            rating: sentiment.rating,
-            sentimentSummary: sentiment.summary,
-            detailedContext: sentiment.detailed_context || "",
-            sessionId,
-          }).catch((e: Error) => deps.stderr("[RatingCapture] captureFailure error: " + e.message));
+          await deps
+            .captureFailure({
+              transcriptPath: input.transcript_path ?? "",
+              rating: sentiment.rating,
+              sentimentSummary: sentiment.summary,
+              detailedContext: sentiment.detailed_context || "",
+              sessionId,
+            })
+            .catch((e: Error) => deps.stderr(`[RatingCapture] captureFailure error: ${e.message}`));
         }
       }
 
-      deps.stderr(`[RatingCapture] Implicit: ${sentiment.rating}/10 (conf: ${sentiment.confidence})`);
+      deps.stderr(
+        `[RatingCapture] Implicit: ${sentiment.rating}/10 (conf: ${sentiment.confidence})`,
+      );
     }
 
     return ok({ type: "context", content: reminder });
@@ -390,9 +419,14 @@ export const RatingCapture: AsyncHookContract<
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function writeRating(entry: RatingEntry, signalsDir: string, ratingsFile: string, deps: RatingCaptureDeps): void {
+function writeRating(
+  entry: RatingEntry,
+  signalsDir: string,
+  ratingsFile: string,
+  deps: RatingCaptureDeps,
+): void {
   deps.ensureDir(signalsDir);
-  deps.appendFile(ratingsFile, JSON.stringify(entry) + "\n");
+  deps.appendFile(ratingsFile, `${JSON.stringify(entry)}\n`);
 }
 
 function captureLowRatingLearning(

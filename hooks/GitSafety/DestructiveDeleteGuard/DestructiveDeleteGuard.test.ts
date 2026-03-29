@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
-import { DestructiveDeleteGuard } from "./DestructiveDeleteGuard.contract";
-import type { DestructiveDeleteGuardDeps } from "./DestructiveDeleteGuard.contract";
+import { describe, expect, test } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { DestructiveDeleteGuardDeps } from "./DestructiveDeleteGuard.contract";
+import { DestructiveDeleteGuard } from "./DestructiveDeleteGuard.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -93,27 +93,42 @@ describe("DestructiveDeleteGuard Bash detection", () => {
   });
 
   test("detects rm --recursive --force", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("rm --recursive --force /tmp/foo"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm --recursive --force /tmp/foo"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects rm --force --recursive", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("rm --force --recursive /tmp/foo"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm --force --recursive /tmp/foo"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects rm -rf in piped command", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("find . -name '*.tmp' | xargs rm -rf"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("find . -name '*.tmp' | xargs rm -rf"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects rm -rf after && chain", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("cd /tmp && rm -rf sessions"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("cd /tmp && rm -rf sessions"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("returns block decision with command details for non-artifact dirs", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /home/user/Documents"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm -rf /home/user/Documents"),
+      mockDeps,
+    );
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("block");
@@ -134,7 +149,10 @@ describe("DestructiveDeleteGuard artifact directory ask", () => {
   });
 
   test("returns ask for rm -rf on playwright-report", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf sveltekit/playwright-report/"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm -rf sveltekit/playwright-report/"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("ask");
   });
 
@@ -159,7 +177,10 @@ describe("DestructiveDeleteGuard artifact directory ask", () => {
   });
 
   test("returns ask for rm -rf on build after cd", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("cd /project && rm -rf build"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("cd /project && rm -rf build"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("ask");
   });
 
@@ -173,7 +194,10 @@ describe("DestructiveDeleteGuard artifact directory ask", () => {
   });
 
   test("still blocks rm -rf on non-artifact dirs", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("rm -rf /home/user/projects"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rm -rf /home/user/projects"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
@@ -366,26 +390,41 @@ describe("DestructiveDeleteGuard markdown exclusion", () => {
 
 describe("DestructiveDeleteGuard Dockerfile exclusion", () => {
   test("allows Write to Dockerfile with apt cleanup", () => {
-    const content = ["RUN apt-get update && apt-get install -y curl && r", "m -rf /var/lib/apt/lists/*"].join("");
-    const result = DestructiveDeleteGuard.execute(writeInput(content, "/project/Dockerfile"), mockDeps);
+    const content = [
+      "RUN apt-get update && apt-get install -y curl && r",
+      "m -rf /var/lib/apt/lists/*",
+    ].join("");
+    const result = DestructiveDeleteGuard.execute(
+      writeInput(content, "/project/Dockerfile"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("continue");
   });
 
   test("allows Edit to Dockerfile with cache cleanup", () => {
     const content = ["RUN pip install -r requirements.txt && r", "m -rf /root/.cache"].join("");
-    const result = DestructiveDeleteGuard.execute(editInput(content, "/project/Dockerfile"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      editInput(content, "/project/Dockerfile"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("continue");
   });
 
   test("allows Write to Dockerfile.dev variant", () => {
     const content = ["RUN r", "m -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*"].join("");
-    const result = DestructiveDeleteGuard.execute(writeInput(content, "/project/Dockerfile.dev"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      writeInput(content, "/project/Dockerfile.dev"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("continue");
   });
 
   test("still blocks same content in regular shell scripts", () => {
     const content = ["#!/bin/bash\nr", "m -rf /var/lib/apt/lists/*"].join("");
-    const result = DestructiveDeleteGuard.execute(writeInput(content, "/project/cleanup.sh"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      writeInput(content, "/project/cleanup.sh"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 });
@@ -423,37 +462,58 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
   });
 
   test("detects python3 shutil.rmtree", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput('python3 -c "import shutil; shutil.rmtree(\\"/tmp/foo\\")"'), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('python3 -c "import shutil; shutil.rmtree(\\"/tmp/foo\\")"'),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects python rmtree", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput('python -c "from shutil import rmtree; rmtree(\\"/tmp\\")"'), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('python -c "from shutil import rmtree; rmtree(\\"/tmp\\")"'),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects perl rmtree", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput('perl -e "use File::Path; rmtree(\\"/tmp/foo\\")"'), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('perl -e "use File::Path; rmtree(\\"/tmp/foo\\")"'),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects ruby FileUtils.rm_rf", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput('ruby -e "require \\"fileutils\\"; FileUtils.rm_rf(\\"/tmp\\")"'), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('ruby -e "require \\"fileutils\\"; FileUtils.rm_rf(\\"/tmp\\")"'),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects bun -e rmSync", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput('bun -e "require(\\"fs\\").rmSync(\\"/tmp\\", {recursive:true})"'), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('bun -e "require(\\"fs\\").rmSync(\\"/tmp\\", {recursive:true})"'),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects node -e rmSync", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput('node -e "require(\\"fs\\").rmSync(\\"/tmp\\", {recursive:true})"'), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput('node -e "require(\\"fs\\").rmSync(\\"/tmp\\", {recursive:true})"'),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
   test("detects rsync --delete", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("rsync -a --delete /tmp/empty/ /target/"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("rsync -a --delete /tmp/empty/ /target/"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("block");
   });
 
@@ -477,7 +537,10 @@ describe("DestructiveDeleteGuard Bash non-rm detection", () => {
 
 describe("DestructiveDeleteGuard Bash non-rm allowed", () => {
   test("allows find without -delete", () => {
-    const result = DestructiveDeleteGuard.execute(bashInput("find /tmp -name '*.log' -print"), mockDeps);
+    const result = DestructiveDeleteGuard.execute(
+      bashInput("find /tmp -name '*.log' -print"),
+      mockDeps,
+    );
     expect(result.ok && result.value.type).toBe("continue");
   });
 
@@ -529,7 +592,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm detection", () => {
   });
 
   test("detects rmSync with recursive in Node code", () => {
-    const code = 'fs.rmSync(dir, { recursive: true, force: true });';
+    const code = "fs.rmSync(dir, { recursive: true, force: true });";
     const result = DestructiveDeleteGuard.execute(editInput(code), mockDeps);
     expect(result.ok && result.value.type).toBe("block");
   });

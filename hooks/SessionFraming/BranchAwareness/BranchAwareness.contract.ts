@@ -8,12 +8,12 @@
  * Skips for subagents. Fails silently if git command fails.
  */
 
+import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { execSyncSafe } from "@hooks/core/adapters/process";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -34,11 +34,10 @@ const defaultDeps: BranchAwarenessDeps = {
   isSubagent: () => {
     const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
     return (
-      claudeProjectDir.includes("/.claude/Agents/") ||
-      process.env.CLAUDE_AGENT_TYPE !== undefined
+      claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined
     );
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

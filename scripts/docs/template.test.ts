@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { renderHookPage, renderGroupPage, renderIndexPage, markdownToHtml } from "./template";
-import type { HookMeta, GroupMeta } from "./template";
+import { describe, expect, it } from "bun:test";
+import type { GroupMeta, HookMeta } from "./template";
+import { markdownToHtml, renderGroupPage, renderHookPage, renderIndexPage } from "./template";
 
 // ─── markdownToHtml (body renderer) ───────────────────────────────────────────
 
@@ -72,7 +72,12 @@ describe("markdownToHtml", () => {
 // ─── renderHookPage ───────────────────────────────────────────────────────────
 
 describe("renderHookPage", () => {
-  const hook: HookMeta = { name: "TestHook", group: "TestGroup", event: "PostToolUse", description: "A test hook" };
+  const hook: HookMeta = {
+    name: "TestHook",
+    group: "TestGroup",
+    event: "PostToolUse",
+    description: "A test hook",
+  };
 
   it("produces valid HTML", () => {
     const html = renderHookPage(hook, "## Overview\nHello", "TestGroup");
@@ -92,9 +97,13 @@ describe("renderHookPage", () => {
   });
 
   it("wraps sections in colored cards", () => {
-    const html = renderHookPage(hook, "## Overview\nHello\n\n## Dependencies\nDeps here", "TestGroup");
+    const html = renderHookPage(
+      hook,
+      "## Overview\nHello\n\n## Dependencies\nDeps here",
+      "TestGroup",
+    );
     expect(html).toContain("card accent"); // Overview = accent
-    expect(html).toContain("card cyan");   // Dependencies = cyan
+    expect(html).toContain("card cyan"); // Dependencies = cyan
   });
 
   it("includes card-icon and card-header per section", () => {
@@ -180,7 +189,7 @@ describe("renderGroupPage", () => {
   it("lists hooks as colored cards", () => {
     const html = renderGroupPage(group);
     expect(html).toContain("card orange"); // PreToolUse
-    expect(html).toContain("card red");    // Stop
+    expect(html).toContain("card red"); // Stop
   });
 
   it("includes summary grid", () => {
@@ -193,7 +202,11 @@ describe("renderGroupPage", () => {
 
 describe("renderIndexPage", () => {
   const groups: GroupMeta[] = [
-    { name: "GroupA", description: "First", hooks: [{ name: "H1", group: "GroupA", event: "Stop", description: "" }] },
+    {
+      name: "GroupA",
+      description: "First",
+      hooks: [{ name: "H1", group: "GroupA", event: "Stop", description: "" }],
+    },
     { name: "GroupB", description: "", hooks: [] },
   ];
 

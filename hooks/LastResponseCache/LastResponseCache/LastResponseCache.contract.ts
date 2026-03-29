@@ -8,13 +8,13 @@
  * Always returns SilentOutput — never blocks or delays the Stop event.
  */
 
+import { join } from "node:path";
+import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readFile, writeFile } from "@hooks/core/adapters/fs";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -54,10 +54,7 @@ function extractText(content: string | ContentBlock[]): string {
  * Returns empty string if the transcript is missing, unreadable, or has no
  * assistant turns.
  */
-function extractLastAssistantMessage(
-  transcriptPath: string,
-  deps: LastResponseCacheDeps,
-): string {
+function extractLastAssistantMessage(transcriptPath: string, deps: LastResponseCacheDeps): string {
   const readResult = deps.readFile(transcriptPath);
   if (!readResult.ok) {
     deps.stderr(`[LastResponseCache] Could not read transcript: ${readResult.error.message}`);
@@ -91,15 +88,11 @@ function extractLastAssistantMessage(
 const defaultDeps: LastResponseCacheDeps = {
   readFile,
   writeFile,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
 };
 
-export const LastResponseCache: SyncHookContract<
-  StopInput,
-  SilentOutput,
-  LastResponseCacheDeps
-> = {
+export const LastResponseCache: SyncHookContract<StopInput, SilentOutput, LastResponseCacheDeps> = {
   name: "LastResponseCache",
   event: "Stop",
 
@@ -107,10 +100,7 @@ export const LastResponseCache: SyncHookContract<
     return !!input.transcript_path;
   },
 
-  execute(
-    input: StopInput,
-    deps: LastResponseCacheDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: StopInput, deps: LastResponseCacheDeps): Result<SilentOutput, PaiError> {
     const lastResponse = extractLastAssistantMessage(input.transcript_path!, deps);
 
     if (!lastResponse) {

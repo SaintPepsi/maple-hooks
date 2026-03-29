@@ -6,8 +6,11 @@
  * Score maps to violation severity: 1 = gentle (1-2), 2 = direct (3-5), 3 = firm (6+).
  */
 
-import { readFile as adapterReadFile, fileExists as adapterFileExists } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { join } from "node:path";
+import {
+  fileExists as adapterFileExists,
+  readFile as adapterReadFile,
+} from "@hooks/core/adapters/fs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,12 +40,12 @@ export function scoreFromCount(count: number): number {
 function parseEntries(content: string): NarrativeEntry[] {
   return content
     .split("\n")
-    .filter(line => line.trim().length > 0)
-    .map(line => {
+    .filter((line) => line.trim().length > 0)
+    .map((line) => {
       const parsed = JSON.parse(line);
       return { message: String(parsed.message), score: Number(parsed.score) };
     })
-    .filter(e => e.message && [1, 2, 3].includes(e.score));
+    .filter((e) => e.message && [1, 2, 3].includes(e.score));
 }
 
 function pickRandom<T>(items: T[]): T {
@@ -58,7 +61,7 @@ const defaultDeps: NarrativeReaderDeps = {
   },
   fileExists: adapterFileExists,
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export function pickNarrative(
@@ -71,13 +74,13 @@ export function pickNarrative(
   if (!deps.fileExists(filePath)) return DEFAULT_MESSAGE;
 
   const content = deps.readFile(filePath);
-  if (!content || !content.trim()) return DEFAULT_MESSAGE;
+  if (!content?.trim()) return DEFAULT_MESSAGE;
 
   const entries = parseEntries(content);
   if (entries.length === 0) return DEFAULT_MESSAGE;
 
   const targetScore = scoreFromCount(violationCount);
-  const matching = entries.filter(e => e.score === targetScore);
+  const matching = entries.filter((e) => e.score === targetScore);
 
   if (matching.length > 0) return pickRandom(matching).message;
   return pickRandom(entries).message;

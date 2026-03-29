@@ -13,25 +13,25 @@
  * - max-turns caps agent cost
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { join } from "node:path";
 import {
+  ensureDir,
   fileExists,
   readFile,
   readJson,
-  writeFile,
   removeFile,
-  ensureDir,
   stat,
+  writeFile,
 } from "@hooks/core/adapters/fs";
 import { spawnBackground } from "@hooks/core/adapters/process";
-import { join } from "path";
-import { getISOTimestamp } from "@hooks/lib/time";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getISOTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -54,8 +54,8 @@ export interface ArticleWriterDeps {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const LOCK_STALE_MS = 30 * 60 * 1000;        // 30 minutes
-const MIN_CHECKED_CRITERIA = 4;               // PRD must have 4+ checked ISC
+const LOCK_STALE_MS = 30 * 60 * 1000; // 30 minutes
+const MIN_CHECKED_CRITERIA = 4; // PRD must have 4+ checked ISC
 
 // ─── Agent Prompt ────────────────────────────────────────────────────────────
 
@@ -70,7 +70,7 @@ export function buildArticlePrompt(ctx: ArticlePromptContext, sessionId: string)
   const deps = ctx;
   const now = new Date();
   const dateStr = now.toISOString().split("T")[0];
-  const monthDir = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const _monthDir = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   return `You are ${deps.daName}, ${deps.principalName}'s AI collaborator. You are writing an article for your blog section ("${deps.daName}'s Corner") on their website.
 
@@ -280,7 +280,7 @@ function sessionHadSubstantialWork(
 function isTimestampFresh(path: string, maxAgeMs: number, deps: ArticleWriterDeps): boolean {
   const s = deps.stat(path);
   if (!s.ok) return false;
-  return (Date.now() - s.value.mtimeMs) < maxAgeMs;
+  return Date.now() - s.value.mtimeMs < maxAgeMs;
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -296,17 +296,15 @@ const defaultDeps: ArticleWriterDeps = {
   spawnBackground,
   getISOTimestamp,
   baseDir: getPaiDir(),
-  websiteRepo: ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)?.repo || "",
+  websiteRepo:
+    ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)
+      ?.repo || "",
   principalName: getPrincipalName(),
   daName: getDAName(),
   stderr: defaultStderr,
 };
 
-export const ArticleWriter: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  ArticleWriterDeps
-> = {
+export const ArticleWriter: SyncHookContract<SessionEndInput, SilentOutput, ArticleWriterDeps> = {
   name: "ArticleWriter",
   event: "SessionEnd",
 
@@ -314,10 +312,7 @@ export const ArticleWriter: SyncHookContract<
     return !!input.session_id;
   },
 
-  execute(
-    input: SessionEndInput,
-    deps: ArticleWriterDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: ArticleWriterDeps): Result<SilentOutput, PaiError> {
     // Gate 1: Website repo must exist on disk
     if (!hasWebsiteRepo(deps)) {
       deps.stderr("[ArticleWriter] Website repo not found, skipping");

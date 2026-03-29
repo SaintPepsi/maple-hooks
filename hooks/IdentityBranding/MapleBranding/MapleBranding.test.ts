@@ -1,9 +1,9 @@
-import { describe, it, expect } from "bun:test";
-import { MapleBranding, type MapleBrandingDeps } from "./MapleBranding.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
+import { describe, expect, it } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { MapleBranding, type MapleBrandingDeps } from "./MapleBranding.contract";
 
 const mockDeps: MapleBrandingDeps = {
   stderr: () => {},
@@ -67,7 +67,11 @@ describe("MapleBranding", () => {
     });
 
     it("accepts gh api commands", () => {
-      expect(MapleBranding.accepts(makeInput("gh api repos/owner/repo/issues/1/comments -f body='test'"))).toBe(true);
+      expect(
+        MapleBranding.accepts(
+          makeInput("gh api repos/owner/repo/issues/1/comments -f body='test'"),
+        ),
+      ).toBe(true);
     });
 
     it("rejects gh commands that are not pr/issue create/comment/edit/review or api", () => {
@@ -182,9 +186,7 @@ describe("MapleBranding", () => {
     });
 
     it("allows gh api without Claude Code footer", () => {
-      const input = makeInput(
-        "gh api repos/owner/repo/pulls/1 -f body='Clean update'",
-      );
+      const input = makeInput("gh api repos/owner/repo/pulls/1 -f body='Clean update'");
       const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -206,9 +208,7 @@ describe("MapleBranding", () => {
     });
 
     it("blocks gh issue comment with emoji sign-off", () => {
-      const input = makeInput(
-        'gh issue comment 42 --body "Maple here.\n\nDone.\n\n🍁 Maple"',
-      );
+      const input = makeInput('gh issue comment 42 --body "Maple here.\n\nDone.\n\n🍁 Maple"');
       const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -217,9 +217,7 @@ describe("MapleBranding", () => {
     });
 
     it("blocks gh pr review with emoji sign-off", () => {
-      const input = makeInput(
-        'gh pr review 7 --comment -b "Looks good.\n\n🍁 Maple"',
-      );
+      const input = makeInput('gh pr review 7 --comment -b "Looks good.\n\n🍁 Maple"');
       const result = MapleBranding.execute(input, mockDeps) as Result<BlockOutput, PaiError>;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -239,9 +237,7 @@ describe("MapleBranding", () => {
     });
 
     it("does not false-positive on emoji maple leaf without Maple name", () => {
-      const input = makeInput(
-        'gh pr create --title "autumn" --body "Love the 🍁 season"',
-      );
+      const input = makeInput('gh pr create --title "autumn" --body "Love the 🍁 season"');
       const result = MapleBranding.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
       expect(result.ok).toBe(true);
       if (result.ok) {

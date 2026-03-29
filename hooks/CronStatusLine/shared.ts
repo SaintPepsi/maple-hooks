@@ -5,11 +5,11 @@
  * types and functions. No raw Node builtins — all I/O through adapters.
  */
 
-import { join } from "path";
-import type { Result } from "@hooks/core/result";
-import { ok, err, andThen, tryCatch } from "@hooks/core/result";
+import { join } from "node:path";
 import type { PaiError } from "@hooks/core/error";
-import { jsonParseFailed, fileNotFound } from "@hooks/core/error";
+import { fileNotFound, jsonParseFailed } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { andThen, err, ok, tryCatch } from "@hooks/core/result";
 
 // ─── Domain Types ────────────────────────────────────────────────────────────
 
@@ -108,7 +108,7 @@ export function appendCronLog(
   fileDeps: CronFileDeps,
 ): Result<void, PaiError> {
   const path = cronLogPath(pathDeps);
-  const line = JSON.stringify({ ts: new Date().toISOString(), ...event }) + "\n";
+  const line = `${JSON.stringify({ ts: new Date().toISOString(), ...event })}\n`;
   return fileDeps.appendFile(path, line);
 }
 

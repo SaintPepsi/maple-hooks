@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
-import { run, type RunnerDeps } from "@hooks/runners/article-writer-runner";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { processSpawnFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import { type RunnerDeps, run } from "@hooks/runners/article-writer-runner";
 
 function makeDeps(overrides: Partial<RunnerDeps> = {}): RunnerDeps {
   return {
@@ -56,7 +56,10 @@ describe("article-writer-runner", () => {
   test("writes cooldown file after spawn", () => {
     const written: string[] = [];
     const deps = makeDeps({
-      writeFile: (p) => { written.push(p); return ok(undefined); },
+      writeFile: (p) => {
+        written.push(p);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(written.some((p) => p.endsWith(".last-article"))).toBe(true);
@@ -65,7 +68,10 @@ describe("article-writer-runner", () => {
   test("removes lock file after spawn", () => {
     const removed: string[] = [];
     const deps = makeDeps({
-      removeFile: (p) => { removed.push(p); return ok(undefined); },
+      removeFile: (p) => {
+        removed.push(p);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(removed.some((p) => p.endsWith(".writing"))).toBe(true);
@@ -76,8 +82,14 @@ describe("article-writer-runner", () => {
     const removed: string[] = [];
     const deps = makeDeps({
       spawnSyncSafe: () => err(processSpawnFailed("claude", new Error("timeout"))),
-      writeFile: (p) => { written.push(p); return ok(undefined); },
-      removeFile: (p) => { removed.push(p); return ok(undefined); },
+      writeFile: (p) => {
+        written.push(p);
+        return ok(undefined);
+      },
+      removeFile: (p) => {
+        removed.push(p);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(written.some((p) => p.endsWith(".last-article"))).toBe(true);
@@ -101,7 +113,10 @@ describe("article-writer-runner", () => {
   test("allows custom command override", () => {
     let cmdUsed = "";
     const deps = makeDeps({
-      spawnSyncSafe: (cmd) => { cmdUsed = cmd; return ok({ stdout: "", exitCode: 0 }); },
+      spawnSyncSafe: (cmd) => {
+        cmdUsed = cmd;
+        return ok({ stdout: "", exitCode: 0 });
+      },
     });
     run("/base", "session-1", deps, "custom-claude");
     expect(cmdUsed).toBe("custom-claude");
@@ -110,7 +125,10 @@ describe("article-writer-runner", () => {
   test("logs START before spawn", () => {
     const logged: string[] = [];
     const deps = makeDeps({
-      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+      appendFile: (_p, content) => {
+        logged.push(content as string);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(logged.some((l) => l.includes("START"))).toBe(true);
@@ -119,7 +137,10 @@ describe("article-writer-runner", () => {
   test("logs COMPLETE on success", () => {
     const logged: string[] = [];
     const deps = makeDeps({
-      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+      appendFile: (_p, content) => {
+        logged.push(content as string);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(logged.some((l) => l.includes("COMPLETE exit=0"))).toBe(true);
@@ -129,7 +150,10 @@ describe("article-writer-runner", () => {
     const logged: string[] = [];
     const deps = makeDeps({
       spawnSyncSafe: () => err(processSpawnFailed("claude", new Error("timeout"))),
-      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+      appendFile: (_p, content) => {
+        logged.push(content as string);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(logged.some((l) => l.includes("ERROR"))).toBe(true);
@@ -138,7 +162,10 @@ describe("article-writer-runner", () => {
   test("logs CLEANUP after completion", () => {
     const logged: string[] = [];
     const deps = makeDeps({
-      appendFile: (_p, content) => { logged.push(content as string); return ok(undefined); },
+      appendFile: (_p, content) => {
+        logged.push(content as string);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(logged.some((l) => l.includes("CLEANUP"))).toBe(true);
@@ -147,7 +174,10 @@ describe("article-writer-runner", () => {
   test("writes log to .writing-log file", () => {
     const logPaths: string[] = [];
     const deps = makeDeps({
-      appendFile: (p) => { logPaths.push(p); return ok(undefined); },
+      appendFile: (p) => {
+        logPaths.push(p);
+        return ok(undefined);
+      },
     });
     run("/base", "session-1", deps);
     expect(logPaths.every((p) => p.endsWith(".writing-log"))).toBe(true);

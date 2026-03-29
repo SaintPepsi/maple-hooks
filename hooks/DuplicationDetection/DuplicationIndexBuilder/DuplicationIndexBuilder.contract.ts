@@ -8,22 +8,22 @@
  * Design: docs/plans/2026-03-27-duplication-index-builder-hook-design.md
  */
 
+import {
+  readDir as adapterReadDir,
+  readFile as adapterReadFile,
+  stat as adapterStat,
+  writeFile as adapterWriteFile,
+  ensureDir,
+  fileExists,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import {
-  readFile as adapterReadFile,
-  writeFile as adapterWriteFile,
-  fileExists,
-  stat as adapterStat,
-  readDir as adapterReadDir,
-  ensureDir,
-} from "@hooks/core/adapters/fs";
+import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
-import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -47,11 +47,11 @@ const FRESHNESS_MS = 30 * 60 * 1000; // 30 minutes
 
 function getFilePath(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 function defaultFindProjectRoot(filePath: string): string | null {
-  const { dirname, join } = require("path");
+  const { dirname, join } = require("node:path");
   let dir = dirname(filePath) as string;
   for (let i = 0; i < 10; i++) {
     const pkg = join(dir, "package.json") as string;
@@ -68,7 +68,7 @@ function isIndexFresh(indexPath: string, deps: DuplicationIndexBuilderDeps): boo
   if (!deps.exists(indexPath)) return false;
   const s = deps.stat(indexPath);
   if (!s) return false;
-  return (deps.now() - s.mtimeMs) < FRESHNESS_MS;
+  return deps.now() - s.mtimeMs < FRESHNESS_MS;
 }
 
 // ─── Default Deps ───────────────────────────────────────────────────────────
@@ -92,8 +92,8 @@ const defaultDeps: DuplicationIndexBuilderDeps = {
       const result = adapterStat(path);
       return result.ok ? { mtimeMs: result.value.mtimeMs } : null;
     },
-    join: (...parts: string[]): string => require("path").join(...parts) as string,
-    resolve: (path: string): string => require("path").resolve(path) as string,
+    join: (...parts: string[]): string => require("node:path").join(...parts) as string,
+    resolve: (path: string): string => require("node:path").resolve(path) as string,
     parserDeps: defaultParserDeps,
   },
   writeFile: (path: string, content: string): boolean => {
@@ -105,7 +105,7 @@ const defaultDeps: DuplicationIndexBuilderDeps = {
     const result = adapterStat(path);
     return result.ok ? { mtimeMs: result.value.mtimeMs } : null;
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   now: () => Date.now(),
   findProjectRoot: defaultFindProjectRoot,
 };

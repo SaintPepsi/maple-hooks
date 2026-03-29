@@ -18,11 +18,15 @@
  */
 
 import type { AsyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readKoordConfig, defaultReadFileOrNull, getQueueDir } from "@hooks/hooks/KoordDaemon/shared";
+import {
+  defaultReadFileOrNull,
+  getQueueDir,
+  readKoordConfig,
+} from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -60,7 +64,7 @@ const defaultDeps: MessageQueueServerDeps = {
       return false;
     }
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   getScriptPath: () => {
     // Resolve relative to this file's location → ../../scripts/mq-server.ts
     const hookDir = import.meta.dir;

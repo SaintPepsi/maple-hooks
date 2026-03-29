@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { removeHooksFromSettings } from "@hooks/uninstall";
 
 describe("removeHooksFromSettings", () => {
@@ -18,7 +18,10 @@ describe("removeHooksFromSettings", () => {
       env: { SAINTPEPSI_PAI_HOOKS_DIR: "/path" },
       hooks: {
         PreToolUse: [
-          { matcher: "Edit", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts" }] },
+          {
+            matcher: "Edit",
+            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/Foo.hook.ts" }],
+          },
           { matcher: "Bash", hooks: [{ type: "command", command: "/other/hook.ts" }] },
         ],
       },
@@ -35,7 +38,12 @@ describe("removeHooksFromSettings", () => {
       env: { SAINTPEPSI_PAI_HOOKS_DIR: "/path" },
       hooks: {
         SessionEnd: [
-          { matcher: "*", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/GitAutoSync.hook.ts" }] },
+          {
+            matcher: "*",
+            hooks: [
+              { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/GitAutoSync.hook.ts" },
+            ],
+          },
         ],
       },
     };
@@ -48,9 +56,7 @@ describe("removeHooksFromSettings", () => {
     const settings = {
       env: { SAINTPEPSI_PAI_HOOKS_DIR: "/path" },
       hooks: {
-        PreToolUse: [
-          { matcher: "Edit", hooks: [{ type: "command", command: "/my/own/hook.ts" }] },
-        ],
+        PreToolUse: [{ matcher: "Edit", hooks: [{ type: "command", command: "/my/own/hook.ts" }] }],
       },
     };
 

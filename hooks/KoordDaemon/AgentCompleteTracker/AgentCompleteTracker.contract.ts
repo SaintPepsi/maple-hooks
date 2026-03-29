@@ -21,21 +21,28 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/AgentCompleteTracker.hook.js
  */
 
+import type { FetchResult } from "@hooks/core/adapters/fetch";
+import { safeFetch } from "@hooks/core/adapters/fetch";
 import type { AsyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import type { FetchResult } from "@hooks/core/adapters/fetch";
-import { safeFetch } from "@hooks/core/adapters/fetch";
-import { extractThreadIdFromOutput, readKoordConfig, defaultReadFileOrNull } from "@hooks/hooks/KoordDaemon/shared";
+import {
+  defaultReadFileOrNull,
+  extractThreadIdFromOutput,
+  readKoordConfig,
+} from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface AgentCompleteTrackerDeps {
   getEnv: (name: string) => string | undefined;
-  safeFetch: (url: string, opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string }) => Promise<Result<FetchResult, PaiError>>;
+  safeFetch: (
+    url: string,
+    opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string },
+  ) => Promise<Result<FetchResult, PaiError>>;
   getKoordConfig: () => { url: string | null };
   stderr: (msg: string) => void;
 }
@@ -46,7 +53,7 @@ const defaultDeps: AgentCompleteTrackerDeps = {
   getEnv: (name) => process.env[name],
   safeFetch,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -108,7 +115,9 @@ export const AgentCompleteTracker: AsyncHookContract<
     if (result.ok) {
       deps.stderr(`[AgentCompleteTracker] Notified daemon: complete ${threadId}`);
     } else {
-      deps.stderr(`[AgentCompleteTracker] Daemon notify failed (non-blocking): ${result.error.message}`);
+      deps.stderr(
+        `[AgentCompleteTracker] Daemon notify failed (non-blocking): ${result.error.message}`,
+      );
     }
 
     return ok(continueOk());

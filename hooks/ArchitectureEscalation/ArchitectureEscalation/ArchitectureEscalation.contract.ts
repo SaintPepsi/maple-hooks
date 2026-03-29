@@ -7,13 +7,13 @@
  * Pattern from obra/superpowers systematic-debugging skill Phase 4.5.
  */
 
+import { dirname, join } from "node:path";
+import { ensureDir, fileExists, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readJson, writeJson, fileExists, ensureDir } from "@hooks/core/adapters/fs";
-import { join, dirname } from "path";
 
 type FsReadJson = <T = unknown>(path: string) => Result<T, PaiError>;
 type FsWriteJson = (path: string, data: unknown) => Result<void, PaiError>;
@@ -113,7 +113,7 @@ export function buildWarningMessage(criterionId: string, failedAttempts: number)
 const defaultDeps: ArchEscalationDeps = {
   getPaiDir: () => process.env.PAI_DIR ?? join(process.env.HOME!, ".claude"),
   now: () => Date.now(),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   fileExists,
   readJson,
   writeJson,
@@ -132,10 +132,7 @@ export const ArchitectureEscalation: SyncHookContract<
     return input.tool_name === "TaskUpdate";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: ArchEscalationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: ArchEscalationDeps): Result<ContinueOutput, PaiError> {
     const { tool_input, session_id } = input;
     const taskId = tool_input.taskId;
     const status = tool_input.status;
@@ -169,13 +166,17 @@ export const ArchitectureEscalation: SyncHookContract<
 
     if (failedAttempts >= STOP_THRESHOLD) {
       const message = buildWarningMessage(criterionId, failedAttempts);
-      deps.stderr(`[ArchEscalation] 🚨 STOP escalation for ${criterionId} (${failedAttempts} failures)`);
+      deps.stderr(
+        `[ArchEscalation] 🚨 STOP escalation for ${criterionId} (${failedAttempts} failures)`,
+      );
       return ok({ type: "continue", continue: true, additionalContext: message });
     }
 
     if (failedAttempts >= WARN_THRESHOLD) {
       const message = buildWarningMessage(criterionId, failedAttempts);
-      deps.stderr(`[ArchEscalation] ⚠️  Warning escalation for ${criterionId} (${failedAttempts} failures)`);
+      deps.stderr(
+        `[ArchEscalation] ⚠️  Warning escalation for ${criterionId} (${failedAttempts} failures)`,
+      );
       return ok({ type: "continue", continue: true, additionalContext: message });
     }
 

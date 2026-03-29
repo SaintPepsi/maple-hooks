@@ -1,11 +1,14 @@
-import { describe, test, expect } from "bun:test";
-import { GitignoreRecommender, type GitignoreRecommenderDeps } from "./GitignoreRecommender.contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  GitignoreRecommender,
+  type GitignoreRecommenderDeps,
+} from "./GitignoreRecommender.contract";
 
 const PAI_ROOT = "/Users/hogers/.claude";
 const PROJECT_DIR = "/Users/hogers/Projects/my-app";
@@ -38,7 +41,10 @@ describe("GitignoreRecommender", () => {
   describe("skips when in ~/.claude directory", () => {
     test("returns continue with no additionalContext when cwd is paiRoot", () => {
       const deps = makeDeps({ cwd: () => PAI_ROOT });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");
@@ -58,7 +64,10 @@ describe("GitignoreRecommender", () => {
           return err(fileNotFound(path));
         },
       });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");
@@ -75,7 +84,10 @@ describe("GitignoreRecommender", () => {
           return err(fileNotFound(path));
         },
       });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.additionalContext).toBeDefined();
@@ -93,7 +105,10 @@ describe("GitignoreRecommender", () => {
           return err(fileNotFound(path));
         },
       });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");
@@ -112,7 +127,10 @@ describe("GitignoreRecommender", () => {
           return err(fileNotFound(path));
         },
       });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.additionalContext).toBeUndefined();
@@ -123,7 +141,10 @@ describe("GitignoreRecommender", () => {
   describe("returns additionalContext when neither file has it", () => {
     test("injects recommendation when no .claude directory exists", () => {
       const deps = makeDeps();
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");
@@ -136,7 +157,10 @@ describe("GitignoreRecommender", () => {
 
     test("recommendation mentions .env and credentials", () => {
       const deps = makeDeps();
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.additionalContext).toContain(".env");
@@ -155,7 +179,10 @@ describe("GitignoreRecommender", () => {
           return err(fileNotFound(path));
         },
       });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.additionalContext).toBeDefined();
@@ -170,7 +197,10 @@ describe("GitignoreRecommender", () => {
         fileExists: (path) => path === settingsPath,
         readFile: (_path) => err(fileNotFound(_path)),
       });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       // Fails open: injects recommendation (treats unreadable as not set)
       if (result.ok) {
@@ -188,7 +218,10 @@ describe("GitignoreRecommender", () => {
           return err(fileNotFound(path));
         },
       });
-      const result = GitignoreRecommender.execute(baseInput, deps) as Result<ContinueOutput, PaiError>;
+      const result = GitignoreRecommender.execute(baseInput, deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");

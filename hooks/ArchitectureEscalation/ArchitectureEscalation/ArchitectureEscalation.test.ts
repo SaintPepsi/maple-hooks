@@ -1,17 +1,17 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, PaiError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
-  ArchitectureEscalation,
-  WARN_THRESHOLD,
-  STOP_THRESHOLD,
   type ArchEscalationDeps,
-  loadState,
-  saveState,
+  ArchitectureEscalation,
   buildWarningMessage,
   getStatePath,
+  loadState,
+  STOP_THRESHOLD,
+  saveState,
+  WARN_THRESHOLD,
 } from "./ArchitectureEscalation.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
 
 /**
  * In-memory fs mock -- no real filesystem needed.
@@ -188,7 +188,8 @@ describe("loadState", () => {
   it("returns empty state when readJson fails", () => {
     const deps = makeDeps({
       fileExists: () => true,
-      readJson: <T>(_path: string): Result<T, PaiError> => err(new PaiError(ErrorCode.FileReadFailed, "corrupt")),
+      readJson: <T>(_path: string): Result<T, PaiError> =>
+        err(new PaiError(ErrorCode.FileReadFailed, "corrupt")),
     });
     const state = loadState("test", deps);
     expect(state.sessionId).toBe("test");
@@ -198,7 +199,8 @@ describe("loadState", () => {
   it("returns parsed state when file exists and is valid", () => {
     const deps = makeDeps({
       fileExists: () => true,
-      readJson: <T>(_path: string): Result<T, PaiError> => ok({ sessionId: "test", criteria: { C1: { inProgressCount: 3, lastSeenAt: 100 } } } as T),
+      readJson: <T>(_path: string): Result<T, PaiError> =>
+        ok({ sessionId: "test", criteria: { C1: { inProgressCount: 3, lastSeenAt: 100 } } } as T),
     });
     const state = loadState("test", deps);
     expect(state.criteria.C1.inProgressCount).toBe(3);
@@ -211,19 +213,27 @@ describe("saveState", () => {
     const deps = makeDeps({
       writeJson: () => err({ code: "WRITE_FAILED", message: "disk full" } as unknown as PaiError),
       ensureDir: () => ok(undefined),
-      stderr: (msg: string) => { stderrMessages.push(msg); },
+      stderr: (msg: string) => {
+        stderrMessages.push(msg);
+      },
     });
     saveState({ sessionId: "test", criteria: {} }, deps);
-    expect(stderrMessages.some(m => m.includes("Failed to save state"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("Failed to save state"))).toBe(true);
   });
 
   it("succeeds when writeJson succeeds", () => {
     let writtenData: unknown = null;
     const deps = makeDeps({
-      writeJson: (_path: string, data: unknown) => { writtenData = data; return ok(undefined); },
+      writeJson: (_path: string, data: unknown) => {
+        writtenData = data;
+        return ok(undefined);
+      },
       ensureDir: () => ok(undefined),
     });
-    saveState({ sessionId: "test", criteria: { C1: { inProgressCount: 1, lastSeenAt: 100 } } }, deps);
+    saveState(
+      { sessionId: "test", criteria: { C1: { inProgressCount: 1, lastSeenAt: 100 } } },
+      deps,
+    );
     expect(writtenData).not.toBeNull();
   });
 });
@@ -272,7 +282,9 @@ describe("ArchitectureEscalation defaultDeps", () => {
   });
 
   it("defaultDeps.fileExists returns a boolean", () => {
-    expect(typeof ArchitectureEscalation.defaultDeps.fileExists("/tmp/nonexistent")).toBe("boolean");
+    expect(typeof ArchitectureEscalation.defaultDeps.fileExists("/tmp/nonexistent")).toBe(
+      "boolean",
+    );
   });
 
   it("defaultDeps.readJson returns a Result", () => {
@@ -281,7 +293,9 @@ describe("ArchitectureEscalation defaultDeps", () => {
   });
 
   it("defaultDeps.writeJson returns a Result", () => {
-    const result = ArchitectureEscalation.defaultDeps.writeJson("/tmp/pai-test-write-12345.json", { test: true });
+    const result = ArchitectureEscalation.defaultDeps.writeJson("/tmp/pai-test-write-12345.json", {
+      test: true,
+    });
     expect(typeof result.ok).toBe("boolean");
   });
 

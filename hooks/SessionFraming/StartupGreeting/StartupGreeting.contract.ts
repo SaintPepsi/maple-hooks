@@ -5,14 +5,14 @@
  * Skips for subagents.
  */
 
+import { join } from "node:path";
+import { ensureDir, fileExists, readJson, writeFile } from "@hooks/core/adapters/fs";
+import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { fileExists, readJson, writeFile, ensureDir } from "@hooks/core/adapters/fs";
-import { spawnSyncSafe } from "@hooks/core/adapters/process";
-import { join } from "path";
 import { persistKittySession } from "@hooks/lib/tab-setter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -57,8 +57,7 @@ const defaultDeps: StartupGreetingDeps = {
   isSubagent: () => {
     const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
     return (
-      claudeProjectDir.includes("/.claude/Agents/") ||
-      process.env.CLAUDE_AGENT_TYPE !== undefined
+      claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined
     );
   },
   getEnv: (key) => process.env[key],
@@ -66,7 +65,7 @@ const defaultDeps: StartupGreetingDeps = {
   ensureDir,
   writeFile,
   paiDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const StartupGreeting: SyncHookContract<
@@ -100,7 +99,11 @@ export const StartupGreeting: SyncHookContract<
         deps.ensureDir(stateDir);
         deps.writeFile(
           join(stateDir, "kitty-env.json"),
-          JSON.stringify({ KITTY_LISTEN_ON: kittyListenOn, KITTY_WINDOW_ID: kittyWindowId }, null, 2),
+          JSON.stringify(
+            { KITTY_LISTEN_ON: kittyListenOn, KITTY_WINDOW_ID: kittyWindowId },
+            null,
+            2,
+          ),
         );
       }
     }

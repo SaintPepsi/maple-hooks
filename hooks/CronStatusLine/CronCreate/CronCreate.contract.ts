@@ -8,29 +8,29 @@
  * Runner: @hooks/core/runner.ts
  */
 
+import {
+  appendFile,
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import {
-  readCronFile,
-  writeCronFile,
   appendCronLog,
   type CronEntry,
-  type CronSessionFile,
   type CronFileDeps,
   type CronPathDeps,
+  type CronSessionFile,
+  readCronFile,
+  writeCronFile,
 } from "@hooks/hooks/CronStatusLine/shared";
-import {
-  readFile,
-  writeFile,
-  fileExists,
-  ensureDir,
-  readDir,
-  removeFile,
-  appendFile,
-} from "@hooks/core/adapters/fs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +47,9 @@ interface CronCreateToolResponse {
 }
 
 /** Type guard: narrows ToolHookInput["tool_response"] to CronCreateToolResponse. */
-function isCronCreateResponse(value: ToolHookInput["tool_response"]): value is CronCreateToolResponse {
+function isCronCreateResponse(
+  value: ToolHookInput["tool_response"],
+): value is CronCreateToolResponse {
   return typeof value === "object" && value !== null;
 }
 
@@ -77,18 +79,14 @@ const defaultDeps: CronCreateDeps = {
   readDir,
   removeFile,
   appendFile,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   getEnv: (key) => process.env[key],
   now: () => Date.now(),
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronCreateContract: SyncHookContract<
-  ToolHookInput,
-  SilentOutput,
-  CronCreateDeps
-> = {
+export const CronCreateContract: SyncHookContract<ToolHookInput, SilentOutput, CronCreateDeps> = {
   name: "CronCreate",
   event: "PostToolUse",
 
@@ -96,10 +94,7 @@ export const CronCreateContract: SyncHookContract<
     return input.tool_name === "CronCreate";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: CronCreateDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CronCreateDeps): Result<SilentOutput, PaiError> {
     const sessionId = input.session_id;
     const now = deps.now();
 
@@ -141,11 +136,7 @@ export const CronCreateContract: SyncHookContract<
     if (!writeResult.ok) return writeResult;
 
     // Append log event
-    appendCronLog(
-      { type: "created", cronId, name, schedule, sessionId },
-      deps,
-      deps,
-    );
+    appendCronLog({ type: "created", cronId, name, schedule, sessionId }, deps, deps);
 
     return ok({ type: "silent" });
   },

@@ -10,12 +10,12 @@
  *   - Manifest types: cli/types/manifest.ts
  */
 
-import { generate } from "@hooks/scripts/generate-manifests";
+import { dirname, join } from "node:path";
 import {
-  readFile as adapterReadFile,
   fileExists as adapterFileExists,
+  readFile as adapterReadFile,
 } from "@hooks/core/adapters/fs";
-import { dirname, join } from "path";
+import { generate } from "@hooks/scripts/generate-manifests";
 
 // ─── Derivable Field Comparison ─────────────────────────────────────────────
 
@@ -97,9 +97,7 @@ function main(): void {
     const generated = JSON.parse(file.content) as Record<string, unknown>;
     const committed = JSON.parse(committedResult.value) as Record<string, unknown>;
 
-    const keys = file.path.endsWith("hook.json")
-      ? HOOK_DERIVABLE_KEYS
-      : GROUP_DERIVABLE_KEYS;
+    const keys = file.path.endsWith("hook.json") ? HOOK_DERIVABLE_KEYS : GROUP_DERIVABLE_KEYS;
 
     allDrifts.push(...compareDerivable(file.path, generated, committed, keys));
   }

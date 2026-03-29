@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
+  bodySimilarity,
   buildNodeTypeVector,
   cosineSimilarity,
-  bodySimilarity,
 } from "@tools/pattern-detector/similarity";
 import type { ParsedFunction } from "@tools/pattern-detector/types";
 
@@ -50,11 +50,7 @@ describe("buildNodeTypeVector", () => {
 
   test("counts multiple distinct node types", () => {
     const fn = makeFunction({
-      bodyNodeTypes: [
-        "ReturnStatement",
-        "BinaryExpression",
-        "MemberExpression",
-      ],
+      bodyNodeTypes: ["ReturnStatement", "BinaryExpression", "MemberExpression"],
     });
     const vec = buildNodeTypeVector(fn);
     expect(vec.get("ReturnStatement")).toBe(1);
@@ -72,13 +68,22 @@ describe("buildNodeTypeVector", () => {
 
 describe("cosineSimilarity", () => {
   test("returns 1.0 for identical non-empty vectors", () => {
-    const v = new Map([["IfStatement", 2], ["CallExpression", 3]]);
+    const v = new Map([
+      ["IfStatement", 2],
+      ["CallExpression", 3],
+    ]);
     expect(cosineSimilarity(v, v)).toBeCloseTo(1.0, 10);
   });
 
   test("returns 1.0 for identical copied vectors", () => {
-    const a = new Map([["A", 1], ["B", 2]]);
-    const b = new Map([["A", 1], ["B", 2]]);
+    const a = new Map([
+      ["A", 1],
+      ["B", 2],
+    ]);
+    const b = new Map([
+      ["A", 1],
+      ["B", 2],
+    ]);
     expect(cosineSimilarity(a, b)).toBeCloseTo(1.0, 10);
   });
 
@@ -107,8 +112,14 @@ describe("cosineSimilarity", () => {
   });
 
   test("returns value in [0, 1] for partially overlapping vectors", () => {
-    const a = new Map([["A", 3], ["B", 4]]);
-    const b = new Map([["A", 1], ["C", 2]]);
+    const a = new Map([
+      ["A", 3],
+      ["B", 4],
+    ]);
+    const b = new Map([
+      ["A", 1],
+      ["C", 2],
+    ]);
     const result = cosineSimilarity(a, b);
     expect(result).toBeGreaterThanOrEqual(0);
     expect(result).toBeLessThanOrEqual(1);
@@ -116,14 +127,26 @@ describe("cosineSimilarity", () => {
   });
 
   test("is symmetric", () => {
-    const a = new Map([["X", 2], ["Y", 1]]);
-    const b = new Map([["X", 1], ["Z", 3]]);
+    const a = new Map([
+      ["X", 2],
+      ["Y", 1],
+    ]);
+    const b = new Map([
+      ["X", 1],
+      ["Z", 3],
+    ]);
     expect(cosineSimilarity(a, b)).toBeCloseTo(cosineSimilarity(b, a), 10);
   });
 
   test("proportional vectors yield similarity 1.0", () => {
-    const a = new Map([["A", 1], ["B", 2]]);
-    const b = new Map([["A", 3], ["B", 6]]);
+    const a = new Map([
+      ["A", 1],
+      ["B", 2],
+    ]);
+    const b = new Map([
+      ["A", 3],
+      ["B", 6],
+    ]);
     expect(cosineSimilarity(a, b)).toBeCloseTo(1.0, 10);
   });
 });
@@ -139,20 +162,10 @@ describe("bodySimilarity", () => {
 
   test("returns high score for very similar functions", () => {
     const a = makeFunction({
-      bodyNodeTypes: [
-        "IfStatement",
-        "CallExpression",
-        "CallExpression",
-        "ReturnStatement",
-      ],
+      bodyNodeTypes: ["IfStatement", "CallExpression", "CallExpression", "ReturnStatement"],
     });
     const b = makeFunction({
-      bodyNodeTypes: [
-        "IfStatement",
-        "CallExpression",
-        "CallExpression",
-        "ReturnStatement",
-      ],
+      bodyNodeTypes: ["IfStatement", "CallExpression", "CallExpression", "ReturnStatement"],
     });
     expect(bodySimilarity(a, b)).toBeGreaterThan(0.9);
   });
@@ -162,11 +175,7 @@ describe("bodySimilarity", () => {
       bodyNodeTypes: ["IfStatement", "ForStatement", "WhileStatement"],
     });
     const b = makeFunction({
-      bodyNodeTypes: [
-        "CallExpression",
-        "MemberExpression",
-        "AssignmentExpression",
-      ],
+      bodyNodeTypes: ["CallExpression", "MemberExpression", "AssignmentExpression"],
     });
     const score = bodySimilarity(a, b);
     expect(score).toBeLessThan(0.5);

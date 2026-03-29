@@ -11,15 +11,21 @@
  * and run tests" instruction; files with tests get a "run tests" instruction.
  */
 
+import { join } from "node:path";
+import {
+  fileExists as fsFileExists,
+  readFile,
+  readJson,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput, StopInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { writeFile, readFile, readJson, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
 import { isScorableFile } from "@hooks/core/language-profiles";
+import { ok, type Result } from "@hooks/core/result";
+import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +43,13 @@ export interface TestObligationDeps {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-const TEST_FILE_PATTERNS = [/\.test\.\w+$/, /\.spec\.\w+$/, /__tests__\//, /Test\.php$/, /\/tests\/(?:Feature|Unit)\//];
+const TEST_FILE_PATTERNS = [
+  /\.test\.\w+$/,
+  /\.spec\.\w+$/,
+  /__tests__\//,
+  /Test\.php$/,
+  /\/tests\/(?:Feature|Unit)\//,
+];
 
 const TEST_COMMANDS = [
   /\bbun\s+test\b/,
@@ -77,17 +89,17 @@ function extractTestedSourceFiles(command: string): string[] | null {
 
 /** Check if a pending file matches a tested source file (by ending match). */
 function pendingMatchesSource(pendingFile: string, sourceFile: string): boolean {
-  return pendingFile.endsWith(sourceFile) || pendingFile.endsWith("/" + sourceFile);
+  return pendingFile.endsWith(sourceFile) || pendingFile.endsWith(`/${sourceFile}`);
 }
 
 function getFilePath(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 function getCommand(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).command as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).command as string) ?? null;
 }
 
 function pendingPath(stateDir: string, sessionId: string): string {
@@ -100,7 +112,11 @@ function blockCountPath(stateDir: string, sessionId: string): string {
 
 const MAX_BLOCKS = 2;
 
-function buildBlockLimitReview(obligationType: string, pendingFiles: string[], blockCount: number): string {
+function buildBlockLimitReview(
+  obligationType: string,
+  pendingFiles: string[],
+  blockCount: number,
+): string {
   const timestamp = new Date().toISOString();
   const fileList = pendingFiles.map((f) => `- ${f}`).join("\n");
   return `# ${obligationType === "test" ? "Test" : "Doc"} Obligation Review
@@ -151,7 +167,7 @@ function getStateDir(): string {
   return join(paiDir, "MEMORY", "STATE", "test-obligation");
 }
 
-const stderr = (msg: string) => process.stderr.write(msg + "\n");
+const stderr = (msg: string) => process.stderr.write(`${msg}\n`);
 
 const defaultDeps: TestObligationDeps = {
   stateDir: getStateDir(),
@@ -164,7 +180,7 @@ const defaultDeps: TestObligationDeps = {
       }
       return [];
     }
-    return Array.isArray(result.value) ? result.value as string[] : [];
+    return Array.isArray(result.value) ? (result.value as string[]) : [];
   },
   writePending: (path: string, files: string[]) => {
     const result = writeFile(path, JSON.stringify(files));
@@ -182,7 +198,7 @@ const defaultDeps: TestObligationDeps = {
     const result = readFile(path);
     if (!result.ok) return 0;
     const n = parseInt(result.value.trim(), 10);
-    return isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
     const result = writeFile(path, String(count));
@@ -221,10 +237,7 @@ export const TestObligationTracker: SyncHookContract<
     return false;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: TestObligationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: TestObligationDeps): Result<ContinueOutput, PaiError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     // Bash: check if test command, clear matching files or all
@@ -249,7 +262,9 @@ export const TestObligationTracker: SyncHookContract<
             deps.stderr("[TestObligationTracker] All pending files tested — clearing flag");
           } else {
             deps.writePending(flagFile, remaining);
-            deps.stderr(`[TestObligationTracker] Cleared tested files, ${remaining.length} still pending`);
+            deps.stderr(
+              `[TestObligationTracker] Cleared tested files, ${remaining.length} still pending`,
+            );
           }
         }
       }
@@ -314,7 +329,9 @@ export const TestObligationEnforcer: SyncHookContract<
       deps.writeReview(reviewPath, review);
       deps.removeFlag(flagFile);
       deps.removeFlag(countFile);
-      deps.stderr(`[TestObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`);
+      deps.stderr(
+        `[TestObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`,
+      );
       return ok({ type: "silent" });
     }
 
@@ -345,7 +362,9 @@ export const TestObligationEnforcer: SyncHookContract<
     const reason = `${opener}\n\n${sections.join("\n\n")}`;
 
     deps.writeBlockCount(countFile, blockCount + 1);
-    deps.stderr(`[TestObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without tests`);
+    deps.stderr(
+      `[TestObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without tests`,
+    );
 
     return ok({ type: "block", decision: "block", reason });
   },

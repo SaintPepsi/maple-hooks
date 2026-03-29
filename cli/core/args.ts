@@ -8,10 +8,10 @@
  *   - Unknown flags → Err(INVALID_ARGS)
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
 import { invalidArgs } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -90,7 +90,5 @@ export function parseArgs(argv: string[]): Result<ParsedArgs, PaihError> {
 
 /** Convert --dry-run to dryRun, --force to force, etc. */
 function flagKey(flag: string): string {
-  return flag
-    .replace(/^--/, "")
-    .replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
+  return flag.replace(/^--/, "").replace(/-([a-z])/g, (_, c: string) => c.toUpperCase());
 }

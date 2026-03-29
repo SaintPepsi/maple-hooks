@@ -5,25 +5,24 @@
  * and verifies the Deps injection pattern works correctly.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { fileNotFound } from "@hooks/core/error";
 import {
-  getIdentity,
-  getPrincipal,
+  clearCache,
   getDAName,
-  getPrincipalName,
-  getVoiceId,
-  getVoiceProsody,
-  getVoicePersonality,
   getDefaultIdentity,
   getDefaultPrincipal,
-  clearCache,
+  getIdentity,
+  getPrincipal,
+  getPrincipalName,
+  getVoiceId,
+  getVoicePersonality,
+  getVoiceProsody,
   type IdentityDeps,
-  type Identity,
+  type Settings,
   type VoicePersonality,
   type VoiceProsody,
-  type Settings,
 } from "@hooks/lib/identity";
-import { fileNotFound } from "@hooks/core/error";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 

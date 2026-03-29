@@ -1,13 +1,13 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  type ObligationDeps,
-  type ObligationConfig,
-  pendingPath,
-  blockCountPath,
   addPending,
-  clearMatching,
-  checkObligation,
+  blockCountPath,
   buildBlockLimitReview,
+  checkObligation,
+  clearMatching,
+  type ObligationConfig,
+  type ObligationDeps,
+  pendingPath,
 } from "@hooks/lib/obligation-machine";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -62,7 +62,9 @@ describe("addPending", () => {
     let written: string[] = [];
     const deps = makeDeps({
       readPending: () => [],
-      writePending: (_p, files) => { written = files; },
+      writePending: (_p, files) => {
+        written = files;
+      },
     });
 
     addPending(deps, "/flag.json", "/src/a.ts");
@@ -73,7 +75,9 @@ describe("addPending", () => {
     let written: string[] = [];
     const deps = makeDeps({
       readPending: () => ["/src/a.ts"],
-      writePending: (_p, files) => { written = files; },
+      writePending: (_p, files) => {
+        written = files;
+      },
     });
 
     addPending(deps, "/flag.json", "/src/a.ts");
@@ -84,7 +88,9 @@ describe("addPending", () => {
     let written: string[] = [];
     const deps = makeDeps({
       readPending: () => ["/src/a.ts"],
-      writePending: (_p, files) => { written = files; },
+      writePending: (_p, files) => {
+        written = files;
+      },
     });
 
     addPending(deps, "/flag.json", "/src/b.ts");
@@ -106,7 +112,9 @@ describe("clearMatching", () => {
     const deps = makeDeps({
       fileExists: () => true,
       readPending: () => ["/src/a.ts", "/src/b.ts"],
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
     const result = clearMatching(deps, "/flag.json", () => true);
@@ -119,7 +127,9 @@ describe("clearMatching", () => {
     const deps = makeDeps({
       fileExists: () => true,
       readPending: () => ["/src/a.ts", "/lib/b.ts"],
-      writePending: (_p, files) => { written = files; },
+      writePending: (_p, files) => {
+        written = files;
+      },
     });
 
     const result = clearMatching(deps, "/flag.json", (p) => p.startsWith("/src/"));
@@ -165,7 +175,9 @@ describe("checkObligation", () => {
       fileExists: () => true,
       readPending: () => ["/src/a.ts"],
       readBlockCount: () => 0,
-      writeBlockCount: (_p, count) => { writtenCount = count; },
+      writeBlockCount: (_p, count) => {
+        writtenCount = count;
+      },
     });
     checkObligation(deps, TEST_CONFIG, "sess-1");
     expect(writtenCount).toBe(1);
@@ -183,13 +195,17 @@ describe("checkObligation", () => {
 
   it("writes review and cleans up on release", () => {
     let reviewWritten = false;
-    let removedPaths: string[] = [];
+    const removedPaths: string[] = [];
     const deps = makeDeps({
       fileExists: () => true,
       readPending: () => ["/src/a.ts"],
       readBlockCount: () => 2,
-      writeReview: () => { reviewWritten = true; },
-      removeFlag: (p) => { removedPaths.push(p); },
+      writeReview: () => {
+        reviewWritten = true;
+      },
+      removeFlag: (p) => {
+        removedPaths.push(p);
+      },
     });
 
     checkObligation(deps, TEST_CONFIG, "sess-1");

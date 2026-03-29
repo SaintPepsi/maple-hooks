@@ -4,9 +4,6 @@
   "event": "SessionStart",
   "description": "Spawns message queue HTTP server for realtime Koord daemon relay",
   "schemaVersion": 1,
-  "tags": [
-    "koord",
-    "message-queue"
-  ],
+  "tags": ["koord", "message-queue"],
   "presets": []
 }

@@ -1,8 +1,6 @@
 {
   "name": "LastResponseCache",
   "description": "Last response caching for reference",
-  "hooks": [
-    "LastResponseCache"
-  ],
+  "hooks": ["LastResponseCache"],
   "sharedFiles": []
 }

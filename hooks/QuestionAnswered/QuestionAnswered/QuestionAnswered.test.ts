@@ -1,6 +1,9 @@
-import { describe, it, expect } from "bun:test";
-import { QuestionAnswered, type QuestionAnsweredDeps } from "@hooks/hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.contract";
+import { describe, expect, it } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  QuestionAnswered,
+  type QuestionAnsweredDeps,
+} from "@hooks/hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.contract";
 import type { TabState } from "@hooks/lib/tab-constants";
 
 interface CapturedTabState {
@@ -44,8 +47,14 @@ describe("QuestionAnswered", () => {
   it("restores previous title when available", () => {
     const captured: { state: CapturedTabState | null } = { state: null };
     const deps = makeDeps({
-      setTabState: (state) => { captured.state = state as CapturedTabState; },
-      readTabState: () => ({ title: "teal title", previousTitle: "Old Working Title", state: "question" as const }),
+      setTabState: (state) => {
+        captured.state = state as CapturedTabState;
+      },
+      readTabState: () => ({
+        title: "teal title",
+        previousTitle: "Old Working Title",
+        state: "question" as const,
+      }),
       stripPrefix: (s: string) => s,
     });
     QuestionAnswered.execute(makeInput(), deps);
@@ -56,7 +65,9 @@ describe("QuestionAnswered", () => {
   it("uses fallback when no previous title", () => {
     const captured: { state: CapturedTabState | null } = { state: null };
     const deps = makeDeps({
-      setTabState: (state) => { captured.state = state as CapturedTabState; },
+      setTabState: (state) => {
+        captured.state = state as CapturedTabState;
+      },
     });
     QuestionAnswered.execute(makeInput(), deps);
     expect(captured.state?.title).toContain("Processing answer");

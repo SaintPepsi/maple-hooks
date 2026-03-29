@@ -15,7 +15,7 @@
  *   2 — Invalid arguments or missing queue directory
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 // ─── Arg Parsing ────────────────────────────────────────────────────────────
 

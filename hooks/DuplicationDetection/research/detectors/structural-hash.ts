@@ -1,4 +1,9 @@
-import type { Cluster, ClusterMember, ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
+import type {
+  Cluster,
+  ClusterMember,
+  ParsedFile,
+  ParsedFunction,
+} from "@tools/pattern-detector/types";
 
 export function detectStructuralHash(files: ParsedFile[]): Cluster[] {
   const allFunctions: ParsedFunction[] = files.flatMap((f) => f.functions);

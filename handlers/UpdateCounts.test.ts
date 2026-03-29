@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { writeFile, ensureDir, removeFile, readFile } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { beforeEach, describe, expect, it } from "bun:test";
+import { join } from "node:path";
+import { ensureDir, readFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -65,14 +65,17 @@ function setupPaiDir(): string {
     existing: true,
     hooks: {
       PreToolUse: [
-        { hooks: [{ type: "command", command: "hook1.ts" }, { type: "command", command: "hook2.ts" }] },
+        {
+          hooks: [
+            { type: "command", command: "hook1.ts" },
+            { type: "command", command: "hook2.ts" },
+          ],
+        },
       ],
-      SessionEnd: [
-        { hooks: [{ type: "command", command: "hook3.ts" }] },
-      ],
+      SessionEnd: [{ hooks: [{ type: "command", command: "hook3.ts" }] }],
     },
   };
-  writeTestFile(join(dir, "settings.json"), JSON.stringify(settings, null, 2) + "\n");
+  writeTestFile(join(dir, "settings.json"), `${JSON.stringify(settings, null, 2)}\n`);
 
   return dir;
 }
@@ -131,7 +134,7 @@ describe("UpdateCounts handler", () => {
 
   it("handles empty MEMORY directory", () => {
     const emptyDir = makeTempDir();
-    writeTestFile(join(emptyDir, "settings.json"), JSON.stringify({ hooks: {} }, null, 2) + "\n");
+    writeTestFile(join(emptyDir, "settings.json"), `${JSON.stringify({ hooks: {} }, null, 2)}\n`);
     ensureDir(join(emptyDir, "MEMORY"));
     ensureDir(join(emptyDir, "MEMORY", "STATE"));
     ensureDir(join(emptyDir, "skills"));

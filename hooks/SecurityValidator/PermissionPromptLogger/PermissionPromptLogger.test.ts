@@ -111,10 +111,7 @@ describe("PermissionPromptLogger.execute", () => {
       },
     });
 
-    PermissionPromptLogger.execute(
-      makeInput("Agent", { prompt: "Run tests in background" }),
-      deps,
-    );
+    PermissionPromptLogger.execute(makeInput("Agent", { prompt: "Run tests in background" }), deps);
 
     const entry = JSON.parse(logged.trim());
     expect(entry.tool_name).toBe("Agent");

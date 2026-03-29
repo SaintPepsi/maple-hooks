@@ -1,12 +1,12 @@
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { ok } from "@hooks/core/result";
+import { join } from "node:path";
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
-import { join } from "path";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { ok } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -28,11 +28,7 @@ const defaultDeps: CanaryHookDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CanaryHook: SyncHookContract<
-  SessionStartInput,
-  ContinueOutput,
-  CanaryHookDeps
-> = {
+export const CanaryHook: SyncHookContract<SessionStartInput, ContinueOutput, CanaryHookDeps> = {
   name: "CanaryHook",
   event: "SessionStart",
 
@@ -45,7 +41,7 @@ export const CanaryHook: SyncHookContract<
     const logFile = join(logDir, "canary-hook.log");
 
     deps.ensureDir(logDir);
-    deps.appendFile(logFile, new Date().toISOString() + "\n");
+    deps.appendFile(logFile, `${new Date().toISOString()}\n`);
     deps.execSyncSafe(`code "${logFile}"`);
 
     return ok({ type: "continue" as const, continue: true as const });

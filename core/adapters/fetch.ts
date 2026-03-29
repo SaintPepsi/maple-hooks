@@ -2,8 +2,8 @@
  * Fetch Adapter — HTTP requests wrapped in Result with timeout via AbortController.
  */
 
-import { type Result, ok, err } from "../result";
-import { type PaiError, fetchFailed, fetchTimeout } from "../error";
+import { fetchFailed, fetchTimeout, type PaiError } from "../error";
+import { err, ok, type Result } from "../result";
 
 export interface FetchResult {
   status: number;
@@ -31,7 +31,9 @@ export async function safeFetch(
 
     const body = await response.text();
     const headers: Record<string, string> = {};
-    response.headers.forEach((v, k) => { headers[k] = v; });
+    response.headers.forEach((v, k) => {
+      headers[k] = v;
+    });
 
     return ok({ status: response.status, body, headers });
   } catch (e) {

@@ -1,8 +1,6 @@
 {
   "name": "SkillGuard",
   "description": "Skill invocation validation",
-  "hooks": [
-    "SkillGuard"
-  ],
+  "hooks": ["SkillGuard"],
   "sharedFiles": []
 }

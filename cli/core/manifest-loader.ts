@@ -11,15 +11,15 @@
  *   hooks/<Group>/<Hook>/hook.json
  */
 
+import type { PaihError } from "@hooks/cli/core/error";
+import { PaihError as PaihErrorClass, PaihErrorCode } from "@hooks/cli/core/error";
+import type { ManifestIndex } from "@hooks/cli/core/resolver";
 import type { Result } from "@hooks/cli/core/result";
 import { ok } from "@hooks/cli/core/result";
-import { tryCatch } from "@hooks/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { PaihErrorCode, PaihError as PaihErrorClass } from "@hooks/cli/core/error";
 import type { CliDeps } from "@hooks/cli/types/deps";
-import type { HookManifest, GroupManifest, PresetEntry } from "@hooks/cli/types/manifest";
+import type { GroupManifest, HookManifest, PresetEntry } from "@hooks/cli/types/manifest";
 import type { HookDef } from "@hooks/cli/types/resolved";
-import type { ManifestIndex } from "@hooks/cli/core/resolver";
+import { tryCatch } from "@hooks/core/result";
 
 // ─── Loader ─────────────────────────────────────────────────────────────────
 
@@ -29,10 +29,7 @@ import type { ManifestIndex } from "@hooks/cli/core/resolver";
  * @param sourceRoot - Absolute path to the pai-hooks repo root.
  * @param deps - Injectable filesystem dependencies.
  */
-export function loadManifests(
-  sourceRoot: string,
-  deps: CliDeps,
-): Result<ManifestIndex, PaihError> {
+export function loadManifests(sourceRoot: string, deps: CliDeps): Result<ManifestIndex, PaihError> {
   const hooksDir = `${sourceRoot}/hooks`;
   const hooks = new Map<string, HookDef>();
   const groups = new Map<string, GroupManifest>();
@@ -110,10 +107,9 @@ function loadJson<T>(path: string, deps: CliDeps): Result<T, PaihError> {
 
   return tryCatch(
     () => JSON.parse(content.value) as T,
-    () => new PaihErrorClass(
-      PaihErrorCode.ManifestParseError,
-      `Failed to parse JSON at ${path}`,
-      { path },
-    ),
+    () =>
+      new PaihErrorClass(PaihErrorCode.ManifestParseError, `Failed to parse JSON at ${path}`, {
+        path,
+      }),
   );
 }

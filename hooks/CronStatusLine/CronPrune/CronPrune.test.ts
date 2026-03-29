@@ -5,18 +5,23 @@
  * while fresh files are left intact.
  */
 
-import { describe, it, expect } from "bun:test";
-import { CronPrune, DEFAULT_PRUNE_THRESHOLD_MS, cronIntervalMs, type CronPruneDeps } from "./CronPrune.contract";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, PaiError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
-import { ok, err } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
+import {
+  CronPrune,
+  type CronPruneDeps,
+  cronIntervalMs,
+  DEFAULT_PRUNE_THRESHOLD_MS,
+} from "./CronPrune.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
 // Default mock cron has "* * * * *" which returns DEFAULT_PRUNE_THRESHOLD_MS from cronIntervalMs.
 // Dynamic threshold = 2x that = 10 minutes. Set stale time to exceed it.
-const STALE_AGO = Date.now() - (DEFAULT_PRUNE_THRESHOLD_MS * 2) - 1000;
+const STALE_AGO = Date.now() - DEFAULT_PRUNE_THRESHOLD_MS * 2 - 1000;
 const ONE_MINUTE_AGO = Date.now() - 60_000;
 
 function makeDeps(overrides: Partial<CronPruneDeps> = {}): CronPruneDeps {
@@ -26,7 +31,24 @@ function makeDeps(overrides: Partial<CronPruneDeps> = {}): CronPruneDeps {
       if (key === "HOME") return "/tmp";
       return undefined;
     },
-    readFile: () => ok(JSON.stringify({ sessionId: "dead-session", crons: [{ id: "c1", name: "test", schedule: "* * * * *", recurring: true, prompt: "hello", createdAt: 0, fireCount: 0, lastFired: null }] })),
+    readFile: () =>
+      ok(
+        JSON.stringify({
+          sessionId: "dead-session",
+          crons: [
+            {
+              id: "c1",
+              name: "test",
+              schedule: "* * * * *",
+              recurring: true,
+              prompt: "hello",
+              createdAt: 0,
+              fireCount: 0,
+              lastFired: null,
+            },
+          ],
+        }),
+      ),
     writeFile: () => ok(undefined),
     fileExists: () => true,
     ensureDir: () => ok(undefined),
@@ -64,7 +86,10 @@ describe("CronPrune execute", () => {
   it("removes files older than 5 minutes", () => {
     const removed: string[] = [];
     const deps = makeDeps({
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -77,7 +102,10 @@ describe("CronPrune execute", () => {
     const removed: string[] = [];
     const deps = makeDeps({
       stat: () => ok({ mtimeMs: ONE_MINUTE_AGO }),
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -90,7 +118,10 @@ describe("CronPrune execute", () => {
     const deps = makeDeps({
       fileExists: () => false,
       readDir: () => err(new PaiError(ErrorCode.FileReadFailed, "no such dir")),
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -106,13 +137,34 @@ describe("CronPrune execute", () => {
     const sessionFile: CronSessionFile = {
       sessionId: "dead-session",
       crons: [
-        { id: "c1", name: "test1", schedule: "* * * * *", recurring: true, prompt: "p1", createdAt: 0, fireCount: 0, lastFired: null },
-        { id: "c2", name: "test2", schedule: "*/5 * * * *", recurring: true, prompt: "p2", createdAt: 0, fireCount: 0, lastFired: null },
+        {
+          id: "c1",
+          name: "test1",
+          schedule: "* * * * *",
+          recurring: true,
+          prompt: "p1",
+          createdAt: 0,
+          fireCount: 0,
+          lastFired: null,
+        },
+        {
+          id: "c2",
+          name: "test2",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "p2",
+          createdAt: 0,
+          fireCount: 0,
+          lastFired: null,
+        },
       ],
     };
     const deps = makeDeps({
       readFile: () => ok(JSON.stringify(sessionFile)),
-      appendFile: (_path: string, content: string) => { logged.push(content); return ok(undefined); },
+      appendFile: (_path: string, content: string) => {
+        logged.push(content);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -136,7 +188,10 @@ describe("CronPrune execute", () => {
         }
         return ok({ mtimeMs: STALE_AGO });
       },
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -150,7 +205,10 @@ describe("CronPrune execute", () => {
     const removed: string[] = [];
     const deps = makeDeps({
       readDir: () => ok(["session-a.json", "session-b.json", "session-c.json"]),
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -162,7 +220,10 @@ describe("CronPrune execute", () => {
     const removed: string[] = [];
     const deps = makeDeps({
       readDir: () => ok(["readme.txt", ".gitkeep", "session.json"]),
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -189,13 +250,25 @@ describe("CronPrune execute", () => {
     const sessionFile: CronSessionFile = {
       sessionId: "long-cron-session",
       crons: [
-        { id: "c1", name: "chore-loop", schedule: "*/30 * * * *", recurring: true, prompt: "chore", createdAt: 0, fireCount: 0, lastFired: null },
+        {
+          id: "c1",
+          name: "chore-loop",
+          schedule: "*/30 * * * *",
+          recurring: true,
+          prompt: "chore",
+          createdAt: 0,
+          fireCount: 0,
+          lastFired: null,
+        },
       ],
     };
     const deps = makeDeps({
       stat: () => ok({ mtimeMs: twentyMinAgo }),
       readFile: () => ok(JSON.stringify(sessionFile)),
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -210,13 +283,25 @@ describe("CronPrune execute", () => {
     const sessionFile: CronSessionFile = {
       sessionId: "expired-session",
       crons: [
-        { id: "c1", name: "chore-loop", schedule: "*/30 * * * *", recurring: true, prompt: "chore", createdAt: 0, fireCount: 0, lastFired: null },
+        {
+          id: "c1",
+          name: "chore-loop",
+          schedule: "*/30 * * * *",
+          recurring: true,
+          prompt: "chore",
+          createdAt: 0,
+          fireCount: 0,
+          lastFired: null,
+        },
       ],
     };
     const deps = makeDeps({
       stat: () => ok({ mtimeMs: seventyMinAgo }),
       readFile: () => ok(JSON.stringify(sessionFile)),
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);
@@ -231,14 +316,35 @@ describe("CronPrune execute", () => {
     const sessionFile: CronSessionFile = {
       sessionId: "multi-cron",
       crons: [
-        { id: "c1", name: "fast-poll", schedule: "*/5 * * * *", recurring: true, prompt: "poll", createdAt: 0, fireCount: 0, lastFired: null },
-        { id: "c2", name: "chore-loop", schedule: "*/30 * * * *", recurring: true, prompt: "chore", createdAt: 0, fireCount: 0, lastFired: null },
+        {
+          id: "c1",
+          name: "fast-poll",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "poll",
+          createdAt: 0,
+          fireCount: 0,
+          lastFired: null,
+        },
+        {
+          id: "c2",
+          name: "chore-loop",
+          schedule: "*/30 * * * *",
+          recurring: true,
+          prompt: "chore",
+          createdAt: 0,
+          fireCount: 0,
+          lastFired: null,
+        },
       ],
     };
     const deps = makeDeps({
       stat: () => ok({ mtimeMs: fifteenMinAgo }),
       readFile: () => ok(JSON.stringify(sessionFile)),
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronPrune.execute(makeInput(), deps);

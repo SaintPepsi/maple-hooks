@@ -16,12 +16,9 @@ import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import { jsonParseFailed, type PaiError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type {
-  BlockOutput,
-  ContinueOutput,
-} from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -118,8 +115,12 @@ const defaultDeps: ProtectedBranchGuardDeps = {
     return result.value.trim() || null;
   },
   getCwd: () => process.cwd(),
-  getExemptDirs: () => readExemptDirsFromSettings(getSettingsPath(), (p) => { const r = readFile(p); return r.ok ? r.value : null; }),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  getExemptDirs: () =>
+    readExemptDirsFromSettings(getSettingsPath(), (p) => {
+      const r = readFile(p);
+      return r.ok ? r.value : null;
+    }),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -158,9 +159,7 @@ export const ProtectedBranchGuard: SyncHookContract<
 
     // Fail open if branch cannot be determined
     if (!branch) {
-      deps.stderr(
-        "[ProtectedBranchGuard] Could not determine branch — allowing",
-      );
+      deps.stderr("[ProtectedBranchGuard] Could not determine branch — allowing");
       return ok({ type: "continue", continue: true });
     }
 
@@ -180,9 +179,7 @@ export const ProtectedBranchGuard: SyncHookContract<
         `  "hookConfig": { "protectedBranchGuard": { "exemptDirs": ["your-project-dir"] } }`,
       ].join("\n");
 
-      deps.stderr(
-        `[ProtectedBranchGuard] BLOCK: git mutation on protected branch '${branch}'`,
-      );
+      deps.stderr(`[ProtectedBranchGuard] BLOCK: git mutation on protected branch '${branch}'`);
 
       return ok({
         type: "block",

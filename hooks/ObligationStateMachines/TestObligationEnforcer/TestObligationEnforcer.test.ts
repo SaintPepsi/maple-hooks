@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
-import { TestObligationEnforcer } from "./TestObligationEnforcer.contract";
-import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+import { describe, expect, test } from "bun:test";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
+import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+import { TestObligationEnforcer } from "./TestObligationEnforcer.contract";
 
 const mockInput: StopInput = {
   hook_type: "Stop",
@@ -78,7 +78,9 @@ describe("TestObligationEnforcer", () => {
   test("increments block count", () => {
     let writtenCount = -1;
     const deps = makeDeps({
-      writeBlockCount: (_path, count) => { writtenCount = count; },
+      writeBlockCount: (_path, count) => {
+        writtenCount = count;
+      },
     });
     TestObligationEnforcer.execute(mockInput, deps);
     expect(writtenCount).toBe(1);
@@ -89,8 +91,12 @@ describe("TestObligationEnforcer", () => {
     let flagRemoved = false;
     const deps = makeDeps({
       readBlockCount: () => 2,
-      writeReview: () => { reviewWritten = true; },
-      removeFlag: () => { flagRemoved = true; },
+      writeReview: () => {
+        reviewWritten = true;
+      },
+      removeFlag: () => {
+        flagRemoved = true;
+      },
     });
     const result = TestObligationEnforcer.execute(mockInput, deps);
     expect(result.ok).toBe(true);

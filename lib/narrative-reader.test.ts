@@ -1,9 +1,13 @@
-import { describe, it, expect } from "bun:test";
-import { pickNarrative, scoreFromCount, type NarrativeReaderDeps } from "@hooks/lib/narrative-reader";
+import { describe, expect, it } from "bun:test";
+import {
+  type NarrativeReaderDeps,
+  pickNarrative,
+  scoreFromCount,
+} from "@hooks/lib/narrative-reader";
 
 function makeDeps(entries: Array<{ message: string; score: number }>): NarrativeReaderDeps {
   return {
-    readFile: () => entries.map(e => JSON.stringify(e)).join("\n"),
+    readFile: () => entries.map((e) => JSON.stringify(e)).join("\n"),
     fileExists: () => true,
     baseDir: "/tmp/test",
     stderr: () => {},
@@ -43,9 +47,7 @@ describe("pickNarrative", () => {
   });
 
   it("falls back to any tier if no match", () => {
-    const deps = makeDeps([
-      { message: "only-tier-2", score: 2 },
-    ]);
+    const deps = makeDeps([{ message: "only-tier-2", score: 2 }]);
     const result = pickNarrative("TestHook", 1, deps);
     expect(result).toBe("only-tier-2");
   });

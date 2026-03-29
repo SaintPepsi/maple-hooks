@@ -5,16 +5,16 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SubagentStopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
-import { type PaiError, jsonParseFailed } from "@hooks/core/error";
 import {
   type AgentFileData,
   type AgentLifecycleDeps,
-  defaultDeps,
   agentFilePath,
   cleanupOrphans,
+  defaultDeps,
 } from "@hooks/hooks/AgentLifecycle/shared";
 
 export const AgentLifecycleStop: SyncHookContract<
@@ -29,15 +29,10 @@ export const AgentLifecycleStop: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: SubagentStopInput,
-    deps: AgentLifecycleDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: SubagentStopInput, deps: AgentLifecycleDeps): Result<SilentOutput, PaiError> {
     const dirResult = deps.ensureDir(deps.getAgentsDir());
     if (!dirResult.ok) {
-      deps.stderr(
-        `[AgentLifecycle] Stop: failed to ensure agents dir: ${dirResult.error}`,
-      );
+      deps.stderr(`[AgentLifecycle] Stop: failed to ensure agents dir: ${dirResult.error}`);
       return ok({ type: "silent" });
     }
 
@@ -70,9 +65,7 @@ export const AgentLifecycleStop: SyncHookContract<
         }
       } else {
         // Read failed on existing file — crash recovery
-        deps.stderr(
-          `[AgentLifecycle] Stop: read failed, crash recovery for ${input.session_id}`,
-        );
+        deps.stderr(`[AgentLifecycle] Stop: read failed, crash recovery for ${input.session_id}`);
         data = {
           agentId: input.session_id,
           agentType: "unknown",
@@ -82,9 +75,7 @@ export const AgentLifecycleStop: SyncHookContract<
       }
     } else {
       // File missing — crash recovery
-      deps.stderr(
-        `[AgentLifecycle] Stop: file missing, crash recovery for ${input.session_id}`,
-      );
+      deps.stderr(`[AgentLifecycle] Stop: file missing, crash recovery for ${input.session_id}`);
       data = {
         agentId: input.session_id,
         agentType: "unknown",
@@ -95,15 +86,11 @@ export const AgentLifecycleStop: SyncHookContract<
 
     const writeResult = deps.writeFile(filePath, JSON.stringify(data));
     if (!writeResult.ok) {
-      deps.stderr(
-        `[AgentLifecycle] Stop: failed to write agent file: ${writeResult.error}`,
-      );
+      deps.stderr(`[AgentLifecycle] Stop: failed to write agent file: ${writeResult.error}`);
       return ok({ type: "silent" });
     }
 
-    deps.stderr(
-      `[AgentLifecycle] Stop: agent=${input.session_id}`,
-    );
+    deps.stderr(`[AgentLifecycle] Stop: agent=${input.session_id}`);
 
     // Opportunistic orphan cleanup
     cleanupOrphans(deps, input.session_id);

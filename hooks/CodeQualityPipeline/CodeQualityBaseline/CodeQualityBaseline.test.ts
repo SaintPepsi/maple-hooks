@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
-import { CodeQualityBaseline, type CodeQualityBaselineDeps } from "./CodeQualityBaseline.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
-import { scoreFile, formatAdvisory, type QualityScore } from "@hooks/core/quality-scorer";
+import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { CodeQualityBaseline, type CodeQualityBaselineDeps } from "./CodeQualityBaseline.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -142,7 +142,9 @@ describe("CodeQualityBaseline", () => {
     });
 
     test("merges with existing baselines", () => {
-      const existing = { "/other/file.ts": { score: 8, violations: 0, checkResults: [], timestamp: "old" } };
+      const existing = {
+        "/other/file.ts": { score: 8, violations: 0, checkResults: [], timestamp: "old" },
+      };
       const deps = makeDeps({
         readFile: () => ok(LONG_CLEAN),
         readJson: (() => ok(existing)) as unknown as CodeQualityBaselineDeps["readJson"],
@@ -185,8 +187,22 @@ describe("CodeQualityBaseline", () => {
       const lowScore: QualityScore = {
         score: 3.0,
         violations: [
-          { check: "SRP", category: "SRP", severity: "moderate", message: "Too many functions", value: 24, threshold: 15 },
-          { check: "DIP", category: "DIP", severity: "moderate", message: "Missing DI", value: 0, threshold: 1 },
+          {
+            check: "SRP",
+            category: "SRP",
+            severity: "moderate",
+            message: "Too many functions",
+            value: 24,
+            threshold: 15,
+          },
+          {
+            check: "DIP",
+            category: "DIP",
+            severity: "moderate",
+            message: "Missing DI",
+            value: 0,
+            threshold: 1,
+          },
         ],
         checkResults: [
           { check: "SRP", passed: false, value: 24, threshold: 15 },

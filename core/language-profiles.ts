@@ -36,7 +36,8 @@ const typescript: LanguageProfile = {
   hasInterfaces: true,
   hasImports: true,
   commentPrefix: "//",
-  functionPattern: /(?:^|\s)(?:export\s+)?(?:async\s+)?function\s+\w+|(?:^|\s)(?:const|let)\s+\w+\s*=\s*(?:async\s+)?\(|(?:^|\s)\w+\s*\([^)]*\)\s*(?::\s*[^{]+)?\s*\{/gm,
+  functionPattern:
+    /(?:^|\s)(?:export\s+)?(?:async\s+)?function\s+\w+|(?:^|\s)(?:const|let)\s+\w+\s*=\s*(?:async\s+)?\(|(?:^|\s)\w+\s*\([^)]*\)\s*(?::\s*[^{]+)?\s*\{/gm,
   importPattern: /^import\s+/gm,
   typeImportPattern: /^import\s+type\s+/gm,
   interfacePattern: /^(?:export\s+)?interface\s+\w+/gm,
@@ -48,7 +49,8 @@ const javascript: LanguageProfile = {
   hasInterfaces: false,
   hasImports: true,
   commentPrefix: "//",
-  functionPattern: /(?:^|\s)(?:export\s+)?(?:async\s+)?function\s+\w+|(?:^|\s)(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?\(/gm,
+  functionPattern:
+    /(?:^|\s)(?:export\s+)?(?:async\s+)?function\s+\w+|(?:^|\s)(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?\(/gm,
   importPattern: /^(?:import\s+|(?:const|let|var)\s+\w+\s*=\s*require\()/gm,
   typeImportPattern: null,
   interfacePattern: null,
@@ -156,7 +158,8 @@ const svelte: LanguageProfile = {
   hasInterfaces: true,
   hasImports: true,
   commentPrefix: "//",
-  functionPattern: /(?:^|\s)(?:export\s+)?(?:async\s+)?function\s+\w+|(?:^|\s)(?:const|let)\s+\w+\s*=\s*(?:async\s+)?\(/gm,
+  functionPattern:
+    /(?:^|\s)(?:export\s+)?(?:async\s+)?function\s+\w+|(?:^|\s)(?:const|let)\s+\w+\s*=\s*(?:async\s+)?\(/gm,
   importPattern: /^import\s+/gm,
   typeImportPattern: /^import\s+type\s+/gm,
   interfacePattern: /^(?:export\s+)?interface\s+\w+/gm,
@@ -165,7 +168,17 @@ const svelte: LanguageProfile = {
 // ─── Registry ────────────────────────────────────────────────────────────────
 
 const ALL_PROFILES: LanguageProfile[] = [
-  typescript, javascript, python, go, rust, java, ruby, php, swift, csharp, svelte,
+  typescript,
+  javascript,
+  python,
+  go,
+  rust,
+  java,
+  ruby,
+  php,
+  swift,
+  csharp,
+  svelte,
 ];
 
 const extensionMap = new Map<string, LanguageProfile>();
@@ -177,11 +190,38 @@ for (const profile of ALL_PROFILES) {
 
 /** Extensions that are source code but NOT scored (configs, data, docs). */
 const SKIP_EXTENSIONS = new Set([
-  "json", "yaml", "yml", "toml", "xml", "html", "css", "scss", "less",
-  "md", "mdx", "txt", "csv", "sql", "graphql", "gql",
-  "lock", "log", "env", "ini", "cfg", "conf",
-  "svg", "png", "jpg", "jpeg", "gif", "ico", "webp",
-  "wasm", "map", "d.ts",
+  "json",
+  "yaml",
+  "yml",
+  "toml",
+  "xml",
+  "html",
+  "css",
+  "scss",
+  "less",
+  "md",
+  "mdx",
+  "txt",
+  "csv",
+  "sql",
+  "graphql",
+  "gql",
+  "lock",
+  "log",
+  "env",
+  "ini",
+  "cfg",
+  "conf",
+  "svg",
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "ico",
+  "webp",
+  "wasm",
+  "map",
+  "d.ts",
 ]);
 
 /** Filenames that are source code but should be skipped by quality scoring and coding standards enforcement. */

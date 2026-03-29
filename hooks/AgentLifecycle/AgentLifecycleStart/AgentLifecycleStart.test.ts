@@ -1,9 +1,9 @@
-import { describe, test, expect } from "bun:test";
-import { AgentLifecycleStart } from "./AgentLifecycleStart.contract";
-import type { AgentLifecycleDeps, AgentFileData } from "../shared";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { fileWriteFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SubagentStartInput } from "@hooks/core/types/hook-inputs";
+import type { AgentFileData, AgentLifecycleDeps } from "../shared";
+import { AgentLifecycleStart } from "./AgentLifecycleStart.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -150,7 +150,9 @@ describe("AgentLifecycleStart", () => {
         stderr: (msg) => messages.push(msg),
       });
       AgentLifecycleStart.execute(startInput, deps);
-      expect(messages.some((m) => m.includes("fail") || m.includes("error") || m.includes("Error"))).toBe(true);
+      expect(
+        messages.some((m) => m.includes("fail") || m.includes("error") || m.includes("Error")),
+      ).toBe(true);
     });
   });
 });

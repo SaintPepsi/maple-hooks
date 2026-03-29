@@ -1,8 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync, symlinkSync } from "fs";
-import { join } from "path";
-import { readFile, readJson, writeFile, writeJson, appendFile, ensureDir, fileExists, removeFile, copyFile, stat, readDir, symlink, lstat } from "./fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { ErrorCode } from "../error";
+import {
+  appendFile,
+  copyFile,
+  ensureDir,
+  fileExists,
+  lstat,
+  readDir,
+  readFile,
+  readJson,
+  removeFile,
+  stat,
+  symlink,
+  writeFile,
+  writeJson,
+} from "./fs";
 
 const TEST_DIR = "/tmp/pai-fs-adapter-test";
 

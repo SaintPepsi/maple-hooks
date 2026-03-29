@@ -9,7 +9,5 @@
     "MessageQueueServer",
     "SessionIdRegister"
   ],
-  "sharedFiles": [
-    "shared.ts"
-  ]
+  "sharedFiles": ["shared.ts"]
 }

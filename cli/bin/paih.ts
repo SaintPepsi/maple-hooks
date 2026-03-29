@@ -7,16 +7,16 @@
  *   2 = internal error (unexpected failure)
  */
 
-import { parseArgs } from "@hooks/cli/core/args";
-import { PaihErrorCode } from "@hooks/cli/core/error";
-import type { PaihError } from "@hooks/cli/core/error";
-import type { Result } from "@hooks/cli/core/result";
+import { catalog } from "@hooks/cli/commands/catalog";
 import { install } from "@hooks/cli/commands/install";
 import { list } from "@hooks/cli/commands/list";
-import { catalog } from "@hooks/cli/commands/catalog";
 import { uninstall } from "@hooks/cli/commands/uninstall";
 import { update } from "@hooks/cli/commands/update";
 import { verify } from "@hooks/cli/commands/verify";
+import { parseArgs } from "@hooks/cli/core/args";
+import type { PaihError } from "@hooks/cli/core/error";
+import { PaihErrorCode } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
 import { makeDefaultDeps } from "@hooks/cli/types/default-deps";
 
 // ─── Version ────────────────────────────────────────────────────────────────
@@ -56,14 +56,7 @@ Flags:
 
 // ─── Known Commands ─────────────────────────────────────────────────────────
 
-const KNOWN_COMMANDS = new Set([
-  "install",
-  "uninstall",
-  "update",
-  "verify",
-  "list",
-  "catalog",
-]);
+const KNOWN_COMMANDS = new Set(["install", "uninstall", "update", "verify", "list", "catalog"]);
 
 // ─── Exit Code Mapping ──────────────────────────────────────────────────────
 
@@ -87,7 +80,11 @@ function exitCodeFromError(error: PaihError): number {
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
-export function main(argv: string[]): { exitCode: number; output: string; stream: "stdout" | "stderr" } {
+export function main(argv: string[]): {
+  exitCode: number;
+  output: string;
+  stream: "stdout" | "stderr";
+} {
   const parsed = parseArgs(argv);
 
   if (!parsed.ok) {
@@ -160,6 +157,6 @@ function routeCommand(
 if (import.meta.main) {
   const result = main(process.argv.slice(2));
   const writer = result.stream === "stdout" ? process.stdout : process.stderr;
-  writer.write(result.output + "\n");
+  writer.write(`${result.output}\n`);
   process.exit(result.exitCode);
 }

@@ -6,10 +6,10 @@
  * All hooks and tools should import from here.
  */
 
-import { readJson, fileExists as adapterFileExists } from "@hooks/core/adapters/fs";
-import { join } from "path";
-import type { Result } from "@hooks/core/result";
+import { join } from "node:path";
+import { fileExists as adapterFileExists, readJson } from "@hooks/core/adapters/fs";
 import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 
 // ─── Voice Types ────────────────────────────────────────────────────────────
 
@@ -171,7 +171,8 @@ export function getIdentity(deps: IdentityDeps = defaultDeps): Identity {
     name: daidentity.name ?? DEFAULT_IDENTITY.name,
     fullName: daidentity.fullName ?? daidentity.name ?? DEFAULT_IDENTITY.fullName,
     displayName: daidentity.displayName ?? daidentity.name ?? DEFAULT_IDENTITY.displayName,
-    mainDAVoiceID: voiceConfig?.voiceId ?? daidentity.mainDAVoiceID ?? DEFAULT_IDENTITY.mainDAVoiceID,
+    mainDAVoiceID:
+      voiceConfig?.voiceId ?? daidentity.mainDAVoiceID ?? DEFAULT_IDENTITY.mainDAVoiceID,
     color: daidentity.color ?? DEFAULT_IDENTITY.color,
     voice: extractProsody(voiceConfig),
     personality: daidentity.personality,
@@ -251,6 +252,8 @@ export function getVoiceProsody(deps: IdentityDeps = defaultDeps): VoiceProsody 
 /**
  * Get voice personality settings (convenience function) - Qwen3-TTS
  */
-export function getVoicePersonality(deps: IdentityDeps = defaultDeps): VoicePersonality | undefined {
+export function getVoicePersonality(
+  deps: IdentityDeps = defaultDeps,
+): VoicePersonality | undefined {
   return getIdentity(deps).personality;
 }

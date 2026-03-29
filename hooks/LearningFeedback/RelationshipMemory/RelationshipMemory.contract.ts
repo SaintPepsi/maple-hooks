@@ -5,16 +5,16 @@
  * and appends structured notes to the daily relationship log.
  */
 
+import { join } from "node:path";
+import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
-import { fileExists, readFile, writeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { getPaiDir } from "@hooks/lib/paths";
 import { getLocalComponents } from "@hooks/lib/time";
-import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -164,7 +164,7 @@ function defaultWriteNotes(notes: RelationshipNote[]): void {
     lines.push(`- ${note.type}${confidence} ${entities}: ${note.content}`);
   }
 
-  appendFile(filepath, lines.join("\n") + "\n");
+  appendFile(filepath, `${lines.join("\n")}\n`);
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -173,44 +173,38 @@ const defaultDeps: RelationshipMemoryDeps = {
   readTranscript: defaultReadTranscript,
   analyzeForRelationship: defaultAnalyzeForRelationship,
   writeNotes: defaultWriteNotes,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
-export const RelationshipMemory: SyncHookContract<
-  StopInput,
-  SilentOutput,
-  RelationshipMemoryDeps
-> = {
-  name: "RelationshipMemory",
-  event: "Stop",
+export const RelationshipMemory: SyncHookContract<StopInput, SilentOutput, RelationshipMemoryDeps> =
+  {
+    name: "RelationshipMemory",
+    event: "Stop",
 
-  accepts(input: StopInput): boolean {
-    return !!input.transcript_path;
-  },
+    accepts(input: StopInput): boolean {
+      return !!input.transcript_path;
+    },
 
-  execute(
-    input: StopInput,
-    deps: RelationshipMemoryDeps,
-  ): Result<SilentOutput, PaiError> {
-    const entries = deps.readTranscript(input.transcript_path!);
-    if (entries.length === 0) {
-      deps.stderr("[RelationshipMemory] No transcript entries, skipping");
+    execute(input: StopInput, deps: RelationshipMemoryDeps): Result<SilentOutput, PaiError> {
+      const entries = deps.readTranscript(input.transcript_path!);
+      if (entries.length === 0) {
+        deps.stderr("[RelationshipMemory] No transcript entries, skipping");
+        return ok({ type: "silent" });
+      }
+
+      deps.stderr(`[RelationshipMemory] Analyzing ${entries.length} transcript entries`);
+
+      const notes = deps.analyzeForRelationship(entries);
+      if (notes.length === 0) {
+        deps.stderr("[RelationshipMemory] No relationship notes to capture");
+        return ok({ type: "silent" });
+      }
+
+      deps.writeNotes(notes);
+      deps.stderr(`[RelationshipMemory] Captured ${notes.length} notes`);
+
       return ok({ type: "silent" });
-    }
+    },
 
-    deps.stderr(`[RelationshipMemory] Analyzing ${entries.length} transcript entries`);
-
-    const notes = deps.analyzeForRelationship(entries);
-    if (notes.length === 0) {
-      deps.stderr("[RelationshipMemory] No relationship notes to capture");
-      return ok({ type: "silent" });
-    }
-
-    deps.writeNotes(notes);
-    deps.stderr(`[RelationshipMemory] Captured ${notes.length} notes`);
-
-    return ok({ type: "silent" });
-  },
-
-  defaultDeps,
-};
+    defaultDeps,
+  };

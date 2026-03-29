@@ -11,8 +11,14 @@
  * stays in each hook's shared.ts — this module provides the state machine only.
  */
 
-import { writeFile, readFile, readJson, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { join } from "node:path";
+import {
+  fileExists as fsFileExists,
+  readFile,
+  readJson,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,7 +144,11 @@ export function checkObligation(
 
 // ─── Review Builder ───────────────────────────────────────────────────────────
 
-export function buildBlockLimitReview(name: string, pendingFiles: string[], blockCount: number): string {
+export function buildBlockLimitReview(
+  name: string,
+  pendingFiles: string[],
+  blockCount: number,
+): string {
   const timestamp = new Date().toISOString();
   const fileList = pendingFiles.map((f) => `- ${f}`).join("\n");
   return `# ${name} Obligation Review
@@ -168,7 +178,7 @@ The AI addressed the concern but did not resolve the pending state.
 export function createDefaultDeps(config: ObligationConfig): ObligationDeps {
   const baseDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
   const stateDir = join(baseDir, "MEMORY", "STATE", config.stateSubdir);
-  const log = (msg: string) => process.stderr.write(msg + "\n");
+  const log = (msg: string) => process.stderr.write(`${msg}\n`);
 
   return {
     stateDir,
@@ -195,7 +205,7 @@ export function createDefaultDeps(config: ObligationConfig): ObligationDeps {
       const result = readFile(path);
       if (!result.ok) return 0;
       const n = parseInt(result.value.trim(), 10);
-      return isNaN(n) ? 0 : n;
+      return Number.isNaN(n) ? 0 : n;
     },
     writeBlockCount: (path: string, count: number) => {
       const result = writeFile(path, String(count));

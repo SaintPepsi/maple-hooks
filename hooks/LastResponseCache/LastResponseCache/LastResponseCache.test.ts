@@ -7,14 +7,14 @@
  * Target: 100% branch + 100% line coverage.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { fileReadFailed, fileWriteFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { StopInput } from "@hooks/core/types/hook-inputs";
 import {
   LastResponseCache,
   type LastResponseCacheDeps,
 } from "@hooks/hooks/LastResponseCache/LastResponseCache/LastResponseCache.contract";
-import { ok, err } from "@hooks/core/result";
-import { fileReadFailed, fileWriteFailed } from "@hooks/core/error";
-import type { StopInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -25,9 +25,7 @@ function makeInput(transcriptPath?: string): StopInput {
   };
 }
 
-function makeDeps(
-  overrides: Partial<LastResponseCacheDeps> = {},
-): LastResponseCacheDeps {
+function makeDeps(overrides: Partial<LastResponseCacheDeps> = {}): LastResponseCacheDeps {
   return {
     readFile: () => ok(""),
     writeFile: () => ok(undefined),
@@ -194,7 +192,10 @@ describe("LastResponseCache.execute() — content types", () => {
     });
     const deps = makeDeps({
       readFile: () => ok(transcript),
-      writeFile: (_path, content) => { writtenContent = content; return ok(undefined); },
+      writeFile: (_path, content) => {
+        writtenContent = content;
+        return ok(undefined);
+      },
     });
 
     LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
@@ -216,7 +217,10 @@ describe("LastResponseCache.execute() — content types", () => {
     });
     const deps = makeDeps({
       readFile: () => ok(transcript),
-      writeFile: (_path, content) => { writtenContent = content; return ok(undefined); },
+      writeFile: (_path, content) => {
+        writtenContent = content;
+        return ok(undefined);
+      },
     });
 
     LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
@@ -224,19 +228,20 @@ describe("LastResponseCache.execute() — content types", () => {
   });
 
   it("handles ContentBlock with missing text field", () => {
-    let writtenContent = "";
+    let _writtenContent = "";
     const transcript = JSON.stringify({
       type: "assistant",
       message: {
         role: "assistant",
-        content: [
-          { type: "text" },
-        ],
+        content: [{ type: "text" }],
       },
     });
     const deps = makeDeps({
       readFile: () => ok(transcript),
-      writeFile: (_path, content) => { writtenContent = content; return ok(undefined); },
+      writeFile: (_path, content) => {
+        _writtenContent = content;
+        return ok(undefined);
+      },
     });
 
     // text is undefined so c.text ?? "" yields "", which is empty after trim
@@ -256,7 +261,10 @@ describe("LastResponseCache.execute() — content types", () => {
     ].join("\n");
     const deps = makeDeps({
       readFile: () => ok(transcript),
-      writeFile: (_path, content) => { writtenContent = content; return ok(undefined); },
+      writeFile: (_path, content) => {
+        writtenContent = content;
+        return ok(undefined);
+      },
     });
 
     LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
@@ -276,7 +284,10 @@ describe("LastResponseCache.execute() — truncation", () => {
     });
     const deps = makeDeps({
       readFile: () => ok(transcript),
-      writeFile: (_path, content) => { writtenContent = content; return ok(undefined); },
+      writeFile: (_path, content) => {
+        writtenContent = content;
+        return ok(undefined);
+      },
     });
 
     LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);
@@ -318,7 +329,10 @@ describe("LastResponseCache.execute() — cache path", () => {
     const deps = makeDeps({
       baseDir: "/custom/base",
       readFile: () => ok(transcript),
-      writeFile: (path, _content) => { writtenPath = path; return ok(undefined); },
+      writeFile: (path, _content) => {
+        writtenPath = path;
+        return ok(undefined);
+      },
     });
 
     LastResponseCache.execute(makeInput("/tmp/t.jsonl"), deps);

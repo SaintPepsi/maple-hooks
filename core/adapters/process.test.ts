@@ -1,6 +1,6 @@
-import { describe, it, expect, mock } from "bun:test";
-import { exec, shellForPlatform, getEnv, execSyncSafe, spawnSyncSafe } from "./process";
+import { describe, expect, it } from "bun:test";
 import { ErrorCode } from "../error";
+import { exec, execSyncSafe, getEnv, shellForPlatform, spawnSyncSafe } from "./process";
 
 // ─── shellForPlatform ────────────────────────────────────────────────────────
 

@@ -8,9 +8,9 @@
  * to keep the checker's import surface minimal.
  */
 
-import type { DuplicationIndex, IndexEntry } from "@hooks/hooks/DuplicationDetection/shared";
-import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import type { ParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
+import type { DuplicationIndex, IndexEntry } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,10 @@ export function findTsFiles(dir: string, deps: IndexBuilderDeps): string[] {
 
 // ─── Index Building ─────────────────────────────────────────────────────────
 
-function groupByField(entries: IndexEntry[], keyFn: (e: IndexEntry) => string): [string, number[]][] {
+function groupByField(
+  entries: IndexEntry[],
+  keyFn: (e: IndexEntry) => string,
+): [string, number[]][] {
   const groups = new Map<string, number[]>();
   for (let i = 0; i < entries.length; i++) {
     const key = keyFn(entries[i]);
@@ -98,6 +101,8 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
     entries,
     hashGroups: groupByField(entries, (e) => e.h).filter(([_, idxs]) => idxs.length >= 2),
     nameGroups: groupByField(entries, (e) => e.n).filter(([_, idxs]) => idxs.length >= 2),
-    sigGroups: groupByField(entries, (e) => `(${e.p})→${e.r}`).filter(([_, idxs]) => idxs.length >= 3),
+    sigGroups: groupByField(entries, (e) => `(${e.p})→${e.r}`).filter(
+      ([_, idxs]) => idxs.length >= 3,
+    ),
   };
 }

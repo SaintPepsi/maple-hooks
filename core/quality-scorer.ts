@@ -60,9 +60,16 @@ function countNamingClusters(content: string, profile: LanguageProfile): number 
 
   const prefixes = new Set<string>();
   for (const match of matches) {
-    const name = match.trim().split(/[\s(]+/).pop()?.replace(/^(async|function|def|fn|func|pub)\s*/i, "");
+    const name = match
+      .trim()
+      .split(/[\s(]+/)
+      .pop()
+      ?.replace(/^(async|function|def|fn|func|pub)\s*/i, "");
     if (!name) continue;
-    const cleaned = name.replace(/^(get|set|is|has|on|handle|create|update|delete|find|fetch|load|save|parse|format|validate|check|ensure|build|make|render|process|compute|calculate|resolve|init|setup|configure|register|unregister|add|remove|clear|reset|start|stop|run|exec|apply|emit|dispatch|notify|log|debug|warn|error|throw|assert)/i, "");
+    const cleaned = name.replace(
+      /^(get|set|is|has|on|handle|create|update|delete|find|fetch|load|save|parse|format|validate|check|ensure|build|make|render|process|compute|calculate|resolve|init|setup|configure|register|unregister|add|remove|clear|reset|start|stop|run|exec|apply|emit|dispatch|notify|log|debug|warn|error|throw|assert)/i,
+      "",
+    );
     if (cleaned && cleaned !== name) {
       prefixes.add(name.slice(0, name.length - cleaned.length).toLowerCase());
     }
@@ -73,7 +80,7 @@ function countNamingClusters(content: string, profile: LanguageProfile): number 
 function countMixedIOPatterns(content: string): number {
   // Filter out lines that are regex patterns, string patterns, or comments
   const lines = content.split("\n");
-  const codeLines = lines.filter(l => {
+  const codeLines = lines.filter((l) => {
     const trimmed = l.trim();
     // Skip comment lines
     if (trimmed.startsWith("//") || trimmed.startsWith("*")) return false;
@@ -86,9 +93,11 @@ function countMixedIOPatterns(content: string): number {
   const filtered = codeLines.join("\n");
 
   let patterns = 0;
-  if (/(?:readFile|writeFile|existsSync|fs\.|path\.join|dirname|__dirname)/m.test(filtered)) patterns++;
+  if (/(?:readFile|writeFile|existsSync|fs\.|path\.join|dirname|__dirname)/m.test(filtered))
+    patterns++;
   if (/(?:fetch\(|http\.|https\.|axios|got\(|request\()/m.test(filtered)) patterns++;
-  if (/(?:query\(|execute\(|\.findOne|\.findMany|prisma\.|knex|sequelize|mongoose)/m.test(filtered)) patterns++;
+  if (/(?:query\(|execute\(|\.findOne|\.findMany|prisma\.|knex|sequelize|mongoose)/m.test(filtered))
+    patterns++;
   if (/(?:spawn\(|exec\(|execSync|child_process)/m.test(filtered)) patterns++;
   return patterns;
 }
@@ -99,7 +108,7 @@ function countTryCatch(content: string): number {
 
 function countThrowStatements(content: string): number {
   const lines = content.split("\n");
-  const codeLines = lines.filter(l => {
+  const codeLines = lines.filter((l) => {
     const trimmed = l.trim();
     if (trimmed.startsWith("//") || trimmed.startsWith("*")) return false;
     return true;
@@ -109,7 +118,7 @@ function countThrowStatements(content: string): number {
 
 function countNullReturns(content: string): number {
   const lines = content.split("\n");
-  const codeLines = lines.filter(l => {
+  const codeLines = lines.filter((l) => {
     const trimmed = l.trim();
     if (trimmed.startsWith("//") || trimmed.startsWith("*")) return false;
     return true;
@@ -158,9 +167,13 @@ const INFRA_PATTERNS = [
 
 function countInfraImports(content: string): number {
   // Only match actual import statements, not regex patterns or strings
-  const importLines = content.split("\n").filter(l => {
+  const importLines = content.split("\n").filter((l) => {
     const trimmed = l.trim();
-    return trimmed.startsWith("import ") || trimmed.startsWith("import{") || /^\s*(?:const|let|var)\s+.*=\s*require\s*\(/.test(trimmed);
+    return (
+      trimmed.startsWith("import ") ||
+      trimmed.startsWith("import{") ||
+      /^\s*(?:const|let|var)\s+.*=\s*require\s*\(/.test(trimmed)
+    );
   });
   const importContent = importLines.join("\n");
   return INFRA_PATTERNS.filter((p) => p.test(importContent)).length;
@@ -321,7 +334,7 @@ const CHECKS: CheckSpec[] = [
     severity: "moderate",
     threshold: 0,
     direction: "above",
-    compute: (c, _p, filePath) => filePath?.includes("/adapters/") ? 0 : countInfraImports(c),
+    compute: (c, _p, filePath) => (filePath?.includes("/adapters/") ? 0 : countInfraImports(c)),
     skip: (_p, _v) => false,
   },
   {
@@ -413,9 +426,9 @@ const CHECKS: CheckSpec[] = [
     direction: "above",
     compute: (c, _p, f) => {
       if (!f.includes("/contracts/") || f.includes(".test.")) return -1;
-      const importLines = c.split("\n").filter(l => l.trim().startsWith("import "));
+      const importLines = c.split("\n").filter((l) => l.trim().startsWith("import "));
       const importContent = importLines.join("\n");
-      return INFRA_PATTERNS.filter(p => p.test(importContent)).length;
+      return INFRA_PATTERNS.filter((p) => p.test(importContent)).length;
     },
     skip: (_p, v) => v === -1,
   },
@@ -478,9 +491,7 @@ export function scoreFile(
     }
 
     const violated =
-      check.direction === "above"
-        ? value > check.threshold
-        : value < check.threshold;
+      check.direction === "above" ? value > check.threshold : value < check.threshold;
 
     checkResults.push({
       check: check.name,
@@ -501,10 +512,7 @@ export function scoreFile(
     }
   }
 
-  const totalPenalty = violations.reduce(
-    (sum, v) => sum + SEVERITY_WEIGHT[v.severity],
-    0,
-  );
+  const totalPenalty = violations.reduce((sum, v) => sum + SEVERITY_WEIGHT[v.severity], 0);
 
   const score = Math.max(0, Math.round((10 - totalPenalty) * 10) / 10);
 

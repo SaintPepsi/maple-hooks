@@ -5,12 +5,12 @@
  * to stderr if an update is available. Skips for subagents.
  */
 
+import { exec } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { exec } from "@hooks/core/adapters/process";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -46,14 +46,10 @@ const defaultDeps: CheckVersionDeps = {
     const projectDir = process.env.CLAUDE_PROJECT_DIR || "";
     return projectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined;
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
-export const CheckVersion: AsyncHookContract<
-  SessionStartInput,
-  SilentOutput,
-  CheckVersionDeps
-> = {
+export const CheckVersion: AsyncHookContract<SessionStartInput, SilentOutput, CheckVersionDeps> = {
   name: "CheckVersion",
   event: "SessionStart",
 

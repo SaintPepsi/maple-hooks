@@ -18,31 +18,40 @@
  *     → Multi-pattern regex extraction + heuristic fallback for effort level
  */
 
+import { homedir } from "node:os";
+import { join } from "node:path";
 import {
-  readFile,
-  fileExists,
-  writeFile,
   ensureDir,
-  readJson,
+  fileExists,
   readDir,
+  readFile,
+  readJson,
   removeFile,
   stat,
+  writeFile,
 } from "@hooks/core/adapters/fs";
 import { getEnv } from "@hooks/core/adapters/process";
-import type { Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { join } from 'path';
-import { homedir } from 'os';
+import type { Result } from "@hooks/core/result";
 
 // ── Types ──
 
-export type AlgorithmPhase = 'OBSERVE' | 'THINK' | 'PLAN' | 'BUILD' | 'EXECUTE' | 'VERIFY' | 'LEARN' | 'IDLE' | 'COMPLETE';
+export type AlgorithmPhase =
+  | "OBSERVE"
+  | "THINK"
+  | "PLAN"
+  | "BUILD"
+  | "EXECUTE"
+  | "VERIFY"
+  | "LEARN"
+  | "IDLE"
+  | "COMPLETE";
 
 export interface AlgorithmCriterion {
   id: string;
   description: string;
-  type: 'criterion' | 'anti-criterion';
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  type: "criterion" | "anti-criterion";
+  status: "pending" | "in_progress" | "completed" | "failed";
   evidence?: string;
   createdInPhase: AlgorithmPhase;
   taskId?: string;
@@ -76,7 +85,7 @@ export interface ReworkCycle {
 export interface AlgorithmAgent {
   name: string;
   agentType: string;
-  status: 'active' | 'completed' | 'failed' | string;
+  status: "active" | "completed" | "failed" | string;
   task?: string;
   criteriaIds?: string[];
   phase?: AlgorithmPhase | string;
@@ -89,9 +98,25 @@ export interface AlgorithmState {
   currentPhase: AlgorithmPhase;
   phaseStartedAt: number;
   algorithmStartedAt: number;
-  sla: 'Instant' | 'Fast' | 'Standard' | 'Extended' | 'Advanced' | 'Deep' | 'Comprehensive' | 'Loop';
+  sla:
+    | "Instant"
+    | "Fast"
+    | "Standard"
+    | "Extended"
+    | "Advanced"
+    | "Deep"
+    | "Comprehensive"
+    | "Loop";
   /** Canonical field name — same value as sla, preferred by UI */
-  effortLevel?: 'Instant' | 'Fast' | 'Standard' | 'Extended' | 'Advanced' | 'Deep' | 'Comprehensive' | 'Loop';
+  effortLevel?:
+    | "Instant"
+    | "Fast"
+    | "Standard"
+    | "Extended"
+    | "Advanced"
+    | "Deep"
+    | "Comprehensive"
+    | "Loop";
   criteria: AlgorithmCriterion[];
   agents: AlgorithmAgent[];
   capabilities: string[];
@@ -139,7 +164,7 @@ export interface AlgorithmState {
   /** Parallel agents: number of concurrent agents configured via -a flag */
   parallelAgents?: number;
   /** Execution mode: distinguishes loop/interactive/standard for dashboard display */
-  mode?: 'loop' | 'interactive' | 'standard';
+  mode?: "loop" | "interactive" | "standard";
 }
 
 // ── Deps ──
@@ -158,11 +183,11 @@ export interface AlgorithmStateDeps {
 }
 
 function resolveBaseDir(): string {
-  const envResult = getEnv('PAI_DIR');
+  const envResult = getEnv("PAI_DIR");
   if (envResult.ok) return envResult.value;
-  const homeResult = getEnv('HOME');
-  if (homeResult.ok) return join(homeResult.value, '.claude');
-  return join(homedir(), '.claude');
+  const homeResult = getEnv("HOME");
+  if (homeResult.ok) return join(homeResult.value, ".claude");
+  return join(homedir(), ".claude");
 }
 
 export const defaultAlgorithmStateDeps: AlgorithmStateDeps = {
@@ -174,18 +199,18 @@ export const defaultAlgorithmStateDeps: AlgorithmStateDeps = {
   readDir,
   removeFile,
   stat,
-  stderr: (msg: string) => process.stderr.write(msg + '\n'),
+  stderr: (msg: string) => process.stderr.write(`${msg}\n`),
   baseDir: resolveBaseDir(),
 };
 
 // ── Paths ──
 
 function algorithmsDir(deps: AlgorithmStateDeps): string {
-  return join(deps.baseDir, 'MEMORY', 'STATE', 'algorithms');
+  return join(deps.baseDir, "MEMORY", "STATE", "algorithms");
 }
 
 function sessionNamesPath(deps: AlgorithmStateDeps): string {
-  return join(deps.baseDir, 'MEMORY', 'STATE', 'session-names.json');
+  return join(deps.baseDir, "MEMORY", "STATE", "session-names.json");
 }
 
 function ensureAlgorithmsDir(deps: AlgorithmStateDeps): void {
@@ -195,13 +220,16 @@ function ensureAlgorithmsDir(deps: AlgorithmStateDeps): void {
 
 // ── Read / Write ──
 
-export function readState(sessionId: string, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): AlgorithmState | null {
+export function readState(
+  sessionId: string,
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): AlgorithmState | null {
   const file = join(algorithmsDir(deps), `${sessionId}.json`);
   if (!deps.fileExists(file)) return null;
   const result = deps.readFile(file);
   if (!result.ok) return null;
   const raw = result.value.trim();
-  if (!raw || raw === '{}') return null;
+  if (!raw || raw === "{}") return null;
   const jsonResult = deps.readJson<AlgorithmState>(file);
   if (!jsonResult.ok) return null;
   return jsonResult.value;
@@ -212,7 +240,10 @@ function isPlaceholderName(name: string): boolean {
   return PLACEHOLDER_RE.test(name);
 }
 
-export function writeState(state: AlgorithmState, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+export function writeState(
+  state: AlgorithmState,
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): void {
   ensureAlgorithmsDir(deps);
   // Keep effortLevel in sync with sla — UI reads effortLevel preferentially
   state.effortLevel = state.sla;
@@ -221,16 +252,19 @@ export function writeState(state: AlgorithmState, deps: AlgorithmStateDeps = def
   if (!isPlaceholderName(latestName) && latestName !== state.taskDescription) {
     state.taskDescription = latestName;
   }
-  deps.writeFile(join(algorithmsDir(deps), `${state.sessionId}.json`), JSON.stringify(state, null, 2));
+  deps.writeFile(
+    join(algorithmsDir(deps), `${state.sessionId}.json`),
+    JSON.stringify(state, null, 2),
+  );
 }
 
 function getSessionName(sessionId: string, deps: AlgorithmStateDeps): string {
   const namesPath = sessionNamesPath(deps);
-  if (!deps.fileExists(namesPath)) return 'Algorithm run';
+  if (!deps.fileExists(namesPath)) return "Algorithm run";
   const result = deps.readJson<Record<string, string>>(namesPath);
-  if (!result.ok) return 'Algorithm run';
+  if (!result.ok) return "Algorithm run";
   const name = result.value[sessionId];
-  return name || 'Algorithm run';
+  return name || "Algorithm run";
 }
 
 // ── Public API ──
@@ -238,7 +272,11 @@ function getSessionName(sessionId: string, deps: AlgorithmStateDeps): string {
 /**
  * Called when a phase transition curl is detected (e.g., "Entering the Think phase").
  */
-export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+export function phaseTransition(
+  sessionId: string,
+  phase: AlgorithmPhase,
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): void {
   const now = Date.now();
   let state = readState(sessionId, deps);
 
@@ -251,10 +289,10 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: 
       currentPhase: phase,
       phaseStartedAt: now,
       algorithmStartedAt: now,
-      sla: 'Standard',
+      sla: "Standard",
       criteria: [],
       agents: [],
-      capabilities: ['Task Tool'],
+      capabilities: ["Task Tool"],
       phaseHistory: [{ phase, startedAt: now, criteriaCount: 0, agentCount: 0 }],
     };
     writeState(state, deps);
@@ -262,8 +300,11 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: 
   }
 
   // New algorithm run within same session?
-  const isNewRun = phase === 'OBSERVE' &&
-    (state.currentPhase === 'LEARN' || state.currentPhase === 'COMPLETE' || state.currentPhase === 'IDLE');
+  const isNewRun =
+    phase === "OBSERVE" &&
+    (state.currentPhase === "LEARN" ||
+      state.currentPhase === "COMPLETE" ||
+      state.currentPhase === "IDLE");
 
   if (isNewRun) {
     // Detect rework: session had previous work (criteria or summary = evidence of completed run)
@@ -272,7 +313,7 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: 
     if (hasPreviousWork) {
       // Archive current cycle into reworkHistory
       const cycle: ReworkCycle = {
-        iteration: (state.reworkCount ?? 0),
+        iteration: state.reworkCount ?? 0,
         startedAt: state.algorithmStartedAt,
         completedAt: state.completedAt || now,
         fromPhase: state.currentPhase,
@@ -293,9 +334,18 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: 
     state.phaseStartedAt = now;
     state.algorithmStartedAt = now;
     state.criteria = [];
-    state.capabilities = ['Task Tool'];
+    state.capabilities = ["Task Tool"];
     const reworkIter = state.reworkCount ?? 0;
-    state.phaseHistory = [{ phase, startedAt: now, criteriaCount: 0, agentCount: 0, isRework: reworkIter > 0, reworkIteration: reworkIter }];
+    state.phaseHistory = [
+      {
+        phase,
+        startedAt: now,
+        criteriaCount: 0,
+        agentCount: 0,
+        isRework: reworkIter > 0,
+        reworkIteration: reworkIter,
+      },
+    ];
     delete state.completedAt;
     delete state.summary;
     delete state.qualityGate;
@@ -314,7 +364,7 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: 
     phase,
     startedAt: now,
     criteriaCount: state.criteria.length,
-    agentCount: state.agents.filter((a) => a.status === 'active').length,
+    agentCount: state.agents.filter((a) => a.status === "active").length,
     ...(reworkIter > 0 && { isRework: true, reworkIteration: reworkIter }),
   });
 
@@ -324,7 +374,7 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: 
 
   // LEARN sets completedAt for grace period display but stays active
   // until the Stop handler calls algorithmEnd()
-  if (phase === 'LEARN') {
+  if (phase === "LEARN") {
     state.completedAt = now;
   }
 
@@ -336,7 +386,11 @@ export function phaseTransition(sessionId: string, phase: AlgorithmPhase, deps: 
  * Also handles session reactivation — ISC criteria arriving for a completed
  * session is a definitive signal of a new algorithm run.
  */
-export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+export function criteriaAdd(
+  sessionId: string,
+  criterion: AlgorithmCriterion,
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): void {
   let state = readState(sessionId, deps);
 
   // Create state if none exists — ISC criteria in a new session should not be dropped
@@ -346,14 +400,16 @@ export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion, de
       active: true,
       sessionId,
       taskDescription: getSessionName(sessionId, deps),
-      currentPhase: 'OBSERVE' as AlgorithmPhase,
+      currentPhase: "OBSERVE" as AlgorithmPhase,
       phaseStartedAt: now,
       algorithmStartedAt: now,
-      sla: 'Standard' as AlgorithmState['sla'],
+      sla: "Standard" as AlgorithmState["sla"],
       criteria: [],
       agents: [],
-      capabilities: ['Task Tool'],
-      phaseHistory: [{ phase: 'OBSERVE' as AlgorithmPhase, startedAt: now, criteriaCount: 0, agentCount: 0 }],
+      capabilities: ["Task Tool"],
+      phaseHistory: [
+        { phase: "OBSERVE" as AlgorithmPhase, startedAt: now, criteriaCount: 0, agentCount: 0 },
+      ],
     };
   }
 
@@ -365,11 +421,11 @@ export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion, de
     // Archive previous cycle if it had work (rework detection)
     if (hasPreviousWork) {
       const cycle: ReworkCycle = {
-        iteration: (state.reworkCount ?? 0),
+        iteration: state.reworkCount ?? 0,
         startedAt: state.algorithmStartedAt,
         completedAt: state.completedAt || now,
         fromPhase: state.currentPhase,
-        toPhase: 'OBSERVE',
+        toPhase: "OBSERVE",
         criteria: [...state.criteria],
         summary: state.summary,
         effortLevel: state.sla,
@@ -385,13 +441,22 @@ export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion, de
     state = {
       ...state,
       active: true,
-      currentPhase: 'OBSERVE' as AlgorithmPhase,
+      currentPhase: "OBSERVE" as AlgorithmPhase,
       phaseStartedAt: now,
       algorithmStartedAt: now,
-      sla: 'Standard' as AlgorithmState['sla'],
+      sla: "Standard" as AlgorithmState["sla"],
       criteria: [],
-      capabilities: ['Task Tool'],
-      phaseHistory: [{ phase: 'OBSERVE' as AlgorithmPhase, startedAt: now, criteriaCount: 0, agentCount: 0, isRework: reworkIter > 0, reworkIteration: reworkIter }],
+      capabilities: ["Task Tool"],
+      phaseHistory: [
+        {
+          phase: "OBSERVE" as AlgorithmPhase,
+          startedAt: now,
+          criteriaCount: 0,
+          agentCount: 0,
+          isRework: reworkIter > 0,
+          reworkIteration: reworkIter,
+        },
+      ],
       agents: [],
     };
     delete state.completedAt;
@@ -400,7 +465,7 @@ export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion, de
   }
 
   // Don't add duplicates
-  if (state.criteria.some(c => c.id === criterion.id)) return;
+  if (state.criteria.some((c) => c.id === criterion.id)) return;
 
   state.criteria.push(criterion);
   writeState(state, deps);
@@ -409,11 +474,16 @@ export function criteriaAdd(sessionId: string, criterion: AlgorithmCriterion, de
 /**
  * Called when TaskUpdate changes a criterion's status.
  */
-export function criteriaUpdate(sessionId: string, taskId: string, status: AlgorithmCriterion['status'], deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+export function criteriaUpdate(
+  sessionId: string,
+  taskId: string,
+  status: AlgorithmCriterion["status"],
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): void {
   const state = readState(sessionId, deps);
   if (!state) return;
 
-  const criterion = state.criteria.find(c => c.taskId === taskId);
+  const criterion = state.criteria.find((c) => c.taskId === taskId);
   if (!criterion) return;
 
   criterion.status = status;
@@ -424,7 +494,11 @@ export function criteriaUpdate(sessionId: string, taskId: string, status: Algori
  * Called when the Algorithm's OBSERVE phase selects an effort level.
  * Detected in real-time by AlgorithmTracker from response text.
  */
-export function effortLevelUpdate(sessionId: string, level: AlgorithmState['sla'], deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+export function effortLevelUpdate(
+  sessionId: string,
+  level: AlgorithmState["sla"],
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): void {
   const state = readState(sessionId, deps);
   if (!state) return;
 
@@ -435,17 +509,21 @@ export function effortLevelUpdate(sessionId: string, level: AlgorithmState['sla'
 /**
  * Called when a Task tool spawns an agent.
  */
-export function agentAdd(sessionId: string, agent: { name: string; agentType: string; task?: string; criteriaIds?: string[] }, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+export function agentAdd(
+  sessionId: string,
+  agent: { name: string; agentType: string; task?: string; criteriaIds?: string[] },
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): void {
   const state = readState(sessionId, deps);
   if (!state) return;
 
   // Don't add duplicates
-  if (state.agents.some(a => a.name === agent.name)) return;
+  if (state.agents.some((a) => a.name === agent.name)) return;
 
   const entry: AlgorithmAgent = {
     name: agent.name,
     agentType: agent.agentType,
-    status: 'active',
+    status: "active",
     task: agent.task,
     phase: state.currentPhase,
   };
@@ -467,9 +545,9 @@ export function algorithmEnd(
   enrichment: {
     taskDescription?: string;
     summary?: string;
-    sla?: AlgorithmState['sla'];
+    sla?: AlgorithmState["sla"];
     capabilities?: string[];
-    qualityGate?: AlgorithmState['qualityGate'];
+    qualityGate?: AlgorithmState["qualityGate"];
     criteria?: AlgorithmCriterion[];
     isAlgorithmResponse: boolean;
   },
@@ -479,11 +557,11 @@ export function algorithmEnd(
 
   // Non-algorithm response: deactivate if it was optimistically activated
   if (!enrichment.isAlgorithmResponse) {
-    if (state && state.active && state.phaseHistory.length <= 1 && state.criteria.length === 0) {
+    if (state?.active && state.phaseHistory.length <= 1 && state.criteria.length === 0) {
       // Session was activated by SessionReactivator but response wasn't algorithm format.
       // Deactivate to prevent stale active sessions.
       state.active = false;
-      state.currentPhase = 'COMPLETE';
+      state.currentPhase = "COMPLETE";
       state.completedAt = Date.now();
       writeState(state, deps);
     }
@@ -496,13 +574,13 @@ export function algorithmEnd(
       active: true,
       sessionId,
       taskDescription: enrichment.taskDescription || getSessionName(sessionId, deps),
-      currentPhase: 'OBSERVE',
+      currentPhase: "OBSERVE",
       phaseStartedAt: Date.now(),
       algorithmStartedAt: Date.now(),
-      sla: enrichment.sla || 'Standard',
+      sla: enrichment.sla || "Standard",
       criteria: [],
       agents: [],
-      capabilities: ['Task Tool'],
+      capabilities: ["Task Tool"],
       phaseHistory: [],
     };
   }
@@ -522,9 +600,9 @@ export function algorithmEnd(
   // Merge criteria from transcript (catches any missed by real-time tracker)
   if (enrichment.criteria && enrichment.criteria.length > 0) {
     for (const c of enrichment.criteria) {
-      const existing = state.criteria.find(ec => ec.id === c.id);
+      const existing = state.criteria.find((ec) => ec.id === c.id);
       if (existing) {
-        const order = ['pending', 'in_progress', 'completed', 'failed'];
+        const order = ["pending", "in_progress", "completed", "failed"];
         if (order.indexOf(c.status) > order.indexOf(existing.status)) {
           existing.status = c.status;
           if (c.evidence) existing.evidence = c.evidence;
@@ -539,10 +617,10 @@ export function algorithmEnd(
   // Summary extraction alone is NOT sufficient — during compaction, StopOrchestrator
   // fires with a partial transcript that may contain voice lines from earlier phases.
   // Only phase-based detection is reliable across compaction boundaries.
-  const isTerminal = state.currentPhase === 'LEARN' || state.currentPhase === 'COMPLETE';
+  const isTerminal = state.currentPhase === "LEARN" || state.currentPhase === "COMPLETE";
   if (isTerminal) {
     state.active = false;
-    state.currentPhase = 'COMPLETE';
+    state.currentPhase = "COMPLETE";
     state.completedAt = state.completedAt || Date.now();
   }
 
@@ -562,26 +640,29 @@ export function algorithmEnd(
  * Loop items (PRDs) are NOT affected — they use a separate data store.
  */
 const STALE_THRESHOLDS_MS: Record<string, number> = {
-  BUILD: 60 * 60 * 1000,    // 60 min
-  EXECUTE: 60 * 60 * 1000,  // 60 min
-  THINK: 30 * 60 * 1000,    // 30 min
-  PLAN: 30 * 60 * 1000,     // 30 min
-  VERIFY: 30 * 60 * 1000,   // 30 min
+  BUILD: 60 * 60 * 1000, // 60 min
+  EXECUTE: 60 * 60 * 1000, // 60 min
+  THINK: 30 * 60 * 1000, // 30 min
+  PLAN: 30 * 60 * 1000, // 30 min
+  VERIFY: 30 * 60 * 1000, // 30 min
 };
 const DEFAULT_STALE_MS = 15 * 60 * 1000; // 15 min for OBSERVE, LEARN, IDLE, etc.
 
 const DELETE_AGE_MS = 24 * 60 * 60 * 1000; // 24hr: completed files older than this get deleted
 
-export function sweepStaleActive(currentSessionId: string, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): void {
+export function sweepStaleActive(
+  currentSessionId: string,
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): void {
   ensureAlgorithmsDir(deps);
   const now = Date.now();
   const dirResult = deps.readDir(algorithmsDir(deps));
   if (!dirResult.ok) return;
-  const files = dirResult.value.filter((f: string) => f.endsWith('.json'));
+  const files = dirResult.value.filter((f: string) => f.endsWith(".json"));
   const liveSessionIds = new Set<string>();
 
   for (const file of files) {
-    const sid = file.replace('.json', '');
+    const sid = file.replace(".json", "");
     if (sid === currentSessionId) continue; // Skip current session — handled by algorithmEnd
 
     const filepath = join(algorithmsDir(deps), file);
@@ -613,10 +694,12 @@ export function sweepStaleActive(currentSessionId: string, deps: AlgorithmStateD
 
     // Stale active session — mark completed
     state.active = false;
-    state.currentPhase = 'COMPLETE';
+    state.currentPhase = "COMPLETE";
     state.completedAt = state.completedAt || now;
     writeState(state, deps);
-    deps.stderr(`[sweep] deactivated ${sid} (phase was ${state.currentPhase}, age ${Math.round(age / 60000)}min)`);
+    deps.stderr(
+      `[sweep] deactivated ${sid} (phase was ${state.currentPhase}, age ${Math.round(age / 60000)}min)`,
+    );
   }
 
   // Add current session to live set
@@ -628,8 +711,8 @@ export function sweepStaleActive(currentSessionId: string, deps: AlgorithmStateD
 
   const namesResult = deps.readJson<Record<string, string>>(namesPath);
   if (!namesResult.ok) {
-    deps.stderr('[sweep] session-names.json corrupt — resetting to {}');
-    deps.writeFile(namesPath, '{}');
+    deps.stderr("[sweep] session-names.json corrupt — resetting to {}");
+    deps.writeFile(namesPath, "{}");
     return;
   }
 
@@ -651,7 +734,10 @@ export function sweepStaleActive(currentSessionId: string, deps: AlgorithmStateD
 /**
  * Called by POST /api/algorithm/abandon
  */
-export function algorithmAbandon(sessionId: string, deps: AlgorithmStateDeps = defaultAlgorithmStateDeps): boolean {
+export function algorithmAbandon(
+  sessionId: string,
+  deps: AlgorithmStateDeps = defaultAlgorithmStateDeps,
+): boolean {
   const state = readState(sessionId, deps);
   if (!state) return false;
 

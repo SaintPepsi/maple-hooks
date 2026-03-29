@@ -8,7 +8,7 @@
 // Usage: bun Tools/pattern-detector/variants/ngram-subsequence.ts <directory> [--n 4] [--min-files 2] [--min-functions 3] [--top 20]
 
 import { parseDirectory } from "@tools/pattern-detector/parse";
-import type { ParsedFunction, ParsedFile } from "@tools/pattern-detector/types";
+import type { ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
 // ─── N-gram Extraction ──────────────────────────────────────────────────────
 
@@ -32,10 +32,7 @@ interface FunctionRef {
   fileIndex: number;
 }
 
-function buildInvertedIndex(
-  files: ParsedFile[],
-  n: number,
-): Map<string, FunctionRef[]> {
+function buildInvertedIndex(files: ParsedFile[], n: number): Map<string, FunctionRef[]> {
   const index = new Map<string, FunctionRef[]>();
 
   for (let fi = 0; fi < files.length; fi++) {
@@ -93,17 +90,14 @@ interface FunctionPair {
   sharedNgrams: string[];
 }
 
-function findSimilarPairs(
-  files: ParsedFile[],
-  n: number,
-  threshold: number,
-): FunctionPair[] {
+function findSimilarPairs(files: ParsedFile[], n: number, threshold: number): FunctionPair[] {
   // Build per-function ngram sets
   const allFunctions: { fn: ParsedFunction; ngrams: Set<string> }[] = [];
   for (const file of files) {
     for (const fn of file.functions) {
       const ngrams = uniqueNgrams(fn.bodyNodeTypes, n);
-      if (ngrams.size >= 3) { // Skip trivial functions
+      if (ngrams.size >= 3) {
+        // Skip trivial functions
         allFunctions.push({ fn, ngrams });
       }
     }
@@ -251,8 +245,8 @@ function clusterFromPairs(pairs: FunctionPair[], threshold: number): NgramFuncti
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
 function shortenPath(filePath: string): string {
-  const home = require("os").homedir() as string;
-  if (filePath.startsWith(home)) return "~" + filePath.slice(home.length);
+  const home = require("node:os").homedir() as string;
+  if (filePath.startsWith(home)) return `~${filePath.slice(home.length)}`;
   return filePath;
 }
 
@@ -269,7 +263,9 @@ function formatResults(
 
   lines.push("\nN-gram AST Subsequence Detector (Cycle 1)");
   lines.push("═".repeat(45));
-  lines.push(`N-gram size: ${n} | Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`);
+  lines.push(
+    `N-gram size: ${n} | Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`,
+  );
 
   // Part 1: Most shared n-grams (template fingerprints)
   lines.push(`\n--- Most Shared N-grams (template fingerprints) ---`);
@@ -278,7 +274,9 @@ function formatResults(
   for (const c of sharedNgrams.slice(0, top)) {
     const funcNames = [...new Set(c.functions.map((r) => r.fn.name))].slice(0, 5).join(", ");
     lines.push(`  "${c.ngram}"`);
-    lines.push(`    ${c.functions.length} functions across ${c.fileCount} files: ${funcNames}${c.functions.length > 5 ? "..." : ""}`);
+    lines.push(
+      `    ${c.functions.length} functions across ${c.fileCount} files: ${funcNames}${c.functions.length > 5 ? "..." : ""}`,
+    );
   }
 
   // Part 2: Function clusters by Jaccard similarity
@@ -286,7 +284,9 @@ function formatResults(
   lines.push(`Found ${clusters.length} clusters\n`);
 
   for (const c of clusters.slice(0, top)) {
-    lines.push(`  Cluster ${c.id} (${c.members.length} members, avg similarity ${(c.avgSimilarity * 100).toFixed(0)}%):`);
+    lines.push(
+      `  Cluster ${c.id} (${c.members.length} members, avg similarity ${(c.avgSimilarity * 100).toFixed(0)}%):`,
+    );
     for (const m of c.members) {
       lines.push(`    - ${m.name} (${shortenPath(m.file)}:${m.line})`);
     }
@@ -305,7 +305,9 @@ const args = process.argv.slice(2);
 const directory = args.find((a) => !a.startsWith("--"));
 
 if (!directory) {
-  process.stderr.write("Usage: bun Tools/pattern-detector/variants/ngram-subsequence.ts <directory> [--n 4] [--min-files 2] [--min-functions 3] [--top 20] [--threshold 0.3]\n");
+  process.stderr.write(
+    "Usage: bun Tools/pattern-detector/variants/ngram-subsequence.ts <directory> [--n 4] [--min-files 2] [--min-functions 3] [--top 20] [--threshold 0.3]\n",
+  );
   process.exit(1);
 }
 
@@ -326,7 +328,9 @@ const files = parseDirectory(directory);
 const parseTimeMs = performance.now() - parseStart;
 const functionCount = files.reduce((s, f) => s + f.functions.length, 0);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 // Build inverted index and find shared n-grams
 const index = buildInvertedIndex(files, n);
@@ -340,7 +344,11 @@ const pairs = findSimilarPairs(files, n, threshold);
 const clusters = clusterFromPairs(pairs, threshold);
 const detectTimeMs = performance.now() - detectStart;
 
-process.stderr.write(`Found ${pairs.length} similar pairs, ${clusters.length} clusters in ${detectTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Found ${pairs.length} similar pairs, ${clusters.length} clusters in ${detectTimeMs.toFixed(0)}ms\n`,
+);
 
 // Output
-process.stdout.write(formatResults(clusters, sharedNgrams, n, files.length, functionCount, parseTimeMs, top) + "\n");
+process.stdout.write(
+  `${formatResults(clusters, sharedNgrams, n, files.length, functionCount, parseTimeMs, top)}\n`,
+);

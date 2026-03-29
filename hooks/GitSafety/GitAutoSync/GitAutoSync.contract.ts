@@ -6,14 +6,22 @@
  * Always returns SilentOutput — never blocks session end.
  */
 
+import { join } from "node:path";
+import {
+  copyFile,
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  removeFile,
+  stat,
+} from "@hooks/core/adapters/fs";
+import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { fileExists, readFile, ensureDir, removeFile, copyFile, stat, readDir } from "@hooks/core/adapters/fs";
-import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
-import { join } from "path";
 import { getLocalTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -82,10 +90,10 @@ function isGitBusy(deps: GitAutoSyncDeps): boolean {
 }
 
 function isDebounced(deps: GitAutoSyncDeps): boolean {
-  const lastCommitResult = deps.execSync(
-    'git log -1 --format=%ct --grep="auto-sync"',
-    { cwd: deps.claudeDir, timeout: 5000 },
-  );
+  const lastCommitResult = deps.execSync('git log -1 --format=%ct --grep="auto-sync"', {
+    cwd: deps.claudeDir,
+    timeout: 5000,
+  });
   if (!lastCommitResult.ok) return false;
 
   const epoch = lastCommitResult.value.trim();
@@ -131,7 +139,7 @@ function backupKeyFiles(deps: GitAutoSyncDeps): BackupResult | null {
   for (const file of files) {
     const src = join(deps.claudeDir, file);
     if (deps.fileExists(src)) {
-      const flatName = file.replace(/\//g, "_") + ".pre-pull";
+      const flatName = `${file.replace(/\//g, "_")}.pre-pull`;
       deps.copyFile(src, join(backupSetDir, flatName));
     }
   }
@@ -143,7 +151,7 @@ function checkPostMergeDiff(deps: GitAutoSyncDeps, backup: BackupResult): void {
   for (const file of backup.files) {
     if (!KEY_FILES.includes(file) && !KEY_HOOK_PATTERN.test(file)) continue;
 
-    const flatName = file.replace(/\//g, "_") + ".pre-pull";
+    const flatName = `${file.replace(/\//g, "_")}.pre-pull`;
     const backupFile = join(backup.dir, flatName);
     const currentFile = join(deps.claudeDir, file);
 
@@ -174,11 +182,11 @@ function cleanupStaleAgentFiles(deps: GitAutoSyncDeps): void {
     if (!match) continue;
 
     const filePath = join(stateDir, name as string);
-    const pid = parseInt(match[1]);
+    const pid = parseInt(match[1], 10);
 
     // Check file age
     const fileStat = deps.stat(filePath);
-    const isOld = fileStat.ok && (deps.dateNow() - fileStat.value.mtimeMs) > AGENT_FILE_TTL_MS;
+    const isOld = fileStat.ok && deps.dateNow() - fileStat.value.mtimeMs > AGENT_FILE_TTL_MS;
 
     // Check if PID is dead
     let pidDead = false;
@@ -187,7 +195,9 @@ function cleanupStaleAgentFiles(deps: GitAutoSyncDeps): void {
 
     if (isOld || pidDead) {
       deps.removeFile(filePath);
-      deps.stderr(`[GitAutoSync] Cleaned stale agent file: ${name} (${pidDead ? "dead PID" : "TTL expired"})`);
+      deps.stderr(
+        `[GitAutoSync] Cleaned stale agent file: ${name} (${pidDead ? "dead PID" : "TTL expired"})`,
+      );
     }
   }
 }
@@ -202,7 +212,12 @@ const defaultDeps: GitAutoSyncDeps = {
   readDir: (path: string) => {
     const result = readDir(path);
     if (!result.ok) return result;
-    return { ok: true, value: result.value.map((e) => typeof e === "string" ? e : (e as { name?: string }).name ?? "") } as Result<string[], PaiError>;
+    return {
+      ok: true,
+      value: result.value.map((e) =>
+        typeof e === "string" ? e : ((e as { name?: string }).name ?? ""),
+      ),
+    } as Result<string[], PaiError>;
   },
   ensureDir,
   copyFile,
@@ -216,16 +231,12 @@ const defaultDeps: GitAutoSyncDeps = {
   get backupDir() {
     return join(this.claudeDir, ".backup");
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const GitAutoSync: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  GitAutoSyncDeps
-> = {
+export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAutoSyncDeps> = {
   name: "GitAutoSync",
   event: "SessionEnd",
 
@@ -233,10 +244,7 @@ export const GitAutoSync: SyncHookContract<
     return true;
   },
 
-  execute(
-    _input: SessionEndInput,
-    deps: GitAutoSyncDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(_input: SessionEndInput, deps: GitAutoSyncDeps): Result<SilentOutput, PaiError> {
     // 0. Clean up stale agent tracking files (dead PIDs or TTL expired)
     cleanupStaleAgentFiles(deps);
 
@@ -283,10 +291,10 @@ export const GitAutoSync: SyncHookContract<
 
     // 4. Commit
     const timestamp = deps.getTimestamp();
-    const commitResult = deps.execSync(
-      `git commit -m "auto-sync: session end ${timestamp}"`,
-      { cwd: deps.claudeDir, timeout: 20000 },
-    );
+    const commitResult = deps.execSync(`git commit -m "auto-sync: session end ${timestamp}"`, {
+      cwd: deps.claudeDir,
+      timeout: 20000,
+    });
     if (!commitResult.ok) {
       deps.stderr(`[GitAutoSync] git commit failed: ${commitResult.error.message}`);
       // Clean up stale lock if the operation left one behind

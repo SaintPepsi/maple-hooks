@@ -4,8 +4,6 @@
   "event": "PostToolUse",
   "description": "Notifies Koord daemon when an agent completes",
   "schemaVersion": 1,
-  "tags": [
-    "koord"
-  ],
+  "tags": ["koord"],
   "presets": []
 }

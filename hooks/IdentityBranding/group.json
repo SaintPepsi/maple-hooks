@@ -1,10 +1,6 @@
 {
   "name": "IdentityBranding",
   "description": "Maple identity branding and usage analytics",
-  "hooks": [
-    "MapleBranding",
-    "ModeAnalytics",
-    "UpdateCounts"
-  ],
+  "hooks": ["MapleBranding", "ModeAnalytics", "UpdateCounts"],
   "sharedFiles": []
 }

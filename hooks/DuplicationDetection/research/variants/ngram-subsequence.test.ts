@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { parseDirectory } from "@tools/pattern-detector/parse";
 import type { ParsedFile } from "@tools/pattern-detector/types";
 
@@ -9,7 +9,9 @@ const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/ngram-subseque
 const DETECTORS_DIR = `${REPO_ROOT}/Tools/pattern-detector/detectors`;
 const PATTERN_DETECTOR_DIR = `${REPO_ROOT}/Tools/pattern-detector`;
 
-async function runCLI(args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function runCLI(
+  args: string[],
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   // Bun.spawnSync stdout/stderr pipe capture is broken inside this project's
   // bun test runner — use temp files to capture output instead.
   const id = Math.random().toString(36).slice(2);
@@ -27,13 +29,16 @@ async function runCLI(args: string[]): Promise<{ stdout: string; stderr: string;
   const exitCode = await proc.exited;
 
   const [stdout, stderr] = await Promise.all([
-    Bun.file(stdoutPath).text().catch(() => ""),
-    Bun.file(stderrPath).text().catch(() => ""),
+    Bun.file(stdoutPath)
+      .text()
+      .catch(() => ""),
+    Bun.file(stderrPath)
+      .text()
+      .catch(() => ""),
   ]);
 
   return { stdout, stderr, exitCode };
 }
-
 
 // ─── N-gram Logic (via direct computation mirrors) ──────────────────────────
 // These functions mirror what the CLI does internally, allowing unit-level
@@ -376,7 +381,13 @@ describe("CLI: --top flag", () => {
 
 describe("CLI: --min-files and --min-functions flags", () => {
   test("--min-files 1 allows single-file matches", async () => {
-    const { exitCode, stdout } = await runCLI([DETECTORS_DIR, "--min-files", "1", "--min-functions", "2"]);
+    const { exitCode, stdout } = await runCLI([
+      DETECTORS_DIR,
+      "--min-files",
+      "1",
+      "--min-functions",
+      "2",
+    ]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("N-gram AST Subsequence Detector");
   });

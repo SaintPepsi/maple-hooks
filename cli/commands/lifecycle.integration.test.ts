@@ -7,12 +7,11 @@
  * and uninstall (cli/commands/uninstall.ts).
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { install } from "@hooks/cli/commands/install";
-import { verify } from "@hooks/cli/commands/verify";
-import { update } from "@hooks/cli/commands/update";
 import { uninstall } from "@hooks/cli/commands/uninstall";
-import type { ParsedArgs } from "@hooks/cli/core/args";
+import { update } from "@hooks/cli/commands/update";
+import { verify } from "@hooks/cli/commands/verify";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
@@ -37,8 +36,7 @@ function makeSourceRepo(): Record<string, string> {
     }),
     "/source/hooks/TestGroup/TestHook/TestHook.hook.ts":
       '// TestHook v1\nimport { ok } from "@hooks/core/result";\nexport default {};\n',
-    "/source/hooks/TestGroup/TestHook/TestHook.contract.ts":
-      "export default {};",
+    "/source/hooks/TestGroup/TestHook/TestHook.contract.ts": "export default {};",
     "/source/core/result.ts": "export const ok = true;",
     "/source/presets.json": "{}",
     "/project/.claude/settings.json": "{}",

@@ -73,7 +73,7 @@ export function clearIndexCache(): void {
 }
 
 export function findIndexPath(filePath: string, deps: SharedDeps): string | null {
-  const { dirname, join } = require("path");
+  const { dirname, join } = require("node:path");
   let dir = dirname(filePath) as string;
   for (let i = 0; i < 10; i++) {
     const candidate = join(dir, ".claude", ".duplication-index.json") as string;

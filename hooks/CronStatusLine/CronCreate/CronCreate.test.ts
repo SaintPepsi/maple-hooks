@@ -4,12 +4,12 @@
  * Tests the contract in isolation using injected deps (no real filesystem).
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, PaiError } from "@hooks/core/error";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
-import { PaiError, ErrorCode } from "@hooks/core/error";
-import { CronCreateContract } from "./CronCreate.contract";
 import type { CronCreateDeps } from "./CronCreate.contract";
+import { CronCreateContract } from "./CronCreate.contract";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -42,7 +42,10 @@ function makeDeps(overrides: Partial<CronCreateDeps> = {}): TestDeps {
   return {
     readFile: (path: string) => {
       if (path in files) return { ok: true as const, value: files[path] };
-      return { ok: false as const, error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`) };
+      return {
+        ok: false as const,
+        error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`),
+      };
     },
     writeFile: (path: string, content: string) => {
       files[path] = content;

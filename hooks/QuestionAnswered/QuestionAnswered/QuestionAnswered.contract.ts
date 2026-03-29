@@ -6,11 +6,11 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { setTabState, readTabState, stripPrefix } from "@hooks/lib/tab-setter";
+import { readTabState, setTabState, stripPrefix } from "@hooks/lib/tab-setter";
 
 export interface QuestionAnsweredDeps {
   setTabState: typeof setTabState;
@@ -23,45 +23,39 @@ const defaultDeps: QuestionAnsweredDeps = {
   setTabState,
   readTabState,
   stripPrefix,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
-export const QuestionAnswered: SyncHookContract<
-  ToolHookInput,
-  SilentOutput,
-  QuestionAnsweredDeps
-> = {
-  name: "QuestionAnswered",
-  event: "PostToolUse",
+export const QuestionAnswered: SyncHookContract<ToolHookInput, SilentOutput, QuestionAnsweredDeps> =
+  {
+    name: "QuestionAnswered",
+    event: "PostToolUse",
 
-  accepts(_input: ToolHookInput): boolean {
-    return true; // Matcher in settings.json handles AskUserQuestion filtering
-  },
+    accepts(_input: ToolHookInput): boolean {
+      return true; // Matcher in settings.json handles AskUserQuestion filtering
+    },
 
-  execute(
-    input: ToolHookInput,
-    deps: QuestionAnsweredDeps,
-  ): Result<SilentOutput, PaiError> {
-    const currentState = deps.readTabState(input.session_id);
-    let restoredTitle = "Processing answer.";
+    execute(input: ToolHookInput, deps: QuestionAnsweredDeps): Result<SilentOutput, PaiError> {
+      const currentState = deps.readTabState(input.session_id);
+      let restoredTitle = "Processing answer.";
 
-    if (currentState?.previousTitle) {
-      const rawTitle = deps.stripPrefix(currentState.previousTitle);
-      if (rawTitle) {
-        restoredTitle = rawTitle;
+      if (currentState?.previousTitle) {
+        const rawTitle = deps.stripPrefix(currentState.previousTitle);
+        if (rawTitle) {
+          restoredTitle = rawTitle;
+        }
       }
-    }
 
-    deps.setTabState({
-      title: "\u2699\uFE0F" + restoredTitle,
-      state: "working",
-      sessionId: input.session_id,
-    });
+      deps.setTabState({
+        title: `\u2699\uFE0F${restoredTitle}`,
+        state: "working",
+        sessionId: input.session_id,
+      });
 
-    deps.stderr("[QuestionAnswered] Tab reset to working state (orange on inactive only)");
+      deps.stderr("[QuestionAnswered] Tab reset to working state (orange on inactive only)");
 
-    return ok({ type: "silent" });
-  },
+      return ok({ type: "silent" });
+    },
 
-  defaultDeps,
-};
+    defaultDeps,
+  };

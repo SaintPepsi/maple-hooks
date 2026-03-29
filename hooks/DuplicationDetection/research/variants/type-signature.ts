@@ -18,7 +18,7 @@
 
 import { parseDirectory } from "@tools/pattern-detector/parse";
 import { bodySimilarity } from "@tools/pattern-detector/similarity";
-import type { ParsedFunction, ParsedFile } from "@tools/pattern-detector/types";
+import type { ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
 // ─── Type Signature Extraction ──────────────────────────────────────────────
 
@@ -61,7 +61,7 @@ function groupBySignature(files: ParsedFile[], minGroup: number): SignatureGroup
   }
 
   const result: SignatureGroup[] = [];
-  for (const [fp, members] of groups) {
+  for (const [_fp, members] of groups) {
     const fileCount = new Set(members.map((m) => m.file)).size;
     if (members.length < minGroup || fileCount < 2) continue;
 
@@ -98,7 +98,8 @@ function subClusterByBody(
   // Compute pairwise similarities (sample if too large)
   const pairs: { i: number; j: number; sim: number }[] = [];
   let pairCount = 0;
-  const step = members.length > 30 ? Math.ceil((members.length * (members.length - 1) / 2) / maxPairs) : 1;
+  const step =
+    members.length > 30 ? Math.ceil((members.length * (members.length - 1)) / 2 / maxPairs) : 1;
   let idx = 0;
 
   for (let i = 0; i < members.length; i++) {
@@ -122,11 +123,16 @@ function subClusterByBody(
     let root = x;
     while (parent.get(root) !== root) root = parent.get(root)!;
     let cur = x;
-    while (cur !== root) { const next = parent.get(cur)!; parent.set(cur, root); cur = next; }
+    while (cur !== root) {
+      const next = parent.get(cur)!;
+      parent.set(cur, root);
+      cur = next;
+    }
     return root;
   }
   function union(a: number, b: number): void {
-    const ra = find(a); const rb = find(b);
+    const ra = find(a);
+    const rb = find(b);
     if (ra !== rb) parent.set(ra, rb);
   }
 
@@ -138,8 +144,9 @@ function subClusterByBody(
     for (const idx of [p.i, p.j]) {
       const root = find(idx);
       const existing = clusterMap.get(root);
-      if (existing) { if (!existing.includes(idx)) existing.push(idx); }
-      else clusterMap.set(root, [idx]);
+      if (existing) {
+        if (!existing.includes(idx)) existing.push(idx);
+      } else clusterMap.set(root, [idx]);
     }
   }
 
@@ -181,7 +188,7 @@ function subClusterByBody(
 
 interface NoveltyReport {
   totalClusters: number;
-  nameDiverseClusters: number;     // 2+ distinct names in cluster
+  nameDiverseClusters: number; // 2+ distinct names in cluster
   nameDiverseMembers: number;
   topNovelClusters: SimilarityCluster[];
 }
@@ -199,8 +206,8 @@ function analyzeNovelty(clusters: SimilarityCluster[]): NoveltyReport {
 // ─── Output ─────────────────────────────────────────────────────────────────
 
 function shortenPath(filePath: string): string {
-  const home = require("os").homedir() as string;
-  if (filePath.startsWith(home)) return "~" + filePath.slice(home.length);
+  const home = require("node:os").homedir() as string;
+  if (filePath.startsWith(home)) return `~${filePath.slice(home.length)}`;
   return filePath;
 }
 
@@ -218,12 +225,16 @@ function formatResults(
 
   lines.push("\nType-Signature-Gated Similarity Clustering (Cycle 5)");
   lines.push("═".repeat(54));
-  lines.push(`Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms | Detect: ${detectTimeMs.toFixed(0)}ms`);
+  lines.push(
+    `Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms | Detect: ${detectTimeMs.toFixed(0)}ms`,
+  );
   lines.push(`Signature groups: ${groups.length} | Similarity clusters: ${allClusters.length}`);
 
   // Novelty summary
   lines.push(`\n--- Novelty Analysis (what other detectors miss) ---`);
-  lines.push(`Name-diverse clusters (2+ distinct names): ${novelty.nameDiverseClusters} / ${novelty.totalClusters}`);
+  lines.push(
+    `Name-diverse clusters (2+ distinct names): ${novelty.nameDiverseClusters} / ${novelty.totalClusters}`,
+  );
   lines.push(`Functions in name-diverse clusters: ${novelty.nameDiverseMembers}`);
   lines.push(`These are invisible to role-naming and file-template detectors.\n`);
 
@@ -231,8 +242,12 @@ function formatResults(
   lines.push(`--- Top Name-Diverse Clusters (different names, same type, similar body) ---\n`);
   for (const c of novelty.topNovelClusters.slice(0, top)) {
     lines.push(`  Sig: ${c.signatureFingerprint}`);
-    lines.push(`  ${c.members.length} functions, ${c.fileCount} files, ${(c.avgSimilarity * 100).toFixed(0)}% avg body sim`);
-    lines.push(`  Names: ${c.distinctNames.slice(0, 8).join(", ")}${c.distinctNames.length > 8 ? "..." : ""}`);
+    lines.push(
+      `  ${c.members.length} functions, ${c.fileCount} files, ${(c.avgSimilarity * 100).toFixed(0)}% avg body sim`,
+    );
+    lines.push(
+      `  Names: ${c.distinctNames.slice(0, 8).join(", ")}${c.distinctNames.length > 8 ? "..." : ""}`,
+    );
     for (const m of c.members.slice(0, 6)) {
       lines.push(`    - ${m.name} (${shortenPath(m.file).replace(/.*pai-hooks\//, "")}:${m.line})`);
     }
@@ -247,7 +262,9 @@ function formatResults(
   lines.push(`Found ${allClusters.length} total clusters\n`);
   for (const c of allClusters.slice(0, Math.min(top, 15))) {
     const diverse = c.isNameDiverse ? " [NAME-DIVERSE]" : "";
-    lines.push(`  ${c.signatureFingerprint} — ${c.members.length} fns, ${(c.avgSimilarity * 100).toFixed(0)}% sim, names: ${c.distinctNames.slice(0, 4).join(", ")}${diverse}`);
+    lines.push(
+      `  ${c.signatureFingerprint} — ${c.members.length} fns, ${(c.avgSimilarity * 100).toFixed(0)}% sim, names: ${c.distinctNames.slice(0, 4).join(", ")}${diverse}`,
+    );
   }
 
   return lines.join("\n");
@@ -259,7 +276,9 @@ const args = process.argv.slice(2);
 const directory = args.find((a) => !a.startsWith("--"));
 
 if (!directory) {
-  process.stderr.write("Usage: bun Tools/pattern-detector/variants/type-signature.ts <directory> [--min-sim 0.5] [--min-group 3] [--top 25]\n");
+  process.stderr.write(
+    "Usage: bun Tools/pattern-detector/variants/type-signature.ts <directory> [--min-sim 0.5] [--min-group 3] [--top 25]\n",
+  );
   process.exit(1);
 }
 
@@ -278,7 +297,9 @@ const files = parseDirectory(directory);
 const parseTimeMs = performance.now() - parseStart;
 const functionCount = files.reduce((s, f) => s + f.functions.length, 0);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 const detectStart = performance.now();
 const groups = groupBySignature(files, minGroup);
@@ -294,6 +315,19 @@ allClusters.sort((a, b) => b.members.length - a.members.length);
 const novelty = analyzeNovelty(allClusters);
 const detectTimeMs = performance.now() - detectStart;
 
-process.stderr.write(`Found ${allClusters.length} similarity clusters (${novelty.nameDiverseClusters} name-diverse) in ${detectTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Found ${allClusters.length} similarity clusters (${novelty.nameDiverseClusters} name-diverse) in ${detectTimeMs.toFixed(0)}ms\n`,
+);
 
-process.stdout.write(formatResults(groups, allClusters, novelty, files.length, functionCount, parseTimeMs, detectTimeMs, top) + "\n");
+process.stdout.write(
+  `${formatResults(
+    groups,
+    allClusters,
+    novelty,
+    files.length,
+    functionCount,
+    parseTimeMs,
+    detectTimeMs,
+    top,
+  )}\n`,
+);

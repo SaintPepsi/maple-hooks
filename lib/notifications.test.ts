@@ -7,7 +7,7 @@
  * - Mock global fetch for sendPush
  * - Preserve real logic in the module under test
  */
-import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 
 // ─── Module-level mocks ─────────────────────────────────────────────────────
 
@@ -24,20 +24,26 @@ mock.module("fs", () => ({
 
 // Mock identity — return stable test values
 mock.module("./identity", () => ({
-  getIdentity: () => ({ name: "TestDA", fullName: "Test DA", displayName: "TestDA", mainDAVoiceID: "", color: "#000" }),
+  getIdentity: () => ({
+    name: "TestDA",
+    fullName: "Test DA",
+    displayName: "TestDA",
+    mainDAVoiceID: "",
+    color: "#000",
+  }),
 }));
 
 // Import AFTER mocks are in place
 import {
   getNotificationConfig,
-  recordSessionStart,
   getSessionDurationMinutes,
   isLongRunningTask,
-  sendPush,
   notify,
-  notifyTaskComplete,
   notifyBackgroundAgent,
   notifyError,
+  notifyTaskComplete,
+  recordSessionStart,
+  sendPush,
 } from "@hooks/lib/notifications";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -114,11 +120,13 @@ describe("getNotificationConfig", () => {
     // the topic is already the resolved value — testing the merge path.
     // To truly test env expansion, the readFileSync return must contain ${...}.
     // The module reads process.env internally — we use a var that already exists.
-    mockReadFileSync.mockReturnValue(JSON.stringify({
-      notifications: {
-        ntfy: { enabled: true, topic: "literal-topic", server: "ntfy.sh" },
-      },
-    }));
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({
+        notifications: {
+          ntfy: { enabled: true, topic: "literal-topic", server: "ntfy.sh" },
+        },
+      }),
+    );
     const config = getNotificationConfig();
     expect(config.ntfy.topic).toBe("literal-topic");
   });
@@ -213,9 +221,11 @@ describe("sendPush", () => {
 
   it("returns false when topic is empty", async () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({
-      notifications: { ntfy: { enabled: true, topic: "", server: "ntfy.sh" } },
-    }));
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({
+        notifications: { ntfy: { enabled: true, topic: "", server: "ntfy.sh" } },
+      }),
+    );
     const result = await sendPush("test message");
     expect(result).toBe(false);
   });
@@ -246,18 +256,20 @@ describe("sendPush", () => {
     expect(result).toBe(true);
     expect(capturedUrl).toBe("https://ntfy.example.com/test-topic");
     expect(capturedBody).toBe("hello world");
-    expect(capturedHeaders["Title"]).toBe("Test Title");
-    expect(capturedHeaders["Priority"]).toBe("4"); // high = 4
-    expect(capturedHeaders["Tags"]).toBe("fire,warning");
-    expect(capturedHeaders["Click"]).toBe("https://example.com");
-    expect(capturedHeaders["Actions"]).toContain("view, Open, https://example.com");
+    expect(capturedHeaders.Title).toBe("Test Title");
+    expect(capturedHeaders.Priority).toBe("4"); // high = 4
+    expect(capturedHeaders.Tags).toBe("fire,warning");
+    expect(capturedHeaders.Click).toBe("https://example.com");
+    expect(capturedHeaders.Actions).toContain("view, Open, https://example.com");
   });
 
   it("returns false on fetch failure", async () => {
     mockExistsSync.mockReturnValue(true);
     mockReadFileSync.mockReturnValue(SETTINGS_WITH_NTFY);
 
-    setMockFetch(async (): Promise<Response> => { throw new Error("network error"); });
+    setMockFetch(async (): Promise<Response> => {
+      throw new Error("network error");
+    });
 
     const result = await sendPush("hello world");
     expect(result).toBe(false);
@@ -278,7 +290,11 @@ describe("sendPush", () => {
     mockReadFileSync.mockReturnValue(SETTINGS_WITH_NTFY);
 
     const priorityMap: Record<string, string> = {
-      min: "1", low: "2", default: "3", high: "4", urgent: "5",
+      min: "1",
+      low: "2",
+      default: "3",
+      high: "4",
+      urgent: "5",
     };
 
     for (const [priority, expected] of Object.entries(priorityMap)) {
@@ -288,8 +304,10 @@ describe("sendPush", () => {
         return new Response("ok", { status: 200 });
       });
 
-      await sendPush("test", { priority: priority as "min" | "low" | "default" | "high" | "urgent" });
-      expect(capturedHeaders["Priority"]).toBe(expected);
+      await sendPush("test", {
+        priority: priority as "min" | "low" | "default" | "high" | "urgent",
+      });
+      expect(capturedHeaders.Priority).toBe(expected);
     }
   });
 });
@@ -320,18 +338,20 @@ describe("notify", () => {
 
     await notify("error", "something broke");
     // Give fire-and-forget a tick to resolve
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(fetchCalled).toBe(true);
   });
 
   it("does not send push when event has no ntfy routing", async () => {
     mockExistsSync.mockReturnValue(true);
-    mockReadFileSync.mockReturnValue(JSON.stringify({
-      notifications: {
-        ntfy: { enabled: true, topic: "test", server: "ntfy.sh" },
-        routing: { longTask: [] },
-      },
-    }));
+    mockReadFileSync.mockReturnValue(
+      JSON.stringify({
+        notifications: {
+          ntfy: { enabled: true, topic: "test", server: "ntfy.sh" },
+          routing: { longTask: [] },
+        },
+      }),
+    );
 
     let fetchCalled = false;
     setMockFetch(async () => {
@@ -340,7 +360,7 @@ describe("notify", () => {
     });
 
     await notify("longTask", "took a long time");
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(fetchCalled).toBe(false);
   });
 });
@@ -383,8 +403,8 @@ describe("notifyBackgroundAgent", () => {
     });
 
     await notifyBackgroundAgent("Review", "PR review complete");
-    await new Promise(resolve => setTimeout(resolve, 50));
-    expect(capturedHeaders["Title"]).toBe("Review Agent Complete");
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(capturedHeaders.Title).toBe("Review Agent Complete");
   });
 });
 
@@ -413,7 +433,7 @@ describe("notifyError", () => {
     });
 
     await notifyError("something broke badly");
-    await new Promise(resolve => setTimeout(resolve, 50));
-    expect(capturedHeaders["Priority"]).toBe("4"); // high = 4
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(capturedHeaders.Priority).toBe("4"); // high = 4
   });
 });

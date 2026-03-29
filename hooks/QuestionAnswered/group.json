@@ -1,8 +1,6 @@
 {
   "name": "QuestionAnswered",
   "description": "User question response tracking",
-  "hooks": [
-    "QuestionAnswered"
-  ],
+  "hooks": ["QuestionAnswered"],
   "sharedFiles": []
 }

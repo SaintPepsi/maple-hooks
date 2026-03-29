@@ -15,12 +15,12 @@
  * (e.g., "loops without bounded conditions").
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,24 +72,20 @@ function containsWhileLoop(strippedCode: string): boolean {
 }
 
 function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null)
-    return null;
+  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
   return (input.tool_input.file_path as string) ?? null;
 }
 
 function getWriteContent(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null)
-    return null;
-  if (input.tool_name === "Write")
-    return (input.tool_input.content as string) ?? null;
+  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
+  if (input.tool_name === "Write") return (input.tool_input.content as string) ?? null;
   return null;
 }
 
 function getEditParts(
   input: ToolHookInput,
 ): { oldStr: string; newStr: string; replaceAll: boolean } | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null)
-    return null;
+  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
   if (input.tool_name !== "Edit") return null;
   const oldStr = input.tool_input.old_string as string | undefined;
   const newStr = input.tool_input.new_string as string | undefined;
@@ -117,7 +113,7 @@ const defaultDeps: WhileLoopGuardDeps = {
     const result = adapterReadFile(path);
     return result.ok ? result.value : null;
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const WhileLoopGuard: SyncHookContract<

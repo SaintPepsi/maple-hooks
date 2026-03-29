@@ -1,8 +1,6 @@
 {
   "name": "ExecutionEvidence",
   "description": "Execution evidence verification from tool results",
-  "hooks": [
-    "ExecutionEvidenceVerifier"
-  ],
+  "hooks": ["ExecutionEvidenceVerifier"],
   "sharedFiles": []
 }

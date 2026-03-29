@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 // Cycle 2: Control Flow Graph Skeleton Fingerprinting
 //
 // Reduces functions to their branching structure (if/for/while/return/throw/switch)
@@ -7,9 +8,9 @@
 //
 // Usage: bun Tools/pattern-detector/variants/cfg-skeleton.ts <directory> [--min-depth 2] [--min-members 2] [--top 30]
 
-import { parseDirectory } from "@tools/pattern-detector/parse";
-import type { ParsedFunction, ParsedFile } from "@tools/pattern-detector/types";
 import { sha256Short } from "@tools/pattern-detector/adapters";
+import { parseDirectory } from "@tools/pattern-detector/parse";
+import type { ParsedFunction } from "@tools/pattern-detector/types";
 
 // ─── Control Flow Node Classification ───────────────────────────────────────
 
@@ -27,7 +28,7 @@ const CONTROL_FLOW_NODES = new Set([
   "ThrowStatement",
   "TryStatement",
   "CatchClause",
-  "ConditionalExpression",  // ternary
+  "ConditionalExpression", // ternary
 ]);
 
 // Nodes that increase nesting depth
@@ -180,8 +181,8 @@ function clusterByFingerprint(
 // ─── Output ─────────────────────────────────────────────────────────────────
 
 function shortenPath(filePath: string): string {
-  const home = require("os").homedir() as string;
-  if (filePath.startsWith(home)) return "~" + filePath.slice(home.length);
+  const home = require("node:os").homedir() as string;
+  if (filePath.startsWith(home)) return `~${filePath.slice(home.length)}`;
   return filePath;
 }
 
@@ -196,7 +197,9 @@ function formatResults(
 
   lines.push("\nCFG Skeleton Fingerprinting (Cycle 2)");
   lines.push("═".repeat(42));
-  lines.push(`Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`);
+  lines.push(
+    `Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`,
+  );
 
   for (const [fpType, clusters] of allClusters) {
     lines.push(`\n--- ${fpType} ---`);
@@ -204,7 +207,9 @@ function formatResults(
 
     for (const c of clusters.slice(0, top)) {
       const fileCount = new Set(c.members.map((m) => m.fn.file)).size;
-      lines.push(`  [${c.hash}] ${c.members.length} members across ${fileCount} files (skeleton length: ${c.skeletonLength})`);
+      lines.push(
+        `  [${c.hash}] ${c.members.length} members across ${fileCount} files (skeleton length: ${c.skeletonLength})`,
+      );
 
       // Show abbreviated skeleton
       const abbrev = abbreviatedFingerprint(c.members[0].skeleton);
@@ -233,7 +238,9 @@ const args = process.argv.slice(2);
 const directory = args.find((a) => !a.startsWith("--"));
 
 if (!directory) {
-  process.stderr.write("Usage: bun Tools/pattern-detector/variants/cfg-skeleton.ts <directory> [--min-depth 2] [--min-members 2] [--top 30]\n");
+  process.stderr.write(
+    "Usage: bun Tools/pattern-detector/variants/cfg-skeleton.ts <directory> [--min-depth 2] [--min-members 2] [--top 30]\n",
+  );
   process.exit(1);
 }
 
@@ -252,7 +259,9 @@ const files = parseDirectory(directory);
 const parseTimeMs = performance.now() - parseStart;
 const functionCount = files.reduce((s, f) => s + f.functions.length, 0);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 // Extract skeletons for all functions
 const allFunctions: { fn: ParsedFunction; skeleton: SkeletonNode[] }[] = [];
@@ -294,4 +303,4 @@ let totalClusters = 0;
 for (const clusters of results.values()) totalClusters += clusters.length;
 process.stderr.write(`Total clusters across all strategies: ${totalClusters}\n`);
 
-process.stdout.write(formatResults(results, files.length, functionCount, parseTimeMs, top) + "\n");
+process.stdout.write(`${formatResults(results, files.length, functionCount, parseTimeMs, top)}\n`);

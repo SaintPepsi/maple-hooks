@@ -1,19 +1,19 @@
 /**
  * Tests for output-validators.ts — Voice and tab title validation utilities.
  */
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  isValidVoiceCompletion,
-  getVoiceFallback,
-  isValidWorkingTitle,
-  isValidCompletionTitle,
-  isValidQuestionTitle,
-  getWorkingFallback,
+  gerundToPastTense,
   getCompletionFallback,
   getQuestionFallback,
   getTabFallback,
-  gerundToPastTense,
+  getVoiceFallback,
+  getWorkingFallback,
+  isValidCompletionTitle,
+  isValidQuestionTitle,
   isValidTabSummary,
+  isValidVoiceCompletion,
+  isValidWorkingTitle,
 } from "@hooks/lib/output-validators";
 
 // ─── isValidVoiceCompletion ──────────────────────────────────────────────────
@@ -95,7 +95,9 @@ describe("isValidVoiceCompletion", () => {
 
   describe("accepts valid completions", () => {
     it("accepts factual summary longer than 10 chars", () => {
-      expect(isValidVoiceCompletion("Refactored the authentication module to use JWT tokens")).toBe(true);
+      expect(isValidVoiceCompletion("Refactored the authentication module to use JWT tokens")).toBe(
+        true,
+      );
     });
 
     it("accepts technical description", () => {

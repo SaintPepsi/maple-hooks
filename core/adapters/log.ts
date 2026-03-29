@@ -7,10 +7,10 @@
  * Design: docs/plans/2026-03-13-hook-logging-design.md
  */
 
+import { join } from "node:path";
 import { appendFile, ensureDir, readDir, removeFile } from "@hooks/core/adapters/fs";
-import { type Result, ok } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { join } from "path";
+import { ok, type Result } from "@hooks/core/result";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ function parseDateFromFilename(filename: string): string | null {
 }
 
 function isOlderThanDays(dateStr: string, days: number): boolean {
-  const fileDate = new Date(dateStr + "T00:00:00Z").getTime();
+  const fileDate = new Date(`${dateStr}T00:00:00Z`).getTime();
   const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
   return fileDate < cutoff;
 }
@@ -92,7 +92,7 @@ export function appendHookLog(
   }
 
   const filePath = join(dir, logFileName(todayDateString()));
-  const line = JSON.stringify(entry) + "\n";
+  const line = `${JSON.stringify(entry)}\n`;
   // Intentional: log write failures must not break hook execution
   const writeResult = appendFile(filePath, line);
   if (!writeResult.ok && stderr) {

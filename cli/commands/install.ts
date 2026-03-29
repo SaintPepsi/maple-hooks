@@ -17,37 +17,38 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
+import type { ParsedArgs } from "@hooks/cli/core/args";
+import type { CompilerDeps } from "@hooks/cli/core/compiler";
+import { compiledCommandString, compileHook } from "@hooks/cli/core/compiler";
 import type { PaihError } from "@hooks/cli/core/error";
 import { invalidArgs } from "@hooks/cli/core/error";
-import type { ParsedArgs } from "@hooks/cli/core/args";
-import type { CliDeps } from "@hooks/cli/types/deps";
-import type { HookDef } from "@hooks/cli/types/resolved";
-import type { Lockfile, LockfileHookEntry, OutputMode } from "@hooks/cli/types/lockfile";
-import { createLockfile, DEFAULT_OUTPUT_MODE } from "@hooks/cli/types/lockfile";
-import { resolveTarget } from "@hooks/cli/core/target";
+import {
+  addHookEntry,
+  computeFileHash,
+  readLockfile,
+  writeLockfile,
+} from "@hooks/cli/core/lockfile";
 import { loadManifests } from "@hooks/cli/core/manifest-loader";
 import { resolve } from "@hooks/cli/core/resolver";
-import {
-  createStaging,
-  stageHook,
-  stageCoreModules,
-  commitStaging,
-  cleanStaging,
-} from "@hooks/cli/core/staging";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
+import type { SettingsJson } from "@hooks/cli/core/settings";
+import { mergeHookEntry, readSettings, writeSettings } from "@hooks/cli/core/settings";
 import type { StagedFiles } from "@hooks/cli/core/staging";
 import {
-  readSettings,
-  writeSettings,
-  mergeHookEntry,
-} from "@hooks/cli/core/settings";
-import type { SettingsJson } from "@hooks/cli/core/settings";
-import { readLockfile, writeLockfile, addHookEntry, computeFileHash } from "@hooks/cli/core/lockfile";
+  cleanStaging,
+  commitStaging,
+  createStaging,
+  stageCoreModules,
+  stageHook,
+} from "@hooks/cli/core/staging";
+import { resolveTarget } from "@hooks/cli/core/target";
 import { generateTsconfig } from "@hooks/cli/core/tsconfig-gen";
-import { compileHook, compiledCommandString } from "@hooks/cli/core/compiler";
-import type { CompilerDeps } from "@hooks/cli/core/compiler";
-import { parseImports, discoverSharedFiles, hookUsesShared } from "@hooks/lib/import-parser";
+import type { CliDeps } from "@hooks/cli/types/deps";
+import type { Lockfile, LockfileHookEntry, OutputMode } from "@hooks/cli/types/lockfile";
+import { createLockfile, DEFAULT_OUTPUT_MODE } from "@hooks/cli/types/lockfile";
+import type { HookDef } from "@hooks/cli/types/resolved";
+import { discoverSharedFiles, hookUsesShared, parseImports } from "@hooks/lib/import-parser";
 
 // ─── Install Pipeline ───────────────────────────────────────────────────────
 
@@ -80,10 +81,18 @@ export function install(
   // Step 0: Validate bun is available on PATH before any file ops
   const bunCheck = deps.exec("bun --version");
   if (!bunCheck.ok) {
-    return err(invalidArgs("bun is not available on PATH. Install bun (https://bun.sh) before running paih install."));
+    return err(
+      invalidArgs(
+        "bun is not available on PATH. Install bun (https://bun.sh) before running paih install.",
+      ),
+    );
   }
   if (bunCheck.value.exitCode !== 0) {
-    return err(invalidArgs("bun is not available on PATH. Install bun (https://bun.sh) before running paih install."));
+    return err(
+      invalidArgs(
+        "bun is not available on PATH. Install bun (https://bun.sh) before running paih install.",
+      ),
+    );
   }
 
   // Step 1: Resolve target .claude/ directory
@@ -160,7 +169,11 @@ export function install(
     const parsedDeps = parseImports(contractSource.value);
     const groupDir = hookDef.sourceDir.substring(0, hookDef.sourceDir.lastIndexOf("/"));
     const availableShared = discoverSharedFiles(groupDir, deps);
-    const sharedFiles = hookUsesShared(contractSource.value, hookDef.manifest.group, availableShared);
+    const sharedFiles = hookUsesShared(
+      contractSource.value,
+      hookDef.manifest.group,
+      availableShared,
+    );
 
     const stageResult = stageHook(ctx, hookDef, sharedFiles, deps);
     if (!stageResult.ok) {
@@ -206,7 +219,13 @@ export function install(
       const hookEntryPath = `${source}/hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
       const outputDir = `${ctx.hooksDir}/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}`;
       const compileResult = compileHook(
-        { hookPath: hookEntryPath, mode: outputMode, outputDir, outputName: hookDef.manifest.name, sourceRoot: source },
+        {
+          hookPath: hookEntryPath,
+          mode: outputMode,
+          outputDir,
+          outputName: hookDef.manifest.name,
+          sourceRoot: source,
+        },
         compilerDeps,
       );
       if (!compileResult.ok) return compileResult;
@@ -232,12 +251,7 @@ export function install(
 
   for (const { hookDef, commandString } of installedEntries) {
     const matcher = getMatcherForHook(hookDef);
-    const mergeResult = mergeHookEntry(
-      settings,
-      hookDef.manifest.event,
-      matcher,
-      commandString,
-    );
+    const mergeResult = mergeHookEntry(settings, hookDef.manifest.event, matcher, commandString);
     if (!mergeResult.ok) return mergeResult;
     settings = mergeResult.value;
   }
@@ -283,13 +297,21 @@ export function install(
     if (!tsconfigResult.ok) return tsconfigResult;
   }
 
-  return ok(formatSuccess(installedEntries.map((e) => e.hookDef), outputMode));
+  return ok(
+    formatSuccess(
+      installedEntries.map((e) => e.hookDef),
+      outputMode,
+    ),
+  );
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Collect core/lib/adapter deps from parsed imports into a shared set. */
-function collectCoreDeps(parsedDeps: { core: string[]; lib: string[]; adapters: string[] }, coreDeps: Set<string>): void {
+function collectCoreDeps(
+  parsedDeps: { core: string[]; lib: string[]; adapters: string[] },
+  coreDeps: Set<string>,
+): void {
   for (const dep of parsedDeps.core) {
     coreDeps.add(`core/${dep}`);
   }
@@ -344,9 +366,11 @@ function checkModeChange(
   if (!existing) return ok(undefined);
 
   if (existing.outputMode !== requestedMode && !force) {
-    return err(invalidArgs(
-      `Output mode change from "${existing.outputMode}" to "${requestedMode}" requires --force`,
-    ));
+    return err(
+      invalidArgs(
+        `Output mode change from "${existing.outputMode}" to "${requestedMode}" requires --force`,
+      ),
+    );
   }
 
   return ok(undefined);

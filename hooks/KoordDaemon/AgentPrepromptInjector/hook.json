@@ -4,8 +4,6 @@
   "event": "PreToolUse",
   "description": "Injects worker preprompt into background agent prompts",
   "schemaVersion": 1,
-  "tags": [
-    "koord"
-  ],
+  "tags": ["koord"],
   "presets": []
 }

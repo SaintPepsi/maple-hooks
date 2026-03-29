@@ -13,14 +13,14 @@
 
 import { parseDirectory } from "@tools/pattern-detector/parse";
 import { bodySimilarity } from "@tools/pattern-detector/similarity";
-import type { ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
+import type { ParsedFile } from "@tools/pattern-detector/types";
 
 // ─── File Interface Fingerprinting ──────────────────────────────────────────
 
 interface FileInterface {
   file: ParsedFile;
   functionNames: string[];
-  fingerprint: string;       // sorted function names joined
+  fingerprint: string; // sorted function names joined
   functionCount: number;
   category: FileCategory;
 }
@@ -57,10 +57,7 @@ interface TemplateCluster {
   category: FileCategory;
 }
 
-function clusterByExactInterface(
-  interfaces: FileInterface[],
-  minFiles: number,
-): TemplateCluster[] {
+function clusterByExactInterface(interfaces: FileInterface[], minFiles: number): TemplateCluster[] {
   const groups = new Map<string, FileInterface[]>();
   for (const iface of interfaces) {
     if (iface.functionCount === 0) continue;
@@ -83,7 +80,10 @@ function clusterByExactInterface(
     let dominantCat: FileCategory = "other";
     let maxCount = 0;
     for (const [cat, count] of catCounts) {
-      if (count > maxCount) { dominantCat = cat; maxCount = count; }
+      if (count > maxCount) {
+        dominantCat = cat;
+        maxCount = count;
+      }
     }
 
     clusters.push({
@@ -132,7 +132,7 @@ function findFuzzyMatches(
 
       pairsChecked++;
 
-      const setA = new Set(a.functionNames);
+      const _setA = new Set(a.functionNames);
       const setB = new Set(b.functionNames);
       const shared = a.functionNames.filter((n) => setB.has(n));
       const unionSize = new Set([...a.functionNames, ...b.functionNames]).size;
@@ -150,9 +150,10 @@ function findFuzzyMatches(
           bodySimScores.push(bodySimilarity(fnA, fnB));
         }
       }
-      const avgBody = bodySimScores.length > 0
-        ? bodySimScores.reduce((s, v) => s + v, 0) / bodySimScores.length
-        : 0;
+      const avgBody =
+        bodySimScores.length > 0
+          ? bodySimScores.reduce((s, v) => s + v, 0) / bodySimScores.length
+          : 0;
 
       matches.push({
         fileA: a,
@@ -183,9 +184,8 @@ function fileSimilarity(a: FileInterface, b: FileInterface): number {
     if (fnA && fnB) bodyScores.push(bodySimilarity(fnA, fnB));
   }
 
-  const avgBody = bodyScores.length > 0
-    ? bodyScores.reduce((s, v) => s + v, 0) / bodyScores.length
-    : 0;
+  const avgBody =
+    bodyScores.length > 0 ? bodyScores.reduce((s, v) => s + v, 0) / bodyScores.length : 0;
 
   const nameOverlap = shared.length / Math.max(a.functionCount, b.functionCount);
   return nameOverlap * 0.4 + avgBody * 0.6;
@@ -251,8 +251,8 @@ function categorySummary(
 // ─── Output ─────────────────────────────────────────────────────────────────
 
 function shortenPath(filePath: string): string {
-  const home = require("os").homedir() as string;
-  if (filePath.startsWith(home)) return "~" + filePath.slice(home.length);
+  const home = require("node:os").homedir() as string;
+  if (filePath.startsWith(home)) return `~${filePath.slice(home.length)}`;
   return filePath;
 }
 
@@ -269,13 +269,17 @@ function formatResults(
 
   lines.push("\nFile-Level Template Detection (Cycle 4)");
   lines.push("═".repeat(42));
-  lines.push(`Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`);
+  lines.push(
+    `Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`,
+  );
 
   // Category stats
   lines.push(`\n--- File Category Distribution ---\n`);
   for (const s of catStats) {
     const pct = s.totalFiles > 0 ? ((s.templatedFiles / s.totalFiles) * 100).toFixed(0) : "0";
-    lines.push(`  ${s.category.padEnd(12)} ${s.totalFiles} files, ${s.templatedFiles} templated (${pct}%), ${s.templateCount} templates`);
+    lines.push(
+      `  ${s.category.padEnd(12)} ${s.totalFiles} files, ${s.templatedFiles} templated (${pct}%), ${s.templateCount} templates`,
+    );
   }
 
   // Exact template clusters
@@ -284,7 +288,9 @@ function formatResults(
 
   for (const c of clusters.slice(0, top)) {
     lines.push(`  Template: {${c.functionNames.join(", ")}} [${c.category}]`);
-    lines.push(`  ${c.members.length} files, avg similarity ${(c.avgFileSimilarity * 100).toFixed(0)}%\n`);
+    lines.push(
+      `  ${c.members.length} files, avg similarity ${(c.avgFileSimilarity * 100).toFixed(0)}%\n`,
+    );
 
     for (const m of c.members.slice(0, 8)) {
       lines.push(`    - ${shortenPath(m.file.path)}`);
@@ -304,7 +310,9 @@ function formatResults(
     const pathB = shortenPath(m.fileB.file.path).replace(/.*pai-hooks\//, "");
     lines.push(`  ${pathA}`);
     lines.push(`  ${pathB}`);
-    lines.push(`    Shared: {${m.sharedNames.join(", ")}} (${(m.jaccardNames * 100).toFixed(0)}% name overlap, ${(m.avgBodySim * 100).toFixed(0)}% body sim)`);
+    lines.push(
+      `    Shared: {${m.sharedNames.join(", ")}} (${(m.jaccardNames * 100).toFixed(0)}% name overlap, ${(m.avgBodySim * 100).toFixed(0)}% body sim)`,
+    );
     lines.push("");
   }
 
@@ -317,7 +325,9 @@ const args = process.argv.slice(2);
 const directory = args.find((a) => !a.startsWith("--"));
 
 if (!directory) {
-  process.stderr.write("Usage: bun Tools/pattern-detector/variants/file-template.ts <directory> [--min-files 2] [--top 30] [--fuzzy-threshold 0.5]\n");
+  process.stderr.write(
+    "Usage: bun Tools/pattern-detector/variants/file-template.ts <directory> [--min-files 2] [--top 30] [--fuzzy-threshold 0.5]\n",
+  );
   process.exit(1);
 }
 
@@ -336,7 +346,9 @@ const files = parseDirectory(directory);
 const parseTimeMs = performance.now() - parseStart;
 const functionCount = files.reduce((s, f) => s + f.functions.length, 0);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 const interfaces = files.map(buildFileInterface);
 
@@ -346,6 +358,11 @@ const fuzzyMatches = findFuzzyMatches(interfaces, fuzzyThreshold, 50000);
 const catStats = categorySummary(interfaces, clusters);
 const detectTimeMs = performance.now() - detectStart;
 
-process.stderr.write(`Found ${clusters.length} templates, ${fuzzyMatches.length} fuzzy matches in ${detectTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Found ${clusters.length} templates, ${fuzzyMatches.length} fuzzy matches in ${detectTimeMs.toFixed(0)}ms\n`,
+);
 
-process.stdout.write(formatResults(clusters, fuzzyMatches, catStats, files.length, functionCount, parseTimeMs, top) + "\n");
+process.stdout.write(
+  formatResults(clusters, fuzzyMatches, catStats, files.length, functionCount, parseTimeMs, top) +
+    "\n",
+);

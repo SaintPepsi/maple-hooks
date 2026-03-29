@@ -1,11 +1,11 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import { ok } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import {
   CheckAlgorithmVersion,
-  isNewer,
   type CheckAlgorithmVersionDeps,
+  isNewer,
 } from "./CheckAlgorithmVersion.contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { ok } from "@hooks/core/result";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -60,7 +60,10 @@ describe("CheckAlgorithmVersion", () => {
       let localCalled = false;
       const deps = makeDeps({
         isSubagent: () => true,
-        getLocalVersion: () => { localCalled = true; return "v1.0.0"; },
+        getLocalVersion: () => {
+          localCalled = true;
+          return "v1.0.0";
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(localCalled).toBe(false);
@@ -70,7 +73,9 @@ describe("CheckAlgorithmVersion", () => {
       let writeCalled = false;
       const deps = makeDeps({
         isSubagent: () => true,
-        writeStateFile: () => { writeCalled = true; },
+        writeStateFile: () => {
+          writeCalled = true;
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(writeCalled).toBe(false);
@@ -83,7 +88,9 @@ describe("CheckAlgorithmVersion", () => {
       const deps = makeDeps({
         getLocalVersion: () => "v3.4.0",
         getUpstreamVersion: async () => ok("v3.5.0"),
-        writeStateFile: (data) => { stateData = data; },
+        writeStateFile: (data) => {
+          stateData = data;
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(stateData.available).toBe(true);
@@ -109,7 +116,9 @@ describe("CheckAlgorithmVersion", () => {
       const deps = makeDeps({
         getLocalVersion: () => "v3.5.0",
         getUpstreamVersion: async () => ok("v3.5.0"),
-        writeStateFile: (data) => { stateData = data; },
+        writeStateFile: (data) => {
+          stateData = data;
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(stateData.available).toBe(false);
@@ -121,7 +130,9 @@ describe("CheckAlgorithmVersion", () => {
       const deps = makeDeps({
         getLocalVersion: () => "v4.0.0",
         getUpstreamVersion: async () => ok("v3.5.0"),
-        writeStateFile: (data) => { stateData = data; },
+        writeStateFile: (data) => {
+          stateData = data;
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(stateData.available).toBe(false);
@@ -134,7 +145,9 @@ describe("CheckAlgorithmVersion", () => {
       const deps = makeDeps({
         getLocalVersion: () => "unknown",
         getUpstreamVersion: async () => ok("v3.5.0"),
-        writeStateFile: (data) => { stateData = data; },
+        writeStateFile: (data) => {
+          stateData = data;
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(stateData.available).toBe(false);
@@ -145,7 +158,9 @@ describe("CheckAlgorithmVersion", () => {
       const deps = makeDeps({
         getLocalVersion: () => "v3.5.0",
         getUpstreamVersion: async () => ok("unknown"),
-        writeStateFile: (data) => { stateData = data; },
+        writeStateFile: (data) => {
+          stateData = data;
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(stateData.available).toBe(false);
@@ -156,7 +171,9 @@ describe("CheckAlgorithmVersion", () => {
       const deps = makeDeps({
         getLocalVersion: () => "unknown",
         getUpstreamVersion: async () => ok("unknown"),
-        writeStateFile: (data) => { stateData = data; },
+        writeStateFile: (data) => {
+          stateData = data;
+        },
       });
       await CheckAlgorithmVersion.execute(baseInput, deps);
       expect(stateData.available).toBe(false);

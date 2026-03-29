@@ -5,17 +5,17 @@
  * deleting current-work state, and resetting the Kitty tab.
  */
 
+import { join } from "node:path";
+import { fileExists, readFile, readJson, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { unknownError } from "@hooks/core/error";
-import { fileExists, readFile, readJson, writeFile, removeFile } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { cleanupKittySession, setTabState } from "@hooks/lib/tab-setter";
 import { getISOTimestamp } from "@hooks/lib/time";
-import { setTabState, cleanupKittySession } from "@hooks/lib/tab-setter";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -45,10 +45,7 @@ function findStateFile(
   return null;
 }
 
-function clearSessionWork(
-  sessionId: string | undefined,
-  deps: SessionSummaryDeps,
-): void {
+function clearSessionWork(sessionId: string | undefined, deps: SessionSummaryDeps): void {
   const stateDir = join(deps.baseDir, "MEMORY", "STATE");
   const workDir = join(deps.baseDir, "MEMORY", "WORK");
 
@@ -78,7 +75,9 @@ function clearSessionWork(
         `completed_at: "${deps.getTimestamp()}"`,
       );
       deps.writeFile(metaPath, metaContent);
-      deps.stderr(`[SessionSummary] Marked work directory as COMPLETED: ${currentWork.session_dir}`);
+      deps.stderr(
+        `[SessionSummary] Marked work directory as COMPLETED: ${currentWork.session_dir}`,
+      );
     }
   }
 
@@ -93,7 +92,9 @@ const defaultDeps: SessionSummaryDeps = {
   readFile,
   readJson,
   writeFile,
-  unlinkSync: (path) => { removeFile(path); },
+  unlinkSync: (path) => {
+    removeFile(path);
+  },
   getTimestamp: getISOTimestamp,
   setTabState: (opts) => setTabState(opts as Parameters<typeof setTabState>[0]),
   cleanupKittySession: (id) => cleanupKittySession(id),
@@ -101,11 +102,7 @@ const defaultDeps: SessionSummaryDeps = {
   stderr: defaultStderr,
 };
 
-export const SessionSummary: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  SessionSummaryDeps
-> = {
+export const SessionSummary: SyncHookContract<SessionEndInput, SilentOutput, SessionSummaryDeps> = {
   name: "SessionSummary",
   event: "SessionEnd",
 
@@ -113,10 +110,7 @@ export const SessionSummary: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: SessionEndInput,
-    deps: SessionSummaryDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: SessionSummaryDeps): Result<SilentOutput, PaiError> {
     clearSessionWork(input.session_id, deps);
 
     const tabResult = tryCatch(
