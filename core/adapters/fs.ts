@@ -65,6 +65,20 @@ export function writeJson(path: string, data: unknown): Result<void, PaiError> {
   return writeFile(path, JSON.stringify(data, null, 2));
 }
 
+/**
+ * Atomic exclusive-create write. Returns ok if file was created,
+ * err if it already exists or another error occurs.
+ * Used by the dedup guard for cross-process lock acquisition.
+ */
+export function writeFileExclusive(path: string, content: string): Result<void, PaiError> {
+  return tryCatch(
+    () => {
+      writeFileSync(path, content, { flag: "wx" });
+    },
+    (e) => fileWriteFailed(path, e),
+  );
+}
+
 export function appendFile(path: string, content: string): Result<void, PaiError> {
   return tryCatch(
     () => {
