@@ -17,6 +17,7 @@ import {
   stat,
   symlink,
   writeFile,
+  writeFileExclusive,
   writeJson,
 } from "./fs";
 
@@ -117,6 +118,25 @@ describe("writeJson", () => {
     const content = readFile(p);
     expect(content.ok).toBe(true);
     expect(JSON.parse(content.value!)).toEqual({ a: 1 });
+  });
+});
+
+// ─── writeFileExclusive ──────────────────────────────────────────────────────
+
+describe("writeFileExclusive", () => {
+  it("creates file when it does not exist", () => {
+    const p = join(TEST_DIR, "exclusive.txt");
+    const r = writeFileExclusive(p, "lock");
+    expect(r.ok).toBe(true);
+    expect(existsSync(p)).toBe(true);
+  });
+
+  it("returns error when file already exists", () => {
+    const p = join(TEST_DIR, "already.txt");
+    writeFileSync(p, "first");
+    const r = writeFileExclusive(p, "second");
+    expect(r.ok).toBe(false);
+    expect(r.error!.code).toBe(ErrorCode.FileWriteFailed);
   });
 });
 

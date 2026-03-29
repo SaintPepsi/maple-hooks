@@ -146,14 +146,14 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
   const runPipeline = async (): Promise<void> => {
     sessionId = (input as HookInputBase).session_id;
 
-    // Dedup guard — skip if same hook already fired for this input
-    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
+    if (!contract.accepts(input)) {
       emitLog("skipped");
       safeExit();
       return;
     }
 
-    if (!contract.accepts(input)) {
+    // Dedup guard — skip if same hook already fired for this input (after accepts)
+    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
       emitLog("skipped");
       safeExit();
       return;
@@ -256,14 +256,7 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     const input = inputResult.value as I;
     sessionId = (input as HookInputBase).session_id;
 
-    // Step 2.5: Dedup guard — skip if same hook already fired for this input
-    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
-      emitLog("skipped");
-      safeExit();
-      return;
-    }
-
-    // Step 2.6: Runtime validation — catch settings.json event routing misconfigs
+    // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
     if (isToolEvent && !("tool_name" in inputResult.value)) {
       writeErr(
         `[${contract.name}] input missing tool_name for ${contract.event} contract — check settings.json event routing`,
@@ -275,6 +268,13 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 
     // Step 3: accepts() gate — ISP
     if (!contract.accepts(input)) {
+      emitLog("skipped");
+      safeExit();
+      return;
+    }
+
+    // Step 3.5: Dedup guard — skip if same hook already fired for this input (after accepts)
+    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
       emitLog("skipped");
       safeExit();
       return;

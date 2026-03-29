@@ -9,7 +9,7 @@ function makeToolInput(toolName: string, toolInput: Record<string, string> = {})
 }
 
 const mockDeps = (overrides: Partial<DedupDeps> = {}): DedupDeps => ({
-  ensureDir: () => {},
+  ensureDir: () => true,
   tryClaimLock: () => true,
   ...overrides,
 });
@@ -125,6 +125,7 @@ describe("isDuplicate", () => {
     const deps: DedupDeps = {
       ensureDir: () => {
         callOrder.push("ensureDir");
+        return true;
       },
       tryClaimLock: () => {
         callOrder.push("tryClaimLock");
@@ -134,5 +135,11 @@ describe("isDuplicate", () => {
 
     isDuplicate("TestHook", "sess-1", makeToolInput("Bash"), deps);
     expect(callOrder).toEqual(["ensureDir", "tryClaimLock"]);
+  });
+
+  it("fails open when ensureDir returns false", () => {
+    const deps = mockDeps({ ensureDir: () => false });
+    const result = isDuplicate("TestHook", "sess-1", makeToolInput("Bash"), deps);
+    expect(result).toBe(false);
   });
 });

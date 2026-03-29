@@ -24,10 +24,10 @@ All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
 
 ## Runner (`runner.ts`)
 
-`runHook(contract)` — full pipeline: stdin, parse, dedup, accepts, execute, format, exit.
+`runHook(contract)` — full pipeline: stdin, parse, accepts, dedup, execute, format, exit.
 `runHookWith(contract, input)` — pre-built input, skips stdin.
 
-Both accept `HookContract` (the union) and normalize sync/async via `await Promise.resolve()`. Both include a dedup guard before `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels.
+Both accept `HookContract` (the union) and normalize sync/async via `await Promise.resolve()`. Both include a dedup guard after `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels. Running dedup after accepts avoids creating lock files for hooks that don't apply to the input.
 
 `RunHookOptions` allows overriding stdout, stderr, exit, log, and `isDuplicate` for testing.
 
@@ -35,7 +35,7 @@ Both accept `HookContract` (the union) and normalize sync/async via `await Promi
 
 Prevents duplicate hook firing when the same hook is registered at both global (`~/.claude/settings.json`) and project (`.claude/settings.json`) levels. Uses atomic file creation (`O_EXCL`) in `/tmp/pai-dedup/{sessionId}/` so concurrent processes race safely — first writer proceeds, second exits silently.
 
-Exports: `isDuplicate(hookName, sessionId, input, deps?)`, `stableHash(hookName, input)`, `DedupDeps` interface, `defaultDedupDeps`.
+Exports: `isDuplicate(hookName, sessionId, input, deps?)`, `stableHash(hookName, input)`, `DedupDeps` interface, `defaultDedupDeps()` (factory function).
 
 ## Adapters (`adapters/`)
 
