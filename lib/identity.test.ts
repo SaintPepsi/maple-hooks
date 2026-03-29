@@ -18,7 +18,6 @@ import {
   getVoiceId,
   getVoicePersonality,
   getVoiceProsody,
-  type Identity,
   type IdentityDeps,
   type Settings,
   type VoicePersonality,

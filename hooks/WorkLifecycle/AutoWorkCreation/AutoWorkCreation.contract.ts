@@ -5,6 +5,7 @@
  * On subsequent prompts: classifies as continuation or new topic.
  */
 
+import { join } from "node:path";
 import {
   ensureDir,
   fileExists,
@@ -22,7 +23,6 @@ import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { generatePRDFilename, generatePRDTemplate } from "@hooks/lib/prd-template";
 import { getISOTimestamp, getLocalComponents } from "@hooks/lib/time";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

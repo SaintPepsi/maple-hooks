@@ -8,14 +8,14 @@
  * Always returns ContinueOutput — never blocks worktree creation.
  */
 
+import { dirname, join } from "node:path";
 import { appendFile, ensureDir, fileExists, writeFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
-import { err, map, ok, type Result } from "@hooks/core/result";
+import { map, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { dirname, join } from "path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -151,7 +151,7 @@ export function ensureGitignore(worktreePath: string, deps: WorktreeSafetyDeps):
     );
     const gitignorePath = join(gitRoot, ".gitignore");
     let entry: string;
-    if (worktreePath.startsWith(gitRoot + "/")) {
+    if (worktreePath.startsWith(`${gitRoot}/`)) {
       entry = worktreePath.slice(gitRoot.length + 1);
     } else {
       entry = worktreePath;
@@ -252,7 +252,7 @@ const defaultDeps: WorktreeSafetyDeps = {
   mkdirSync: (path: string) => {
     ensureDir(path);
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   cwd: () => process.cwd(),
 };
 

@@ -7,6 +7,7 @@
  * Voice only fires for main terminal sessions (not subagents).
  */
 
+import { join } from "node:path";
 import { fileExists } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
@@ -19,7 +20,6 @@ import { handleTabState } from "@hooks/handlers/TabState";
 import { handleVoice } from "@hooks/handlers/VoiceNotification";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { parseTranscript } from "@pai/Tools/TranscriptParser";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

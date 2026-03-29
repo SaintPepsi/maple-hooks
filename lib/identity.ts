@@ -6,10 +6,10 @@
  * All hooks and tools should import from here.
  */
 
+import { join } from "node:path";
 import { fileExists as adapterFileExists, readJson } from "@hooks/core/adapters/fs";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import { join } from "path";
 
 // ─── Voice Types ────────────────────────────────────────────────────────────
 

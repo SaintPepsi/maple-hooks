@@ -11,15 +11,15 @@
  * tracked in issue #29). We mock the process module to control env vars without
  * direct process.env mutation in the test file.
  */
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { join } from "path";
+import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { join } from "node:path";
 
 // ─── Environment mock ────────────────────────────────────────────────────────
 // Central env state that tab-setter will read via the mocked process module.
 
 const mockEnv: Record<string, string | undefined> = {};
 
-function setMockEnv(overrides: Record<string, string | undefined>): void {
+function _setMockEnv(overrides: Record<string, string | undefined>): void {
   // Clear all keys first
   for (const key of Object.keys(mockEnv)) {
     delete mockEnv[key];

@@ -1,4 +1,4 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { ErrorCode } from "../error";
 import { exec, execSyncSafe, getEnv, shellForPlatform, spawnSyncSafe } from "./process";
 

@@ -3,7 +3,6 @@ import { type PaiError, processExecFailed } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { join } from "path";
 import {
   DEP_CONFIGS,
   ensureGitignore,
@@ -498,14 +497,14 @@ describe("WorktreeSafetyVerification defaultDeps", () => {
   });
 
   it("defaultDeps.appendFileSync writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-wtsv-append-" + Date.now() + ".txt";
+    const tmpPath = `/tmp/pai-test-wtsv-append-${Date.now()}.txt`;
     expect(() =>
       WorktreeSafetyVerification.defaultDeps.appendFileSync(tmpPath, "test"),
     ).not.toThrow();
   });
 
   it("defaultDeps.writeFileSync writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-wtsv-write-" + Date.now() + ".txt";
+    const tmpPath = `/tmp/pai-test-wtsv-write-${Date.now()}.txt`;
     expect(() =>
       WorktreeSafetyVerification.defaultDeps.writeFileSync(tmpPath, "test"),
     ).not.toThrow();
