@@ -1,8 +1,9 @@
-import { describe, expect, it, type Mock, mock } from "bun:test";
+import { afterEach, describe, expect, it, type Mock, mock } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import { handleVoice, type VoiceNotificationDeps } from "@hooks/handlers/VoiceNotification";
+import { clearCache } from "@hooks/lib/identity";
 import type { ParsedTranscript } from "@pai/Tools/TranscriptParser";
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
@@ -64,6 +65,8 @@ function makeOkFetchMock(): Mock<FetchFn> {
 }
 
 describe("handleVoice", () => {
+  afterEach(() => clearCache());
+
   it("sends notification to voice server with correct payload", async () => {
     const fetchMock = makeOkFetchMock();
     const deps = makeDeps({ fetch: fetchMock });

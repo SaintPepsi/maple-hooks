@@ -3,11 +3,13 @@
  *
  * Mocking strategy:
  * - Mock 'fs' for readFileSync/writeFileSync/existsSync
- * - Mock './identity' for getIdentity
+ * - Pre-populate identity cache with test values (no mock.module — it leaks globally in bun)
  * - Mock global fetch for sendPush
  * - Preserve real logic in the module under test
  */
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { clearCache, getIdentity, type IdentityDeps } from "@hooks/lib/identity";
+import { ok } from "@hooks/core/result";
 
 // ─── Module-level mocks ─────────────────────────────────────────────────────
 
@@ -22,16 +24,18 @@ mock.module("fs", () => ({
   writeFileSync: mockWriteFileSync,
 }));
 
-// Mock identity — return stable test values
-mock.module("./identity", () => ({
-  getIdentity: () => ({
-    name: "TestDA",
-    fullName: "Test DA",
-    displayName: "TestDA",
-    mainDAVoiceID: "",
-    color: "#000",
-  }),
-}));
+// Pre-populate identity cache with stable test values. This avoids mock.module
+// for identity which leaks globally across all test files in bun's test runner.
+const testIdentityDeps: IdentityDeps = {
+  settingsPath: "/tmp/test-notifications-settings.json",
+  readJson: () => ok({ daidentity: { name: "TestDA", fullName: "Test DA", displayName: "TestDA", color: "#000" } }),
+  fileExists: () => true,
+};
+
+function seedIdentityCache(): void {
+  clearCache();
+  getIdentity(testIdentityDeps);
+}
 
 // Import AFTER mocks are in place
 import {
@@ -72,12 +76,14 @@ function resetMocks(): void {
   mockReadFileSync.mockReset();
   mockWriteFileSync.mockReset();
   mockExistsSync.mockReturnValue(false);
+  seedIdentityCache();
 }
 
 // ─── getNotificationConfig ───────────────────────────────────────────────────
 
 describe("getNotificationConfig", () => {
   beforeEach(resetMocks);
+  afterEach(() => clearCache());
 
   it("returns default config when settings file does not exist", () => {
     mockExistsSync.mockReturnValue(false);
@@ -143,6 +149,7 @@ describe("getNotificationConfig", () => {
 
 describe("recordSessionStart", () => {
   beforeEach(resetMocks);
+  afterEach(() => clearCache());
 
   it("writes current timestamp to session file", () => {
     recordSessionStart();
@@ -157,6 +164,7 @@ describe("recordSessionStart", () => {
 
 describe("getSessionDurationMinutes", () => {
   beforeEach(resetMocks);
+  afterEach(() => clearCache());
 
   it("returns 0 when session file does not exist", () => {
     mockExistsSync.mockReturnValue(false);
@@ -179,6 +187,7 @@ describe("getSessionDurationMinutes", () => {
 
 describe("isLongRunningTask", () => {
   beforeEach(resetMocks);
+  afterEach(() => clearCache());
 
   it("returns false when session is shorter than threshold", () => {
     // Default threshold is 5 minutes; no session file = 0 minutes
@@ -211,6 +220,7 @@ describe("sendPush", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    clearCache();
   });
 
   it("returns false when ntfy is disabled", async () => {
@@ -324,6 +334,7 @@ describe("notify", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    clearCache();
   });
 
   it("sends push when event is routed to ntfy", async () => {
@@ -369,6 +380,7 @@ describe("notify", () => {
 
 describe("notifyTaskComplete", () => {
   beforeEach(resetMocks);
+  afterEach(() => clearCache());
 
   it("routes as taskComplete when session is short", async () => {
     // No session file = 0 minutes = not long running = taskComplete event
@@ -390,6 +402,7 @@ describe("notifyBackgroundAgent", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    clearCache();
   });
 
   it("sends with agent type in title", async () => {
@@ -420,6 +433,7 @@ describe("notifyError", () => {
 
   afterEach(() => {
     globalThis.fetch = originalFetch;
+    clearCache();
   });
 
   it("sends with high priority", async () => {

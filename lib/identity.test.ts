@@ -5,7 +5,7 @@
  * and verifies the Deps injection pattern works correctly.
  */
 
-import { beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { fileNotFound } from "@hooks/core/error";
 import {
   clearCache,
@@ -23,6 +23,11 @@ import {
   type VoicePersonality,
   type VoiceProsody,
 } from "@hooks/lib/identity";
+
+// Global cache cleanup — ensures no cache leaks between describe blocks
+// regardless of test execution order (bun 1.3+ may interleave describe blocks)
+beforeEach(() => clearCache());
+afterEach(() => clearCache());
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -53,8 +58,6 @@ function missingFileDeps(): IdentityDeps {
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("getIdentity", () => {
-  beforeEach(() => clearCache());
-
   it("returns defaults when settings file is missing", () => {
     const identity = getIdentity(missingFileDeps());
     expect(identity.name).toBe("PAI");
@@ -193,8 +196,6 @@ describe("getIdentity", () => {
 });
 
 describe("getPrincipal", () => {
-  beforeEach(() => clearCache());
-
   it("returns defaults when no principal in settings", () => {
     const principal = getPrincipal(emptyDeps());
     expect(principal.name).toBe("User");
@@ -218,8 +219,6 @@ describe("getPrincipal", () => {
 });
 
 describe("convenience functions", () => {
-  beforeEach(() => clearCache());
-
   it("getDAName returns the DA name", () => {
     const deps = makeDeps({ daidentity: { name: "TestDA" } });
     expect(getDAName(deps)).toBe("TestDA");
