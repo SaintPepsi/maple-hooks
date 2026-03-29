@@ -17,6 +17,7 @@ function makeDeps(overrides: Partial<CitationEnforcementDeps> = {}): CitationEnf
 
 function makeWriteInput(filePath: string): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PostToolUse",
     tool_name: "Write",
     tool_input: { file_path: filePath, content: "test" },
@@ -36,6 +37,7 @@ describe("CitationEnforcement", () => {
 
     test("accepts Edit tool", () => {
       const input: ToolHookInput = {
+        session_id: "test",
         hook_type: "PostToolUse",
         tool_name: "Edit",
         tool_input: { file_path: "/tmp/file.ts", old_string: "a", new_string: "b" },
@@ -45,6 +47,7 @@ describe("CitationEnforcement", () => {
 
     test("rejects other tools", () => {
       const input: ToolHookInput = {
+        session_id: "test",
         hook_type: "PostToolUse",
         tool_name: "Bash",
         tool_input: { command: "ls" },
@@ -66,6 +69,7 @@ describe("CitationEnforcement", () => {
 
     test("returns continue without context when no file_path in input", () => {
       const input: ToolHookInput = {
+        session_id: "test",
         hook_type: "PostToolUse",
         tool_name: "Write",
         tool_input: { content: "test" },

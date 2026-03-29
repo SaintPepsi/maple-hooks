@@ -22,6 +22,7 @@ function makeDeps(overrides: Partial<AgentCompleteTrackerDeps> = {}): AgentCompl
 
 function makeCompletionInput(threadId?: string): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PostToolUse",
     tool_name: "Agent",
     tool_input: { prompt: "do something" },
@@ -33,6 +34,7 @@ function makeCompletionInput(threadId?: string): ToolHookInput {
 
 function makeSpawnInput(): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PostToolUse",
     tool_name: "Agent",
     tool_input: { prompt: "do something", run_in_background: true },
@@ -52,6 +54,7 @@ describe("AgentCompleteTracker", () => {
 
   test("rejects non-Agent tool inputs", () => {
     const input: ToolHookInput = {
+      session_id: "test",
       hook_type: "PostToolUse",
       tool_name: "Bash",
       tool_input: { command: "ls" },
@@ -94,6 +97,7 @@ describe("AgentCompleteTracker", () => {
     });
     // Use input with a discord-format thread ID in the output
     const input: ToolHookInput = {
+      session_id: "test",
       hook_type: "PostToolUse",
       tool_name: "Agent",
       tool_input: { prompt: "test" },
@@ -106,6 +110,7 @@ describe("AgentCompleteTracker", () => {
 
   test("returns continue even when fetch fails", async () => {
     const input: ToolHookInput = {
+      session_id: "test",
       hook_type: "PostToolUse",
       tool_name: "Agent",
       tool_input: { prompt: "test" },

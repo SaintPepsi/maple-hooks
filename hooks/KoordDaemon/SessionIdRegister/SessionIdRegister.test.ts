@@ -34,7 +34,7 @@ describe("SessionIdRegister", () => {
   });
 
   test("returns silent when no session_id", async () => {
-    const input: SessionStartInput = { hook_type: "SessionStart" };
+    const input: SessionStartInput = { session_id: "", hook_type: "SessionStart" };
     const result = await SessionIdRegister.execute(input, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("silent");

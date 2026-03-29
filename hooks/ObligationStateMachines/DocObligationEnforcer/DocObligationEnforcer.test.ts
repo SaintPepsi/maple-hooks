@@ -17,7 +17,7 @@ function makeDeps(overrides: Partial<DocObligationDeps> = {}): DocObligationDeps
     readBlockCount: () => 0,
     removeFlag: () => {},
     writeReview: () => {},
-    readFile: () => ({ ok: true as const, value: "", error: undefined }),
+    writePending: () => {},
     stderr: () => {},
     ...overrides,
   };
