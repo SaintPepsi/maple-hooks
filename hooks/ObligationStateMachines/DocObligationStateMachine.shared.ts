@@ -11,10 +11,11 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import { jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
-import type { Result } from "@hooks/core/result";
+import { tryCatch, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { defaultStderr, getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Project Hook Deduplication ───────────────────────────────────────────────
 
@@ -43,6 +44,11 @@ export interface DocObligationDeps {
   writeBlockCount: (path: string, count: number) => void;
   writeReview: (path: string, content: string) => void;
   stderr: (msg: string) => void;
+}
+
+/** Narrow extension used only by DocObligationTracker (not the enforcer). */
+export interface DocTrackerExcludeDeps {
+  getExcludePatterns: () => string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -137,11 +143,44 @@ export function buildDocSuggestions(pending: string[], deps: DocObligationDeps):
   return `${lines.join("\n")}\n`;
 }
 
+// ─── Exclude Pattern Helpers ──────────────────────────────────────────────────
+
+interface DocObligationSettingsJson {
+  hookConfig?: {
+    docObligation?: {
+      excludePatterns?: string[];
+    };
+  };
+}
+
+/** Read excludePatterns from settings.json hookConfig.docObligation.excludePatterns. */
+export function readDocExcludePatterns(settingsPath?: string): string[] {
+  const path = settingsPath ?? getSettingsPath();
+  const result = readFile(path);
+  if (!result.ok) return [];
+  const parsed = tryCatch(
+    () => JSON.parse(result.value) as DocObligationSettingsJson,
+    (cause) => jsonParseFailed(result.value.slice(0, 100), cause),
+  );
+  if (!parsed.ok) return [];
+  const patterns = parsed.value?.hookConfig?.docObligation?.excludePatterns;
+  return Array.isArray(patterns) ? patterns : [];
+}
+
+/** Returns true if filePath matches any of the given glob patterns. */
+export function matchesDocExcludePattern(filePath: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => new Bun.Glob(pattern).match(filePath));
+}
+
 // ─── Default Deps ─────────────────────────────────────────────────────────────
 
 function getStateDir(baseDir: string): string {
   return join(baseDir, "MEMORY", "STATE", "doc-obligation");
 }
+
+export const defaultDocTrackerExcludeDeps: DocTrackerExcludeDeps = {
+  getExcludePatterns: () => readDocExcludePatterns(),
+};
 
 export const defaultDeps: DocObligationDeps = {
   stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),

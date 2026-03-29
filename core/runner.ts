@@ -12,6 +12,7 @@ import { readStdin } from "@hooks/core/adapters/stdin";
 import type { HookContract } from "@hooks/core/contract";
 import { ErrorCode, jsonParseFailed, type PaiError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
+import { isDuplicate } from "@hooks/core/dedup";
 import type { HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
 import type { HookOutput } from "@hooks/core/types/hook-outputs";
 
@@ -97,6 +98,8 @@ export interface RunHookOptions {
   stdinOverride?: string;
   /** Override log writer for testing. */
   appendLog?: (entry: HookLogEntry) => void;
+  /** Override dedup guard for testing. Return true to skip as duplicate. */
+  isDuplicate?: (hookName: string, sessionId: string, input: HookInput) => boolean;
 }
 
 /**
@@ -114,6 +117,7 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
   const write = options.stdout ?? ((msg: string) => process.stdout.write(msg));
   const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
   const exit = options.exit ?? ((code: number) => process.exit(code));
+  const checkDuplicate = options.isDuplicate ?? isDuplicate;
   const log =
     options.appendLog ??
     ((entry: HookLogEntry) => {
@@ -141,6 +145,13 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
 
   const runPipeline = async (): Promise<void> => {
     sessionId = (input as HookInputBase).session_id;
+
+    // Dedup guard — skip if same hook already fired for this input
+    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
+      emitLog("skipped");
+      safeExit();
+      return;
+    }
 
     if (!contract.accepts(input)) {
       emitLog("skipped");
@@ -185,6 +196,7 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
   const write = options.stdout ?? ((msg: string) => process.stdout.write(msg));
   const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
   const exit = options.exit ?? ((code: number) => process.exit(code));
+  const checkDuplicate = options.isDuplicate ?? isDuplicate;
   const timeoutMs = options.stdinTimeout ?? 200;
   const log =
     options.appendLog ??
@@ -244,7 +256,14 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     const input = inputResult.value as I;
     sessionId = (input as HookInputBase).session_id;
 
-    // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
+    // Step 2.5: Dedup guard — skip if same hook already fired for this input
+    if (sessionId && checkDuplicate(contract.name, sessionId, input)) {
+      emitLog("skipped");
+      safeExit();
+      return;
+    }
+
+    // Step 2.6: Runtime validation — catch settings.json event routing misconfigs
     if (isToolEvent && !("tool_name" in inputResult.value)) {
       writeErr(
         `[${contract.name}] input missing tool_name for ${contract.event} contract — check settings.json event routing`,

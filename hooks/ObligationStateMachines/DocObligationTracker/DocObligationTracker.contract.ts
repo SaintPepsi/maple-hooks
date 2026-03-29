@@ -5,19 +5,24 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   type DocObligationDeps,
+  type DocTrackerExcludeDeps,
   defaultDeps,
+  defaultDocTrackerExcludeDeps,
   getFilePath,
   isDocFile,
   isNonTestCodeFile,
   isRelatedDoc,
+  matchesDocExcludePattern,
   pendingPath,
   projectHasHook,
 } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 
+export type DocTrackerDeps = DocObligationDeps & DocTrackerExcludeDeps;
+
 export const DocObligationTracker: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
-  DocObligationDeps
+  DocTrackerDeps
 > = {
   name: "DocObligationTracker",
   event: "PostToolUse",
@@ -30,7 +35,7 @@ export const DocObligationTracker: SyncHookContract<
     return isDocFile(filePath) || isNonTestCodeFile(filePath);
   },
 
-  execute(input: ToolHookInput, deps: DocObligationDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: DocTrackerDeps): Result<ContinueOutput, PaiError> {
     const filePath = getFilePath(input);
     if (!filePath) {
       return ok({ type: "continue", continue: true });
@@ -59,6 +64,12 @@ export const DocObligationTracker: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
+    const excludePatterns = deps.getExcludePatterns();
+    if (excludePatterns.length > 0 && matchesDocExcludePattern(filePath, excludePatterns)) {
+      deps.stderr(`[DocObligationTracker] Excluded: ${filePath}`);
+      return ok({ type: "continue", continue: true });
+    }
+
     const pending = deps.readPending(flagFile);
     if (!pending.includes(filePath)) {
       pending.push(filePath);
@@ -69,5 +80,5 @@ export const DocObligationTracker: SyncHookContract<
     return ok({ type: "continue", continue: true });
   },
 
-  defaultDeps,
+  defaultDeps: { ...defaultDeps, ...defaultDocTrackerExcludeDeps },
 };

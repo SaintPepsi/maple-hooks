@@ -5,20 +5,25 @@ import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   defaultDeps,
+  defaultTrackerExcludeDeps,
   extractTestedSourceFiles,
   getCommand,
   getFilePath,
   isNonTestCodeFile,
   isTestCommand,
+  matchesExcludePattern,
   pendingMatchesSource,
   pendingPath,
   type TestObligationDeps,
+  type TestTrackerExcludeDeps,
 } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+
+export type TestTrackerDeps = TestObligationDeps & TestTrackerExcludeDeps;
 
 export const TestObligationTracker: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
-  TestObligationDeps
+  TestTrackerDeps
 > = {
   name: "TestObligationTracker",
   event: "PostToolUse",
@@ -35,7 +40,7 @@ export const TestObligationTracker: SyncHookContract<
     return false;
   },
 
-  execute(input: ToolHookInput, deps: TestObligationDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: TestTrackerDeps): Result<ContinueOutput, PaiError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (input.tool_name === "Bash") {
@@ -71,6 +76,12 @@ export const TestObligationTracker: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
+    const excludePatterns = deps.getExcludePatterns();
+    if (excludePatterns.length > 0 && matchesExcludePattern(filePath, excludePatterns)) {
+      deps.stderr(`[TestObligationTracker] Excluded: ${filePath}`);
+      return ok({ type: "continue", continue: true });
+    }
+
     const pending = deps.readPending(flagFile);
     if (!pending.includes(filePath)) {
       pending.push(filePath);
@@ -81,5 +92,5 @@ export const TestObligationTracker: SyncHookContract<
     return ok({ type: "continue", continue: true });
   },
 
-  defaultDeps,
+  defaultDeps: { ...defaultDeps, ...defaultTrackerExcludeDeps },
 };
