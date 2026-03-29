@@ -2,7 +2,8 @@
   "name": "SecurityValidator",
   "description": "Protected file write prevention",
   "hooks": [
-    "SecurityValidator"
+    "SecurityValidator",
+    "PermissionPromptLogger"
   ],
   "sharedFiles": []
 }

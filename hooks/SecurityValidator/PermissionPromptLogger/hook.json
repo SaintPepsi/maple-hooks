@@ -1,0 +1,9 @@
+{
+  "name": "PermissionPromptLogger",
+  "group": "SecurityValidator",
+  "event": "PermissionRequest",
+  "description": "Diagnostic: logs every permission prompt to JSONL for analysis",
+  "schemaVersion": 1,
+  "tags": ["diagnostic"],
+  "presets": []
+}
