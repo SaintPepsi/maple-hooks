@@ -1,7 +1,8 @@
 /**
  * Narrative Reader — Picks severity-tiered agent perspective messages for hooks.
  *
- * Reads from pai-hooks/narrative/{HookName}.narrative.jsonl.
+ * Reads from {hookDir}/{HookName}.narrative.jsonl, where hookDir is the
+ * directory of the hook contract (pass import.meta.dir from the call site).
  * Each line: {"message": "...", "score": 1|2|3}
  * Score maps to violation severity: 1 = gentle (1-2), 2 = direct (3-5), 3 = firm (6+).
  */
@@ -22,7 +23,6 @@ interface NarrativeEntry {
 export interface NarrativeReaderDeps {
   readFile: (path: string) => string | null;
   fileExists: (path: string) => boolean;
-  baseDir: string;
   stderr: (msg: string) => void;
 }
 
@@ -60,16 +60,16 @@ const defaultDeps: NarrativeReaderDeps = {
     return result.ok ? result.value : null;
   },
   fileExists: adapterFileExists,
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
   stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export function pickNarrative(
   hookName: string,
   violationCount: number,
+  hookDir: string,
   deps: NarrativeReaderDeps = defaultDeps,
 ): string {
-  const filePath = join(deps.baseDir, "pai-hooks", "narrative", `${hookName}.narrative.jsonl`);
+  const filePath = join(hookDir, `${hookName}.narrative.jsonl`);
 
   if (!deps.fileExists(filePath)) return DEFAULT_MESSAGE;
 

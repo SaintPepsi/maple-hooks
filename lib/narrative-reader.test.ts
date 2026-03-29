@@ -9,7 +9,6 @@ function makeDeps(entries: Array<{ message: string; score: number }>): Narrative
   return {
     readFile: () => entries.map((e) => JSON.stringify(e)).join("\n"),
     fileExists: () => true,
-    baseDir: "/tmp/test",
     stderr: () => {},
   };
 }
@@ -42,13 +41,13 @@ describe("pickNarrative", () => {
       { message: "tier-2-msg", score: 2 },
       { message: "tier-3-msg", score: 3 },
     ]);
-    const result = pickNarrative("TestHook", 1, deps);
+    const result = pickNarrative("TestHook", 1, "/tmp/test", deps);
     expect(result).toBe("tier-1-msg");
   });
 
   it("falls back to any tier if no match", () => {
     const deps = makeDeps([{ message: "only-tier-2", score: 2 }]);
-    const result = pickNarrative("TestHook", 1, deps);
+    const result = pickNarrative("TestHook", 1, "/tmp/test", deps);
     expect(result).toBe("only-tier-2");
   });
 
@@ -56,10 +55,9 @@ describe("pickNarrative", () => {
     const deps: NarrativeReaderDeps = {
       readFile: () => null,
       fileExists: () => false,
-      baseDir: "/tmp/test",
       stderr: () => {},
     };
-    const result = pickNarrative("TestHook", 3, deps);
+    const result = pickNarrative("TestHook", 3, "/tmp/test", deps);
     expect(typeof result).toBe("string");
     expect(result.length).toBeGreaterThan(0);
   });
@@ -67,7 +65,7 @@ describe("pickNarrative", () => {
   it("returns generic default if file is empty", () => {
     const deps = makeDeps([]);
     deps.readFile = () => "";
-    const result = pickNarrative("TestHook", 1, deps);
+    const result = pickNarrative("TestHook", 1, "/tmp/test", deps);
     expect(typeof result).toBe("string");
     expect(result.length).toBeGreaterThan(0);
   });

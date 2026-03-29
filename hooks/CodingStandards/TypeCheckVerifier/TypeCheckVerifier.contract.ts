@@ -59,6 +59,11 @@ interface ExecResult {
 const lastCheckTime = new Map<string, number>();
 const DEBOUNCE_MS = 60_000;
 
+/** Test-only: reset the debounce cache so tests start with clean state. */
+export function _resetDebounceCache(): void {
+  lastCheckTime.clear();
+}
+
 function isDebounced(filePath: string): boolean {
   const last = lastCheckTime.get(filePath);
   if (!last) return false;
@@ -70,6 +75,9 @@ function markChecked(filePath: string): void {
 }
 
 // ─── Project Discovery ──────────────────────────────────────────────────────
+
+/** Max directory levels to traverse upward when searching for project root. */
+const MAX_DIR_DEPTH = 50;
 
 /**
  * Walk up from file path to find the project root and type-check command.
@@ -85,10 +93,9 @@ export function discoverTypeCheck(
 ): TypeCheckCommand | null {
   let dir = dirname(filePath);
   const root = "/";
-  const visited = new Set<string>();
 
-  while (dir !== root && !visited.has(dir)) {
-    visited.add(dir);
+  for (let depth = 0; depth < MAX_DIR_DEPTH; depth++) {
+    if (dir === root) break;
 
     const pkgPath = join(dir, "package.json");
     if (deps.fileExists(pkgPath)) {
@@ -123,7 +130,9 @@ export function discoverTypeCheck(
       return { cmd: "npx", args: ["tsc", "--noEmit"], cwd: dir };
     }
 
-    dir = dirname(dir);
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
 
   return null;

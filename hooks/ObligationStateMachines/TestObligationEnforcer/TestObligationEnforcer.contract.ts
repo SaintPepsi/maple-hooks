@@ -68,7 +68,7 @@ export const TestObligationEnforcer: SyncHookContract<
       }
     }
 
-    const opener = pickNarrative("TestObligationEnforcer", pending.length);
+    const opener = pickNarrative("TestObligationEnforcer", pending.length, import.meta.dir);
     const sections: string[] = [];
 
     if (needsWriting.length > 0) {

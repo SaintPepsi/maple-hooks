@@ -1,7 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { TypeCheckVerifierDeps } from "./TypeCheckVerifier.contract";
 import {
+  _resetDebounceCache,
   discoverTypeCheck,
   parseTypeErrors,
   TypeCheckVerifier,
@@ -10,6 +11,10 @@ import {
 // ─── Discovery Tests ────────────────────────────────────────────────────────
 
 describe("discoverTypeCheck", () => {
+  beforeEach(() => {
+    _resetDebounceCache();
+  });
+
   test("discovers svelte-check from package.json check script", () => {
     const deps = {
       fileExists: (p: string) => p === "/project/package.json",
@@ -125,6 +130,10 @@ src/a.ts(3,3): error TS2304: err a2`;
 // ─── Contract Tests ─────────────────────────────────────────────────────────
 
 describe("TypeCheckVerifier contract", () => {
+  beforeEach(() => {
+    _resetDebounceCache();
+  });
+
   function makeInput(toolName: string, filePath: string): ToolHookInput {
     return {
       tool_name: toolName,

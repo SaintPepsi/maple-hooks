@@ -87,7 +87,7 @@ export const BashWriteGuard: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const opener = pickNarrative("BashWriteGuard", 1);
+    const opener = pickNarrative("BashWriteGuard", 1, import.meta.dir);
     const reason = [
       opener,
       "",

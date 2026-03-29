@@ -429,7 +429,7 @@ export const SecurityValidator: SyncHookContract<
       const result = validateBashCommand(command, patterns, deps);
 
       if (result.action === "block") {
-        const opener = pickNarrative("SecurityValidator", countViolations(result));
+        const opener = pickNarrative("SecurityValidator", countViolations(result), import.meta.dir);
         logSecurityEvent(
           {
             timestamp: new Date().toISOString(),
@@ -448,7 +448,7 @@ export const SecurityValidator: SyncHookContract<
       }
 
       if (result.action === "confirm") {
-        const opener = pickNarrative("SecurityValidator", countViolations(result));
+        const opener = pickNarrative("SecurityValidator", countViolations(result), import.meta.dir);
         logSecurityEvent(
           {
             timestamp: new Date().toISOString(),
@@ -494,7 +494,7 @@ export const SecurityValidator: SyncHookContract<
       for (const target of writeTargets) {
         const pathResult = validatePath(target, "write", patterns, home, deps);
         if (pathResult.action === "block" || pathResult.action === "confirm") {
-          const opener = pickNarrative("SecurityValidator", countViolations(pathResult));
+          const opener = pickNarrative("SecurityValidator", countViolations(pathResult), import.meta.dir);
           logSecurityEvent(
             {
               timestamp: new Date().toISOString(),
@@ -533,7 +533,7 @@ export const SecurityValidator: SyncHookContract<
     const result = validatePath(filePath, action, patterns, home, deps);
 
     if (result.action === "block") {
-      const opener = pickNarrative("SecurityValidator", countViolations(result));
+      const opener = pickNarrative("SecurityValidator", countViolations(result), import.meta.dir);
       logSecurityEvent(
         {
           timestamp: new Date().toISOString(),
@@ -552,7 +552,7 @@ export const SecurityValidator: SyncHookContract<
     }
 
     if (result.action === "confirm") {
-      const opener = pickNarrative("SecurityValidator", countViolations(result));
+      const opener = pickNarrative("SecurityValidator", countViolations(result), import.meta.dir);
       logSecurityEvent(
         {
           timestamp: new Date().toISOString(),

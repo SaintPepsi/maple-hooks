@@ -30,7 +30,7 @@ export const SkillGuard: SyncHookContract<
     const skillName = ((input.tool_input?.skill as string) || "").toLowerCase().trim();
 
     if (BLOCKED_SKILLS.includes(skillName)) {
-      const opener = pickNarrative("SkillGuard", 1);
+      const opener = pickNarrative("SkillGuard", 1, import.meta.dir);
       return ok({
         type: "block",
         decision: "block",

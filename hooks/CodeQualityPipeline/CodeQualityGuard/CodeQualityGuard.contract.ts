@@ -34,6 +34,11 @@ import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
 const reportedViolations = new Map<string, string>();
 
+/** Test-only: reset the violation dedup cache so tests start with clean state. */
+export function _resetViolationCache(): void {
+  reportedViolations.clear();
+}
+
 function violationHash(violations: Array<{ check: string }>): string {
   return violations
     .map((v) => v.check)
