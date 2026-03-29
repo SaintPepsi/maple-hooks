@@ -11,8 +11,8 @@
  * Usage: bun run scripts/docs/check.ts [--doc-name <filename>]
  */
 
-import { readdirSync, readFileSync, existsSync } from "fs";
-import { join, resolve } from "path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 // ─── CLI Args ─────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,9 @@ function loadRequiredSections(): string[] {
     const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
     const sections = settings?.hookConfig?.hookDocEnforcer?.requiredSections;
     if (Array.isArray(sections)) return sections;
-  } catch { /* use defaults */ }
+  } catch {
+    /* use defaults */
+  }
 
   return REQUIRED_SECTIONS;
 }
@@ -98,7 +100,12 @@ for (const groupName of groupDirs) {
     const missing = requiredSections.filter((s) => !content.includes(s));
 
     if (missing.length > 0) {
-      issues.push({ hook: hookName, group: groupName, type: "incomplete", missingSections: missing });
+      issues.push({
+        hook: hookName,
+        group: groupName,
+        type: "incomplete",
+        missingSections: missing,
+      });
     }
   }
 }

@@ -14,16 +14,21 @@
  * Uses CliDeps for DI (cli/types/deps.ts).
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import { tryCatch } from "@hooks/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { invalidArgs, lockMissing, PaihErrorCode, PaihError as PaihErrorClass } from "@hooks/cli/core/error";
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import type { CliDeps } from "@hooks/cli/types/deps";
-import { resolveTarget } from "@hooks/cli/core/target";
-import { readLockfile, computeFileHash } from "@hooks/cli/core/lockfile";
+import type { PaihError } from "@hooks/cli/core/error";
+import {
+  invalidArgs,
+  lockMissing,
+  PaihError as PaihErrorClass,
+  PaihErrorCode,
+} from "@hooks/cli/core/error";
+import { computeFileHash, readLockfile } from "@hooks/cli/core/lockfile";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 import { readSettings } from "@hooks/cli/core/settings";
+import { resolveTarget } from "@hooks/cli/core/target";
+import type { CliDeps } from "@hooks/cli/types/deps";
+import { tryCatch } from "@hooks/core/result";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +57,9 @@ export function verify(
 
   if (installed) {
     if (fix) {
-      return err(invalidArgs("--fix is not available in installed mode. Use \"paih update\" instead."));
+      return err(
+        invalidArgs('--fix is not available in installed mode. Use "paih update" instead.'),
+      );
     }
     return verifyInstalled(args, deps);
   }
@@ -102,14 +109,7 @@ function verifySource(
       const manifestPath = `${hookDir}/hook.json`;
       if (!deps.fileExists(manifestPath)) continue;
 
-      const result = validateHookManifest(
-        hookName,
-        hookDir,
-        manifestPath,
-        groupDir,
-        deps,
-        fix,
-      );
+      const result = validateHookManifest(hookName, hookDir, manifestPath, groupDir, deps, fix);
 
       if (result.diagnostics.length > 0) {
         diagnostics.push(...result.diagnostics);
@@ -125,7 +125,9 @@ function verifySource(
   }
 
   if (fix && fixedHooks.length > 0) {
-    return ok(`Fixed ${fixedHooks.length} hook manifest${fixedHooks.length === 1 ? "" : "s"}: ${fixedHooks.join(", ")}`);
+    return ok(
+      `Fixed ${fixedHooks.length} hook manifest${fixedHooks.length === 1 ? "" : "s"}: ${fixedHooks.join(", ")}`,
+    );
   }
 
   // Report diagnostics
@@ -167,11 +169,12 @@ function validateHookManifest(
 
   const parsed = tryCatch(
     () => JSON.parse(manifestContent.value) as Record<string, unknown>,
-    () => new PaihErrorClass(
-      PaihErrorCode.ManifestParseError,
-      `Failed to parse hook.json at ${manifestPath}`,
-      { path: manifestPath },
-    ),
+    () =>
+      new PaihErrorClass(
+        PaihErrorCode.ManifestParseError,
+        `Failed to parse hook.json at ${manifestPath}`,
+        { path: manifestPath },
+      ),
   );
 
   if (!parsed.ok) {
@@ -201,10 +204,7 @@ function validateHookManifest(
 /**
  * Installed-mode verify: check files match lockfile hashes and settings entries exist.
  */
-function verifyInstalled(
-  args: ParsedArgs,
-  deps: CliDeps,
-): Result<string, PaihError> {
+function verifyInstalled(args: ParsedArgs, deps: CliDeps): Result<string, PaihError> {
   const inFlag = typeof args.flags.in === "string" ? args.flags.in : undefined;
   const fromFlag = typeof args.flags.from === "string" ? args.flags.from : undefined;
   const targetFlag = inFlag ?? fromFlag;

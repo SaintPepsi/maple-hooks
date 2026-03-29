@@ -1,26 +1,22 @@
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import { addPending, clearMatching } from "@hooks/lib/obligation-machine";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
   defaultDeps,
-  pendingPath,
   getFilePath,
-  isHookSourceFile,
-  isHookDocFile,
   getHookDirFromPath,
+  isHookDocFile,
+  isHookSourceFile,
+  pendingPath,
   readHookDocSettings,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
+import { addPending, clearMatching } from "@hooks/lib/obligation-machine";
 
-export const HookDocTracker: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  ObligationDeps
-> = {
+export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, ObligationDeps> = {
   name: "HookDocTracker",
   event: "PostToolUse",
 
@@ -30,13 +26,13 @@ export const HookDocTracker: SyncHookContract<
     const filePath = getFilePath(input);
     if (!filePath) return false;
     const settings = readHookDocSettings();
-    return isHookSourceFile(filePath, settings.watchPatterns) || isHookDocFile(filePath, settings.docFileName);
+    return (
+      isHookSourceFile(filePath, settings.watchPatterns) ||
+      isHookDocFile(filePath, settings.docFileName)
+    );
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: ObligationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: ObligationDeps): Result<ContinueOutput, PaiError> {
     const filePath = getFilePath(input);
     if (!filePath) return ok({ type: "continue", continue: true });
 

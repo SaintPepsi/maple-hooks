@@ -4,91 +4,85 @@
  * Contracts import from './core' only. This is the single entry point.
  */
 
-// Result type
+export { type FetchResult, safeFetch } from "./adapters/fetch";
 export {
-  type Result,
-  type Ok,
-  type Err,
-  ok,
-  err,
-  andThen,
-  map,
-  mapError,
-  match,
-  unwrapOr,
-  collectResults,
-  partitionResults,
-  tryCatch,
-  tryCatchAsync,
-} from "./result";
-
-// Error types
-export {
-  PaiError,
-  ErrorCode,
-  stdinTimeout,
-  stdinReadFailed,
-  jsonParseFailed,
-  invalidInput,
-  fileNotFound,
-  fileReadFailed,
-  fileWriteFailed,
-  dirCreateFailed,
-  processExecFailed,
-  processSpawnFailed,
-  envVarMissing,
-  fetchFailed,
-  fetchTimeout,
-  securityBlock,
-  contractViolation,
-  stateCorrupted,
-  unknownError,
-  cancelled,
-} from "./error";
-
-// Contract interface
-export { type HookContract } from "./contract";
-
-// Input types
-export {
-  type HookEventType,
-  type HookInputBase,
-  type ToolHookInput,
-  type SessionStartInput,
-  type SessionEndInput,
-  type UserPromptSubmitInput,
-  type StopInput,
-  type HookInput,
-} from "./types/hook-inputs";
-
-// Output types
-export {
-  type ContinueOutput,
-  type BlockOutput,
-  type AskOutput,
-  type ContextOutput,
-  type SilentOutput,
-  type HookOutput,
-  continueOk,
-  block,
-  ask,
-  context,
-  silent,
-} from "./types/hook-outputs";
-
-// Runner
-export { runHook, type RunHookOptions } from "./runner";
-
-// Adapters
-export { readStdin } from "./adapters/stdin";
-export {
+  appendFile,
+  ensureDir,
+  fileExists,
   readFile,
   readJson,
   writeFile,
   writeJson,
-  appendFile,
-  ensureDir,
-  fileExists,
 } from "./adapters/fs";
-export { exec, spawnDetached, getEnv, type ExecResult } from "./adapters/process";
-export { safeFetch, type FetchResult } from "./adapters/fetch";
+export { type ExecResult, exec, getEnv, spawnDetached } from "./adapters/process";
+// Adapters
+export { readStdin } from "./adapters/stdin";
+// Contract interface
+export type { HookContract } from "./contract";
+// Error types
+export {
+  cancelled,
+  contractViolation,
+  dirCreateFailed,
+  ErrorCode,
+  envVarMissing,
+  fetchFailed,
+  fetchTimeout,
+  fileNotFound,
+  fileReadFailed,
+  fileWriteFailed,
+  invalidInput,
+  jsonParseFailed,
+  PaiError,
+  processExecFailed,
+  processSpawnFailed,
+  securityBlock,
+  stateCorrupted,
+  stdinReadFailed,
+  stdinTimeout,
+  unknownError,
+} from "./error";
+// Result type
+export {
+  andThen,
+  collectResults,
+  type Err,
+  err,
+  map,
+  mapError,
+  match,
+  type Ok,
+  ok,
+  partitionResults,
+  type Result,
+  tryCatch,
+  tryCatchAsync,
+  unwrapOr,
+} from "./result";
+// Runner
+export { type RunHookOptions, runHook } from "./runner";
+// Input types
+export type {
+  HookEventType,
+  HookInput,
+  HookInputBase,
+  SessionEndInput,
+  SessionStartInput,
+  StopInput,
+  ToolHookInput,
+  UserPromptSubmitInput,
+} from "./types/hook-inputs";
+// Output types
+export {
+  type AskOutput,
+  ask,
+  type BlockOutput,
+  block,
+  type ContextOutput,
+  type ContinueOutput,
+  context,
+  continueOk,
+  type HookOutput,
+  type SilentOutput,
+  silent,
+} from "./types/hook-outputs";

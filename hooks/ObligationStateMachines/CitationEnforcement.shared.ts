@@ -3,9 +3,9 @@
  * Used by both CitationTracker and CitationEnforcement.
  */
 
-import { writeFile, readFile, fileExists as fsFileExists } from "@hooks/core/adapters/fs";
+import { join } from "node:path";
+import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { join } from "path";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -31,7 +31,7 @@ export function isResearchSkill(input: ToolHookInput): boolean {
 
 export function getFilePath(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 export function flagPath(stateDir: string): string {
@@ -63,5 +63,5 @@ export const defaultDeps: CitationEnforcementDeps = {
   writeReminded: (path: string, files: string[]) => {
     writeFile(path, JSON.stringify(files));
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };

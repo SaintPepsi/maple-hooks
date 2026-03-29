@@ -9,19 +9,14 @@
  * Always returns ContinueOutput — never blocks the tool result.
  */
 
+import { join } from "node:path";
+import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import {
-  readFile,
-  writeFile,
-  fileExists,
-  readJson,
-} from "@hooks/core/adapters/fs";
-import { join } from "path";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -85,14 +80,30 @@ export function parseFrontmatter(content: string): PRDFrontmatter | null {
     if (!key || !value) continue;
 
     switch (key) {
-      case "task":     result.task = value;     break;
-      case "slug":     result.slug = value;     break;
-      case "effort":   result.effort = value;   break;
-      case "phase":    result.phase = value;    break;
-      case "progress": result.progress = value; break;
-      case "mode":     result.mode = value;     break;
-      case "started":  result.started = value;  break;
-      case "updated":  result.updated = value;  break;
+      case "task":
+        result.task = value;
+        break;
+      case "slug":
+        result.slug = value;
+        break;
+      case "effort":
+        result.effort = value;
+        break;
+      case "phase":
+        result.phase = value;
+        break;
+      case "progress":
+        result.progress = value;
+        break;
+      case "mode":
+        result.mode = value;
+        break;
+      case "started":
+        result.started = value;
+        break;
+      case "updated":
+        result.updated = value;
+        break;
     }
   }
 
@@ -141,7 +152,7 @@ export function extractSessionDir(filePath: string): string | null {
 function syncSessionState(
   sessionId: string,
   sessionDir: string,
-  prdPath: string,
+  _prdPath: string,
   deps: PRDSyncDeps,
 ): void {
   const stateFilePath = join(deps.baseDir, "MEMORY", "STATE", `current-work-${sessionId}.json`);
@@ -205,11 +216,7 @@ const defaultDeps: PRDSyncDeps = {
   baseDir: getPaiDir(),
 };
 
-export const PRDSync: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  PRDSyncDeps
-> = {
+export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDeps> = {
   name: "PRDSync",
   event: "PostToolUse",
 
@@ -221,10 +228,7 @@ export const PRDSync: SyncHookContract<
     return filePath.includes("MEMORY/WORK/") && filePath.endsWith("PRD.md");
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: PRDSyncDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: PRDSyncDeps): Result<ContinueOutput, PaiError> {
     const filePath = (input.tool_input?.file_path as string) ?? "";
 
     if (!deps.fileExists(filePath)) {
@@ -255,15 +259,15 @@ export const PRDSync: SyncHookContract<
     const { total, done } = parseCriteriaCounts(content);
 
     const entry: WorkEntry = {
-      task:           fm.task     ?? "",
-      phase:          fm.phase    ?? "",
-      progress:       fm.progress ?? `${done}/${total}`,
-      effort:         fm.effort   ?? "",
-      mode:           fm.mode     ?? "",
-      started:        fm.started  ?? "",
-      updated:        fm.updated  ?? new Date().toISOString(),
+      task: fm.task ?? "",
+      phase: fm.phase ?? "",
+      progress: fm.progress ?? `${done}/${total}`,
+      effort: fm.effort ?? "",
+      mode: fm.mode ?? "",
+      started: fm.started ?? "",
+      updated: fm.updated ?? new Date().toISOString(),
       criteria_total: total,
-      criteria_done:  done,
+      criteria_done: done,
     };
 
     const workJsonPath = join(deps.baseDir, "MEMORY", "STATE", "work.json");

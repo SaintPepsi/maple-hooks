@@ -1,5 +1,5 @@
-import { describe, it, expect } from "bun:test";
-import { join } from "path";
+import { describe, expect, it } from "bun:test";
+import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "GitignoreRecommender.hook.ts");
 

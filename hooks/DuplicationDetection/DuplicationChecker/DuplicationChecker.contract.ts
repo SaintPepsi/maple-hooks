@@ -8,20 +8,25 @@
  * Design: docs/plans/2026-03-27-duplication-checker-hook-design.md
  */
 
+import {
+  appendFile as adapterAppendFile,
+  ensureDir as adapterEnsureDir,
+  readFile as adapterReadFile,
+  fileExists,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readFile as adapterReadFile, fileExists, appendFile as adapterAppendFile, ensureDir as adapterEnsureDir } from "@hooks/core/adapters/fs";
+import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import {
-  loadIndex,
-  findIndexPath,
   checkFunctions,
+  findIndexPath,
   formatFindings,
+  loadIndex,
   STALENESS_SECONDS,
 } from "@hooks/hooks/DuplicationDetection/shared";
-import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -38,12 +43,12 @@ export interface DuplicationCheckerDeps {
 
 function getFilePath(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
 }
 
 function getWriteContent(input: ToolHookInput): string | null {
   if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).content as string ?? null;
+  return ((input.tool_input as Record<string, unknown>).content as string) ?? null;
 }
 
 function simulateEdit(currentContent: string, input: ToolHookInput): string {
@@ -68,7 +73,7 @@ const defaultDeps: DuplicationCheckerDeps = {
   ensureDir: (path: string): void => {
     adapterEnsureDir(path);
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   now: () => Date.now(),
 };
 
@@ -89,10 +94,7 @@ export const DuplicationCheckerContract: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: DuplicationCheckerDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: DuplicationCheckerDeps): Result<ContinueOutput, PaiError> {
     const filePath = getFilePath(input)!;
 
     const indexPath = findIndexPath(filePath, deps);
@@ -133,7 +135,7 @@ export const DuplicationCheckerContract: SyncHookContract<
     // Log all checks (findings or clean) to .claude/.duplication-checker.log
     const logDir = indexPath.replace(/\/\.duplication-index\.json$/, "");
     deps.ensureDir(logDir);
-    const logPath = logDir + "/.duplication-checker.log";
+    const logPath = `${logDir}/.duplication-checker.log`;
     const logEntry = {
       ts: new Date(deps.now()).toISOString(),
       file: relPath,
@@ -145,7 +147,7 @@ export const DuplicationCheckerContract: SyncHookContract<
         score: Math.round(m.topScore * 100),
       })),
     };
-    deps.appendFile(logPath, JSON.stringify(logEntry) + "\n");
+    deps.appendFile(logPath, `${JSON.stringify(logEntry)}\n`);
 
     if (matches.length === 0) {
       deps.stderr(`[DuplicationChecker] ${filePath}: clean`);

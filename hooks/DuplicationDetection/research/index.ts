@@ -1,12 +1,13 @@
 #!/usr/bin/env bun
+
 // CLI entry point for the pattern duplication detector spike.
 // Usage: bun Tools/pattern-detector/index.ts <directory> [--detector import|structural|layered] [--threshold 0.4] [--json]
 
-import { parseDirectory } from "@tools/pattern-detector/parse";
 import { detectImportFingerprint } from "@tools/pattern-detector/detectors/import-fingerprint";
-import { detectStructuralHash } from "@tools/pattern-detector/detectors/structural-hash";
 import { detectLayered } from "@tools/pattern-detector/detectors/layered";
+import { detectStructuralHash } from "@tools/pattern-detector/detectors/structural-hash";
 import { formatClusters, formatSummary } from "@tools/pattern-detector/format";
+import { parseDirectory } from "@tools/pattern-detector/parse";
 import type { Cluster, ParsedFile } from "@tools/pattern-detector/types";
 
 // ─── Arg Parsing ────────────────────────────────────────────────────────────
@@ -37,7 +38,9 @@ function parseArgs(argv: string[]): CliArgs | null {
       if (val === "import" || val === "structural" || val === "layered" || val === "all") {
         result.detector = val;
       } else {
-        process.stderr.write(`Unknown detector: ${val}. Use import, structural, layered, or all.\n`);
+        process.stderr.write(
+          `Unknown detector: ${val}. Use import, structural, layered, or all.\n`,
+        );
         return null;
       }
       i += 2;
@@ -62,7 +65,11 @@ function parseArgs(argv: string[]): CliArgs | null {
 
 // ─── Detector Runner ────────────────────────────────────────────────────────
 
-function runDetectors(files: ParsedFile[], detector: CliArgs["detector"], threshold: number): Cluster[] {
+function runDetectors(
+  files: ParsedFile[],
+  detector: CliArgs["detector"],
+  threshold: number,
+): Cluster[] {
   const clusters: Cluster[] = [];
 
   if (detector === "all" || detector === "import") {
@@ -95,13 +102,15 @@ const parseTimeMs = performance.now() - parseStart;
 
 const functionCount = files.reduce((sum, f) => sum + f.functions.length, 0);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 const clusters = runDetectors(files, cliArgs.detector, cliArgs.threshold);
 
 if (cliArgs.json) {
-  process.stdout.write(JSON.stringify(clusters, null, 2) + "\n");
+  process.stdout.write(`${JSON.stringify(clusters, null, 2)}\n`);
 } else {
-  process.stdout.write(formatSummary(clusters, parseTimeMs, files.length, functionCount) + "\n");
-  process.stdout.write(formatClusters(clusters) + "\n");
+  process.stdout.write(`${formatSummary(clusters, parseTimeMs, files.length, functionCount)}\n`);
+  process.stdout.write(`${formatClusters(clusters)}\n`);
 }

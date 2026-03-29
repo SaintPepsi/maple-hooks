@@ -2,29 +2,29 @@
 // Reuses patterns from Tools/ast-spike.ts (line mapper, parseSync config, function walking).
 
 import type {
+  ArrowFunctionExpression,
+  BlockStatement,
+  ExportDeclaration,
+  FunctionDeclaration,
+  FunctionExpression,
+  ImportDeclaration,
   Module,
   ModuleItem,
-  Statement,
-  ExportDeclaration,
-  VariableDeclaration,
-  FunctionDeclaration,
-  ArrowFunctionExpression,
-  FunctionExpression,
-  BlockStatement,
-  ImportDeclaration,
-  TsType,
   Param,
+  Statement,
+  TsType,
+  VariableDeclaration,
 } from "@swc/core";
-import type { ParsedFile, ParsedFunction, ParamInfo } from "@tools/pattern-detector/types";
 import {
-  readFileSafe,
-  readDirSafe,
   isDirectorySafe,
-  sha256Short,
-  parseTsSourceSafe,
   joinPath,
+  parseTsSourceSafe,
+  readDirSafe,
+  readFileSafe,
   resolvePath,
+  sha256Short,
 } from "@tools/pattern-detector/adapters";
+import type { ParamInfo, ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
@@ -107,9 +107,10 @@ function typeToString(tsType: TsType | undefined | null): string | null {
 function extractParams(params: Param[]): ParamInfo[] {
   return params.map((p, i) => ({
     index: i,
-    typeAnnotation: p.pat.type === "Identifier" && p.pat.typeAnnotation
-      ? typeToString(p.pat.typeAnnotation.typeAnnotation)
-      : null,
+    typeAnnotation:
+      p.pat.type === "Identifier" && p.pat.typeAnnotation
+        ? typeToString(p.pat.typeAnnotation.typeAnnotation)
+        : null,
   }));
 }
 
@@ -144,10 +145,7 @@ function extractFromFunction(
   };
 }
 
-function walkStatements(
-  stmts: (ModuleItem | Statement)[],
-  ctx: ExtractContext,
-): ParsedFunction[] {
+function walkStatements(stmts: (ModuleItem | Statement)[], ctx: ExtractContext): ParsedFunction[] {
   const functions: ParsedFunction[] = [];
 
   function processVarDecl(decl: VariableDeclaration): void {

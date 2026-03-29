@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { safeFetch } from "./fetch";
+import { describe, expect, it } from "bun:test";
 import { ErrorCode } from "../error";
+import { safeFetch } from "./fetch";
 
 // ─── safeFetch ───────────────────────────────────────────────────────────────
 

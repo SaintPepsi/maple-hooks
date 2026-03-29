@@ -1,10 +1,10 @@
-import { describe, it, expect } from "bun:test";
-import { runHook, runHookWith, type RunHookOptions } from "@hooks/core/runner";
+import { describe, expect, it } from "bun:test";
 import type { HookContract } from "@hooks/core/contract";
-import type { ToolHookInput, SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput, AskOutput } from "@hooks/core/types/hook-outputs";
-import { ok, err } from "@hooks/core/result";
-import { ErrorCode, PaiError, invalidInput } from "@hooks/core/error";
+import { ErrorCode, invalidInput, PaiError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import { type RunHookOptions, runHook, runHookWith } from "@hooks/core/runner";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -18,12 +18,24 @@ function createMockIO(): MockIO & RunHookOptions {
   const io: MockIO = { stdoutLines: [], stderrLines: [], exitCode: null };
   return {
     ...io,
-    stdout: (msg: string) => { io.stdoutLines.push(msg); },
-    stderr: (msg: string) => { io.stderrLines.push(msg); },
-    exit: (code: number) => { io.exitCode = code; },
-    get stdoutLines() { return io.stdoutLines; },
-    get stderrLines() { return io.stderrLines; },
-    get exitCode() { return io.exitCode; },
+    stdout: (msg: string) => {
+      io.stdoutLines.push(msg);
+    },
+    stderr: (msg: string) => {
+      io.stderrLines.push(msg);
+    },
+    exit: (code: number) => {
+      io.exitCode = code;
+    },
+    get stdoutLines() {
+      return io.stdoutLines;
+    },
+    get stderrLines() {
+      return io.stderrLines;
+    },
+    get exitCode() {
+      return io.exitCode;
+    },
   };
 }
 
@@ -86,7 +98,9 @@ describe("runHookWith — pre-built input pipeline", () => {
       name: "TestThrow",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => { throw new Error("unexpected boom"); },
+      execute: () => {
+        throw new Error("unexpected boom");
+      },
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -100,7 +114,9 @@ describe("runHookWith — pre-built input pipeline", () => {
       name: "TestThrowString",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => { throw "string error"; },
+      execute: () => {
+        throw "string error";
+      },
       defaultDeps: {},
     };
     const io = createMockIO();

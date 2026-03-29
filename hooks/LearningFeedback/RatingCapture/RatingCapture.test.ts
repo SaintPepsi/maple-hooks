@@ -1,13 +1,16 @@
-import { describe, it, expect, mock } from "bun:test";
-import { RatingCapture, parseExplicitRating } from "./RatingCapture.contract";
-import type { RatingCaptureDeps } from "./RatingCapture.contract";
+import { describe, expect, it, mock } from "bun:test";
+import { ErrorCode, PaiError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
+import type { RatingCaptureDeps } from "./RatingCapture.contract";
+import { parseExplicitRating, RatingCapture } from "./RatingCapture.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeInput(prompt: string, overrides: Partial<UserPromptSubmitInput> = {}): UserPromptSubmitInput {
+function makeInput(
+  prompt: string,
+  overrides: Partial<UserPromptSubmitInput> = {},
+): UserPromptSubmitInput {
   return {
     session_id: "test-session",
     prompt,
@@ -33,7 +36,13 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
     captureFailure: mock(async () => null),
     getPrincipalName: mock(() => "TestUser"),
     getPrincipal: mock(() => ({ name: "TestUser", pronunciation: "", timezone: "UTC" })),
-    getIdentity: mock(() => ({ name: "TestBot", fullName: "TestBot", displayName: "TestBot", mainDAVoiceID: "", color: "#000000" })),
+    getIdentity: mock(() => ({
+      name: "TestBot",
+      fullName: "TestBot",
+      displayName: "TestBot",
+      mainDAVoiceID: "",
+      color: "#000000",
+    })),
     getLearningCategory: mock((_content: string, _comment?: string) => "SYSTEM" as const),
     getISOTimestamp: mock(() => "2026-02-27T10:00:00Z"),
     getLocalComponents: mock(() => ({
@@ -216,7 +225,10 @@ describe("RatingCapture algorithm reminder", () => {
 
   it("wraps content in user-prompt-submit-hook tags", async () => {
     const deps = makeDeps();
-    const result = await RatingCapture.execute(makeInput("hello world this is a long enough prompt"), deps);
+    const result = await RatingCapture.execute(
+      makeInput("hello world this is a long enough prompt"),
+      deps,
+    );
 
     expect(result.value?.content).toContain("<user-prompt-submit-hook>");
     expect(result.value?.content).toContain("</user-prompt-submit-hook>");
@@ -276,7 +288,9 @@ describe("RatingCapture.execute — implicit sentiment", () => {
 
   it("returns ContextOutput even when inference fails", async () => {
     const deps = makeDeps({
-      inference: mock(async () => { throw new Error("inference error"); }),
+      inference: mock(async () => {
+        throw new Error("inference error");
+      }),
     });
     const result = await RatingCapture.execute(makeInput("something happened"), deps);
 

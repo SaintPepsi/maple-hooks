@@ -14,21 +14,21 @@
  * Uses DI pattern + Result pipelines. No try-catch in business logic.
  */
 
-import type { Result } from "@hooks/core/result";
-import { ok, err } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { invalidInput, fileNotFound } from "@hooks/core/error";
-import {
-  readFile as adapterReadFile,
-  writeFile as adapterWriteFile,
-  readJson as adapterReadJson,
-  readDir as adapterReadDir,
-  fileExists as adapterFileExists,
-} from "@hooks/core/adapters/fs";
-import type { HookManifest, GroupManifest, PresetConfig } from "@hooks/cli/types/manifest";
+import { dirname, join } from "node:path";
+import type { GroupManifest, HookManifest, PresetConfig } from "@hooks/cli/types/manifest";
 import { MANIFEST_SCHEMA_VERSION } from "@hooks/cli/types/manifest";
+import {
+  fileExists as adapterFileExists,
+  readDir as adapterReadDir,
+  readFile as adapterReadFile,
+  readJson as adapterReadJson,
+  writeFile as adapterWriteFile,
+} from "@hooks/core/adapters/fs";
+import type { PaiError } from "@hooks/core/error";
+import { invalidInput } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
 import type { HookEventType } from "@hooks/core/types/hook-inputs";
-import { join, basename, dirname } from "path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -66,14 +66,21 @@ const defaultDeps: GeneratorDeps = {
   readJson: adapterReadJson,
   readDir: adapterReadDir,
   fileExists: adapterFileExists,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Event Extractor ────────────────────────────────────────────────────────
 
 const VALID_EVENTS = new Set<HookEventType>([
-  "PreToolUse", "PostToolUse", "SessionStart", "SessionEnd",
-  "UserPromptSubmit", "PreCompact", "Stop", "SubagentStart", "SubagentStop",
+  "PreToolUse",
+  "PostToolUse",
+  "SessionStart",
+  "SessionEnd",
+  "UserPromptSubmit",
+  "PreCompact",
+  "Stop",
+  "SubagentStart",
+  "SubagentStop",
 ]);
 
 /**
@@ -145,23 +152,16 @@ export function discoverHooks(
  * Find *.shared.ts or shared.ts files in a group directory.
  * Returns filenames (not full paths).
  */
-function discoverSharedFilesViaManifest(
-  groupDir: string,
-  deps: GeneratorDeps,
-): string[] {
+function discoverSharedFilesViaManifest(groupDir: string, deps: GeneratorDeps): string[] {
   const result = deps.readDir(groupDir);
   if (!result.ok) return [];
 
-  return result.value
-    .filter((f) => f === "shared.ts" || f.endsWith(".shared.ts"))
-    .sort();
+  return result.value.filter((f) => f === "shared.ts" || f.endsWith(".shared.ts")).sort();
 }
 
 // ─── Duplicate Check ────────────────────────────────────────────────────────
 
-function checkDuplicateNames(
-  hooks: DiscoveredHook[],
-): Result<void, PaiError> {
+function checkDuplicateNames(hooks: DiscoveredHook[]): Result<void, PaiError> {
   const seen = new Map<string, string>();
   for (const hook of hooks) {
     const existing = seen.get(hook.name);
@@ -186,9 +186,7 @@ function buildHookManifest(
 ): Result<HookManifest, PaiError> {
   const eventResult = extractEvent(source);
   if (!eventResult.ok) {
-    return err(
-      invalidInput(`${hook.contractPath}: ${eventResult.error.message}`),
-    );
+    return err(invalidInput(`${hook.contractPath}: ${eventResult.error.message}`));
   }
 
   const manifest: HookManifest = {
@@ -250,9 +248,7 @@ export function generate(
   for (const hook of hooks) {
     const sourceResult = deps.readFile(hook.contractPath);
     if (!sourceResult.ok) {
-      return err(
-        invalidInput(`Failed to read contract: ${hook.contractPath}`),
-      );
+      return err(invalidInput(`Failed to read contract: ${hook.contractPath}`));
     }
 
     // Read existing hook.json for merge mode
@@ -265,11 +261,7 @@ export function generate(
       }
     }
 
-    const manifestResult = buildHookManifest(
-      hook,
-      sourceResult.value,
-      existing,
-    );
+    const manifestResult = buildHookManifest(hook, sourceResult.value, existing);
     if (!manifestResult.ok) return manifestResult;
 
     const content = JSON.stringify(manifestResult.value, null, 2);
@@ -292,12 +284,7 @@ export function generate(
       }
     }
 
-    const groupManifest = buildGroupManifest(
-      groupName,
-      hookNames,
-      sharedFiles,
-      existing,
-    );
+    const groupManifest = buildGroupManifest(groupName, hookNames, sharedFiles, existing);
 
     const content = JSON.stringify(groupManifest, null, 2);
     files.push({ path: groupJsonPath, content });
@@ -371,7 +358,8 @@ function main(): void {
 }
 
 // Run if executed directly
-const isMain = import.meta.url === `file://${process.argv[1]}` ||
+const isMain =
+  import.meta.url === `file://${process.argv[1]}` ||
   process.argv[1]?.endsWith("generate-manifests.ts");
 if (isMain) {
   main();

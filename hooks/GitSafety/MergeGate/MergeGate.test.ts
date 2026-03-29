@@ -1,11 +1,11 @@
-import { describe, it, expect } from "bun:test";
-import { MergeGate, type MergeGateDeps } from "./MergeGate.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, it } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import { processExecFailed } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { MergeGate, type MergeGateDeps } from "./MergeGate.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -44,10 +44,9 @@ const REVIEWS_NONE: string = "[]";
  * ciResponse: stdout for `gh pr checks`
  * reviewResponse: stdout for `gh pr view`
  */
-function makeDeps(opts: {
-  ciResponse?: string | "error";
-  reviewResponse?: string | "error";
-} = {}): MergeGateDeps {
+function makeDeps(
+  opts: { ciResponse?: string | "error"; reviewResponse?: string | "error" } = {},
+): MergeGateDeps {
   const { ciResponse = CI_ALL_PASSING, reviewResponse = REVIEWS_ONE_APPROVED } = opts;
   return {
     exec: (cmd: string): Result<string, PaiError> => {
@@ -56,7 +55,8 @@ function makeDeps(opts: {
         return ok(ciResponse);
       }
       if (cmd.includes("gh pr view")) {
-        if (reviewResponse === "error") return err(processExecFailed(cmd, new Error("network error")));
+        if (reviewResponse === "error")
+          return err(processExecFailed(cmd, new Error("network error")));
         return ok(reviewResponse);
       }
       return ok("");
@@ -202,7 +202,9 @@ describe("MergeGate", () => {
     const stderrMessages: string[] = [];
     const deps: MergeGateDeps = {
       exec: () => err(processExecFailed("gh", new Error("network"))),
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
     expect(result.ok).toBe(true);
@@ -218,7 +220,9 @@ describe("MergeGate", () => {
         if (cmd.includes("gh pr checks")) return ok(CI_ALL_PASSING);
         return err(processExecFailed("gh", new Error("network")));
       },
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
     expect(result.ok).toBe(true);
@@ -267,7 +271,9 @@ describe("MergeGate", () => {
     const stderrMessages: string[] = [];
     const deps: MergeGateDeps = {
       ...makeDeps({ ciResponse: CI_ONE_FAILURE, reviewResponse: REVIEWS_ONE_APPROVED }),
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
     MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(stderrMessages.some((m) => m.includes("MergeGate"))).toBe(true);

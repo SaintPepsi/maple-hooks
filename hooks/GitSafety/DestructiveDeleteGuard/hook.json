@@ -4,12 +4,6 @@
   "event": "PreToolUse",
   "description": "Block destructive delete patterns in Bash commands and code edits",
   "schemaVersion": 1,
-  "tags": [
-    "safety"
-  ],
-  "presets": [
-    "minimal",
-    "quality",
-    "full"
-  ]
+  "tags": ["safety"],
+  "presets": ["minimal", "quality", "full"]
 }

@@ -9,16 +9,16 @@
  * Skips small files (under 50 lines), non-source files, and test files.
  */
 
+import { dirname, join } from "node:path";
+import { ensureDir, fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
+import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { fileExists, readFile, readJson, writeJson, ensureDir } from "@hooks/core/adapters/fs";
-import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
-import { scoreFile, formatAdvisory, type QualityScore } from "@hooks/core/quality-scorer";
-import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
-import { join, dirname } from "path";
+import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -95,7 +95,7 @@ const defaultDeps: CodeQualityBaselineDeps = {
   formatAdvisory,
   getTimestamp: () => new Date().toISOString(),
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const CodeQualityBaseline: SyncHookContract<
@@ -115,10 +115,7 @@ export const CodeQualityBaseline: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: CodeQualityBaselineDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CodeQualityBaselineDeps): Result<ContinueOutput, PaiError> {
     const filePath = getFilePath(input)!;
 
     // Read the file content

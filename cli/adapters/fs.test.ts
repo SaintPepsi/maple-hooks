@@ -2,11 +2,14 @@
  * CLI filesystem adapter tests.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { join } from "path";
-import { readFile, writeFile, fileExists, readDir, ensureDir, stat } from "@hooks/cli/adapters/fs";
-import { ensureDir as coreEnsureDir, removeDir } from "@hooks/core/adapters/fs";
-import { writeFile as coreWriteFile } from "@hooks/core/adapters/fs";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { join } from "node:path";
+import { ensureDir, fileExists, readDir, readFile, stat, writeFile } from "@hooks/cli/adapters/fs";
+import {
+  ensureDir as coreEnsureDir,
+  writeFile as coreWriteFile,
+  removeDir,
+} from "@hooks/core/adapters/fs";
 
 const TEST_DIR = join(import.meta.dir, "../../test-fixtures/cli-fs-test");
 

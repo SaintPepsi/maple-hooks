@@ -5,11 +5,11 @@
  * Manifest types follow cli/types/manifest.ts schema.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { catalog } from "@hooks/cli/commands/catalog";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
-import type { HookManifest, GroupManifest, PresetEntry } from "@hooks/cli/types/manifest";
+import type { GroupManifest, HookManifest, PresetEntry } from "@hooks/cli/types/manifest";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 

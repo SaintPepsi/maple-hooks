@@ -1,10 +1,15 @@
-import { describe, it, expect } from "bun:test";
-import { runHook, type RunHookOptions } from "./runner";
+import { describe, expect, it } from "bun:test";
 import type { HookContract } from "./contract";
+import { invalidInput } from "./error";
+import { err, ok } from "./result";
+import { type RunHookOptions, runHook } from "./runner";
 import type { ToolHookInput } from "./types/hook-inputs";
-import type { ContinueOutput, BlockOutput, ContextOutput, SilentOutput } from "./types/hook-outputs";
-import { ok, err } from "./result";
-import { invalidInput, type PaiError } from "./error";
+import type {
+  BlockOutput,
+  ContextOutput,
+  ContinueOutput,
+  SilentOutput,
+} from "./types/hook-outputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -18,12 +23,24 @@ function createMockIO(): MockIO & RunHookOptions {
   const io: MockIO = { stdoutLines: [], stderrLines: [], exitCode: null };
   return {
     ...io,
-    stdout: (msg: string) => { io.stdoutLines.push(msg); },
-    stderr: (msg: string) => { io.stderrLines.push(msg); },
-    exit: (code: number) => { io.exitCode = code; },
-    get stdoutLines() { return io.stdoutLines; },
-    get stderrLines() { return io.stderrLines; },
-    get exitCode() { return io.exitCode; },
+    stdout: (msg: string) => {
+      io.stdoutLines.push(msg);
+    },
+    stderr: (msg: string) => {
+      io.stderrLines.push(msg);
+    },
+    exit: (code: number) => {
+      io.exitCode = code;
+    },
+    get stdoutLines() {
+      return io.stdoutLines;
+    },
+    get stderrLines() {
+      return io.stderrLines;
+    },
+    get exitCode() {
+      return io.exitCode;
+    },
   };
 }
 
@@ -86,7 +103,8 @@ const asyncContract: HookContract<ToolHookInput, ContinueOutput, {}> = {
   name: "TestAsync",
   event: "PostToolUse",
   accepts: () => true,
-  execute: async () => ok({ type: "continue", continue: true as const, additionalContext: "async done" }),
+  execute: async () =>
+    ok({ type: "continue", continue: true as const, additionalContext: "async done" }),
   defaultDeps: {},
 };
 
@@ -232,7 +250,9 @@ describe("runHook — error safety", () => {
       name: "TestThrowing",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => { throw new Error("boom"); },
+      execute: () => {
+        throw new Error("boom");
+      },
       defaultDeps: {},
     };
     const io = createMockIO();

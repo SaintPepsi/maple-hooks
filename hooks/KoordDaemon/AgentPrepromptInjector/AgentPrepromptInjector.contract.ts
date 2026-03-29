@@ -20,19 +20,19 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/AgentPrepromptInjector.hook.js
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { UpdatedInputOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { updatedInput, continueOk } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput, UpdatedInputOutput } from "@hooks/core/types/hook-outputs";
+import { continueOk, updatedInput } from "@hooks/core/types/hook-outputs";
 import {
-  readKoordConfig,
   defaultReadFileOrNull,
-  extractThreadId,
   extractAgentName,
   extractTask,
+  extractThreadId,
+  readKoordConfig,
 } from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -56,7 +56,7 @@ const defaultDeps: AgentPrepromptInjectorDeps = {
   readFile,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
   getCwd: () => process.cwd(),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

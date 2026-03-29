@@ -5,23 +5,26 @@
  * using InMemoryDeps as the filesystem layer.
  */
 
-import { describe, it, expect } from "bun:test";
-import { pipe } from "@hooks/cli/core/pipe";
-import { ok } from "@hooks/cli/core/result";
-import type { Result } from "@hooks/cli/core/result";
+import { describe, expect, it } from "bun:test";
 import type { PaihError } from "@hooks/cli/core/error";
+import { pipe } from "@hooks/cli/core/pipe";
+import { type ManifestIndex, resolve } from "@hooks/cli/core/resolver";
+import type { Result } from "@hooks/cli/core/result";
+import { ok } from "@hooks/cli/core/result";
 import { resolveTarget } from "@hooks/cli/core/target";
-import { resolve, type ManifestIndex } from "@hooks/cli/core/resolver";
-import type { HookDef, ResolvedHooks } from "@hooks/cli/types/resolved";
-import type { HookManifest, GroupManifest } from "@hooks/cli/types/manifest";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
+import type { GroupManifest } from "@hooks/cli/types/manifest";
+import type { HookDef, ResolvedHooks } from "@hooks/cli/types/resolved";
 
 describe("integration: resolver + adapters through pipe()", () => {
   it("resolves target then resolves hooks in a pipeline", () => {
     // Set up in-memory filesystem with .claude/ directory
-    const deps = new InMemoryDeps({
-      "/project/.claude/settings.json": "{}",
-    }, "/project/src");
+    const deps = new InMemoryDeps(
+      {
+        "/project/.claude/settings.json": "{}",
+      },
+      "/project/src",
+    );
 
     // Step 1: resolve target
     const targetResult = resolveTarget(deps, "/project/src");
@@ -57,14 +60,11 @@ describe("integration: resolver + adapters through pipe()", () => {
     };
 
     // Step 3: pipe target resolution into hook resolution
-    const result = pipe(
-      targetResult,
-      (targetDir: string): Result<ResolvedHooks, PaihError> => {
-        // In a real flow, we'd load manifests from targetDir
-        // Here we use our pre-built index
-        return resolve(["SecurityValidator"], index);
-      },
-    );
+    const result = pipe(targetResult, (_targetDir: string): Result<ResolvedHooks, PaihError> => {
+      // In a real flow, we'd load manifests from targetDir
+      // Here we use our pre-built index
+      return resolve(["SecurityValidator"], index);
+    });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -80,13 +80,10 @@ describe("integration: resolver + adapters through pipe()", () => {
     expect(targetResult.ok).toBe(false);
 
     let resolverCalled = false;
-    const result = pipe(
-      targetResult,
-      (_targetDir: string): Result<ResolvedHooks, PaihError> => {
-        resolverCalled = true;
-        return ok({ hooks: [], depTree: new Map() });
-      },
-    );
+    const result = pipe(targetResult, (_targetDir: string): Result<ResolvedHooks, PaihError> => {
+      resolverCalled = true;
+      return ok({ hooks: [], depTree: new Map() });
+    });
 
     expect(result.ok).toBe(false);
     expect(resolverCalled).toBe(false);

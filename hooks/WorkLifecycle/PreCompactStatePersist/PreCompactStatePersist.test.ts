@@ -1,17 +1,17 @@
-import { describe, it, expect } from "bun:test";
-import {
-  PreCompactStatePersist,
-  parseFrontmatter,
-  findMostRecentPrd,
-  buildContextSummary,
-  type PreCompactStatePersistDeps,
-  type PRDState,
-} from "./PreCompactStatePersist.contract";
+import { describe, expect, it } from "bun:test";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { ok, err } from "@hooks/core/result";
+import {
+  buildContextSummary,
+  findMostRecentPrd,
+  type PRDState,
+  PreCompactStatePersist,
+  type PreCompactStatePersistDeps,
+  parseFrontmatter,
+} from "./PreCompactStatePersist.contract";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -54,14 +54,9 @@ function makeDirent(name: string, isDir: boolean) {
 
 // ─── Mock Deps ───────────────────────────────────────────────────────────────
 
-function makeDeps(
-  overrides: Partial<PreCompactStatePersistDeps> = {},
-): PreCompactStatePersistDeps {
+function makeDeps(overrides: Partial<PreCompactStatePersistDeps> = {}): PreCompactStatePersistDeps {
   return {
-    readDir: (_path, _opts) =>
-      ok([
-        makeDirent("20260314-120000_implement-precompact-hook", true),
-      ]),
+    readDir: (_path, _opts) => ok([makeDirent("20260314-120000_implement-precompact-hook", true)]),
     readFile: (_path) => ok(VALID_PRD),
     stat: (_path) => ok({ mtimeMs: 1000 }),
     stderr: () => {},
@@ -83,10 +78,10 @@ describe("parseFrontmatter", () => {
   it("extracts all standard fields from valid frontmatter", () => {
     const result = parseFrontmatter(VALID_PRD);
     expect(result).not.toBeNull();
-    expect(result!["task"]).toBe("Implement PreCompact hook");
-    expect(result!["slug"]).toBe("20260314-120000_implement-precompact-hook");
-    expect(result!["phase"]).toBe("in-progress");
-    expect(result!["progress"]).toBe("3/10");
+    expect(result!.task).toBe("Implement PreCompact hook");
+    expect(result!.slug).toBe("20260314-120000_implement-precompact-hook");
+    expect(result!.phase).toBe("in-progress");
+    expect(result!.progress).toBe("3/10");
   });
 
   it("returns null when no frontmatter block is present", () => {
@@ -100,21 +95,21 @@ describe("parseFrontmatter", () => {
   it("strips surrounding quotes from values", () => {
     const content = `---\ntask: "Quoted task"\nslug: 'quoted-slug'\n---\n`;
     const result = parseFrontmatter(content);
-    expect(result!["task"]).toBe("Quoted task");
-    expect(result!["slug"]).toBe("quoted-slug");
+    expect(result!.task).toBe("Quoted task");
+    expect(result!.slug).toBe("quoted-slug");
   });
 
   it("handles CRLF line endings", () => {
     const content = "---\r\ntask: CRLF task\r\nslug: crlf-slug\r\n---\r\n";
     const result = parseFrontmatter(content);
-    expect(result!["task"]).toBe("CRLF task");
+    expect(result!.task).toBe("CRLF task");
   });
 
   it("skips lines without a colon", () => {
     const content = `---\ntask: Valid\nno-colon-line\nslug: also-valid\n---\n`;
     const result = parseFrontmatter(content);
-    expect(result!["task"]).toBe("Valid");
-    expect(result!["slug"]).toBe("also-valid");
+    expect(result!.task).toBe("Valid");
+    expect(result!.slug).toBe("also-valid");
   });
 });
 
@@ -124,10 +119,10 @@ describe("findMostRecentPrd", () => {
   it("returns path of the PRD.md in the most recently modified directory", () => {
     const deps = {
       readDir: (_path: string, _opts?: { withFileTypes: true }) =>
-        ok([
-          makeDirent("older-dir", true),
-          makeDirent("newer-dir", true),
-        ]) as Result<unknown[], PaiError>,
+        ok([makeDirent("older-dir", true), makeDirent("newer-dir", true)]) as Result<
+          unknown[],
+          PaiError
+        >,
       stat: (path: string) => {
         if (path.includes("newer-dir")) return ok({ mtimeMs: 2000 });
         return ok({ mtimeMs: 1000 });
@@ -152,8 +147,7 @@ describe("findMostRecentPrd", () => {
 
   it("returns null when no directories contain a PRD.md (stat fails for all)", () => {
     const deps = {
-      readDir: () =>
-        ok([makeDirent("some-dir", true)]) as Result<unknown[], PaiError>,
+      readDir: () => ok([makeDirent("some-dir", true)]) as Result<unknown[], PaiError>,
       stat: () =>
         err({ code: "FILE_NOT_FOUND", message: "no prd" }) as Result<{ mtimeMs: number }, PaiError>,
       stderr: () => {},
@@ -165,13 +159,16 @@ describe("findMostRecentPrd", () => {
   it("skips non-directory entries", () => {
     const deps = {
       readDir: () =>
-        ok([
-          makeDirent("file.txt", false),
-          makeDirent("dir-with-prd", true),
-        ]) as Result<unknown[], PaiError>,
+        ok([makeDirent("file.txt", false), makeDirent("dir-with-prd", true)]) as Result<
+          unknown[],
+          PaiError
+        >,
       stat: (path: string) => {
         if (path.includes("dir-with-prd")) return ok({ mtimeMs: 1000 });
-        return err({ code: "FILE_NOT_FOUND", message: "no prd" }) as Result<{ mtimeMs: number }, PaiError>;
+        return err({ code: "FILE_NOT_FOUND", message: "no prd" }) as Result<
+          { mtimeMs: number },
+          PaiError
+        >;
       },
       stderr: () => {},
     };
@@ -184,7 +181,7 @@ describe("findMostRecentPrd", () => {
     const deps = {
       readDir: () =>
         ok([
-          { name: "bad-entry" },  // missing isDirectory
+          { name: "bad-entry" }, // missing isDirectory
           makeDirent("good-dir", true),
         ]) as Result<unknown[], PaiError>,
       stat: () => ok({ mtimeMs: 1000 }),
@@ -235,7 +232,10 @@ describe("PreCompactStatePersist", () => {
   describe("execute — PRD found", () => {
     it("returns continue with additionalContext when PRD exists and has frontmatter", () => {
       const deps = makeDeps();
-      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");
@@ -249,9 +249,14 @@ describe("PreCompactStatePersist", () => {
 
     it("additionalContext includes the slug", () => {
       const deps = makeDeps();
-      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       if (result.ok) {
-        expect(result.value.additionalContext).toContain("20260314-120000_implement-precompact-hook");
+        expect(result.value.additionalContext).toContain(
+          "20260314-120000_implement-precompact-hook",
+        );
       }
     });
   });
@@ -259,9 +264,13 @@ describe("PreCompactStatePersist", () => {
   describe("execute — no PRD found (fail open)", () => {
     it("returns continue with no additionalContext when readDir fails", () => {
       const deps = makeDeps({
-        readDir: () => err({ code: "FILE_READ_FAILED", message: "no dir" }) as Result<unknown[], PaiError>,
+        readDir: () =>
+          err({ code: "FILE_READ_FAILED", message: "no dir" }) as Result<unknown[], PaiError>,
       });
-      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");
@@ -272,9 +281,16 @@ describe("PreCompactStatePersist", () => {
     it("returns continue with no additionalContext when no PRD.md files exist", () => {
       const deps = makeDeps({
         readDir: () => ok([makeDirent("some-dir", true)]) as Result<unknown[], PaiError>,
-        stat: () => err({ code: "FILE_NOT_FOUND", message: "no prd" }) as Result<{ mtimeMs: number }, PaiError>,
+        stat: () =>
+          err({ code: "FILE_NOT_FOUND", message: "no prd" }) as Result<
+            { mtimeMs: number },
+            PaiError
+          >,
       });
-      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.additionalContext).toBeUndefined();
@@ -283,9 +299,13 @@ describe("PreCompactStatePersist", () => {
 
     it("fails open when readFile throws an error", () => {
       const deps = makeDeps({
-        readFile: () => err({ code: "FILE_READ_FAILED", message: "read error" }) as Result<string, PaiError>,
+        readFile: () =>
+          err({ code: "FILE_READ_FAILED", message: "read error" }) as Result<string, PaiError>,
       });
-      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");
@@ -297,7 +317,10 @@ describe("PreCompactStatePersist", () => {
       const deps = makeDeps({
         readFile: () => ok(PRD_NO_FRONTMATTER),
       });
-      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.additionalContext).toBeUndefined();
@@ -308,7 +331,10 @@ describe("PreCompactStatePersist", () => {
       const deps = makeDeps({
         readFile: () => ok(PRD_MISSING_TASK_AND_SLUG),
       });
-      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+      const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+        ContinueOutput,
+        PaiError
+      >;
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.additionalContext).toBeUndefined();
@@ -320,13 +346,22 @@ describe("PreCompactStatePersist", () => {
     it("never returns a block type under any circumstances", () => {
       const scenarios: PreCompactStatePersistDeps[] = [
         makeDeps(),
-        makeDeps({ readDir: () => err({ code: "FILE_READ_FAILED", message: "x" }) as Result<unknown[], PaiError> }),
-        makeDeps({ readFile: () => err({ code: "FILE_READ_FAILED", message: "x" }) as Result<string, PaiError> }),
+        makeDeps({
+          readDir: () =>
+            err({ code: "FILE_READ_FAILED", message: "x" }) as Result<unknown[], PaiError>,
+        }),
+        makeDeps({
+          readFile: () =>
+            err({ code: "FILE_READ_FAILED", message: "x" }) as Result<string, PaiError>,
+        }),
         makeDeps({ readFile: () => ok(PRD_NO_FRONTMATTER) }),
       ];
 
       for (const deps of scenarios) {
-        const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+        const result = PreCompactStatePersist.execute(makeInput(), deps) as Result<
+          ContinueOutput,
+          PaiError
+        >;
         expect(result.ok).toBe(true);
         if (result.ok) {
           expect(result.value.type).toBe("continue");

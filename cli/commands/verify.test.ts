@@ -8,12 +8,12 @@
  * Tests the verify function from cli/commands/verify.ts.
  */
 
-import { describe, it, expect } from "bun:test";
-import { verify } from "@hooks/cli/commands/verify";
+import { describe, expect, it } from "bun:test";
 import { install } from "@hooks/cli/commands/install";
+import { verify } from "@hooks/cli/commands/verify";
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import { InMemoryDeps } from "@hooks/cli/types/deps";
 import { PaihErrorCode } from "@hooks/cli/core/error";
+import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -82,7 +82,9 @@ describe("verify source-mode", () => {
   it("missing contract reported", () => {
     // Create a repo where the contract file doesn't exist
     const repo = makeCleanSourceRepo();
-    delete (repo as Record<string, string>)["/source/hooks/TestGroup/TestHook/TestHook.contract.ts"];
+    delete (repo as Record<string, string>)[
+      "/source/hooks/TestGroup/TestHook/TestHook.contract.ts"
+    ];
     const deps = new InMemoryDeps(repo, "/source");
     const result = verify(sourceVerifyArgs(), deps, "/source");
 
@@ -166,9 +168,12 @@ describe("verify installed-mode", () => {
   });
 
   it("missing lockfile → LOCK_MISSING", () => {
-    const deps = new InMemoryDeps({
-      "/project/.claude/settings.json": "{}",
-    }, "/project");
+    const deps = new InMemoryDeps(
+      {
+        "/project/.claude/settings.json": "{}",
+      },
+      "/project",
+    );
 
     const result = verify(installedVerifyArgs({ in: "/project" }), deps);
 

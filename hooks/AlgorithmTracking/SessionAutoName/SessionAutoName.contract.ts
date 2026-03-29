@@ -7,13 +7,13 @@
  * Custom titles from /rename are synced as authoritative.
  */
 
+import { dirname, join } from "node:path";
+import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { dirname, join } from "path";
-import { fileExists, readFile, readJson, writeFile, ensureDir } from "@hooks/core/adapters/fs";
 import { inference } from "@pai/Tools/Inference";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -46,28 +46,197 @@ export interface SessionAutoNameDeps {
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
 const NOISE_WORDS = new Set([
-  "the", "a", "an", "i", "my", "we", "you", "your", "this", "that", "it",
-  "is", "are", "was", "were", "do", "does", "did", "can", "could", "should",
-  "would", "will", "have", "has", "had", "just", "also", "need", "want",
-  "please", "session", "help", "work", "task", "update", "new", "check",
-  "make", "get", "set", "put", "use", "run", "try", "let", "see", "look",
-  "fix", "add", "create", "build", "deploy", "code", "read", "write",
-  "thing", "things", "something", "going", "like", "know", "think", "right",
-  "whatever", "current", "really", "actually", "working", "doing", "change",
-  "what", "how", "why", "when", "where", "which", "who", "there", "here",
-  "not", "but", "and", "for", "with", "from", "about", "into", "been",
-  "some", "all", "any", "each", "every", "both", "our", "they", "them", "those", "these",
-  "built", "asked", "told", "said", "went", "came", "made", "gave", "took",
-  "bunch", "lots", "couple", "few", "many", "much", "more", "most", "less",
-  "pretty", "very", "quite", "super", "totally", "completely", "basically",
-  "okay", "yeah", "yes", "sure", "fine", "good", "bad", "great", "nice",
-  "hey", "well", "now", "then", "still", "even", "already", "yet", "ago",
-  "way", "kind", "sort", "type", "stuff", "part", "whole", "point",
-  "one", "two", "three", "first", "last", "next", "other", "same",
-  "being", "having", "getting", "making", "taking", "coming", "saying",
-  "question", "answer", "figure", "out", "off", "tell", "show", "give",
-  "start", "stop", "keep", "move", "turn", "pull", "push", "open", "close",
-  "used", "using", "called", "mean", "means", "guess", "maybe", "probably",
+  "the",
+  "a",
+  "an",
+  "i",
+  "my",
+  "we",
+  "you",
+  "your",
+  "this",
+  "that",
+  "it",
+  "is",
+  "are",
+  "was",
+  "were",
+  "do",
+  "does",
+  "did",
+  "can",
+  "could",
+  "should",
+  "would",
+  "will",
+  "have",
+  "has",
+  "had",
+  "just",
+  "also",
+  "need",
+  "want",
+  "please",
+  "session",
+  "help",
+  "work",
+  "task",
+  "update",
+  "new",
+  "check",
+  "make",
+  "get",
+  "set",
+  "put",
+  "use",
+  "run",
+  "try",
+  "let",
+  "see",
+  "look",
+  "fix",
+  "add",
+  "create",
+  "build",
+  "deploy",
+  "code",
+  "read",
+  "write",
+  "thing",
+  "things",
+  "something",
+  "going",
+  "like",
+  "know",
+  "think",
+  "right",
+  "whatever",
+  "current",
+  "really",
+  "actually",
+  "working",
+  "doing",
+  "change",
+  "what",
+  "how",
+  "why",
+  "when",
+  "where",
+  "which",
+  "who",
+  "there",
+  "here",
+  "not",
+  "but",
+  "and",
+  "for",
+  "with",
+  "from",
+  "about",
+  "into",
+  "been",
+  "some",
+  "all",
+  "any",
+  "each",
+  "every",
+  "both",
+  "our",
+  "they",
+  "them",
+  "those",
+  "these",
+  "built",
+  "asked",
+  "told",
+  "said",
+  "went",
+  "came",
+  "made",
+  "gave",
+  "took",
+  "bunch",
+  "lots",
+  "couple",
+  "few",
+  "many",
+  "much",
+  "more",
+  "most",
+  "less",
+  "pretty",
+  "very",
+  "quite",
+  "super",
+  "totally",
+  "completely",
+  "basically",
+  "okay",
+  "yeah",
+  "yes",
+  "sure",
+  "fine",
+  "good",
+  "bad",
+  "great",
+  "nice",
+  "hey",
+  "well",
+  "now",
+  "then",
+  "still",
+  "even",
+  "already",
+  "yet",
+  "ago",
+  "way",
+  "kind",
+  "sort",
+  "type",
+  "stuff",
+  "part",
+  "whole",
+  "point",
+  "one",
+  "two",
+  "three",
+  "first",
+  "last",
+  "next",
+  "other",
+  "same",
+  "being",
+  "having",
+  "getting",
+  "making",
+  "taking",
+  "coming",
+  "saying",
+  "question",
+  "answer",
+  "figure",
+  "out",
+  "off",
+  "tell",
+  "show",
+  "give",
+  "start",
+  "stop",
+  "keep",
+  "move",
+  "turn",
+  "pull",
+  "push",
+  "open",
+  "close",
+  "used",
+  "using",
+  "called",
+  "mean",
+  "means",
+  "guess",
+  "maybe",
+  "probably",
 ]);
 
 const NAME_PROMPT = `You are labeling a folder. Give this conversation a 2-3 word Topic Case title.
@@ -130,10 +299,7 @@ export function isNameRelevantToPrompt(name: string, prompt: string): boolean {
 }
 
 function defaultGetCustomTitle(sessionId: string, deps: SessionAutoNameDeps): string | null {
-  const searchDirs = [
-    join(deps.baseDir, "projects"),
-    join(deps.baseDir, "Projects"),
-  ];
+  const searchDirs = [join(deps.baseDir, "projects"), join(deps.baseDir, "Projects")];
 
   for (const projectsDir of searchDirs) {
     if (!deps.fileExists(projectsDir)) continue;
@@ -141,7 +307,10 @@ function defaultGetCustomTitle(sessionId: string, deps: SessionAutoNameDeps): st
     const proc = deps.spawnSync(["grep", "-rl", sessionId, projectsDir], {
       timeout: 2000,
     });
-    const indexFiles = proc.stdout.toString().trim().split("\n")
+    const indexFiles = proc.stdout
+      .toString()
+      .trim()
+      .split("\n")
       .filter((f: string) => f.endsWith("sessions-index.json"));
 
     for (const indexFile of indexFiles) {
@@ -168,9 +337,10 @@ const defaultDeps: SessionAutoNameDeps = {
   ensureDir,
   inference,
   getCustomTitle: defaultGetCustomTitle,
-  spawnSync: (cmd, opts) => Bun.spawnSync(cmd, { stdout: "pipe", stderr: "pipe", timeout: opts?.timeout }),
+  spawnSync: (cmd, opts) =>
+    Bun.spawnSync(cmd, { stdout: "pipe", stderr: "pipe", timeout: opts?.timeout }),
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const SessionAutoName: AsyncHookContract<
@@ -215,13 +385,20 @@ export const SessionAutoName: AsyncHookContract<
     // Check for rework: session has name + algorithm state shows completed work
     let isRework = false;
     if (names[sessionId]) {
-      const algoStatePath = join(deps.baseDir, "MEMORY", "STATE", "algorithms", `${sessionId}.json`);
+      const algoStatePath = join(
+        deps.baseDir,
+        "MEMORY",
+        "STATE",
+        "algorithms",
+        `${sessionId}.json`,
+      );
       const algoResult = deps.readJson<AlgorithmState>(algoStatePath);
       if (!algoResult.ok) {
         return ok({ type: "silent" });
       }
       const algoState = algoResult.value;
-      const isComplete = !algoState.active ||
+      const isComplete =
+        !algoState.active ||
         algoState.currentPhase === "COMPLETE" ||
         algoState.currentPhase === "LEARN" ||
         algoState.currentPhase === "IDLE";
@@ -239,27 +416,44 @@ export const SessionAutoName: AsyncHookContract<
 
     // Archive previous name on rework
     if (isRework && names[sessionId]) {
-      const algoStatePath = join(deps.baseDir, "MEMORY", "STATE", "algorithms", `${sessionId}.json`);
+      const algoStatePath = join(
+        deps.baseDir,
+        "MEMORY",
+        "STATE",
+        "algorithms",
+        `${sessionId}.json`,
+      );
       const archiveResult = deps.readJson<AlgorithmState>(algoStatePath);
       if (archiveResult.ok) {
         const algoState = archiveResult.value;
         if (!algoState.previousNames) algoState.previousNames = [];
-        algoState.previousNames.push({ name: names[sessionId], changedAt: new Date().toISOString() });
+        algoState.previousNames.push({
+          name: names[sessionId],
+          changedAt: new Date().toISOString(),
+        });
         deps.writeFile(algoStatePath, JSON.stringify(algoState, null, 2));
       }
     }
 
     // AI-generated name via inference (catch failure gracefully)
     let named = false;
-    const inferenceResult = await deps.inference({
-      systemPrompt: NAME_PROMPT,
-      prompt: prompt.slice(0, 800),
-      level: "fast",
-      timeout: 10000,
-    }).catch((e: Error) => { deps.stderr("[SessionAutoName] inference error: " + e.message); return null; });
+    const inferenceResult = await deps
+      .inference({
+        systemPrompt: NAME_PROMPT,
+        prompt: prompt.slice(0, 800),
+        level: "fast",
+        timeout: 10000,
+      })
+      .catch((e: Error) => {
+        deps.stderr(`[SessionAutoName] inference error: ${e.message}`);
+        return null;
+      });
 
     if (inferenceResult?.success && inferenceResult.output) {
-      let label = inferenceResult.output.replace(/^["']|["']$/g, "").replace(/[.!?,;:]/g, "").trim();
+      let label = inferenceResult.output
+        .replace(/^["']|["']$/g, "")
+        .replace(/[.!?,;:]/g, "")
+        .trim();
       const words = label.split(/\s+/).slice(0, 3);
       label = words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 
@@ -269,7 +463,9 @@ export const SessionAutoName: AsyncHookContract<
           deps.stderr(`[SessionAutoName] Rejected contaminated name: "${label}"`);
         } else {
           storeName(names, namesPath, sessionId, label, deps);
-          deps.stderr(`[SessionAutoName] ${isRework ? "Rejuvenated" : "Named"} session: "${label}" (inference)`);
+          deps.stderr(
+            `[SessionAutoName] ${isRework ? "Rejuvenated" : "Named"} session: "${label}" (inference)`,
+          );
           named = true;
         }
       }

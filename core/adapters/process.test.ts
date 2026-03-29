@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { exec, getEnv, execSyncSafe, spawnSyncSafe } from "./process";
+import { describe, expect, it } from "bun:test";
 import { ErrorCode } from "../error";
+import { exec, execSyncSafe, getEnv, spawnSyncSafe } from "./process";
 
 // ─── exec ────────────────────────────────────────────────────────────────────
 

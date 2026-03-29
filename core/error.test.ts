@@ -1,32 +1,32 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  PaiError,
-  ErrorCode,
-  stdinTimeout,
-  stdinReadFailed,
-  jsonParseFailed,
-  invalidInput,
-  fileNotFound,
-  fileReadFailed,
-  fileWriteFailed,
+  cancelled,
+  contractViolation,
   dirCreateFailed,
-  processExecFailed,
-  processSpawnFailed,
+  ErrorCode,
   envVarMissing,
   fetchFailed,
   fetchTimeout,
+  fileNotFound,
+  fileReadFailed,
+  fileWriteFailed,
+  invalidInput,
+  jsonParseFailed,
+  PaiError,
+  processExecFailed,
+  processSpawnFailed,
   securityBlock,
-  contractViolation,
   stateCorrupted,
+  stdinReadFailed,
+  stdinTimeout,
   unknownError,
-  cancelled,
 } from "./error";
 
 // ─── ErrorCode Enum ──────────────────────────────────────────────────────────
 
 describe("ErrorCode", () => {
   it("has 18 error codes", () => {
-    const codes = Object.keys(ErrorCode).filter((k) => isNaN(Number(k)));
+    const codes = Object.keys(ErrorCode).filter((k) => Number.isNaN(Number(k)));
     expect(codes.length).toBe(18);
   });
 

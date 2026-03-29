@@ -1,5 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
+import { describe, expect, test } from "bun:test";
+import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
 describe("isSvelteFile", () => {
   test("returns true for .svelte files", () => {
@@ -16,7 +16,7 @@ describe("isSvelteFile", () => {
 });
 
 describe("extractSvelteScript", () => {
-  test("extracts script block with lang=\"ts\"", () => {
+  test('extracts script block with lang="ts"', () => {
     const content = `<script lang="ts">
   let count = $state(0);
 </script>
@@ -47,7 +47,7 @@ describe("extractSvelteScript", () => {
     expect(extractSvelteScript(content)).toBeNull();
   });
 
-  test("returns null for script blocks without lang=\"ts\"", () => {
+  test('returns null for script blocks without lang="ts"', () => {
     const content = `<script>
   let count = 0;
 </script>`;

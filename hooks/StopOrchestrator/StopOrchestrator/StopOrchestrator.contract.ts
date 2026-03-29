@@ -7,19 +7,19 @@
  * Voice only fires for main terminal sessions (not subagents).
  */
 
+import { join } from "node:path";
+import { fileExists } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { parseTranscript } from "@pai/Tools/TranscriptParser";
-import { handleVoice } from "@hooks/handlers/VoiceNotification";
-import { handleTabState } from "@hooks/handlers/TabState";
-import { handleRebuildSkill } from "@hooks/handlers/RebuildSkill";
 import { handleAlgorithmEnrichment } from "@hooks/handlers/AlgorithmEnrichment";
-import { fileExists } from "@hooks/core/adapters/fs";
-import { join } from "path";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
+import { handleRebuildSkill } from "@hooks/handlers/RebuildSkill";
+import { handleTabState } from "@hooks/handlers/TabState";
+import { handleVoice } from "@hooks/handlers/VoiceNotification";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { parseTranscript } from "@pai/Tools/TranscriptParser";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,11 +57,7 @@ const defaultDeps: StopOrchestratorDeps = {
   stderr: defaultStderr,
 };
 
-export const StopOrchestrator: AsyncHookContract<
-  StopInput,
-  SilentOutput,
-  StopOrchestratorDeps
-> = {
+export const StopOrchestrator: AsyncHookContract<StopInput, SilentOutput, StopOrchestratorDeps> = {
   name: "StopOrchestrator",
   event: "Stop",
 
@@ -80,7 +76,9 @@ export const StopOrchestrator: AsyncHookContract<
     const voiceEnabled = deps.isMainSession(input.session_id);
 
     if (voiceEnabled) {
-      deps.stderr(`[StopOrchestrator] Voice ON (main session): ${parsed.plainCompletion.slice(0, 50)}...`);
+      deps.stderr(
+        `[StopOrchestrator] Voice ON (main session): ${parsed.plainCompletion.slice(0, 50)}...`,
+      );
     } else {
       deps.stderr("[StopOrchestrator] Voice OFF (not main session)");
     }

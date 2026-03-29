@@ -16,20 +16,23 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/SessionIdRegister.hook.js
  */
 
-import type { AsyncHookContract } from "@hooks/core/contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
-import { readKoordConfig, defaultReadFileOrNull } from "@hooks/hooks/KoordDaemon/shared";
+import type { AsyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultReadFileOrNull, readKoordConfig } from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SessionIdRegisterDeps {
   getEnv: (name: string) => string | undefined;
-  safeFetch: (url: string, opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string }) => Promise<Result<FetchResult, PaiError>>;
+  safeFetch: (
+    url: string,
+    opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string },
+  ) => Promise<Result<FetchResult, PaiError>>;
   getKoordConfig: () => { url: string | null };
   stderr: (msg: string) => void;
 }
@@ -40,7 +43,7 @@ const defaultDeps: SessionIdRegisterDeps = {
   getEnv: (name) => process.env[name],
   safeFetch,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -94,9 +97,13 @@ export const SessionIdRegister: AsyncHookContract<
     });
 
     if (result.ok) {
-      deps.stderr(`[SessionIdRegister] Registered session: thread=${threadId} session=${sessionId.slice(0, 8)}...`);
+      deps.stderr(
+        `[SessionIdRegister] Registered session: thread=${threadId} session=${sessionId.slice(0, 8)}...`,
+      );
     } else {
-      deps.stderr(`[SessionIdRegister] Registration failed (non-blocking): ${result.error.message}`);
+      deps.stderr(
+        `[SessionIdRegister] Registration failed (non-blocking): ${result.error.message}`,
+      );
     }
 
     return ok({ type: "silent" });

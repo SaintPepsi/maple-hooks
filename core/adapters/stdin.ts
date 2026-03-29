@@ -4,8 +4,8 @@
  * Uses Bun.stdin.stream() with race-based timeout. Returns Result.
  */
 
-import { type Result, ok, err } from "../result";
-import { type PaiError, stdinTimeout, stdinReadFailed } from "../error";
+import { type PaiError, stdinReadFailed, stdinTimeout } from "../error";
+import { err, ok, type Result } from "../result";
 
 export async function readStdin(timeoutMs: number = 200): Promise<Result<string, PaiError>> {
   try {
@@ -21,10 +21,7 @@ export async function readStdin(timeoutMs: number = 200): Promise<Result<string,
       }
     })();
 
-    await Promise.race([
-      readLoop,
-      new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
-    ]);
+    await Promise.race([readLoop, new Promise<void>((resolve) => setTimeout(resolve, timeoutMs))]);
 
     if (!raw.trim()) {
       return err(stdinTimeout(timeoutMs));

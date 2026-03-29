@@ -1,18 +1,16 @@
 /**
  * Unit tests for coding standards violation detection functions.
  */
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
+  findAllViolations,
+  findAsAnyCasts,
+  findInlineImportTypes,
+  findRelativeImports,
+  findTryCatchFlowControl,
   isCommentLine,
   isExempted,
   stripStringLiterals,
-  findRawImports,
-  findTryCatchFlowControl,
-  findDirectEnvAccess,
-  findInlineImportTypes,
-  findAsAnyCasts,
-  findRelativeImports,
-  findAllViolations,
 } from "./coding-standards-checks";
 
 // ─── Helper Tests ───────────────────────────────────────────────────────────
@@ -243,7 +241,7 @@ describe("findAllViolations", () => {
     ].join("\n");
 
     const violations = findAllViolations(content);
-    const categories = new Set(violations.map(v => v.category));
+    const categories = new Set(violations.map((v) => v.category));
     expect(categories.has("raw-import")).toBe(true);
     expect(categories.has("try-catch")).toBe(true);
     expect(categories.has("process-env")).toBe(true);

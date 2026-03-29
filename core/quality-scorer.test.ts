@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import { scoreFile, formatAdvisory, formatDelta, type QualityScore } from "./quality-scorer";
+import { describe, expect, test } from "bun:test";
 import { getLanguageProfile } from "./language-profiles";
+import { formatAdvisory, formatDelta, type QualityScore, scoreFile } from "./quality-scorer";
 
 const tsProfile = getLanguageProfile("test.ts")!;
 const pyProfile = getLanguageProfile("test.py")!;
@@ -361,7 +361,7 @@ function b() { try { doB(); } catch (e) { console.error(e); } }
 function c() { try { doC(); } catch (e) { console.error(e); } }
 `;
       const result = scoreFile(tryCatchHeavy, tsProfile, "src/heavy.ts");
-      const violation = result.violations.find(v => v.check === "try-catch-count");
+      const violation = result.violations.find((v) => v.check === "try-catch-count");
       expect(violation).toBeDefined();
       expect(violation!.severity).toBe("moderate");
     });
@@ -372,14 +372,14 @@ import { readFile } from "../core/adapters/fs";
 export function doStuff() { return readFile("x"); }
 `;
       const result = scoreFile(noContract, tsProfile, "hooks/contracts/Bad.ts");
-      const violation = result.violations.find(v => v.check === "contract-pattern");
+      const violation = result.violations.find((v) => v.check === "contract-pattern");
       expect(violation).toBeDefined();
       expect(violation!.severity).toBe("major");
     });
 
     test("skips contract-pattern check for non-contract files", () => {
       const result = scoreFile("export function x() {}", tsProfile, "src/utils.ts");
-      const violation = result.violations.find(v => v.check === "contract-pattern");
+      const violation = result.violations.find((v) => v.check === "contract-pattern");
       expect(violation).toBeUndefined();
     });
 
@@ -390,7 +390,7 @@ import { execSync } from "child_process";
 export const Bad: HookContract<any, any, any> = { name: "Bad", event: "PreToolUse", accepts: () => true, execute: () => ({} as any), defaultDeps: {} as any };
 `;
       const result = scoreFile(rawImports, tsProfile, "hooks/contracts/Bad.ts");
-      const violation = result.violations.find(v => v.check === "adapter-bypass");
+      const violation = result.violations.find((v) => v.check === "adapter-bypass");
       expect(violation).toBeDefined();
       expect(violation!.severity).toBe("major");
     });
@@ -398,7 +398,7 @@ export const Bad: HookContract<any, any, any> = { name: "Bad", event: "PreToolUs
     test("skips adapter-bypass for non-contract files", () => {
       const rawImports = `import { readFileSync } from "fs";`;
       const result = scoreFile(rawImports, tsProfile, "src/script.ts");
-      const violation = result.violations.find(v => v.check === "adapter-bypass");
+      const violation = result.violations.find((v) => v.check === "adapter-bypass");
       expect(violation).toBeUndefined();
     });
 
@@ -414,7 +414,7 @@ function checkPatterns(content: string): number {
 }
 `;
       const result = scoreFile(regexPatterns, tsProfile, "src/checker.ts");
-      const infraViolation = result.violations.find(v => v.check === "infra-imports");
+      const infraViolation = result.violations.find((v) => v.check === "infra-imports");
       expect(infraViolation).toBeUndefined();
     });
 
@@ -424,7 +424,7 @@ import { readFileSync } from "fs";
 export const Bad: HookContract<any, any, any> = { name: "Bad", event: "PreToolUse", accepts: () => true, execute: () => ({} as any), defaultDeps: {} as any };
 `;
       const result = scoreFile(rawImports, tsProfile, "hooks/contracts/Bad.ts");
-      const bypass = result.violations.find(v => v.check === "adapter-bypass");
+      const bypass = result.violations.find((v) => v.check === "adapter-bypass");
       expect(bypass?.message).toContain("CODINGSTANDARDS");
     });
   });

@@ -10,16 +10,19 @@
  * 6. Only updates matched cron, leaves others unchanged
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, PaiError } from "@hooks/core/error";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
-import { PaiError, ErrorCode } from "@hooks/core/error";
-import { CronFireContract } from "./CronFire.contract";
 import type { CronFireDeps } from "./CronFire.contract";
+import { CronFireContract } from "./CronFire.contract";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
-function makeInput(prompt?: string, overrides: Partial<UserPromptSubmitInput> = {}): UserPromptSubmitInput {
+function makeInput(
+  prompt?: string,
+  overrides: Partial<UserPromptSubmitInput> = {},
+): UserPromptSubmitInput {
   return {
     session_id: "test-session-001",
     prompt,
@@ -27,7 +30,9 @@ function makeInput(prompt?: string, overrides: Partial<UserPromptSubmitInput> = 
   };
 }
 
-function makeCron(overrides: Partial<CronSessionFile["crons"][0]> = {}): CronSessionFile["crons"][0] {
+function makeCron(
+  overrides: Partial<CronSessionFile["crons"][0]> = {},
+): CronSessionFile["crons"][0] {
   return {
     id: "cron-1",
     name: "Test Cron",
@@ -53,7 +58,10 @@ function makeDeps(overrides: Partial<CronFireDeps> = {}): TestDeps {
   return {
     readFile: (path: string) => {
       if (path in files) return { ok: true as const, value: files[path] };
-      return { ok: false as const, error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`) };
+      return {
+        ok: false as const,
+        error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`),
+      };
     },
     writeFile: (path: string, content: string) => {
       files[path] = content;
@@ -163,7 +171,9 @@ describe("CronFireContract.execute() — no matching cron", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
     // File content should be unchanged (no write happened)
-    expect(deps._files["/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json"]).toBe(fileBeforeExec);
+    expect(deps._files["/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json"]).toBe(
+      fileBeforeExec,
+    );
     expect(deps._appendLog).toHaveLength(0);
   });
 });

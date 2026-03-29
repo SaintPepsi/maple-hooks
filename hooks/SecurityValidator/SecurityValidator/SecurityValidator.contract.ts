@@ -6,16 +6,16 @@
  * with code 2 (handled by the runner's format layer).
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, AskOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import { ok, err, type Result } from "@hooks/core/result";
-import { type PaiError, securityBlock as securityBlockError } from "@hooks/core/error";
-import { fileExists, readFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
-import { safeRegexTest, createRegex } from "@hooks/core/adapters/regex";
+import { join } from "node:path";
+import { ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
+import { createRegex, safeRegexTest } from "@hooks/core/adapters/regex";
 import { safeParseYaml } from "@hooks/core/adapters/yaml";
+import type { SyncHookContract } from "@hooks/core/contract";
+import { type PaiError, securityBlock as securityBlockError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -71,10 +71,7 @@ const EMPTY_PATTERNS: PatternsConfig = {
 };
 
 export function stripEnvVarPrefix(command: string): string {
-  return command.replace(
-    /^\s*(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]*)\s+)*/,
-    "",
-  );
+  return command.replace(/^\s*(?:[A-Za-z_][A-Za-z0-9_]*=(?:"[^"]*"|'[^']*'|[^\s]*)\s+)*/, "");
 }
 
 /**
@@ -91,9 +88,20 @@ function splitChainedCommands(command: string): string[] {
     const ch = command[i];
     const next = command[i + 1];
 
-    if (ch === "'" && !inDouble) { inSingle = !inSingle; current += ch; continue; }
-    if (ch === '"' && !inSingle) { inDouble = !inDouble; current += ch; continue; }
-    if (inSingle || inDouble) { current += ch; continue; }
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+      current += ch;
+      continue;
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+      current += ch;
+      continue;
+    }
+    if (inSingle || inDouble) {
+      current += ch;
+      continue;
+    }
 
     if (ch === ";" || (ch === "&" && next === "&") || (ch === "|" && next === "|")) {
       parts.push(current.trim());
@@ -129,7 +137,10 @@ export function extractWriteTargets(command: string): string[] {
       for (let i = args.length - 1; i >= 1; i--) {
         const arg = args[i];
         if (arg.startsWith("-") || arg.startsWith("'") || arg.startsWith('"')) continue;
-        if (arg.includes("/") || arg.includes(".")) { targets.push(arg); break; }
+        if (arg.includes("/") || arg.includes(".")) {
+          targets.push(arg);
+          break;
+        }
       }
       continue;
     }
@@ -138,7 +149,12 @@ export function extractWriteTargets(command: string): string[] {
     if (/\bperl\b/.test(stripped) && /\s-\w*i/.test(stripped)) {
       const args = stripped.split(/\s+/);
       const lastArg = args[args.length - 1];
-      if (lastArg && !lastArg.startsWith("-") && !lastArg.startsWith("'") && !lastArg.startsWith('"')) {
+      if (
+        lastArg &&
+        !lastArg.startsWith("-") &&
+        !lastArg.startsWith("'") &&
+        !lastArg.startsWith('"')
+      ) {
         targets.push(lastArg);
       }
       continue;
@@ -212,12 +228,21 @@ export function extractWriteTargets(command: string): string[] {
   return targets;
 }
 
-export function matchesPattern(command: string, pattern: string, deps: SecurityValidatorDeps): boolean {
+export function matchesPattern(
+  command: string,
+  pattern: string,
+  deps: SecurityValidatorDeps,
+): boolean {
   if (deps.safeRegexTest(command, pattern, "i")) return true;
   return command.toLowerCase().includes(pattern.toLowerCase());
 }
 
-export function matchesPathPattern(filePath: string, pattern: string, home: string, deps: SecurityValidatorDeps): boolean {
+export function matchesPathPattern(
+  filePath: string,
+  pattern: string,
+  home: string,
+  deps: SecurityValidatorDeps,
+): boolean {
   const expandPath = (p: string) => (p.startsWith("~") ? p.replace("~", home) : p);
   const expandedPattern = expandPath(pattern);
   const expandedPath = expandPath(filePath);
@@ -235,15 +260,21 @@ export function matchesPathPattern(filePath: string, pattern: string, home: stri
     return false;
   }
 
-  return expandedPath === expandedPattern ||
-    expandedPath.startsWith(expandedPattern.endsWith("/") ? expandedPattern : expandedPattern + "/");
+  return (
+    expandedPath === expandedPattern ||
+    expandedPath.startsWith(expandedPattern.endsWith("/") ? expandedPattern : `${expandedPattern}/`)
+  );
 }
 
 function loadPatterns(deps: SecurityValidatorDeps): PatternsConfig {
   const userPath = join(deps.baseDir, "PAI", "USER", "PAISECURITYSYSTEM", "patterns.yaml");
   const systemPath = join(deps.baseDir, "PAI", "PAISECURITYSYSTEM", "patterns.example.yaml");
 
-  const patternsPath = deps.fileExists(userPath) ? userPath : deps.fileExists(systemPath) ? systemPath : null;
+  const patternsPath = deps.fileExists(userPath)
+    ? userPath
+    : deps.fileExists(systemPath)
+      ? systemPath
+      : null;
   if (!patternsPath) return EMPTY_PATTERNS;
 
   const result = deps.readFile(patternsPath);
@@ -254,7 +285,11 @@ function loadPatterns(deps: SecurityValidatorDeps): PatternsConfig {
   return parsed as PatternsConfig;
 }
 
-function validateBashCommand(command: string, patterns: PatternsConfig, deps: SecurityValidatorDeps): ValidationResult {
+function validateBashCommand(
+  command: string,
+  patterns: PatternsConfig,
+  deps: SecurityValidatorDeps,
+): ValidationResult {
   for (const p of patterns.bash.blocked) {
     if (matchesPattern(command, p.pattern, deps)) return { action: "block", reason: p.reason };
   }
@@ -267,26 +302,39 @@ function validateBashCommand(command: string, patterns: PatternsConfig, deps: Se
   return { action: "allow" };
 }
 
-function validatePath(filePath: string, action: PathAction, patterns: PatternsConfig, home: string, deps: SecurityValidatorDeps): ValidationResult {
+function validatePath(
+  filePath: string,
+  action: PathAction,
+  patterns: PatternsConfig,
+  home: string,
+  deps: SecurityValidatorDeps,
+): ValidationResult {
   for (const p of patterns.paths.zeroAccess) {
-    if (matchesPathPattern(filePath, p, home, deps)) return { action: "block", reason: `Zero access path: ${p}` };
+    if (matchesPathPattern(filePath, p, home, deps))
+      return { action: "block", reason: `Zero access path: ${p}` };
   }
 
   if (action === "write" || action === "delete") {
     for (const p of patterns.paths.readOnly) {
-      if (matchesPathPattern(filePath, p, home, deps)) return { action: "block", reason: `Read-only path: ${p}` };
+      if (matchesPathPattern(filePath, p, home, deps))
+        return { action: "block", reason: `Read-only path: ${p}` };
     }
   }
 
   if (action === "write") {
     for (const p of patterns.paths.confirmWrite) {
-      if (matchesPathPattern(filePath, p, home, deps)) return { action: "confirm", reason: `Writing to protected file requires confirmation: ${p}` };
+      if (matchesPathPattern(filePath, p, home, deps))
+        return {
+          action: "confirm",
+          reason: `Writing to protected file requires confirmation: ${p}`,
+        };
     }
   }
 
   if (action === "delete") {
     for (const p of patterns.paths.noDelete) {
-      if (matchesPathPattern(filePath, p, home, deps)) return { action: "block", reason: `Cannot delete protected path: ${p}` };
+      if (matchesPathPattern(filePath, p, home, deps))
+        return { action: "block", reason: `Cannot delete protected path: ${p}` };
     }
   }
 
@@ -320,7 +368,11 @@ function logSecurityEvent(event: SecurityEvent, deps: SecurityValidatorDeps): vo
   ].join("-");
 
   const logPath = join(
-    deps.baseDir, "MEMORY", "SECURITY", year, month,
+    deps.baseDir,
+    "MEMORY",
+    "SECURITY",
+    year,
+    month,
     `security-${summary}-${year}${month}${day}-${hour}${min}${sec}.jsonl`,
   );
   const dir = logPath.substring(0, logPath.lastIndexOf("/"));
@@ -341,7 +393,7 @@ const defaultDeps: SecurityValidatorDeps = {
   createRegex,
   homedir: () => process.env.HOME || "/",
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const SecurityValidator: SyncHookContract<
@@ -366,9 +418,10 @@ export const SecurityValidator: SyncHookContract<
 
     // Bash command validation
     if (tool_name === "Bash") {
-      const rawCommand = typeof input.tool_input === "string"
-        ? input.tool_input
-        : (input.tool_input?.command as string) || "";
+      const rawCommand =
+        typeof input.tool_input === "string"
+          ? input.tool_input
+          : (input.tool_input?.command as string) || "";
 
       if (!rawCommand) return ok({ type: "continue", continue: true });
 
@@ -377,49 +430,60 @@ export const SecurityValidator: SyncHookContract<
 
       if (result.action === "block") {
         const opener = pickNarrative("SecurityValidator", countViolations(result));
-        logSecurityEvent({
-          timestamp: new Date().toISOString(),
-          session_id,
-          event_type: "block",
-          tool: "Bash",
-          category: "bash_command",
-          target: command.slice(0, 500),
-          reason: result.reason,
-          action_taken: "Hard block",
-        }, deps);
+        logSecurityEvent(
+          {
+            timestamp: new Date().toISOString(),
+            session_id,
+            event_type: "block",
+            tool: "Bash",
+            category: "bash_command",
+            target: command.slice(0, 500),
+            reason: result.reason,
+            action_taken: "Hard block",
+          },
+          deps,
+        );
         deps.stderr(`[PAI SECURITY] ${opener}`);
         return err(securityBlockError(result.reason || "Blocked by security policy"));
       }
 
       if (result.action === "confirm") {
         const opener = pickNarrative("SecurityValidator", countViolations(result));
-        logSecurityEvent({
-          timestamp: new Date().toISOString(),
-          session_id,
-          event_type: "confirm",
-          tool: "Bash",
-          category: "bash_command",
-          target: command.slice(0, 500),
-          reason: result.reason,
-          action_taken: "Blocked (confirm category)",
-        }, deps);
+        logSecurityEvent(
+          {
+            timestamp: new Date().toISOString(),
+            session_id,
+            event_type: "confirm",
+            tool: "Bash",
+            category: "bash_command",
+            target: command.slice(0, 500),
+            reason: result.reason,
+            action_taken: "Blocked (confirm category)",
+          },
+          deps,
+        );
         deps.stderr(`[PAI SECURITY] ${opener}`);
-        return err(securityBlockError(
-          `${result.reason}\n\nCommand: ${command.slice(0, 200)}\n\nThis operation requires confirmation. Run it manually outside Claude Code.`,
-        ));
+        return err(
+          securityBlockError(
+            `${result.reason}\n\nCommand: ${command.slice(0, 200)}\n\nThis operation requires confirmation. Run it manually outside Claude Code.`,
+          ),
+        );
       }
 
       if (result.action === "alert") {
-        logSecurityEvent({
-          timestamp: new Date().toISOString(),
-          session_id,
-          event_type: "alert",
-          tool: "Bash",
-          category: "bash_command",
-          target: command.slice(0, 500),
-          reason: result.reason,
-          action_taken: "Logged alert, allowed",
-        }, deps);
+        logSecurityEvent(
+          {
+            timestamp: new Date().toISOString(),
+            session_id,
+            event_type: "alert",
+            tool: "Bash",
+            category: "bash_command",
+            target: command.slice(0, 500),
+            reason: result.reason,
+            action_taken: "Logged alert, allowed",
+          },
+          deps,
+        );
         deps.stderr(`[PAI SECURITY] ALERT: ${result.reason}`);
       }
 
@@ -431,21 +495,26 @@ export const SecurityValidator: SyncHookContract<
         const pathResult = validatePath(target, "write", patterns, home, deps);
         if (pathResult.action === "block" || pathResult.action === "confirm") {
           const opener = pickNarrative("SecurityValidator", countViolations(pathResult));
-          logSecurityEvent({
-            timestamp: new Date().toISOString(),
-            session_id,
-            event_type: pathResult.action === "block" ? "block" : "confirm",
-            tool: "Bash",
-            category: "path_access",
-            target,
-            pattern_matched: command.slice(0, 200),
-            reason: `Tool substitution bypass: ${pathResult.reason}`,
-            action_taken: "Blocked (bash file modification to protected path)",
-          }, deps);
+          logSecurityEvent(
+            {
+              timestamp: new Date().toISOString(),
+              session_id,
+              event_type: pathResult.action === "block" ? "block" : "confirm",
+              tool: "Bash",
+              category: "path_access",
+              target,
+              pattern_matched: command.slice(0, 200),
+              reason: `Tool substitution bypass: ${pathResult.reason}`,
+              action_taken: "Blocked (bash file modification to protected path)",
+            },
+            deps,
+          );
           deps.stderr(`[PAI SECURITY] ${opener}`);
-          return err(securityBlockError(
-            `${pathResult.reason}\n\nBash command modifies protected path via tool substitution: ${target}\nCommand: ${command.slice(0, 200)}\n\nUse Edit/Write tools instead, or run manually outside Claude Code.`,
-          ));
+          return err(
+            securityBlockError(
+              `${pathResult.reason}\n\nBash command modifies protected path via tool substitution: ${target}\nCommand: ${command.slice(0, 200)}\n\nUse Edit/Write tools instead, or run manually outside Claude Code.`,
+            ),
+          );
         }
       }
 
@@ -453,9 +522,10 @@ export const SecurityValidator: SyncHookContract<
     }
 
     // File path validation (Edit, MultiEdit, Write, Read)
-    const filePath = typeof input.tool_input === "string"
-      ? input.tool_input
-      : (input.tool_input?.file_path as string) || "";
+    const filePath =
+      typeof input.tool_input === "string"
+        ? input.tool_input
+        : (input.tool_input?.file_path as string) || "";
 
     if (!filePath) return ok({ type: "continue", continue: true });
 
@@ -464,36 +534,44 @@ export const SecurityValidator: SyncHookContract<
 
     if (result.action === "block") {
       const opener = pickNarrative("SecurityValidator", countViolations(result));
-      logSecurityEvent({
-        timestamp: new Date().toISOString(),
-        session_id,
-        event_type: "block",
-        tool: tool_name,
-        category: "path_access",
-        target: filePath,
-        reason: result.reason,
-        action_taken: "Hard block",
-      }, deps);
+      logSecurityEvent(
+        {
+          timestamp: new Date().toISOString(),
+          session_id,
+          event_type: "block",
+          tool: tool_name,
+          category: "path_access",
+          target: filePath,
+          reason: result.reason,
+          action_taken: "Hard block",
+        },
+        deps,
+      );
       deps.stderr(`[PAI SECURITY] ${opener}`);
       return err(securityBlockError(result.reason || "Blocked by security policy"));
     }
 
     if (result.action === "confirm") {
       const opener = pickNarrative("SecurityValidator", countViolations(result));
-      logSecurityEvent({
-        timestamp: new Date().toISOString(),
-        session_id,
-        event_type: "confirm",
-        tool: tool_name,
-        category: "path_access",
-        target: filePath,
-        reason: result.reason,
-        action_taken: "Blocked (confirm category)",
-      }, deps);
+      logSecurityEvent(
+        {
+          timestamp: new Date().toISOString(),
+          session_id,
+          event_type: "confirm",
+          tool: tool_name,
+          category: "path_access",
+          target: filePath,
+          reason: result.reason,
+          action_taken: "Blocked (confirm category)",
+        },
+        deps,
+      );
       deps.stderr(`[PAI SECURITY] ${opener}`);
-      return err(securityBlockError(
-        `${result.reason}\n\nPath: ${filePath}\n\nThis operation requires confirmation. Run it manually outside Claude Code.`,
-      ));
+      return err(
+        securityBlockError(
+          `${result.reason}\n\nPath: ${filePath}\n\nThis operation requires confirmation. Run it manually outside Claude Code.`,
+        ),
+      );
     }
 
     return ok({ type: "continue", continue: true });

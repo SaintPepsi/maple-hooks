@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { CheckVersion, type CheckVersionDeps } from "./CheckVersion.contract";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { processExecFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { CheckVersion, type CheckVersionDeps } from "./CheckVersion.contract";
 
 const baseInput: SessionStartInput = {
   session_id: "test-session-123",
@@ -65,7 +65,8 @@ describe("CheckVersion", () => {
   test("returns silent when getCurrentVersion fails", async () => {
     const messages: string[] = [];
     const deps = makeDeps({
-      getCurrentVersion: async () => err(processExecFailed("claude --version", new Error("not found"))),
+      getCurrentVersion: async () =>
+        err(processExecFailed("claude --version", new Error("not found"))),
       stderr: (msg) => messages.push(msg),
     });
     const result = await CheckVersion.execute(baseInput, deps);

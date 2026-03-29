@@ -30,11 +30,7 @@ export class PaihError extends Error {
   readonly code: PaihErrorCode;
   readonly context?: Record<string, unknown>;
 
-  constructor(
-    code: PaihErrorCode,
-    message: string,
-    context?: Record<string, unknown>,
-  ) {
+  constructor(code: PaihErrorCode, message: string, context?: Record<string, unknown>) {
     super(message);
     this.name = "PaihError";
     this.code = code;
@@ -65,11 +61,7 @@ export function hookNotFound(name: string): PaihError {
 }
 
 export function manifestMissing(path: string): PaihError {
-  return new PaihError(
-    PaihErrorCode.ManifestMissing,
-    `Manifest not found: ${path}`,
-    { path },
-  );
+  return new PaihError(PaihErrorCode.ManifestMissing, `Manifest not found: ${path}`, { path });
 }
 
 export function manifestParseError(path: string, cause: Error): PaihError {
@@ -125,11 +117,9 @@ export function writeFailed(path: string, cause?: Error): PaihError {
 }
 
 export function lockCorrupt(path: string): PaihError {
-  return new PaihError(
-    PaihErrorCode.LockCorrupt,
-    `Lock file corrupt or invalid: ${path}`,
-    { path },
-  );
+  return new PaihError(PaihErrorCode.LockCorrupt, `Lock file corrupt or invalid: ${path}`, {
+    path,
+  });
 }
 
 export function lockMissing(claudeDir: string): PaihError {

@@ -4,9 +4,6 @@
   "event": "PreToolUse",
   "description": "Advisory: warns before writing functions that duplicate existing code (3+ signal dimensions)",
   "schemaVersion": 1,
-  "tags": [
-    "quality",
-    "duplication"
-  ],
+  "tags": ["quality", "duplication"],
   "presets": []
 }

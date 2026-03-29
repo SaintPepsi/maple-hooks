@@ -9,14 +9,20 @@
  * redundant spot checks across sessions.
  */
 
+import { join } from "node:path";
+import {
+  fileExists as fsFileExists,
+  readFile,
+  readJson,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
+import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { writeFile, readFile, readJson, fileExists as fsFileExists, removeFile } from "@hooks/core/adapters/fs";
-import { execSyncSafe } from "@hooks/core/adapters/process";
-import { join } from "path";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -47,7 +53,9 @@ function reviewedHashesPath(stateDir: string): string {
 }
 
 function getUnpushedFiles(): string[] {
-  const result = execSyncSafe("git diff @{upstream}...HEAD --name-only 2>/dev/null", { timeout: 5000 });
+  const result = execSyncSafe("git diff @{upstream}...HEAD --name-only 2>/dev/null", {
+    timeout: 5000,
+  });
   if (!result.ok) return [];
   return result.value.trim().split("\n").filter(Boolean);
 }
@@ -87,7 +95,7 @@ const defaultDeps: SpotCheckReviewDeps = {
     const result = readFile(path);
     if (!result.ok) return 0;
     const n = parseInt(result.value.trim(), 10);
-    return isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
     writeFile(path, String(count));
@@ -103,7 +111,7 @@ const defaultDeps: SpotCheckReviewDeps = {
   removeFlag: (path: string) => {
     removeFile(path);
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ─────────────────────────────────────────────────────────────────
@@ -150,7 +158,9 @@ export const SpotCheckReview: SyncHookContract<
         pruned[file] = hash;
       }
       deps.writeReviewedHashes(hashPath, pruned);
-      deps.stderr(`[SpotCheckReview] Block limit (${MAX_BLOCKS}) reached. Marked ${hashes.size} file(s) as reviewed. Releasing session.`);
+      deps.stderr(
+        `[SpotCheckReview] Block limit (${MAX_BLOCKS}) reached. Marked ${hashes.size} file(s) as reviewed. Releasing session.`,
+      );
       return ok({ type: "silent" });
     }
 
@@ -168,7 +178,9 @@ export const SpotCheckReview: SyncHookContract<
     }
 
     deps.writeBlockCount(countFile, blockCount + 1);
-    deps.stderr(`[SpotCheckReview] Block ${blockCount + 1}/${MAX_BLOCKS}: ${unreviewedFiles.length} unreviewed file(s) (${files.length - unreviewedFiles.length} already reviewed)`);
+    deps.stderr(
+      `[SpotCheckReview] Block ${blockCount + 1}/${MAX_BLOCKS}: ${unreviewedFiles.length} unreviewed file(s) (${files.length - unreviewedFiles.length} already reviewed)`,
+    );
 
     return ok({ type: "block", decision: "block", reason: buildBlockMessage(unreviewedFiles) });
   },

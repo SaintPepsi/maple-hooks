@@ -1,19 +1,18 @@
-import { describe, it, expect } from "bun:test";
-import {
-  WorktreeSafetyVerification,
-  extractWorktreePath,
-  ensureGitignore,
-  installDependencies,
-  runBaselineTests,
-  DEP_CONFIGS,
-  TEST_CONFIGS,
-  type WorktreeSafetyDeps,
-} from "./WorktreeSafetyVerification.contract";
+import { describe, expect, it } from "bun:test";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { join } from "path";
+import {
+  DEP_CONFIGS,
+  ensureGitignore,
+  extractWorktreePath,
+  installDependencies,
+  runBaselineTests,
+  TEST_CONFIGS,
+  type WorktreeSafetyDeps,
+  WorktreeSafetyVerification,
+} from "./WorktreeSafetyVerification.contract";
 
 function makeDeps(overrides: Partial<WorktreeSafetyDeps> = {}): WorktreeSafetyDeps {
   return {
@@ -57,7 +56,10 @@ describe("WorktreeSafetyVerification contract", () => {
 
   it("returns continue output (never blocks)", () => {
     const deps = makeDeps();
-    const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+    const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<
+      ContinueOutput,
+      PaiError
+    >;
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("continue");
@@ -68,7 +70,10 @@ describe("WorktreeSafetyVerification contract", () => {
   it("returns continue when worktree path not found", () => {
     const input = makeInput({ tool_response: "Success", tool_input: {} });
     const deps = makeDeps();
-    const result = WorktreeSafetyVerification.execute(input, deps) as Result<ContinueOutput, PaiError>;
+    const result = WorktreeSafetyVerification.execute(input, deps) as Result<
+      ContinueOutput,
+      PaiError
+    >;
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("continue");
@@ -77,7 +82,10 @@ describe("WorktreeSafetyVerification contract", () => {
 
   it("returns continue when worktree path does not exist on disk", () => {
     const deps = makeDeps({ existsSync: () => false });
-    const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<ContinueOutput, PaiError>;
+    const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<
+      ContinueOutput,
+      PaiError
+    >;
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("continue");
@@ -104,8 +112,8 @@ describe("WorktreeSafetyVerification contract", () => {
 
     WorktreeSafetyVerification.execute(makeInput(), deps);
 
-    expect(stderrLines.some(l => l.includes("Running safety checks"))).toBe(true);
-    expect(stderrLines.some(l => l.includes("gitignore") || l.includes(".gitignore"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("Running safety checks"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("gitignore") || l.includes(".gitignore"))).toBe(true);
   });
 });
 
@@ -209,11 +217,13 @@ describe("ensureGitignore", () => {
   it("skips when git root not found", () => {
     const stderrLines: string[] = [];
     const deps = makeDeps({
-      execSync: () => { throw new Error("not a git repo"); },
+      execSync: () => {
+        throw new Error("not a git repo");
+      },
       stderr: (msg: string) => stderrLines.push(msg),
     });
     ensureGitignore("/tmp/test-wt", deps);
-    expect(stderrLines.some(l => l.includes("Could not find git root"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("Could not find git root"))).toBe(true);
   });
 
   it("logs success when worktree is already in gitignore", () => {
@@ -227,7 +237,7 @@ describe("ensureGitignore", () => {
       stderr: (msg: string) => stderrLines.push(msg),
     });
     ensureGitignore("/tmp/project/test-wt", deps);
-    expect(stderrLines.some(l => l.includes("in .gitignore"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("in .gitignore"))).toBe(true);
   });
 
   it("adds entry to gitignore when not ignored (exit code 1)", () => {
@@ -244,12 +254,14 @@ describe("ensureGitignore", () => {
         if (typeof cmd === "string" && cmd.includes("git add")) return "";
         return "";
       },
-      appendFileSync: (_path: string, content: string) => { appendedContent = content; },
+      appendFileSync: (_path: string, content: string) => {
+        appendedContent = content;
+      },
       stderr: (msg: string) => stderrLines.push(msg),
     });
     ensureGitignore("/tmp/project/test-wt", deps);
     expect(appendedContent).toContain("test-wt/");
-    expect(stderrLines.some(l => l.includes("not in .gitignore"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("not in .gitignore"))).toBe(true);
   });
 
   it("uses relative path when worktree is under git root", () => {
@@ -264,7 +276,9 @@ describe("ensureGitignore", () => {
         }
         return "";
       },
-      appendFileSync: (_path: string, content: string) => { appendedContent = content; },
+      appendFileSync: (_path: string, content: string) => {
+        appendedContent = content;
+      },
     });
     ensureGitignore("/tmp/project/worktrees/feat", deps);
     expect(appendedContent).toContain("worktrees/feat/");
@@ -282,7 +296,9 @@ describe("ensureGitignore", () => {
         }
         return "";
       },
-      appendFileSync: (_path: string, content: string) => { appendedContent = content; },
+      appendFileSync: (_path: string, content: string) => {
+        appendedContent = content;
+      },
     });
     ensureGitignore("/tmp/worktree-123", deps);
     expect(appendedContent).toContain("/tmp/worktree-123/");
@@ -306,7 +322,7 @@ describe("ensureGitignore", () => {
       stderr: (msg: string) => stderrLines.push(msg),
     });
     ensureGitignore("/tmp/project/wt", deps);
-    expect(stderrLines.some(l => l.includes("Failed to update .gitignore"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("Failed to update .gitignore"))).toBe(true);
   });
 
   it("logs commit success when git add and commit succeed", () => {
@@ -324,7 +340,7 @@ describe("ensureGitignore", () => {
       stderr: (msg: string) => stderrLines.push(msg),
     });
     ensureGitignore("/tmp/project/wt", deps);
-    expect(stderrLines.some(l => l.includes("Added") && l.includes("committed"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("Added") && l.includes("committed"))).toBe(true);
   });
 
   it("handles unknown exit code from check-ignore", () => {
@@ -342,7 +358,7 @@ describe("ensureGitignore", () => {
       stderr: (msg: string) => stderrLines.push(msg),
     });
     ensureGitignore("/tmp/project/wt", deps);
-    expect(stderrLines.some(l => l.includes("git check-ignore failed"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("git check-ignore failed"))).toBe(true);
   });
 });
 
@@ -357,7 +373,7 @@ describe("installDependencies", () => {
       },
     });
     installDependencies("/tmp/wt", deps);
-    expect(spawned.some(s => s.includes("bun install"))).toBe(true);
+    expect(spawned.some((s) => s.includes("bun install"))).toBe(true);
   });
 
   it("runs npm install for package-lock.json", () => {
@@ -370,7 +386,7 @@ describe("installDependencies", () => {
       },
     });
     installDependencies("/tmp/wt", deps);
-    expect(spawned.some(s => s.includes("npm install"))).toBe(true);
+    expect(spawned.some((s) => s.includes("npm install"))).toBe(true);
   });
 
   it("logs skip when no dependency manifest found", () => {
@@ -380,14 +396,17 @@ describe("installDependencies", () => {
       stderr: (msg: string) => stderrLines.push(msg),
     });
     installDependencies("/tmp/wt", deps);
-    expect(stderrLines.some(l => l.includes("No recognized dependency manifest"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("No recognized dependency manifest"))).toBe(true);
   });
 
   it("only installs the first matching dependency config", () => {
     let spawnCount = 0;
     const deps = makeDeps({
       existsSync: () => true, // all markers match
-      spawn: () => { spawnCount++; return { unref: () => {} }; },
+      spawn: () => {
+        spawnCount++;
+        return { unref: () => {} };
+      },
     });
     installDependencies("/tmp/wt", deps);
     expect(spawnCount).toBe(1);
@@ -405,7 +424,7 @@ describe("runBaselineTests", () => {
       },
     });
     runBaselineTests("/tmp/wt", deps);
-    expect(spawned.some(s => s.includes("bun test"))).toBe(true);
+    expect(spawned.some((s) => s.includes("bun test"))).toBe(true);
   });
 
   it("logs skip when no test suite found", () => {
@@ -415,14 +434,17 @@ describe("runBaselineTests", () => {
       stderr: (msg: string) => stderrLines.push(msg),
     });
     runBaselineTests("/tmp/wt", deps);
-    expect(stderrLines.some(l => l.includes("No recognized test suite"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("No recognized test suite"))).toBe(true);
   });
 
   it("only runs the first matching test config", () => {
     let spawnCount = 0;
     const deps = makeDeps({
       existsSync: () => true,
-      spawn: () => { spawnCount++; return { unref: () => {} }; },
+      spawn: () => {
+        spawnCount++;
+        return { unref: () => {} };
+      },
     });
     runBaselineTests("/tmp/wt", deps);
     expect(spawnCount).toBe(1);
@@ -436,13 +458,13 @@ describe("runBaselineTests", () => {
       stderr: (msg: string) => stderrLines.push(msg),
     });
     runBaselineTests("/tmp/wt", deps);
-    expect(stderrLines.some(l => l.includes("baseline tests fail"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("baseline tests fail"))).toBe(true);
   });
 });
 
 describe("DEP_CONFIGS and TEST_CONFIGS", () => {
   it("covers all required package managers", () => {
-    const markers = DEP_CONFIGS.map(c => c.marker);
+    const markers = DEP_CONFIGS.map((c) => c.marker);
     expect(markers).toContain("bun.lockb");
     expect(markers).toContain("package.json");
     expect(markers).toContain("Cargo.toml");
@@ -451,13 +473,13 @@ describe("DEP_CONFIGS and TEST_CONFIGS", () => {
   });
 
   it("bun.lockb has priority over package.json", () => {
-    const bunIdx = DEP_CONFIGS.findIndex(c => c.marker === "bun.lockb");
-    const pkgIdx = DEP_CONFIGS.findIndex(c => c.marker === "package.json");
+    const bunIdx = DEP_CONFIGS.findIndex((c) => c.marker === "bun.lockb");
+    const pkgIdx = DEP_CONFIGS.findIndex((c) => c.marker === "package.json");
     expect(bunIdx).toBeLessThan(pkgIdx);
   });
 
   it("TEST_CONFIGS covers main ecosystems", () => {
-    const markers = TEST_CONFIGS.map(c => c.marker);
+    const markers = TEST_CONFIGS.map((c) => c.marker);
     expect(markers).toContain("bun.lockb");
     expect(markers).toContain("Cargo.toml");
     expect(markers).toContain("go.mod");
@@ -478,13 +500,17 @@ describe("WorktreeSafetyVerification defaultDeps", () => {
   });
 
   it("defaultDeps.appendFileSync writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-wtsv-append-" + Date.now() + ".txt";
-    expect(() => WorktreeSafetyVerification.defaultDeps.appendFileSync(tmpPath, "test")).not.toThrow();
+    const tmpPath = `/tmp/pai-test-wtsv-append-${Date.now()}.txt`;
+    expect(() =>
+      WorktreeSafetyVerification.defaultDeps.appendFileSync(tmpPath, "test"),
+    ).not.toThrow();
   });
 
   it("defaultDeps.writeFileSync writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-wtsv-write-" + Date.now() + ".txt";
-    expect(() => WorktreeSafetyVerification.defaultDeps.writeFileSync(tmpPath, "test")).not.toThrow();
+    const tmpPath = `/tmp/pai-test-wtsv-write-${Date.now()}.txt`;
+    expect(() =>
+      WorktreeSafetyVerification.defaultDeps.writeFileSync(tmpPath, "test"),
+    ).not.toThrow();
   });
 
   it("defaultDeps.mkdirSync creates directory without throwing", () => {
@@ -497,7 +523,9 @@ describe("WorktreeSafetyVerification defaultDeps", () => {
   });
 
   it("defaultDeps.execSync throws on failed command", () => {
-    expect(() => WorktreeSafetyVerification.defaultDeps.execSync("false", { timeout: 1000 })).toThrow();
+    expect(() =>
+      WorktreeSafetyVerification.defaultDeps.execSync("false", { timeout: 1000 }),
+    ).toThrow();
   });
 
   it("defaultDeps.spawn returns object with unref", () => {
@@ -507,7 +535,9 @@ describe("WorktreeSafetyVerification defaultDeps", () => {
   });
 
   it("defaultDeps.spawnSync returns object with status", () => {
-    const result = WorktreeSafetyVerification.defaultDeps.spawnSync("echo", ["test"], { cwd: "/tmp" });
+    const result = WorktreeSafetyVerification.defaultDeps.spawnSync("echo", ["test"], {
+      cwd: "/tmp",
+    });
     expect(typeof result.status).toBe("number");
   });
 });

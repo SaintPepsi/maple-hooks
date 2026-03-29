@@ -1,9 +1,9 @@
 import type {
   Cluster,
   ClusterMember,
+  ParamInfo,
   ParsedFile,
   ParsedFunction,
-  ParamInfo,
 } from "@tools/pattern-detector/types";
 
 /**
@@ -66,17 +66,13 @@ function groupParamSimilarity(members: ParsedFunction[]): number {
  * totalUniqueImports is the size of the union of all import specifiers across
  * group members.
  */
-function groupConfidence(
-  members: ParsedFunction[],
-  sharedImports: string[]
-): number {
+function groupConfidence(members: ParsedFunction[], sharedImports: string[]): number {
   const union = new Set<string>();
   for (const fn of members) {
     for (const imp of fn.imports) union.add(imp);
   }
   const uniqueShared = new Set(sharedImports).size;
-  const importScore =
-    union.size === 0 ? 0 : Math.min(1, uniqueShared / union.size);
+  const importScore = union.size === 0 ? 0 : Math.min(1, uniqueShared / union.size);
   return importScore * groupParamSimilarity(members);
 }
 
@@ -118,12 +114,9 @@ export function detectImportFingerprint(files: ParsedFile[]): Cluster[] {
     const labelNames = sharedImports
       .slice(0, 3)
       .map((s) => s.replace(/^.*\//, "").replace(/['"]/g, ""));
-    const labelSuffix =
-      sharedImports.length > 3 ? ` +${sharedImports.length - 3} more` : "";
+    const labelSuffix = sharedImports.length > 3 ? ` +${sharedImports.length - 3} more` : "";
     const label =
-      labelNames.length === 0
-        ? "no-imports"
-        : `shared:${labelNames.join("+")}${labelSuffix}`;
+      labelNames.length === 0 ? "no-imports" : `shared:${labelNames.join("+")}${labelSuffix}`;
 
     const clusterMembers: ClusterMember[] = members.map((fn) => ({
       file: fn.file,

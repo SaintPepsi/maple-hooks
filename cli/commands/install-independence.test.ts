@@ -9,12 +9,12 @@
  * Runs in a tmp-like in-memory filesystem — no real disk writes.
  */
 
-import { describe, it, expect, beforeAll } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join, relative } from "node:path";
 import { install } from "@hooks/cli/commands/install";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
-import { join, relative } from "path";
-import { readdirSync, readFileSync, statSync, existsSync } from "fs";
 
 // ─── Source Tree Loader ────────────────────────────────────────────────────
 
@@ -39,11 +39,7 @@ function walkDir(dir: string, base: string, files: Record<string, string>): void
       const rel = relative(base, fullPath);
       const virtualPath = `/source/${rel}`;
       // Only load files needed for install: .ts, .json, shared files
-      if (
-        entry.endsWith(".ts") ||
-        entry.endsWith(".json") ||
-        entry === "shared.ts"
-      ) {
+      if (entry.endsWith(".ts") || entry.endsWith(".json") || entry === "shared.ts") {
         files[virtualPath] = readFileSync(fullPath, "utf-8");
       }
     }
@@ -132,9 +128,7 @@ describe("independent hook installation", () => {
 
       if (!result.ok) {
         // Provide actionable failure message
-        throw new Error(
-          `Failed to install hook "${hookName}": ${result.error.message}`,
-        );
+        throw new Error(`Failed to install hook "${hookName}": ${result.error.message}`);
       }
 
       expect(result.ok).toBe(true);
@@ -171,9 +165,7 @@ describe("independent group installation", () => {
       const result = install(makeArgs([groupName]), deps, "/source");
 
       if (!result.ok) {
-        throw new Error(
-          `Failed to install group "${groupName}": ${result.error.message}`,
-        );
+        throw new Error(`Failed to install group "${groupName}": ${result.error.message}`);
       }
 
       expect(result.ok).toBe(true);

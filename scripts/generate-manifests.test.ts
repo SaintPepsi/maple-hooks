@@ -5,14 +5,14 @@
  * dry-run, duplicate detection, shared file handling, and idempotency.
  */
 
-import { describe, it, expect } from "bun:test";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, it } from "bun:test";
+import type { GroupManifest, HookManifest } from "@hooks/cli/types/manifest";
 import type { PaiError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import { hookUsesShared, parseImports } from "@hooks/lib/import-parser";
 import type { GeneratorDeps, GeneratorOptions } from "@hooks/scripts/generate-manifests";
-import { generate, extractEvent } from "@hooks/scripts/generate-manifests";
-import { parseImports, hookUsesShared } from "@hooks/lib/import-parser";
-import type { HookManifest, GroupManifest } from "@hooks/cli/types/manifest";
+import { extractEvent, generate } from "@hooks/scripts/generate-manifests";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -220,8 +220,8 @@ describe("generate", () => {
     expect(result.value.groupCount).toBe(1);
 
     // Find hook.json in output
-    const hookFile = result.value.files.find((f) =>
-      f.path.endsWith("hook.json") && f.path.includes("TestHook"),
+    const hookFile = result.value.files.find(
+      (f) => f.path.endsWith("hook.json") && f.path.includes("TestHook"),
     );
     expect(hookFile).toBeDefined();
 
@@ -323,8 +323,8 @@ describe("generate", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 
-    const hookFile = result.value.files.find((f) =>
-      f.path.endsWith("hook.json") && f.path.includes("TestHook"),
+    const hookFile = result.value.files.find(
+      (f) => f.path.endsWith("hook.json") && f.path.includes("TestHook"),
     );
     const manifest = JSON.parse(hookFile!.content) as HookManifest;
 
@@ -332,7 +332,6 @@ describe("generate", () => {
     expect(manifest.description).toBe("My custom description");
     expect(manifest.tags).toEqual(["security", "essential"]);
     expect(manifest.presets).toEqual(["minimal"]);
-
   });
 
   it("generates group.json with hooks sorted alphabetically", () => {

@@ -1,13 +1,13 @@
-import { describe, test, expect, beforeAll, beforeEach } from "bun:test";
+import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   DuplicationCheckerContract,
   type DuplicationCheckerDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract";
 import { clearIndexCache } from "@hooks/hooks/DuplicationDetection/shared";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -17,14 +17,17 @@ const INDEX_PATH = `${PAI_HOOKS_ROOT}/.duplication-index.json`;
 // ─── Build Index ──────────────────────────────────────────────────────────────
 
 beforeAll(() => {
-  const result = Bun.spawnSync([
-    "bun",
-    "/Users/hogers/.claude/Tools/pattern-detector/variants/index-builder.ts",
-    "build",
-    PAI_HOOKS_ROOT,
-    "--output",
-    INDEX_PATH,
-  ], { cwd: PAI_HOOKS_ROOT });
+  const result = Bun.spawnSync(
+    [
+      "bun",
+      "/Users/hogers/.claude/Tools/pattern-detector/variants/index-builder.ts",
+      "build",
+      PAI_HOOKS_ROOT,
+      "--output",
+      INDEX_PATH,
+    ],
+    { cwd: PAI_HOOKS_ROOT },
+  );
   if (result.exitCode !== 0) {
     throw new Error(
       `Index build failed (exit ${result.exitCode}): ${new TextDecoder().decode(result.stderr)}`,
@@ -39,8 +42,8 @@ beforeEach(() => {
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
 const mockDeps: DuplicationCheckerDeps = {
-  readFile: (path) => require("fs").readFileSync(path, "utf-8") as string,
-  exists: (path) => require("fs").existsSync(path) as boolean,
+  readFile: (path) => require("node:fs").readFileSync(path, "utf-8") as string,
+  exists: (path) => require("node:fs").existsSync(path) as boolean,
   appendFile: () => {},
   ensureDir: () => {},
   stderr: () => {},
@@ -79,7 +82,6 @@ function unwrap(result: Result<ContinueOutput, PaiError>): ContinueOutput {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("DuplicationCheckerContract", () => {
-
   // ─── accepts() ─────────────────────────────────────────────────────────────
 
   describe("accepts()", () => {
@@ -126,7 +128,7 @@ describe("DuplicationCheckerContract", () => {
     test("returns continue with additionalContext when writing content that duplicates runHook", () => {
       // Real content from RatingCapture.hook.test.ts which contains runHook —
       // a function likely indexed in the duplication index.
-      const realContent = require("fs").readFileSync(
+      const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/hooks/LearningFeedback/RatingCapture/RatingCapture.hook.test.ts`,
         "utf-8",
       ) as string;
@@ -146,7 +148,7 @@ describe("DuplicationCheckerContract", () => {
       // CodingStandardsAdvisor.contract.ts contains getFilePath — a function
       // that is also defined in DuplicationChecker.contract.ts, so it should
       // appear in the index multiple times.
-      const realContent = require("fs").readFileSync(
+      const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
         "utf-8",
       ) as string;
@@ -188,7 +190,7 @@ export function veryUniquelyNamedXyz99Function(x: number): number {
 
     test("outputs include signal names (hash, name, sig, body)", () => {
       // Use real content known to have duplicates (getFilePath pattern)
-      const realContent = require("fs").readFileSync(
+      const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
         "utf-8",
       ) as string;
@@ -207,7 +209,7 @@ export function veryUniquelyNamedXyz99Function(x: number): number {
 
     test("handles stale index (mocked now > 5 min after builtAt)", () => {
       // Load the real index to get its builtAt timestamp
-      const indexContent = require("fs").readFileSync(INDEX_PATH, "utf-8") as string;
+      const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
       const index = JSON.parse(indexContent) as { builtAt: string };
       const builtAtMs = new Date(index.builtAt).getTime();
       // Mock now() to return a time 6 minutes after builtAt
@@ -218,7 +220,7 @@ export function veryUniquelyNamedXyz99Function(x: number): number {
         now: () => builtAtMs + SIX_MINUTES_MS,
       };
 
-      const realContent = require("fs").readFileSync(
+      const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
         "utf-8",
       ) as string;

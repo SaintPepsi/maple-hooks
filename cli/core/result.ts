@@ -7,16 +7,16 @@
  */
 
 export {
-  type Result,
-  type Ok,
-  type Err,
-  ok,
-  err,
   andThen,
+  collectResults,
+  type Err,
+  err,
   map,
   mapError,
   match,
-  unwrapOr,
-  collectResults,
+  type Ok,
+  ok,
   partitionResults,
+  type Result,
+  unwrapOr,
 } from "@hooks/core/result";

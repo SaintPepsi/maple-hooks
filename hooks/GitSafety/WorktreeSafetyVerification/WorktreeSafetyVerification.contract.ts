@@ -8,21 +8,25 @@
  * Always returns ContinueOutput — never blocks worktree creation.
  */
 
+import { dirname, join } from "node:path";
+import { appendFile, ensureDir, fileExists, writeFile } from "@hooks/core/adapters/fs";
+import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, err, tryCatch, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { processExecFailed } from "@hooks/core/error";
-import { fileExists, appendFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
-import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
-import { join, dirname } from "path";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface WorktreeSafetyDeps {
   execSync: (cmd: string, opts?: Record<string, unknown>) => string;
-  spawnSync: (cmd: string, args: string[], opts?: Record<string, unknown>) => { status: number | null };
+  spawnSync: (
+    cmd: string,
+    args: string[],
+    opts?: Record<string, unknown>,
+  ) => { status: number | null };
   spawn: (cmd: string, args: string[], opts?: Record<string, unknown>) => { unref(): void };
   existsSync: (path: string) => boolean;
   appendFileSync: (path: string, content: string) => void;
@@ -69,7 +73,11 @@ export const TEST_CONFIGS: TestConfig[] = [
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Bridge throwing deps.execSync into Result. */
-function tryExec(deps: WorktreeSafetyDeps, cmd: string, opts?: Record<string, unknown>): Result<string, PaiError> {
+function tryExec(
+  deps: WorktreeSafetyDeps,
+  cmd: string,
+  opts?: Record<string, unknown>,
+): Result<string, PaiError> {
   return tryCatch(
     () => String(deps.execSync(cmd, opts)).trim(),
     (e) => processExecFailed(cmd, e),
@@ -82,11 +90,11 @@ export function extractWorktreePath(input: ToolHookInput): string | null {
   const response = input.tool_response;
 
   if (typeof response === "string") {
-    const pathMatch = response.match(/(?:worktree[^:]*:\s*|at\s+|path:\s*)([\/~][^\s,'"]+)/i);
+    const pathMatch = response.match(/(?:worktree[^:]*:\s*|at\s+|path:\s*)([/~][^\s,'"]+)/i);
     if (pathMatch) return pathMatch[1];
-    const absMatch = response.match(/([\/][a-zA-Z0-9._\-\/]+\/\.pait\/worktrees\/[^\s,'"]+)/);
+    const absMatch = response.match(/([/][a-zA-Z0-9._\-/]+\/\.pait\/worktrees\/[^\s,'"]+)/);
     if (absMatch) return absMatch[1];
-    const genericMatch = response.match(/`([\/][^`]+)`/);
+    const genericMatch = response.match(/`([/][^`]+)`/);
     if (genericMatch) return genericMatch[1];
   }
 
@@ -112,7 +120,7 @@ export function findGitRoot(dir: string, deps: WorktreeSafetyDeps): string | nul
     timeout: 5000,
     stdio: ["pipe", "pipe", "pipe"],
   });
-  return result.ok ? (result.value || null) : null;
+  return result.ok ? result.value || null : null;
 }
 
 export function ensureGitignore(worktreePath: string, deps: WorktreeSafetyDeps): void {
@@ -120,7 +128,9 @@ export function ensureGitignore(worktreePath: string, deps: WorktreeSafetyDeps):
   const gitRoot = findGitRoot(parentDir, deps);
 
   if (!gitRoot) {
-    deps.stderr("[WorktreeSafety] \u26a0\ufe0f  Could not find git root for worktree parent \u2014 skipping .gitignore check");
+    deps.stderr(
+      "[WorktreeSafety] \u26a0\ufe0f  Could not find git root for worktree parent \u2014 skipping .gitignore check",
+    );
     return;
   }
 
@@ -140,10 +150,12 @@ export function ensureGitignore(worktreePath: string, deps: WorktreeSafetyDeps):
   const exitCode = cause?.status ?? cause?.code;
 
   if (exitCode === 1) {
-    deps.stderr("[WorktreeSafety] \u26a0\ufe0f  Worktree directory not in .gitignore \u2014 adding entry");
+    deps.stderr(
+      "[WorktreeSafety] \u26a0\ufe0f  Worktree directory not in .gitignore \u2014 adding entry",
+    );
     const gitignorePath = join(gitRoot, ".gitignore");
     let entry: string;
-    if (worktreePath.startsWith(gitRoot + "/")) {
+    if (worktreePath.startsWith(`${gitRoot}/`)) {
       entry = worktreePath.slice(gitRoot.length + 1);
     } else {
       entry = worktreePath;
@@ -152,62 +164,85 @@ export function ensureGitignore(worktreePath: string, deps: WorktreeSafetyDeps):
     const content = `\n# Worktree (auto-added by WorktreeSafetyVerification)\n${entry}/\n`;
     deps.appendFileSync(gitignorePath, content);
 
-    const commitResult = tryExec(deps, `git add .gitignore && git commit -m "chore: add worktree dir to .gitignore [skip ci]"`, {
-      cwd: gitRoot,
-      timeout: 15000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const commitResult = tryExec(
+      deps,
+      `git add .gitignore && git commit -m "chore: add worktree dir to .gitignore [skip ci]"`,
+      {
+        cwd: gitRoot,
+        timeout: 15000,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
 
     if (commitResult.ok) {
       deps.stderr(`[WorktreeSafety] \u2713 Added "${entry}/" to .gitignore and committed`);
     } else {
-      deps.stderr(`[WorktreeSafety] \u26a0\ufe0f  Failed to update .gitignore: ${commitResult.error.message}`);
+      deps.stderr(
+        `[WorktreeSafety] \u26a0\ufe0f  Failed to update .gitignore: ${commitResult.error.message}`,
+      );
     }
   } else {
-    deps.stderr(`[WorktreeSafety] \u26a0\ufe0f  git check-ignore failed (exit ${exitCode}) \u2014 skipping .gitignore check`);
+    deps.stderr(
+      `[WorktreeSafety] \u26a0\ufe0f  git check-ignore failed (exit ${exitCode}) \u2014 skipping .gitignore check`,
+    );
   }
 }
 
 export function installDependencies(worktreePath: string, deps: WorktreeSafetyDeps): void {
   for (const config of DEP_CONFIGS) {
     if (deps.existsSync(join(worktreePath, config.marker))) {
-      deps.stderr(`[WorktreeSafety] \ud83d\udce6 Detected ${config.name} \u2014 running "${config.commands[0]}" in background`);
+      deps.stderr(
+        `[WorktreeSafety] \ud83d\udce6 Detected ${config.name} \u2014 running "${config.commands[0]}" in background`,
+      );
       const [cmd, ...args] = config.commands[0].split(" ");
       const child = deps.spawn(cmd, args, { cwd: worktreePath, detached: true, stdio: "ignore" });
       child.unref();
       return;
     }
   }
-  deps.stderr("[WorktreeSafety] \u2139\ufe0f  No recognized dependency manifest found \u2014 skipping dep install");
+  deps.stderr(
+    "[WorktreeSafety] \u2139\ufe0f  No recognized dependency manifest found \u2014 skipping dep install",
+  );
 }
 
 export function runBaselineTests(worktreePath: string, deps: WorktreeSafetyDeps): void {
   for (const config of TEST_CONFIGS) {
     if (deps.existsSync(join(worktreePath, config.marker))) {
-      deps.stderr(`[WorktreeSafety] \ud83e\uddea Running baseline tests (${config.name}) in background`);
+      deps.stderr(
+        `[WorktreeSafety] \ud83e\uddea Running baseline tests (${config.name}) in background`,
+      );
       const [cmd, ...args] = config.command;
       const child = deps.spawn(cmd, args, { cwd: worktreePath, detached: true, stdio: "ignore" });
       child.unref();
       deps.stderr(
         `[WorktreeSafety] \u2139\ufe0f  If baseline tests fail, this indicates pre-existing issues.\n` +
-        `[WorktreeSafety]    Check manually: cd ${worktreePath} && ${config.command.join(" ")}`,
+          `[WorktreeSafety]    Check manually: cd ${worktreePath} && ${config.command.join(" ")}`,
       );
       return;
     }
   }
-  deps.stderr("[WorktreeSafety] \u2139\ufe0f  No recognized test suite found \u2014 skipping baseline test run");
+  deps.stderr(
+    "[WorktreeSafety] \u2139\ufe0f  No recognized test suite found \u2014 skipping baseline test run",
+  );
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: WorktreeSafetyDeps = {
   execSync: (cmd: string, opts?: Record<string, unknown>) => {
-    const r = execSyncSafe(cmd, { cwd: opts?.cwd as string, timeout: opts?.timeout as number, stdio: opts?.stdio as "pipe" | "ignore" | "inherit" | undefined });
+    const r = execSyncSafe(cmd, {
+      cwd: opts?.cwd as string,
+      timeout: opts?.timeout as number,
+      stdio: opts?.stdio as "pipe" | "ignore" | "inherit" | undefined,
+    });
     if (!r.ok) throw r.error;
     return r.value;
   },
   spawnSync: (cmd: string, args: string[], opts?: Record<string, unknown>) => {
-    const r = execSyncSafe([cmd, ...args].join(" "), { cwd: opts?.cwd as string, timeout: opts?.timeout as number });
+    const r = execSyncSafe([cmd, ...args].join(" "), {
+      cwd: opts?.cwd as string,
+      timeout: opts?.timeout as number,
+    });
     return { status: r.ok ? 0 : -1 };
   },
   spawn: (cmd: string, args: string[], opts?: Record<string, unknown>) => {
@@ -215,10 +250,16 @@ const defaultDeps: WorktreeSafetyDeps = {
     return { unref: () => {} };
   },
   existsSync: fileExists,
-  appendFileSync: (path: string, content: string) => { appendFile(path, content); },
-  writeFileSync: (path: string, content: string) => { writeFile(path, content); },
-  mkdirSync: (path: string) => { ensureDir(path); },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  appendFileSync: (path: string, content: string) => {
+    appendFile(path, content);
+  },
+  writeFileSync: (path: string, content: string) => {
+    writeFile(path, content);
+  },
+  mkdirSync: (path: string) => {
+    ensureDir(path);
+  },
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   cwd: () => process.cwd(),
 };
 
@@ -234,23 +275,26 @@ export const WorktreeSafetyVerification: SyncHookContract<
     return input.tool_name === "EnterWorktree";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: WorktreeSafetyDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: WorktreeSafetyDeps): Result<ContinueOutput, PaiError> {
     const worktreePath = extractWorktreePath(input);
 
     if (!worktreePath) {
-      deps.stderr("[WorktreeSafety] \u26a0\ufe0f  Could not determine worktree path from EnterWorktree response \u2014 skipping safety checks");
+      deps.stderr(
+        "[WorktreeSafety] \u26a0\ufe0f  Could not determine worktree path from EnterWorktree response \u2014 skipping safety checks",
+      );
       return ok({ type: "continue", continue: true });
     }
 
     if (!deps.existsSync(worktreePath)) {
-      deps.stderr(`[WorktreeSafety] \u26a0\ufe0f  Worktree path does not exist: ${worktreePath} \u2014 skipping safety checks`);
+      deps.stderr(
+        `[WorktreeSafety] \u26a0\ufe0f  Worktree path does not exist: ${worktreePath} \u2014 skipping safety checks`,
+      );
       return ok({ type: "continue", continue: true });
     }
 
-    deps.stderr(`[WorktreeSafety] \ud83d\udd0d Running safety checks for worktree: ${worktreePath}`);
+    deps.stderr(
+      `[WorktreeSafety] \ud83d\udd0d Running safety checks for worktree: ${worktreePath}`,
+    );
 
     ensureGitignore(worktreePath, deps);
     installDependencies(worktreePath, deps);

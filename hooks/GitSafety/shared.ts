@@ -5,9 +5,9 @@
  * injected deps.exec for testability. Fails open on parse errors.
  */
 
-import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
+import { type Result, tryCatch } from "@hooks/core/result";
 
 // ─── Domain Types ────────────────────────────────────────────────────────────
 
@@ -82,10 +82,7 @@ export function resolvePrFromBranch(deps: SharedDeps): number | null {
  * Returns a CiStatus with failing/pending checks and an allPassing flag.
  * Returns null on gh CLI failure (caller should fail open).
  */
-export function checkCiStatus(
-  prNumber: number,
-  deps: SharedDeps,
-): CiStatus | null {
+export function checkCiStatus(prNumber: number, deps: SharedDeps): CiStatus | null {
   const result = deps.exec(
     `gh pr checks ${prNumber} --json name,state --jq '[.[] | select(.state != "SUCCESS" and .state != "SKIPPED")]`,
   );
@@ -116,13 +113,8 @@ export function checkCiStatus(
  * Returns a ReviewStatus with approved reviews and a hasApproval flag.
  * Returns null on gh CLI failure (caller should fail open).
  */
-export function checkReviewStatus(
-  prNumber: number,
-  deps: SharedDeps,
-): ReviewStatus | null {
-  const result = deps.exec(
-    `gh pr view ${prNumber} --json reviews --jq '.reviews'`,
-  );
+export function checkReviewStatus(prNumber: number, deps: SharedDeps): ReviewStatus | null {
+  const result = deps.exec(`gh pr view ${prNumber} --json reviews --jq '.reviews'`);
   if (!result.ok) return null;
 
   const parseResult = tryCatch(

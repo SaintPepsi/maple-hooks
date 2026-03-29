@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -6,7 +6,9 @@ const REPO_ROOT = "/Users/hogers/.claude";
 const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/composite-ranker.ts`;
 const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
 
-async function runCLI(args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function runCLI(
+  args: string[],
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const id = Math.random().toString(36).slice(2);
   const stdoutPath = `/tmp/composite-ranker-test-${id}.txt`;
   const stderrPath = `/tmp/composite-ranker-test-stderr-${id}.txt`;
@@ -19,14 +21,18 @@ async function runCLI(args: string[]): Promise<{ stdout: string; stderr: string;
   const exitCode = await proc.exited;
 
   const [stdout, stderr] = await Promise.all([
-    Bun.file(stdoutPath).text().catch(() => ""),
-    Bun.file(stderrPath).text().catch(() => ""),
+    Bun.file(stdoutPath)
+      .text()
+      .catch(() => ""),
+    Bun.file(stderrPath)
+      .text()
+      .catch(() => ""),
   ]);
 
   return { stdout, stderr, exitCode };
 }
 
-function extractOpportunityCount(output: string): number {
+function _extractOpportunityCount(output: string): number {
   const match = output.match(/Top Refactoring Opportunities \((\d+) total\)/);
   return match ? parseInt(match[1], 10) : -1;
 }

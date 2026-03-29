@@ -11,26 +11,22 @@
  * File hashes track modifications (cli/core/lockfile.ts).
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { invalidArgs, lockMissing, fileModified } from "@hooks/cli/core/error";
 import type { ParsedArgs } from "@hooks/cli/core/args";
+import type { PaihError } from "@hooks/cli/core/error";
+import { fileModified, invalidArgs, lockMissing } from "@hooks/cli/core/error";
+import {
+  computeFileHash,
+  readLockfile,
+  removeHookEntry,
+  writeLockfile,
+} from "@hooks/cli/core/lockfile";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
+import type { SettingsJson } from "@hooks/cli/core/settings";
+import { readSettings, unmergeHookEntry, writeSettings } from "@hooks/cli/core/settings";
+import { resolveTarget } from "@hooks/cli/core/target";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
-import { resolveTarget } from "@hooks/cli/core/target";
-import {
-  readLockfile,
-  writeLockfile,
-  removeHookEntry,
-  computeFileHash,
-} from "@hooks/cli/core/lockfile";
-import {
-  readSettings,
-  writeSettings,
-  unmergeHookEntry,
-} from "@hooks/cli/core/settings";
-import type { SettingsJson } from "@hooks/cli/core/settings";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -48,10 +44,7 @@ interface UninstallPlan {
  * @param args - Parsed CLI arguments with hook/group names and flags.
  * @param deps - Injectable filesystem/process dependencies.
  */
-export function uninstall(
-  args: ParsedArgs,
-  deps: CliDeps,
-): Result<string, PaihError> {
+export function uninstall(args: ParsedArgs, deps: CliDeps): Result<string, PaihError> {
   if (args.names.length === 0) {
     return err(invalidArgs("uninstall requires at least one hook or group name"));
   }
@@ -151,10 +144,7 @@ export function uninstall(
  * Build a plan of what to uninstall. Resolves names against lockfile entries.
  * Supports both hook names and group names.
  */
-function buildUninstallPlan(
-  names: string[],
-  lockfile: Lockfile,
-): Result<UninstallPlan, PaihError> {
+function buildUninstallPlan(names: string[], lockfile: Lockfile): Result<UninstallPlan, PaihError> {
   const hooksToRemove: LockfileHookEntry[] = [];
   const seenNames = new Set<string>();
 
@@ -231,9 +221,7 @@ function computeSharedFilesToRemove(
     );
 
     for (const sharedFile of sharedFiles) {
-      const stillReferenced = remainingGroupHooks.some((h) =>
-        h.files.includes(sharedFile),
-      );
+      const stillReferenced = remainingGroupHooks.some((h) => h.files.includes(sharedFile));
       if (!stillReferenced) {
         sharedFilesToRemove.push(sharedFile);
       }
@@ -302,11 +290,7 @@ function removeHookFiles(
 // ─── Directory Cleanup ──────────────────────────────────────────────────────
 
 /** Clean up empty hook directories after file removal. */
-function cleanupEmptyDirs(
-  plan: UninstallPlan,
-  claudeDir: string,
-  deps: CliDeps,
-): void {
+function cleanupEmptyDirs(plan: UninstallPlan, claudeDir: string, deps: CliDeps): void {
   // Collect hook directories that may now be empty
   for (const hook of plan.hooksToRemove) {
     const hookDir = `${claudeDir}/hooks/pai-hooks/${hook.group}/${hook.name}`;

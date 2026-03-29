@@ -23,10 +23,10 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput, AskOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Artifact Allowlist ─────────────────────────────────────────────────────
 
@@ -202,7 +202,7 @@ function extractRmTarget(command: string): string {
   const match = command.match(/\brm\b\s+(?:-[a-z]*r[a-z]*\s+|--recursive\s+)*([^\s|&;]+)\s*$/);
   if (!match) {
     // Try after && or ; chains: get the rm segment
-    const segments = command.split(/[;&]/).map(s => s.trim());
+    const segments = command.split(/[;&]/).map((s) => s.trim());
     for (const seg of segments) {
       const segMatch = seg.match(/\brm\b\s+(?:-[a-z]*\s+)*([^\s|&;]+)\s*$/);
       if (segMatch) {
@@ -226,7 +226,7 @@ function isArtifactDirCleanup(command: string): boolean {
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: DestructiveDeleteGuardDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const DestructiveDeleteGuard: SyncHookContract<
@@ -253,7 +253,9 @@ export const DestructiveDeleteGuard: SyncHookContract<
       if (detectsDestructiveDelete(command)) {
         // Artifact directories get a softer "ask" instead of hard block
         if (isArtifactDirCleanup(command)) {
-          deps.stderr(`[DestructiveDeleteGuard] ASK: artifact dir cleanup — ${command.slice(0, 120)}`);
+          deps.stderr(
+            `[DestructiveDeleteGuard] ASK: artifact dir cleanup — ${command.slice(0, 120)}`,
+          );
           return ok({
             type: "ask",
             decision: "ask",
@@ -318,7 +320,9 @@ export const DestructiveDeleteGuard: SyncHookContract<
         "variables can be empty, and there is no safety net.",
       ].join("\n");
 
-      deps.stderr(`[DestructiveDeleteGuard] BLOCK: destructive delete pattern in ${input.tool_name} content`);
+      deps.stderr(
+        `[DestructiveDeleteGuard] BLOCK: destructive delete pattern in ${input.tool_name} content`,
+      );
 
       return ok({
         type: "block",

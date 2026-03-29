@@ -1,9 +1,11 @@
-import { describe, it, expect } from "bun:test";
-import { join } from "path";
+import { describe, expect, it } from "bun:test";
+import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "SecurityValidator.hook.ts");
 
-async function runHook(input: Record<string, unknown>): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function runHook(
+  input: Record<string, unknown>,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn(["bun", HOOK_PATH], {
     stdin: "pipe",
     stdout: "pipe",

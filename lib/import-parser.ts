@@ -80,9 +80,7 @@ export function parseImports(source: string): ClassifiedDeps {
     const categorized = categorizeImport(modulePath);
     if (categorized) {
       const bucket =
-        categorized.category === "core" ? core :
-        categorized.category === "lib" ? lib :
-        adapters;
+        categorized.category === "core" ? core : categorized.category === "lib" ? lib : adapters;
       bucket.add(categorized.dep);
     }
 
@@ -110,9 +108,7 @@ export function discoverSharedFiles(
   const result = deps.readDir(groupDir);
   if (!result.ok || !result.value) return [];
 
-  return result.value
-    .filter((f: string) => f === "shared.ts" || f.endsWith(".shared.ts"))
-    .sort();
+  return result.value.filter((f: string) => f === "shared.ts" || f.endsWith(".shared.ts")).sort();
 }
 
 /**

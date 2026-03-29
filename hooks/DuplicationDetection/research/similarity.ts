@@ -30,10 +30,7 @@ export function buildNodeTypeVector(fn: ParsedFunction): Map<string, number> {
  * Compute cosine similarity between two frequency vectors.
  * Returns 0 if either vector has zero magnitude.
  */
-export function cosineSimilarity(
-  a: Map<string, number>,
-  b: Map<string, number>
-): number {
+export function cosineSimilarity(a: Map<string, number>, b: Map<string, number>): number {
   const keys = new Set([...a.keys(), ...b.keys()]);
 
   let dot = 0;
@@ -87,9 +84,7 @@ export function bodySimilarity(a: ParsedFunction, b: ParsedFunction): number {
   const callCountA = a.bodyNodeTypes.filter((t) => t === "CallExpression").length;
   const callCountB = b.bodyNodeTypes.filter((t) => t === "CallExpression").length;
   const callUnion = callCountA + callCountB;
-  const callOverlapPart = callUnion === 0
-    ? 1
-    : (2 * Math.min(callCountA, callCountB)) / callUnion;
+  const callOverlapPart = callUnion === 0 ? 1 : (2 * Math.min(callCountA, callCountB)) / callUnion;
 
   const score = 0.6 * cosinePart + 0.2 * depthPart + 0.2 * callOverlapPart;
 

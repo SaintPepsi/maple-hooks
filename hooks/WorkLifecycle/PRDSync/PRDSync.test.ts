@@ -1,14 +1,14 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { ok } from "@hooks/core/result";
+import type { PRDSyncDeps } from "./PRDSync.contract";
 import {
   extractSessionDir,
-  parseFrontmatter,
-  parseCriteriaCounts,
   PRDSync,
+  parseCriteriaCounts,
+  parseFrontmatter,
 } from "./PRDSync.contract";
-import type { PRDSyncDeps } from "./PRDSync.contract";
-import { ok } from "@hooks/core/result";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 
 // ─── extractSessionDir ─────────────────────────────────────────────────────
 
@@ -169,7 +169,9 @@ updated: 2026-03-15T15:00:00+11:00
         written[path] = content;
         return ok(undefined);
       },
-      stderr: (msg: string) => { stderrMessages.push(msg); },
+      stderr: (msg: string) => {
+        stderrMessages.push(msg);
+      },
     });
 
     const input = {
@@ -200,7 +202,9 @@ updated: 2026-03-15T15:00:00+11:00
         }
         return ok({});
       }) as PRDSyncDeps["readJson"],
-      stderr: (msg: string) => { stderrMessages.push(msg); },
+      stderr: (msg: string) => {
+        stderrMessages.push(msg);
+      },
     });
 
     const input = {
@@ -214,7 +218,7 @@ updated: 2026-03-15T15:00:00+11:00
 
     PRDSync.execute(input, deps);
 
-    const sessionSyncLog = stderrMessages.find(m => m.includes("session state"));
+    const sessionSyncLog = stderrMessages.find((m) => m.includes("session state"));
     expect(sessionSyncLog).toBeDefined();
   });
 });

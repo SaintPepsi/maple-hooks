@@ -6,16 +6,16 @@
  * - Error handling for missing/malformed files
  */
 
-import { describe, it, expect } from "bun:test";
-import { resolve, dirname } from "path";
-import { validate, type ValidatorDeps, type ValidationReport } from "./validator";
-import { ok, err, type Result } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
+import { describe, expect, it } from "bun:test";
+import { dirname, resolve } from "node:path";
 import {
+  fileExists as adapterFileExists,
   readFile as adapterReadFile,
   readJson as adapterReadJson,
-  fileExists as adapterFileExists,
 } from "@hooks/core/adapters/fs";
+import { ErrorCode, PaiError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
+import { type ValidationReport, type ValidatorDeps, validate } from "./validator";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -54,11 +54,7 @@ function expectOk(result: Result<ValidationReport, PaiError>): ValidationReport 
 describe("validate", () => {
   describe("valid manifest", () => {
     it("passes with no diagnostics when deps match imports", () => {
-      const result = validate(
-        fixtureContract("valid"),
-        fixtureManifest("valid"),
-        makeDeps(),
-      );
+      const result = validate(fixtureContract("valid"), fixtureManifest("valid"), makeDeps());
 
       const report = expectOk(result);
       expect(report.valid).toBe(true);
@@ -102,7 +98,7 @@ describe("validate", () => {
 
     it("returns err when manifest file cannot be read", () => {
       const deps = makeDeps({
-        readFile: (path: string) => ok('import { ok } from "@hooks/core/result";'),
+        readFile: (_path: string) => ok('import { ok } from "@hooks/core/result";'),
         readJson: (path: string) => err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`)),
       });
 

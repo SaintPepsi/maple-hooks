@@ -13,15 +13,18 @@
  *   hookConfig.hookDocEnforcer.watchPatterns  — regex strings for watched files
  */
 
-import type { ObligationConfig } from "@hooks/lib/obligation-machine";
-import { createDefaultDeps, pendingPath as genericPendingPath, blockCountPath as genericBlockCountPath } from "@hooks/lib/obligation-machine";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { dirname } from "node:path";
 import { readFile } from "@hooks/core/adapters/fs";
-import { tryCatch } from "@hooks/core/result";
 import { jsonParseFailed } from "@hooks/core/error";
+import { tryCatch } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ObligationConfig, ObligationDeps } from "@hooks/lib/obligation-machine";
+import {
+  createDefaultDeps,
+  blockCountPath as genericBlockCountPath,
+  pendingPath as genericPendingPath,
+} from "@hooks/lib/obligation-machine";
 import { getSettingsPath } from "@hooks/lib/paths";
-import { dirname } from "path";
 
 // ─── Re-export generic deps type for contracts ───────────────────────────────
 
@@ -70,11 +73,7 @@ const DEFAULT_REQUIRED_SECTIONS = [
   "## Dependencies",
 ];
 
-const DEFAULT_WATCH_PATTERNS = [
-  /\.contract\.ts$/,
-  /hook\.json$/,
-  /group\.json$/,
-];
+const DEFAULT_WATCH_PATTERNS = [/\.contract\.ts$/, /hook\.json$/, /group\.json$/];
 
 function defaults(): HookDocEnforcerSettings {
   return {
@@ -93,10 +92,12 @@ export function readHookDocSettings(
   settingsPath?: string,
 ): HookDocEnforcerSettings {
   const path = settingsPath ?? getSettingsPath();
-  const reader = readFileFn ?? ((p: string) => {
-    const r = readFile(p);
-    return r.ok ? r.value : null;
-  });
+  const reader =
+    readFileFn ??
+    ((p: string) => {
+      const r = readFile(p);
+      return r.ok ? r.value : null;
+    });
   const raw = reader(path);
   if (!raw) return defaults();
 
@@ -112,7 +113,9 @@ export function readHookDocSettings(
   return {
     enabled: cfg.enabled !== false,
     blocking: cfg.blocking !== false,
-    requiredSections: Array.isArray(cfg.requiredSections) ? cfg.requiredSections : [...DEFAULT_REQUIRED_SECTIONS],
+    requiredSections: Array.isArray(cfg.requiredSections)
+      ? cfg.requiredSections
+      : [...DEFAULT_REQUIRED_SECTIONS],
     docFileName: typeof cfg.docFileName === "string" ? cfg.docFileName : "doc.md",
     watchPatterns: Array.isArray(cfg.watchPatterns)
       ? cfg.watchPatterns.map((p: string) => new RegExp(p))
@@ -174,7 +177,7 @@ export function buildDocSuggestions(
     }
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 // ─── Path Helpers (convenience wrappers) ──────────────────────────────────────

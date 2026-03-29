@@ -2,9 +2,9 @@
  * Process Adapter — Command execution and environment access wrapped in Result.
  */
 
-import { execSync, spawnSync } from "child_process";
-import { type Result, ok, err, tryCatch, tryCatchAsync } from "../result";
-import { type PaiError, processExecFailed, processSpawnFailed, envVarMissing } from "../error";
+import { execSync, spawnSync } from "node:child_process";
+import { envVarMissing, type PaiError, processExecFailed, processSpawnFailed } from "../error";
+import { err, ok, type Result, tryCatch, tryCatchAsync } from "../result";
 
 export interface ExecResult {
   stdout: string;
@@ -26,7 +26,11 @@ export async function exec(
 
       let timer: ReturnType<typeof setTimeout> | undefined;
       if (opts.timeout) {
-        timer = setTimeout(() => { try { proc.kill(); } catch {} }, opts.timeout);
+        timer = setTimeout(() => {
+          try {
+            proc.kill();
+          } catch {}
+        }, opts.timeout);
       }
 
       const [stdout, stderr] = await Promise.all([
@@ -100,7 +104,13 @@ export function execSyncSafe(
 export function spawnSyncSafe(
   cmd: string,
   args: string[],
-  opts: { cwd?: string; timeout?: number; stdio?: "pipe" | "inherit" | "ignore"; encoding?: BufferEncoding; env?: Record<string, string | undefined> } = {},
+  opts: {
+    cwd?: string;
+    timeout?: number;
+    stdio?: "pipe" | "inherit" | "ignore";
+    encoding?: BufferEncoding;
+    env?: Record<string, string | undefined>;
+  } = {},
 ): Result<{ stdout: string; exitCode: number }, PaiError> {
   return tryCatch(
     () => {

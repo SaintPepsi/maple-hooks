@@ -1,7 +1,7 @@
 /**
  * Tests for learning-utils.ts — Categorization and learning detection utilities.
  */
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { getLearningCategory, isLearningCapture } from "@hooks/lib/learning-utils";
 
 // ─── getLearningCategory ─────────────────────────────────────────────────────
@@ -159,7 +159,9 @@ describe("isLearningCapture", () => {
 
     it("counts indicators from analysis", () => {
       // "troubleshoot" matches pattern 3, "issue" matches pattern 1 → 2 indicators
-      expect(isLearningCapture("neutral", undefined, "troubleshoot the issue root cause")).toBe(true);
+      expect(isLearningCapture("neutral", undefined, "troubleshoot the issue root cause")).toBe(
+        true,
+      );
     });
 
     it("counts across all three parameters", () => {

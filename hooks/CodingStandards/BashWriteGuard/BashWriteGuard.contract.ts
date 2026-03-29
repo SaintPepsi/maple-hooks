@@ -10,10 +10,10 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -60,7 +60,7 @@ function detectsWriteToTypeScript(command: string): boolean {
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: BashWriteGuardDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const BashWriteGuard: SyncHookContract<

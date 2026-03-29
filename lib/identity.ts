@@ -6,25 +6,25 @@
  * All hooks and tools should import from here.
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const HOME = process.env.HOME!;
-const SETTINGS_PATH = join(HOME, '.claude/settings.json');
+const SETTINGS_PATH = join(HOME, ".claude/settings.json");
 
 // Default identity (fallback if settings.json doesn't have identity section)
 const DEFAULT_IDENTITY = {
-  name: 'PAI',
-  fullName: 'Personal AI',
-  displayName: 'PAI',
-  mainDAVoiceID: '',
-  color: '#3B82F6',
+  name: "PAI",
+  fullName: "Personal AI",
+  displayName: "PAI",
+  mainDAVoiceID: "",
+  color: "#3B82F6",
 };
 
 const DEFAULT_PRINCIPAL = {
-  name: 'User',
-  pronunciation: '',
-  timezone: 'UTC',
+  name: "User",
+  pronunciation: "",
+  timezone: "UTC",
 };
 
 export interface VoiceProsody {
@@ -88,7 +88,7 @@ function loadSettings(): Settings {
       return cachedSettings;
     }
 
-    const content = readFileSync(SETTINGS_PATH, 'utf-8');
+    const content = readFileSync(SETTINGS_PATH, "utf-8");
     cachedSettings = JSON.parse(content);
     return cachedSettings!;
   } catch {
@@ -112,7 +112,8 @@ export function getIdentity(): Identity {
     name: daidentity.name || DEFAULT_IDENTITY.name,
     fullName: daidentity.fullName || daidentity.name || DEFAULT_IDENTITY.fullName,
     displayName: daidentity.displayName || daidentity.name || DEFAULT_IDENTITY.displayName,
-    mainDAVoiceID: voiceConfig?.voiceId || daidentity.mainDAVoiceID || DEFAULT_IDENTITY.mainDAVoiceID,
+    mainDAVoiceID:
+      voiceConfig?.voiceId || daidentity.mainDAVoiceID || DEFAULT_IDENTITY.mainDAVoiceID,
     color: daidentity.color || DEFAULT_IDENTITY.color,
     voice: voiceConfig as VoiceProsody | undefined,
     personality: (daidentity as any).personality as VoicePersonality | undefined,

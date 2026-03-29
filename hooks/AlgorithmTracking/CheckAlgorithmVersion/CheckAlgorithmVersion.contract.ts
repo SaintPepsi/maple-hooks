@@ -5,13 +5,13 @@
  * Writes state file for Banner.ts to read. Skips for subagents.
  */
 
+import { join } from "node:path";
+import { ensureDir, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
+import { ErrorCode, PaiError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, err, type Result } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
-import { join } from "path";
-import { fileExists, readFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -81,10 +81,7 @@ function defaultWriteStateFile(homeDir: string, data: Record<string, unknown>): 
 
 function defaultIsSubagent(envGet: (key: string) => string | undefined): boolean {
   const claudeProjectDir = envGet("CLAUDE_PROJECT_DIR") || "";
-  return (
-    claudeProjectDir.includes("/.claude/Agents/") ||
-    envGet("CLAUDE_AGENT_TYPE") !== undefined
-  );
+  return claudeProjectDir.includes("/.claude/Agents/") || envGet("CLAUDE_AGENT_TYPE") !== undefined;
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -94,7 +91,7 @@ const defaultDeps: CheckAlgorithmVersionDeps = {
   getUpstreamVersion: defaultGetUpstreamVersion,
   writeStateFile: (data) => defaultWriteStateFile(process.env.HOME!, data),
   isSubagent: () => defaultIsSubagent((key) => process.env[key]),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   homeDir: process.env.HOME!,
 };
 

@@ -6,13 +6,13 @@
  * Tests the update function from cli/commands/update.ts.
  */
 
-import { describe, it, expect } from "bun:test";
-import { update } from "@hooks/cli/commands/update";
+import { describe, expect, it } from "bun:test";
 import { install } from "@hooks/cli/commands/install";
+import { update } from "@hooks/cli/commands/update";
 import type { ParsedArgs } from "@hooks/cli/core/args";
+import { PaihErrorCode } from "@hooks/cli/core/error";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
 import type { Lockfile } from "@hooks/cli/types/lockfile";
-import { PaihErrorCode } from "@hooks/cli/core/error";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -35,10 +35,10 @@ function makeSourceRepo(): Record<string, string> {
       presets: [],
     }),
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts":
-      '// TypeStrictness hook v1\nexport default {};\n',
+      "// TypeStrictness hook v1\nexport default {};\n",
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts":
-      '// TypeStrictness contract\nexport default {};\n',
-    "/source/core/result.ts": '// core result module\nexport const ok = true;\n',
+      "// TypeStrictness contract\nexport default {};\n",
+    "/source/core/result.ts": "// core result module\nexport const ok = true;\n",
     "/source/presets.json": JSON.stringify({}),
     "/project/.claude/settings.json": "{}",
   };
@@ -79,7 +79,7 @@ describe("update command", () => {
     // Modify source file (simulates upstream change)
     deps.addFile(
       "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-      '// TypeStrictness hook v2 — UPDATED\nexport default {};\n',
+      "// TypeStrictness hook v2 — UPDATED\nexport default {};\n",
     );
 
     const result = update(updateArgs(), deps, "/source");
@@ -92,7 +92,9 @@ describe("update command", () => {
 
     // Verify the new content was copied
     const files = deps.getFiles();
-    const content = files.get("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts");
+    const content = files.get(
+      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+    );
     expect(content).toContain("v2 — UPDATED");
 
     // Verify lockfile updated
@@ -117,7 +119,11 @@ describe("update command", () => {
 
     // Installed file should NOT be auto-deleted
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
+      ),
+    ).toBe(true);
   });
 
   it("local mod without --force → abort", () => {
@@ -126,13 +132,13 @@ describe("update command", () => {
     // Modify source (so update wants to re-install)
     deps.addFile(
       "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-      '// TypeStrictness hook v2\nexport default {};\n',
+      "// TypeStrictness hook v2\nexport default {};\n",
     );
 
     // Also modify local installed copy
     deps.addFile(
       "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-      '// LOCALLY MODIFIED\n',
+      "// LOCALLY MODIFIED\n",
     );
 
     const result = update(updateArgs(), deps, "/source");
@@ -149,13 +155,13 @@ describe("update command", () => {
     // Modify source
     deps.addFile(
       "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-      '// TypeStrictness hook v2\nexport default {};\n',
+      "// TypeStrictness hook v2\nexport default {};\n",
     );
 
     // Modify local copy
     deps.addFile(
       "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-      '// LOCALLY MODIFIED\n',
+      "// LOCALLY MODIFIED\n",
     );
 
     const result = update(updateArgs({ force: true }), deps, "/source");
@@ -172,12 +178,14 @@ describe("update command", () => {
     // Modify source
     deps.addFile(
       "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-      '// TypeStrictness hook v2\nexport default {};\n',
+      "// TypeStrictness hook v2\nexport default {};\n",
     );
 
-    const originalContent = deps.getFiles().get(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-    );
+    const originalContent = deps
+      .getFiles()
+      .get(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      );
 
     const result = update(updateArgs({ dryRun: true }), deps, "/source");
 
@@ -188,16 +196,21 @@ describe("update command", () => {
     }
 
     // File should not have been changed
-    const currentContent = deps.getFiles().get(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-    );
+    const currentContent = deps
+      .getFiles()
+      .get(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      );
     expect(currentContent).toBe(originalContent);
   });
 
   it("returns LOCK_MISSING when no lockfile exists", () => {
-    const deps = new InMemoryDeps({
-      "/project/.claude/settings.json": "{}",
-    }, "/project");
+    const deps = new InMemoryDeps(
+      {
+        "/project/.claude/settings.json": "{}",
+      },
+      "/project",
+    );
 
     const result = update(updateArgs(), deps, "/source");
 
@@ -219,7 +232,7 @@ describe("update command", () => {
     // Modify source to trigger update
     deps.addFile(
       "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
-      '// TypeStrictness hook v2\nexport default {};\n',
+      "// TypeStrictness hook v2\nexport default {};\n",
     );
 
     const result = update(updateArgs(), deps, "/source");

@@ -7,13 +7,13 @@
  * uncaught errors are handled. Everything above (contracts) uses pure Result pipelines.
  */
 
+import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
+import { readStdin } from "@hooks/core/adapters/stdin";
 import type { HookContract } from "@hooks/core/contract";
+import { ErrorCode, jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
 import type { HookOutput } from "@hooks/core/types/hook-outputs";
-import { readStdin } from "@hooks/core/adapters/stdin";
-import { type Result, ok, tryCatch } from "@hooks/core/result";
-import { type PaiError, ErrorCode, jsonParseFailed } from "@hooks/core/error";
-import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
 
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
@@ -112,13 +112,19 @@ export async function runHookWith<I extends HookInput, O extends HookOutput, D>(
   options: Omit<RunHookOptions, "stdinOverride" | "stdinTimeout"> = {},
 ): Promise<void> {
   const write = options.stdout ?? ((msg: string) => process.stdout.write(msg));
-  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(msg + "\n"));
+  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
   const exit = options.exit ?? ((code: number) => process.exit(code));
-  const log = options.appendLog ?? ((entry: HookLogEntry) => { appendHookLog(entry, undefined, undefined, writeErr); });
+  const log =
+    options.appendLog ??
+    ((entry: HookLogEntry) => {
+      appendHookLog(entry, undefined, undefined, writeErr);
+    });
   const startTime = performance.now();
   let sessionId: string | undefined;
 
-  const safeExit = () => { exit(0); };
+  const safeExit = () => {
+    exit(0);
+  };
 
   const emitLog = (status: HookLogEntry["status"], outputType?: string, error?: string) => {
     log({
@@ -177,10 +183,14 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
   options: RunHookOptions = {},
 ): Promise<void> {
   const write = options.stdout ?? ((msg: string) => process.stdout.write(msg));
-  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(msg + "\n"));
+  const writeErr = options.stderr ?? ((msg: string) => process.stderr.write(`${msg}\n`));
   const exit = options.exit ?? ((code: number) => process.exit(code));
   const timeoutMs = options.stdinTimeout ?? 200;
-  const log = options.appendLog ?? ((entry: HookLogEntry) => { appendHookLog(entry, undefined, undefined, writeErr); });
+  const log =
+    options.appendLog ??
+    ((entry: HookLogEntry) => {
+      appendHookLog(entry, undefined, undefined, writeErr);
+    });
   const startTime = performance.now();
   let sessionId: string | undefined;
 
@@ -236,7 +246,9 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 
     // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
     if (isToolEvent && !("tool_name" in inputResult.value)) {
-      writeErr(`[${contract.name}] input missing tool_name for ${contract.event} contract — check settings.json event routing`);
+      writeErr(
+        `[${contract.name}] input missing tool_name for ${contract.event} contract — check settings.json event routing`,
+      );
       emitLog("error", undefined, "input missing tool_name");
       safeExit();
       return;

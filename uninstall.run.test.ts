@@ -1,4 +1,4 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { run, type UninstallDeps } from "@hooks/uninstall";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
@@ -33,8 +33,12 @@ function makeDeps(overrides: Partial<UninstallDeps> = {}): UninstallDeps & Captu
       return { ok: true };
     },
     fileExists: () => true,
-    stderr: (msg: string) => { captured.stderrLines.push(msg); },
-    stdout: (msg: string) => { captured.stdoutLines.push(msg); },
+    stderr: (msg: string) => {
+      captured.stderrLines.push(msg);
+    },
+    stdout: (msg: string) => {
+      captured.stdoutLines.push(msg);
+    },
     paiDir: "/tmp/test-pai",
     homeDir: "/tmp/test-home",
     ...overrides,
@@ -52,7 +56,9 @@ const settingsWithHooks = JSON.stringify({
     PreToolUse: [
       {
         matcher: "Edit",
-        hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" }],
+        hooks: [
+          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" },
+        ],
       },
       {
         matcher: "Bash",
@@ -69,7 +75,9 @@ const settingsWithHooksNoEnv = JSON.stringify({
     PreToolUse: [
       {
         matcher: "Edit",
-        hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" }],
+        hooks: [
+          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" },
+        ],
       },
       {
         matcher: "Bash",
@@ -253,8 +261,10 @@ describe("uninstall run() — successful uninstall", () => {
     });
     run(deps);
 
-    expect(deps.stdoutLines.some((l) =>
-      l.includes("Uninstalled") && l.includes("SAINTPEPSI_PAI_HOOKS_DIR"),
-    )).toBe(true);
+    expect(
+      deps.stdoutLines.some(
+        (l) => l.includes("Uninstalled") && l.includes("SAINTPEPSI_PAI_HOOKS_DIR"),
+      ),
+    ).toBe(true);
   });
 });

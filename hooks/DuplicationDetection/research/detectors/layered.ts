@@ -1,8 +1,8 @@
-import type { Cluster, ParsedFile } from "@tools/pattern-detector/types";
-import { pairScore } from "@tools/pattern-detector/detectors/layered-scoring";
-import { buildClusters } from "@tools/pattern-detector/detectors/layered-clusters";
-import type { ScoredPair } from "@tools/pattern-detector/detectors/layered-clusters";
 import { assembleCluster } from "@tools/pattern-detector/detectors/layered-assembly";
+import type { ScoredPair } from "@tools/pattern-detector/detectors/layered-clusters";
+import { buildClusters } from "@tools/pattern-detector/detectors/layered-clusters";
+import { pairScore } from "@tools/pattern-detector/detectors/layered-scoring";
+import type { Cluster, ParsedFile } from "@tools/pattern-detector/types";
 
 export function detectLayered(files: ParsedFile[], threshold = 0.4): Cluster[] {
   const allFunctions = files.flatMap((f) => f.functions);

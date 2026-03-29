@@ -2,9 +2,9 @@
  * Tests for lockfile types and createLockfile factory.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import type { Lockfile } from "@hooks/cli/types/lockfile";
 import { createLockfile, DEFAULT_OUTPUT_MODE } from "@hooks/cli/types/lockfile";
-import type { Lockfile, OutputMode } from "@hooks/cli/types/lockfile";
 
 describe("DEFAULT_OUTPUT_MODE", () => {
   it("defaults to source", () => {

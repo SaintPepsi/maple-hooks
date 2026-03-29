@@ -1,22 +1,28 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, PaiError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import {
-  SessionAutoName,
-  sanitizePromptForNaming,
   extractFallbackName,
   isNameRelevantToPrompt,
+  SessionAutoName,
   type SessionAutoNameDeps,
+  sanitizePromptForNaming,
 } from "./SessionAutoName.contract";
-import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
 
 function makeDeps(overrides: Partial<SessionAutoNameDeps> = {}): SessionAutoNameDeps {
   return {
     fileExists: () => false,
-    readJson: <T>(_path: string) => err<T, PaiError>(new PaiError(ErrorCode.FileNotFound, "not found")),
+    readJson: <T>(_path: string) =>
+      err<T, PaiError>(new PaiError(ErrorCode.FileNotFound, "not found")),
     writeFile: () => ok(undefined),
     ensureDir: () => ok(undefined),
-    inference: async () => ({ success: true, output: "Test Session", latencyMs: 0, level: "fast" as const }),
+    inference: async () => ({
+      success: true,
+      output: "Test Session",
+      latencyMs: 0,
+      level: "fast" as const,
+    }),
     getCustomTitle: () => null,
     spawnSync: () => ({ stdout: { toString: () => "" } }),
     baseDir: "/tmp/test-pai",
@@ -59,7 +65,12 @@ describe("SessionAutoName", () => {
     let writtenPath = "";
     let writtenContent = "";
     const deps = makeDeps({
-      inference: async () => ({ success: true, output: "Dashboard Redesign", latencyMs: 0, level: "fast" as const }),
+      inference: async () => ({
+        success: true,
+        output: "Dashboard Redesign",
+        latencyMs: 0,
+        level: "fast" as const,
+      }),
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           writtenPath = path;
@@ -125,7 +136,10 @@ describe("SessionAutoName", () => {
       },
     });
 
-    const result = await SessionAutoName.execute(makeInput("implement authentication middleware"), deps);
+    const result = await SessionAutoName.execute(
+      makeInput("implement authentication middleware"),
+      deps,
+    );
     expect(result.ok).toBe(true);
     expect(storedName).toContain("Session");
   });
@@ -133,7 +147,9 @@ describe("SessionAutoName", () => {
   it("falls back when inference throws", async () => {
     let storedName = "";
     const deps = makeDeps({
-      inference: async () => { throw new Error("network error"); },
+      inference: async () => {
+        throw new Error("network error");
+      },
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           storedName = content;
@@ -150,7 +166,12 @@ describe("SessionAutoName", () => {
   it("rejects single-word inference names", async () => {
     let storedName = "";
     const deps = makeDeps({
-      inference: async () => ({ success: true, output: "Dashboard", latencyMs: 0, level: "fast" as const }),
+      inference: async () => ({
+        success: true,
+        output: "Dashboard",
+        latencyMs: 0,
+        level: "fast" as const,
+      }),
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           storedName = content;
@@ -166,7 +187,12 @@ describe("SessionAutoName", () => {
   it("rejects names with short words", async () => {
     let storedName = "";
     const deps = makeDeps({
-      inference: async () => ({ success: true, output: "AI ML Ops", latencyMs: 0, level: "fast" as const }),
+      inference: async () => ({
+        success: true,
+        output: "AI ML Ops",
+        latencyMs: 0,
+        level: "fast" as const,
+      }),
       writeFile: (path: string, content: string) => {
         if (path.endsWith("session-names.json")) {
           storedName = content;
@@ -182,11 +208,15 @@ describe("SessionAutoName", () => {
 
 describe("sanitizePromptForNaming", () => {
   it("strips XML tags but keeps inner text", () => {
-    expect(sanitizePromptForNaming("hello <system-reminder>noise</system-reminder> world")).toBe("hello noise world");
+    expect(sanitizePromptForNaming("hello <system-reminder>noise</system-reminder> world")).toBe(
+      "hello noise world",
+    );
   });
 
   it("strips UUIDs", () => {
-    expect(sanitizePromptForNaming("session a1b2c3d4-e5f6-7890-abcd-ef1234567890 here")).toBe("session here");
+    expect(sanitizePromptForNaming("session a1b2c3d4-e5f6-7890-abcd-ef1234567890 here")).toBe(
+      "session here",
+    );
   });
 
   it("strips hex hashes", () => {
@@ -194,7 +224,9 @@ describe("sanitizePromptForNaming", () => {
   });
 
   it("strips file paths", () => {
-    expect(sanitizePromptForNaming("edit /Users/hogers/Projects/foo.ts please")).toBe("edit please");
+    expect(sanitizePromptForNaming("edit /Users/hogers/Projects/foo.ts please")).toBe(
+      "edit please",
+    );
   });
 
   it("collapses whitespace", () => {
@@ -236,7 +268,9 @@ describe("isNameRelevantToPrompt", () => {
   });
 
   it("returns false when name is unrelated", () => {
-    expect(isNameRelevantToPrompt("Kubernetes Deployment", "fix the login button color")).toBe(false);
+    expect(isNameRelevantToPrompt("Kubernetes Deployment", "fix the login button color")).toBe(
+      false,
+    );
   });
 
   it("returns true for empty name words (all noise)", () => {

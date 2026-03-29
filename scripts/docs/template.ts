@@ -15,8 +15,8 @@
  * Pure functions — no I/O except CSS loading.
  */
 
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,12 +115,19 @@ function parseSections(md: string): { preamble: string; sections: DocSection[] }
     if (h2Match) {
       // Flush previous section
       if (currentHeading) {
-        sections.push({ heading: currentHeading, id: currentId, body: currentBody.join("\n").trim() });
+        sections.push({
+          heading: currentHeading,
+          id: currentId,
+          body: currentBody.join("\n").trim(),
+        });
       } else if (currentBody.length > 0) {
         preamble = currentBody.join("\n").trim();
       }
       currentHeading = h2Match[1];
-      currentId = currentHeading.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      currentId = currentHeading
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
       currentBody = [];
     } else {
       currentBody.push(line);
@@ -140,7 +147,11 @@ function parseSections(md: string): { preamble: string; sections: DocSection[] }
 // ─── Escape Helpers ───────────────────────────────────────────────────────────
 
 function esc(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /** Escape for code blocks — only escape HTML-meaningful chars, preserve quotes. */
@@ -184,7 +195,10 @@ function parseBlocks(body: string): Block[] {
     const line = lines[i];
 
     // Empty line — skip
-    if (line.trim() === "") { i++; continue; }
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
 
     // Fenced code block
     if (line.startsWith("```")) {
@@ -227,7 +241,12 @@ function parseBlocks(body: string): Block[] {
         i++;
       }
       const parsedRows = tableLines
-        .map((l) => l.split("|").slice(1, -1).map((c) => c.trim()))
+        .map((l) =>
+          l
+            .split("|")
+            .slice(1, -1)
+            .map((c) => c.trim()),
+        )
         .filter((cells) => !cells.every((c) => /^[-:]+$/.test(c)));
       if (parsedRows.length > 0) {
         blocks.push({ type: "table", headers: parsedRows[0], rows: parsedRows.slice(1) });
@@ -288,15 +307,21 @@ function renderBlock(block: Block): string {
 
     case "bullets":
       return block.items
-        .map((item) => `<div class="reason"><span class="ri">&#x2022;</span> ${inlineMd(item)}</div>`)
+        .map(
+          (item) => `<div class="reason"><span class="ri">&#x2022;</span> ${inlineMd(item)}</div>`,
+        )
         .join("\n");
 
     case "ordered": {
-      const steps = block.items.map((item, i) => `
+      const steps = block.items
+        .map(
+          (item, i) => `
         <div class="flow-step">
           <div class="step-dot">${i + 1}</div>
           <div class="step-content"><p>${inlineMd(item)}</p></div>
-        </div>`).join("\n");
+        </div>`,
+        )
+        .join("\n");
       return `<div class="flow-steps">${steps}\n</div>`;
     }
 
@@ -316,7 +341,10 @@ ${escCode(block.code)}</div>
     case "blockquote":
       return `
       <div class="uc-example">
-        ${block.lines.map((l) => l.trim() === "" ? "" : `<div>${inlineMd(l)}</div>`).filter(Boolean).join("\n        ")}
+        ${block.lines
+          .map((l) => (l.trim() === "" ? "" : `<div>${inlineMd(l)}</div>`))
+          .filter(Boolean)
+          .join("\n        ")}
       </div>`;
 
     case "table":
@@ -329,7 +357,10 @@ ${escCode(block.code)}</div>
       </table>`;
 
     case "h3": {
-      const id = block.text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const id = block.text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
       return `<h3 id="${id}">${inlineMd(block.text)}</h3>`;
     }
   }
@@ -381,7 +412,9 @@ function renderExamplesSection(blocks: Block[]): string {
         html.push("</div>"); // close previous example wrapper
       }
       html.push(`<div style="margin-top: 20px;">`);
-      html.push(`<h3 style="color: var(--green); margin-bottom: 12px;">${inlineMd(block.text)}</h3>`);
+      html.push(
+        `<h3 style="color: var(--green); margin-bottom: 12px;">${inlineMd(block.text)}</h3>`,
+      );
       inExample = true;
     } else {
       html.push(renderBlock(block));
@@ -483,7 +516,11 @@ ${opts.hasSidebar ? WIKI_NAV_SCRIPT : ""}
 
 // ─── Sidebar Builder ──────────────────────────────────────────────────────────
 
-function buildSidebar(title: string, subtitle: string, items: { id: string; label: string }[]): string {
+function buildSidebar(
+  title: string,
+  subtitle: string,
+  items: { id: string; label: string }[],
+): string {
   const navItems = items
     .map((s, i) => {
       const num = String(i + 1).padStart(2, "0");
@@ -540,9 +577,14 @@ export function renderHookPage(hook: HookMeta, markdownContent: string, groupNam
   // Remove h1 from preamble (redundant with hero)
   const cleanPreamble = preamble.replace(/^# .+$/m, "").trim();
 
-  const sidebar = sections.length > 2
-    ? buildSidebar(hook.name, `${groupName} / ${hook.event}`, sections.map((s) => ({ id: s.id, label: s.heading })))
-    : "";
+  const sidebar =
+    sections.length > 2
+      ? buildSidebar(
+          hook.name,
+          `${groupName} / ${hook.event}`,
+          sections.map((s) => ({ id: s.id, label: s.heading })),
+        )
+      : "";
 
   const hero = buildHero(
     "Hook Documentation",
@@ -608,10 +650,12 @@ export function renderGroupPage(group: GroupMeta): string {
   );
 
   const events = [...new Set(group.hooks.map((h) => h.event))];
-  const summaryItems = events.map((event) => {
-    const count = group.hooks.filter((h) => h.event === event).length;
-    return `<div class="summary-item"><div class="num">${count}</div><div class="label">${esc(event)}</div></div>`;
-  }).join("\n    ");
+  const summaryItems = events
+    .map((event) => {
+      const count = group.hooks.filter((h) => h.event === event).length;
+      return `<div class="summary-item"><div class="num">${count}</div><div class="label">${esc(event)}</div></div>`;
+    })
+    .join("\n    ");
 
   const body = `
 ${hero}
@@ -637,7 +681,8 @@ export function renderIndexPage(groups: GroupMeta[]): string {
   const totalHooks = groups.reduce((n, g) => n + g.hooks.length, 0);
 
   const groupCards = groups
-    .map((g) => `
+    .map(
+      (g) => `
       <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/${esc(g.name)}/index.html'">
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
@@ -645,7 +690,8 @@ export function renderIndexPage(groups: GroupMeta[]): string {
           <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">${g.hooks.length} hooks</span>
         </div>
         <p>${esc(g.description || `${g.hooks.length} hooks`)}</p>
-      </div>`)
+      </div>`,
+    )
     .join("\n");
 
   const hero = buildHero(

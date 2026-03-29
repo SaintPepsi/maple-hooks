@@ -6,21 +6,18 @@
  * Target: 100% branch + 100% line coverage.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { processExecFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
   HookExecutePermission,
   type HookExecutePermissionDeps,
 } from "./HookExecutePermission.contract";
-import { ok, err } from "@hooks/core/result";
-import { processExecFailed } from "@hooks/core/error";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeInput(
-  toolName: string,
-  filePath: string = "",
-): ToolHookInput {
+function makeInput(toolName: string, filePath: string = ""): ToolHookInput {
   return {
     session_id: "test-sess",
     tool_name: toolName,
@@ -28,9 +25,7 @@ function makeInput(
   };
 }
 
-function makeDeps(
-  overrides: Partial<HookExecutePermissionDeps> = {},
-): HookExecutePermissionDeps {
+function makeDeps(overrides: Partial<HookExecutePermissionDeps> = {}): HookExecutePermissionDeps {
   return {
     execSync: () => ok(""),
     stderr: () => {},

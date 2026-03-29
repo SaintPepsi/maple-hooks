@@ -1,19 +1,19 @@
+import { join } from "node:path";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { join } from "path";
-import { pickNarrative } from "@hooks/lib/narrative-reader";
 import {
-  type TestObligationDeps,
-  defaultDeps,
-  pendingPath,
   blockCountPath,
-  MAX_BLOCKS,
   buildBlockLimitReview,
+  defaultDeps,
   hasTestFile,
+  MAX_BLOCKS,
+  pendingPath,
+  type TestObligationDeps,
 } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 export const TestObligationEnforcer: SyncHookContract<
   StopInput,
@@ -51,7 +51,9 @@ export const TestObligationEnforcer: SyncHookContract<
       deps.writeReview(reviewPath, review);
       deps.removeFlag(flagFile);
       deps.removeFlag(countFile);
-      deps.stderr(`[TestObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`);
+      deps.stderr(
+        `[TestObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`,
+      );
       return ok({ type: "silent" });
     }
 
@@ -82,7 +84,9 @@ export const TestObligationEnforcer: SyncHookContract<
     const reason = `${opener}\n\n${sections.join("\n\n")}`;
 
     deps.writeBlockCount(countFile, blockCount + 1);
-    deps.stderr(`[TestObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without tests`);
+    deps.stderr(
+      `[TestObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without tests`,
+    );
 
     return ok({ type: "block", decision: "block", reason });
   },

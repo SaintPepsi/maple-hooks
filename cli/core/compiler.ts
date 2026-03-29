@@ -16,10 +16,10 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/deps.ts).
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
 import { buildFailed } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { OutputMode } from "@hooks/cli/types/lockfile";
 
@@ -83,7 +83,10 @@ export function compileHook(
   const tempPath = `${finalPath}.tmp`;
 
   // Step 1: Run bun build to temp file
-  const buildResult = runBunBuild({ entryPath: hookPath, outfile: tempPath, mode, sourceRoot }, deps);
+  const buildResult = runBunBuild(
+    { entryPath: hookPath, outfile: tempPath, mode, sourceRoot },
+    deps,
+  );
   if (!buildResult.ok) return buildResult;
 
   // Step 2: Read the temp output
@@ -127,10 +130,7 @@ export function compileHook(
  * --compiled:    direct path format (relies on shebang), e.g. "./.claude/hooks/Group/Hook.js"
  * --compiled-ts: bun <path> format, e.g. "bun ./.claude/hooks/Group/Hook.ts"
  */
-export function compiledCommandString(
-  relativePath: string,
-  mode: OutputMode,
-): string {
+export function compiledCommandString(relativePath: string, mode: OutputMode): string {
   if (mode === "compiled-ts") {
     return `bun ${relativePath}`;
   }
@@ -148,10 +148,7 @@ interface BunBuildOpts {
   sourceRoot: string;
 }
 
-function runBunBuild(
-  buildOpts: BunBuildOpts,
-  deps: CompilerDeps,
-): Result<void, PaihError> {
+function runBunBuild(buildOpts: BunBuildOpts, deps: CompilerDeps): Result<void, PaihError> {
   const { entryPath, outfile, mode, sourceRoot } = buildOpts;
 
   // --define to prevent process.env inlining at build time

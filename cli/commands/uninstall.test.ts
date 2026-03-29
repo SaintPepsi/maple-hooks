@@ -6,14 +6,14 @@
  * Tests the uninstall function from cli/commands/uninstall.ts.
  */
 
-import { describe, it, expect } from "bun:test";
-import { uninstall } from "@hooks/cli/commands/uninstall";
+import { describe, expect, it } from "bun:test";
 import { install } from "@hooks/cli/commands/install";
+import { uninstall } from "@hooks/cli/commands/uninstall";
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import { InMemoryDeps } from "@hooks/cli/types/deps";
-import type { SettingsJson } from "@hooks/cli/core/settings";
-import type { Lockfile } from "@hooks/cli/types/lockfile";
 import { PaihErrorCode } from "@hooks/cli/core/error";
+import type { SettingsJson } from "@hooks/cli/core/settings";
+import { InMemoryDeps } from "@hooks/cli/types/deps";
+import type { Lockfile } from "@hooks/cli/types/lockfile";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -36,9 +36,9 @@ function makeSourceRepo(): Record<string, string> {
       presets: [],
     }),
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts":
-      '// TypeStrictness hook\nexport default {};\n',
+      "// TypeStrictness hook\nexport default {};\n",
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts":
-      '// TypeStrictness contract\nexport default {};\n',
+      "// TypeStrictness contract\nexport default {};\n",
     "/source/hooks/CodingStandards/BashWriteGuard/hook.json": JSON.stringify({
       name: "BashWriteGuard",
       group: "CodingStandards",
@@ -50,10 +50,10 @@ function makeSourceRepo(): Record<string, string> {
       presets: [],
     }),
     "/source/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts":
-      '// BashWriteGuard hook\nexport default {};\n',
+      "// BashWriteGuard hook\nexport default {};\n",
     "/source/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.contract.ts":
-      '// BashWriteGuard contract\nexport default {};\n',
-    "/source/core/result.ts": '// core result module\nexport const ok = true;\n',
+      "// BashWriteGuard contract\nexport default {};\n",
+    "/source/core/result.ts": "// core result module\nexport const ok = true;\n",
     "/source/presets.json": JSON.stringify({}),
     "/project/.claude/settings.json": "{}",
   };
@@ -84,8 +84,7 @@ function makeSharedDepsRepo(): Record<string, string> {
     }),
     "/source/hooks/SharedGroup/HookA/HookA.contract.ts":
       'import { ok } from "@hooks/core/result";\nimport { shared } from "@hooks/hooks/SharedGroup/shared";\nexport const HookA = { name: "HookA", event: "PreToolUse" };\n',
-    "/source/hooks/SharedGroup/HookA/HookA.hook.ts":
-      '// HookA hook\nexport default {};\n',
+    "/source/hooks/SharedGroup/HookA/HookA.hook.ts": "// HookA hook\nexport default {};\n",
     "/source/hooks/SharedGroup/HookC/hook.json": JSON.stringify({
       name: "HookC",
       group: "SharedGroup",
@@ -97,9 +96,8 @@ function makeSharedDepsRepo(): Record<string, string> {
     }),
     "/source/hooks/SharedGroup/HookC/HookC.contract.ts":
       'import { ok } from "@hooks/core/result";\nexport const HookC = { name: "HookC", event: "PreToolUse" };\n',
-    "/source/hooks/SharedGroup/HookC/HookC.hook.ts":
-      '// HookC hook\nexport default {};\n',
-    "/source/core/result.ts": '// core result module\nexport const ok = true;\n',
+    "/source/hooks/SharedGroup/HookC/HookC.hook.ts": "// HookC hook\nexport default {};\n",
+    "/source/core/result.ts": "// core result module\nexport const ok = true;\n",
     "/source/presets.json": JSON.stringify({}),
     "/project/.claude/settings.json": "{}",
   };
@@ -134,13 +132,22 @@ describe("uninstall command", () => {
     const files = deps.getFiles();
 
     // Hook files removed
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(false);
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(false);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(false);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
+      ),
+    ).toBe(false);
 
     // Settings cleaned
     const settingsContent = files.get("/project/.claude/settings.json")!;
     const settings: SettingsJson = JSON.parse(settingsContent);
-    const commands = settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
+    const commands =
+      settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
     expect(commands.filter((c) => c.includes("TypeStrictness"))).toHaveLength(0);
 
     // Lockfile updated
@@ -159,8 +166,16 @@ describe("uninstall command", () => {
     const files = deps.getFiles();
 
     // Both hooks removed
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(false);
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts")).toBe(false);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(false);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts",
+      ),
+    ).toBe(false);
 
     // Lockfile empty
     const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
@@ -198,7 +213,11 @@ describe("uninstall command", () => {
 
     expect(result.ok).toBe(true);
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(false);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(false);
   });
 
   it("--dry-run → plan printed, nothing touched", () => {
@@ -213,7 +232,11 @@ describe("uninstall command", () => {
 
     // Files still exist
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(true);
   });
 
   it("shared.ts ref-counting — removed when group empty", () => {
@@ -256,9 +279,12 @@ describe("uninstall command", () => {
   });
 
   it("returns LOCK_MISSING when no lockfile exists", () => {
-    const deps = new InMemoryDeps({
-      "/project/.claude/settings.json": "{}",
-    }, "/project");
+    const deps = new InMemoryDeps(
+      {
+        "/project/.claude/settings.json": "{}",
+      },
+      "/project",
+    );
 
     const result = uninstall(uninstallArgs(["TypeStrictness"]), deps);
 
@@ -282,7 +308,9 @@ describe("uninstall command", () => {
     const deps = setupInstalled(["TypeStrictness"]);
 
     // Manually delete a file that the lockfile references
-    deps.deleteFile("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts");
+    deps.deleteFile(
+      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+    );
 
     // Should still succeed (idempotent)
     const result = uninstall(uninstallArgs(["TypeStrictness"], { force: true }), deps);

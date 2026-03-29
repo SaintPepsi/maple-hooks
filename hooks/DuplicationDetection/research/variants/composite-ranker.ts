@@ -13,7 +13,7 @@
 
 import { parseDirectory } from "@tools/pattern-detector/parse";
 import { bodySimilarity } from "@tools/pattern-detector/similarity";
-import type { ParsedFunction, ParsedFile } from "@tools/pattern-detector/types";
+import type { ParsedFunction } from "@tools/pattern-detector/types";
 
 // ─── Signal Dimensions ──────────────────────────────────────────────────────
 
@@ -29,9 +29,9 @@ interface FunctionSignals {
 
 interface SignalScore {
   signal: SignalType;
-  score: number;       // 0-1 normalized
-  groupSize: number;   // how many peers in this signal's group
-  evidence: string;    // human-readable evidence
+  score: number; // 0-1 normalized
+  groupSize: number; // how many peers in this signal's group
+  evidence: string; // human-readable evidence
 }
 
 // ─── Signal Extraction ──────────────────────────────────────────────────────
@@ -49,7 +49,7 @@ function extractHashSignal(allFns: ParsedFunction[]): Map<string, SignalScore> {
   }
 
   const scores = new Map<string, SignalScore>();
-  for (const [hash, fns] of groups) {
+  for (const [_hash, fns] of groups) {
     const fileCount = new Set(fns.map((f) => f.file)).size;
     if (fns.length < 2 || fileCount < 2) continue;
     for (const fn of fns) {
@@ -146,7 +146,10 @@ function extractBodySignal(allFns: ParsedFunction[]): Map<string, SignalScore> {
         const jIdx = (i + j + 1) % fns.length;
         if (fns[i].file === fns[jIdx].file && fns[i].name === fns[jIdx].name) continue;
         const sim = bodySimilarity(fns[i], fns[jIdx]);
-        if (sim > maxSim) { maxSim = sim; bestPeer = fns[jIdx]; }
+        if (sim > maxSim) {
+          maxSim = sim;
+          bestPeer = fns[jIdx];
+        }
       }
       if (maxSim > 0.5 && bestPeer) {
         const key = fnKey(fns[i]);
@@ -168,15 +171,13 @@ function extractBodySignal(allFns: ParsedFunction[]): Map<string, SignalScore> {
 // ─── Composite Scoring ──────────────────────────────────────────────────────
 
 const SIGNAL_WEIGHTS: Record<SignalType, number> = {
-  hash: 1.0,       // Highest confidence — exact match
-  name: 0.7,       // Strong signal — same architectural role
-  signature: 0.4,  // Moderate — same types, might be coincidence
-  body: 0.8,       // Strong — similar implementation
+  hash: 1.0, // Highest confidence — exact match
+  name: 0.7, // Strong signal — same architectural role
+  signature: 0.4, // Moderate — same types, might be coincidence
+  body: 0.8, // Strong — similar implementation
 };
 
-function buildCompositeScores(
-  allFns: ParsedFunction[],
-): FunctionSignals[] {
+function buildCompositeScores(allFns: ParsedFunction[]): FunctionSignals[] {
   const hashScores = extractHashSignal(allFns);
   const nameScores = extractNameSignal(allFns);
   const sigScores = extractSignatureSignal(allFns);
@@ -290,8 +291,8 @@ function groupIntoOpportunities(scored: FunctionSignals[]): RefactorOpportunity[
 // ─── Output ─────────────────────────────────────────────────────────────────
 
 function shortenPath(filePath: string): string {
-  const home = require("os").homedir() as string;
-  if (filePath.startsWith(home)) return "~" + filePath.slice(home.length);
+  const home = require("node:os").homedir() as string;
+  if (filePath.startsWith(home)) return `~${filePath.slice(home.length)}`;
   return filePath;
 }
 
@@ -307,7 +308,9 @@ function formatResults(
 
   lines.push("\nComposite Multi-Signal DRY Ranker (Cycle 6)");
   lines.push("═".repeat(46));
-  lines.push(`Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`);
+  lines.push(
+    `Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`,
+  );
 
   // Dimension distribution
   const dimDist = new Map<number, number>();
@@ -326,14 +329,21 @@ function formatResults(
 
   for (const opp of opportunities.slice(0, top)) {
     const fileCount = new Set(opp.members.map((m) => m.fn.file)).size;
-    const dimBar = "●".repeat(Math.round(opp.avgDimensions)) + "○".repeat(4 - Math.round(opp.avgDimensions));
-    lines.push(`  #${opp.rank} ${opp.name} [${dimBar}] — ${opp.members.length} instances across ${fileCount} files`);
-    lines.push(`     Signals: ${opp.topSignals.join(", ")} | Avg score: ${opp.avgScore.toFixed(2)} | Est. savings: ~${opp.estimatedSavings} AST nodes`);
+    const dimBar =
+      "●".repeat(Math.round(opp.avgDimensions)) + "○".repeat(4 - Math.round(opp.avgDimensions));
+    lines.push(
+      `  #${opp.rank} ${opp.name} [${dimBar}] — ${opp.members.length} instances across ${fileCount} files`,
+    );
+    lines.push(
+      `     Signals: ${opp.topSignals.join(", ")} | Avg score: ${opp.avgScore.toFixed(2)} | Est. savings: ~${opp.estimatedSavings} AST nodes`,
+    );
 
     // Show top 4 members with their signals
     for (const m of opp.members.slice(0, 4)) {
       const path = shortenPath(m.fn.file).replace(/.*pai-hooks\//, "");
-      const sigs = [...m.signals.values()].map((s) => `${s.signal}:${(s.score * 100).toFixed(0)}%`).join(" ");
+      const sigs = [...m.signals.values()]
+        .map((s) => `${s.signal}:${(s.score * 100).toFixed(0)}%`)
+        .join(" ");
       lines.push(`     - ${path}:${m.fn.line} [${sigs}]`);
     }
     if (opp.members.length > 4) {
@@ -351,7 +361,9 @@ const args = process.argv.slice(2);
 const directory = args.find((a) => !a.startsWith("--"));
 
 if (!directory) {
-  process.stderr.write("Usage: bun Tools/pattern-detector/variants/composite-ranker.ts <directory> [--top 30]\n");
+  process.stderr.write(
+    "Usage: bun Tools/pattern-detector/variants/composite-ranker.ts <directory> [--top 30]\n",
+  );
   process.exit(1);
 }
 
@@ -369,13 +381,19 @@ const parseTimeMs = performance.now() - parseStart;
 const functionCount = files.reduce((s, f) => s + f.functions.length, 0);
 const allFns = files.flatMap((f) => f.functions);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 const detectStart = performance.now();
 const scored = buildCompositeScores(allFns);
 const opportunities = groupIntoOpportunities(scored);
 const detectTimeMs = performance.now() - detectStart;
 
-process.stderr.write(`Scored ${scored.length} functions, found ${opportunities.length} opportunities in ${detectTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Scored ${scored.length} functions, found ${opportunities.length} opportunities in ${detectTimeMs.toFixed(0)}ms\n`,
+);
 
-process.stdout.write(formatResults(scored, opportunities, files.length, functionCount, parseTimeMs, top) + "\n");
+process.stdout.write(
+  `${formatResults(scored, opportunities, files.length, functionCount, parseTimeMs, top)}\n`,
+);

@@ -5,15 +5,15 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SubagentStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import {
   type AgentFileData,
   type AgentLifecycleDeps,
-  defaultDeps,
   agentFilePath,
+  defaultDeps,
 } from "@hooks/hooks/AgentLifecycle/shared";
 
 export const AgentLifecycleStart: SyncHookContract<
@@ -28,15 +28,10 @@ export const AgentLifecycleStart: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: SubagentStartInput,
-    deps: AgentLifecycleDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: SubagentStartInput, deps: AgentLifecycleDeps): Result<SilentOutput, PaiError> {
     const dirResult = deps.ensureDir(deps.getAgentsDir());
     if (!dirResult.ok) {
-      deps.stderr(
-        `[AgentLifecycle] Start: failed to ensure agents dir: ${dirResult.error}`,
-      );
+      deps.stderr(`[AgentLifecycle] Start: failed to ensure agents dir: ${dirResult.error}`);
       return ok({ type: "silent" });
     }
 
@@ -47,21 +42,14 @@ export const AgentLifecycleStart: SyncHookContract<
       completedAt: null,
     };
 
-    const writeResult = deps.writeFile(
-      agentFilePath(deps, input.session_id),
-      JSON.stringify(data),
-    );
+    const writeResult = deps.writeFile(agentFilePath(deps, input.session_id), JSON.stringify(data));
 
     if (!writeResult.ok) {
-      deps.stderr(
-        `[AgentLifecycle] Start: failed to write agent file: ${writeResult.error}`,
-      );
+      deps.stderr(`[AgentLifecycle] Start: failed to write agent file: ${writeResult.error}`);
       return ok({ type: "silent" });
     }
 
-    deps.stderr(
-      `[AgentLifecycle] Start: agent=${input.session_id}`,
-    );
+    deps.stderr(`[AgentLifecycle] Start: agent=${input.session_id}`);
 
     return ok({ type: "silent" });
   },

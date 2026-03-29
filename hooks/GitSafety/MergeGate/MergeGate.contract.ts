@@ -14,16 +14,16 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
-  continueOk,
+  type BlockOutput,
   block,
   type ContinueOutput,
-  type BlockOutput,
+  continueOk,
 } from "@hooks/core/types/hook-outputs";
 import {
-  extractPrNumber,
-  resolvePrFromBranch,
   checkCiStatus,
   checkReviewStatus,
+  extractPrNumber,
+  resolvePrFromBranch,
   type SharedDeps,
 } from "@hooks/hooks/GitSafety/shared";
 
@@ -42,7 +42,10 @@ function getCommand(input: ToolHookInput): string {
   return (input.tool_input?.command as string) || "";
 }
 
-function formatCiBlockMessage(prNumber: number, checks: Array<{ name: string; state: string }>): string {
+function formatCiBlockMessage(
+  prNumber: number,
+  checks: Array<{ name: string; state: string }>,
+): string {
   const checkLines = checks.map((c) => `  ${c.name}: ${c.state}`).join("\n");
   return [
     `MERGE BLOCKED: CI checks are not passing on PR #${prNumber}.`,
@@ -54,10 +57,12 @@ function formatCiBlockMessage(prNumber: number, checks: Array<{ name: string; st
   ].join("\n");
 }
 
-function formatReviewBlockMessage(prNumber: number, reviews: Array<{ author: string; state: string }>): string {
-  const reviewLines = reviews.length > 0
-    ? reviews.map((r) => `  ${r.author}: ${r.state}`).join("\n")
-    : "  (none)";
+function formatReviewBlockMessage(
+  prNumber: number,
+  reviews: Array<{ author: string; state: string }>,
+): string {
+  const reviewLines =
+    reviews.length > 0 ? reviews.map((r) => `  ${r.author}: ${r.state}`).join("\n") : "  (none)";
   return [
     `MERGE BLOCKED: No approving review found on PR #${prNumber}.`,
     "",
@@ -73,7 +78,7 @@ function formatReviewBlockMessage(prNumber: number, reviews: Array<{ author: str
 
 const defaultDeps: MergeGateDeps = {
   exec: (cmd: string) => execSyncSafe(cmd, { timeout: 15_000 }),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

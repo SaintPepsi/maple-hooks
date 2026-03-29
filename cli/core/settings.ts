@@ -11,13 +11,13 @@
  *   and HookEntry = { type: "command", command: string }
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import { tryCatch } from "@hooks/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
-import { PaihErrorCode, PaihError as PaihErrorClass } from "@hooks/cli/core/error";
+import { PaihError as PaihErrorClass, PaihErrorCode } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { ok } from "@hooks/cli/core/result";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { Lockfile } from "@hooks/cli/types/lockfile";
+import { tryCatch } from "@hooks/core/result";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -45,10 +45,7 @@ export interface ForeignHook {
 // ─── Settings I/O ───────────────────────────────────────────────────────────
 
 /** Read .claude/settings.json from the target directory. Returns empty settings if file missing. */
-export function readSettings(
-  claudeDir: string,
-  deps: CliDeps,
-): Result<SettingsJson, PaihError> {
+export function readSettings(claudeDir: string, deps: CliDeps): Result<SettingsJson, PaihError> {
   const settingsPath = `${claudeDir}/settings.json`;
 
   if (!deps.fileExists(settingsPath)) {
@@ -71,7 +68,7 @@ export function writeSettings(
   deps: CliDeps,
 ): Result<void, PaihError> {
   const settingsPath = `${claudeDir}/settings.json`;
-  const content = JSON.stringify(settings, null, 2) + "\n";
+  const content = `${JSON.stringify(settings, null, 2)}\n`;
 
   return deps.writeFile(settingsPath, content);
 }
@@ -120,9 +117,8 @@ export function mergeHookEntry(
   if (matchingGroup) {
     matchingGroup.hooks.push(entry);
   } else {
-    const newGroup: MatcherGroup = matcher !== undefined
-      ? { matcher, hooks: [entry] }
-      : { hooks: [entry] };
+    const newGroup: MatcherGroup =
+      matcher !== undefined ? { matcher, hooks: [entry] } : { hooks: [entry] };
     result.hooks[event].push(newGroup);
   }
 
@@ -173,13 +169,8 @@ export function unmergeHookEntry(
  * Detect hooks in settings that are NOT tracked in the lockfile.
  * These are "foreign" hooks — installed by other means or manually added.
  */
-export function detectForeignHooks(
-  settings: SettingsJson,
-  lockfile: Lockfile,
-): ForeignHook[] {
-  const trackedCommands = new Set(
-    lockfile.hooks.map((h) => h.commandString),
-  );
+export function detectForeignHooks(settings: SettingsJson, lockfile: Lockfile): ForeignHook[] {
+  const trackedCommands = new Set(lockfile.hooks.map((h) => h.commandString));
 
   const foreign: ForeignHook[] = [];
 
@@ -204,10 +195,9 @@ export function detectForeignHooks(
 function safeJsonParse(content: string, path: string): Result<SettingsJson, PaihError> {
   return tryCatch(
     () => JSON.parse(content) as SettingsJson,
-    () => new PaihErrorClass(
-      PaihErrorCode.ManifestParseError,
-      `Failed to parse JSON at ${path}`,
-      { path },
-    ),
+    () =>
+      new PaihErrorClass(PaihErrorCode.ManifestParseError, `Failed to parse JSON at ${path}`, {
+        path,
+      }),
   );
 }

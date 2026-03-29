@@ -9,13 +9,13 @@
  * No I/O for transcript reading - that's done by orchestrator.
  */
 
-import { join } from "path";
-import { fileExists, readJson, appendFile, ensureDir } from "@hooks/core/adapters/fs";
-import type { Result } from "@hooks/core/result";
+import { join } from "node:path";
+import { appendFile, ensureDir, fileExists, readJson } from "@hooks/core/adapters/fs";
 import type { PaiError } from "@hooks/core/error";
-import { getIdentity, type VoicePersonality } from "@hooks/lib/identity";
+import type { Result } from "@hooks/core/result";
+import { getIdentity } from "@hooks/lib/identity";
+import { getVoiceFallback, isValidVoiceCompletion } from "@hooks/lib/output-validators";
 import { getISOTimestamp } from "@hooks/lib/time";
-import { isValidVoiceCompletion, getVoiceFallback } from "@hooks/lib/output-validators";
 import type { ParsedTranscript } from "@pai/Tools/TranscriptParser";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -69,10 +69,7 @@ export interface VoiceNotificationDeps {
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
-function getActiveWorkDir(
-  sessionId: string,
-  deps: VoiceNotificationDeps,
-): string | null {
+function getActiveWorkDir(sessionId: string, deps: VoiceNotificationDeps): string | null {
   const stateFile = join(deps.baseDir, "MEMORY", "STATE", `current-work-${sessionId}.json`);
   const result = deps.readJson<CurrentWorkState>(stateFile);
   if (!result.ok) return null;
@@ -86,12 +83,8 @@ function getActiveWorkDir(
   return workPath;
 }
 
-function logVoiceEvent(
-  event: VoiceEvent,
-  sessionId: string,
-  deps: VoiceNotificationDeps,
-): void {
-  const line = JSON.stringify(event) + "\n";
+function logVoiceEvent(event: VoiceEvent, sessionId: string, deps: VoiceNotificationDeps): void {
+  const line = `${JSON.stringify(event)}\n`;
 
   const voiceDir = join(deps.baseDir, "MEMORY", "VOICE");
   deps.ensureDir(voiceDir);
@@ -121,27 +114,40 @@ async function sendNotification(
     voice_id: voiceId,
   };
 
-  const response = await deps.fetch("http://localhost:8888/notify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    signal: AbortSignal.timeout(3000),
-  }).catch((error: unknown) => {
-    deps.stderr(`[Voice] Failed to send: ${error instanceof Error ? error.message : String(error)}`);
-    logVoiceEvent(
-      { ...baseEvent, event_type: "failed", error: error instanceof Error ? error.message : String(error) },
-      sessionId,
-      deps,
-    );
-    return null;
-  });
+  const response = await deps
+    .fetch("http://localhost:8888/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(3000),
+    })
+    .catch((error: unknown) => {
+      deps.stderr(
+        `[Voice] Failed to send: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      logVoiceEvent(
+        {
+          ...baseEvent,
+          event_type: "failed",
+          error: error instanceof Error ? error.message : String(error),
+        },
+        sessionId,
+        deps,
+      );
+      return null;
+    });
 
   if (!response) return;
 
   if (!response.ok) {
     deps.stderr(`[Voice] Server error: ${response.statusText}`);
     logVoiceEvent(
-      { ...baseEvent, event_type: "failed", status_code: response.status, error: response.statusText },
+      {
+        ...baseEvent,
+        event_type: "failed",
+        status_code: response.status,
+        error: response.statusText,
+      },
       sessionId,
       deps,
     );
@@ -169,7 +175,7 @@ const defaultDeps: VoiceNotificationDeps = {
   getVoiceFallback,
   fetch: globalThis.fetch,
   baseDir: BASE_DIR,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Exported Handler ────────────────────────────────────────────────────────

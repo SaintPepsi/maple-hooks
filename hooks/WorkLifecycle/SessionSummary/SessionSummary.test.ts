@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary.contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -86,7 +86,9 @@ describe("SessionSummary", () => {
     });
 
     test("accepts with undefined session_id", () => {
-      expect(SessionSummary.accepts({ session_id: undefined as unknown as string } as SessionEndInput)).toBe(true);
+      expect(
+        SessionSummary.accepts({ session_id: undefined as unknown as string } as SessionEndInput),
+      ).toBe(true);
     });
   });
 
@@ -131,17 +133,13 @@ describe("SessionSummary", () => {
     test("writes to correct META.yaml path inside WORK directory", () => {
       const deps = makeDeps();
       SessionSummary.execute(makeInput(), deps);
-      expect(lastWrittenPath).toBe(
-        "/tmp/test/MEMORY/WORK/2026-02-27-fix-auth/META.yaml",
-      );
+      expect(lastWrittenPath).toBe("/tmp/test/MEMORY/WORK/2026-02-27-fix-auth/META.yaml");
     });
 
     test("deletes the scoped state file", () => {
       const deps = makeDeps();
       SessionSummary.execute(makeInput(), deps);
-      expect(deletedPaths).toContain(
-        "/tmp/test/MEMORY/STATE/current-work-test-session-123.json",
-      );
+      expect(deletedPaths).toContain("/tmp/test/MEMORY/STATE/current-work-test-session-123.json");
     });
   });
 
@@ -192,7 +190,10 @@ describe("SessionSummary", () => {
     test("skips state update when session_id does not match state file", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(_path: string) =>
-          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<T, PaiError>,
+          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
+            T,
+            PaiError
+          >,
       });
       SessionSummary.execute(makeInput({ session_id: "test-session-123" }), deps);
       expect(lastWrittenPath).toBe("");
@@ -202,7 +203,10 @@ describe("SessionSummary", () => {
     test("still returns ok result when session ID mismatches", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(_path: string) =>
-          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<T, PaiError>,
+          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
+            T,
+            PaiError
+          >,
       });
       const result = SessionSummary.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -273,8 +277,7 @@ describe("SessionSummary", () => {
 
     test("does not write META.yaml if readFile fails", () => {
       const deps = makeDeps({
-        readFile: () =>
-          err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
+        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
       });
       SessionSummary.execute(makeInput(), deps);
       expect(lastWrittenPath).toBe("");
@@ -282,13 +285,10 @@ describe("SessionSummary", () => {
 
     test("still deletes state file even if META.yaml read fails", () => {
       const deps = makeDeps({
-        readFile: () =>
-          err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
+        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
       });
       SessionSummary.execute(makeInput(), deps);
-      expect(deletedPaths).toContain(
-        "/tmp/test/MEMORY/STATE/current-work-test-session-123.json",
-      );
+      expect(deletedPaths).toContain("/tmp/test/MEMORY/STATE/current-work-test-session-123.json");
     });
   });
 });

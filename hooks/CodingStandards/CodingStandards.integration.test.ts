@@ -7,11 +7,11 @@
  * Run with: RUN_INTEGRATION=1 bun test contracts/CodingStandards.integration.test.ts
  */
 
-import { describe, it, expect } from "bun:test";
-import { runHook, type RunHookOptions } from "@hooks/core/runner";
+import { describe, expect, it } from "bun:test";
+import { join } from "node:path";
+import { type RunHookOptions, runHook } from "@hooks/core/runner";
 import { CodingStandardsAdvisor } from "@hooks/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract";
 import { CodingStandardsEnforcer } from "@hooks/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract";
-import { join } from "path";
 
 // ─── Integration Guard ──────────────────────────────────────────────────────
 // Cost/time guard — only run when explicitly requested
@@ -39,12 +39,24 @@ function createMockIO(): MockIO & RunHookOptions {
   const io: MockIO = { stdoutLines: [], stderrLines: [], exitCode: null };
   return {
     ...io,
-    stdout: (msg: string) => { io.stdoutLines.push(msg); },
-    stderr: (msg: string) => { io.stderrLines.push(msg); },
-    exit: (code: number) => { io.exitCode = code; },
-    get stdoutLines() { return io.stdoutLines; },
-    get stderrLines() { return io.stderrLines; },
-    get exitCode() { return io.exitCode; },
+    stdout: (msg: string) => {
+      io.stdoutLines.push(msg);
+    },
+    stderr: (msg: string) => {
+      io.stderrLines.push(msg);
+    },
+    exit: (code: number) => {
+      io.exitCode = code;
+    },
+    get stdoutLines() {
+      return io.stdoutLines;
+    },
+    get stderrLines() {
+      return io.stderrLines;
+    },
+    get exitCode() {
+      return io.exitCode;
+    },
   };
 }
 
@@ -261,7 +273,10 @@ suite("CodingStandards — adapter exemption", () => {
     const dirtyContent = `import { readFileSync } from "fs";\ntry { readFileSync("x"); } catch (e) {}`;
     await runHook(CodingStandardsEnforcer, {
       ...io,
-      stdinOverride: makePreToolUseWriteInput("/home/user/.claude/hooks/core/runner.ts", dirtyContent),
+      stdinOverride: makePreToolUseWriteInput(
+        "/home/user/.claude/hooks/core/runner.ts",
+        dirtyContent,
+      ),
     });
 
     const output = JSON.parse(io.stdoutLines[0]);

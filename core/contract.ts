@@ -15,14 +15,14 @@
  *   D = deps type (injectable dependencies for testing)
  */
 
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 import type { HookEventType, HookInput } from "@hooks/core/types/hook-inputs";
 import type { HookOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 
 interface HookContractBase<
   I extends HookInput = HookInput,
-  O extends HookOutput = HookOutput,
+  _O extends HookOutput = HookOutput,
   D = unknown,
 > {
   /** Human-readable hook name for logging and error context. */

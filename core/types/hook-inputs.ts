@@ -43,7 +43,7 @@ export interface SessionEndInput extends HookInputBase {
 
 export interface UserPromptSubmitInput extends HookInputBase {
   prompt?: string;
-  user_prompt?: string;       // Legacy field name
+  user_prompt?: string; // Legacy field name
   transcript_path?: string;
 }
 

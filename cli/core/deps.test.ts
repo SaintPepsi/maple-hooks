@@ -2,10 +2,10 @@
  * Dependency deduplication tests.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { dedup } from "@hooks/cli/core/deps";
-import type { HookDef } from "@hooks/cli/types/resolved";
 import type { HookManifest } from "@hooks/cli/types/manifest";
+import type { HookDef } from "@hooks/cli/types/resolved";
 
 function makeHookDef(name: string, sourceDir: string): HookDef {
   const manifest: HookManifest = {

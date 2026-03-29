@@ -11,11 +11,9 @@
  * Source pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts
  */
 
-import type { Result } from "@hooks/core/result";
-import { tryCatch } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { jsonParseFailed } from "@hooks/core/error";
 import { readFile } from "@hooks/core/adapters/fs";
+import { jsonParseFailed } from "@hooks/core/error";
+import { tryCatch } from "@hooks/core/result";
 import { getSettingsPath } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────

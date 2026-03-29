@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { appendHookLog, _resetDirCache, type HookLogEntry } from "./log";
-import { mkdirSync, rmSync, readFileSync, existsSync, writeFileSync } from "fs";
-import { join } from "path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { _resetDirCache, appendHookLog, type HookLogEntry } from "./log";
 
 const TEST_LOG_DIR = "/tmp/pai-log-test";
 
@@ -49,9 +49,7 @@ describe("appendHookLog", () => {
     const files = [...new Bun.Glob("*.jsonl").scanSync(TEST_LOG_DIR)];
     expect(files.length).toBe(1);
 
-    const lines = readFileSync(join(TEST_LOG_DIR, files[0]), "utf-8")
-      .trim()
-      .split("\n");
+    const lines = readFileSync(join(TEST_LOG_DIR, files[0]), "utf-8").trim().split("\n");
     expect(lines.length).toBe(2);
     expect(JSON.parse(lines[0]).hook).toBe("First");
     expect(JSON.parse(lines[1]).hook).toBe("Second");
@@ -88,12 +86,9 @@ describe("appendHookLog", () => {
     const todayFile = `hook-log-${new Date().toISOString().split("T")[0]}.jsonl`;
     mkdirSync(join(TEST_LOG_DIR, todayFile), { recursive: true });
     const stderrMessages: string[] = [];
-    appendHookLog(
-      makeEntry(),
-      TEST_LOG_DIR,
-      false,
-      (msg: string) => { stderrMessages.push(msg); },
-    );
+    appendHookLog(makeEntry(), TEST_LOG_DIR, false, (msg: string) => {
+      stderrMessages.push(msg);
+    });
     expect(stderrMessages.length).toBe(1);
     expect(stderrMessages[0]).toContain("hook-log");
   });
@@ -102,13 +97,8 @@ describe("appendHookLog", () => {
 describe("appendHookLog — cleanup", () => {
   it("deletes files older than 7 days when cleanup triggers", () => {
     mkdirSync(TEST_LOG_DIR, { recursive: true });
-    const oldDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
-    writeFileSync(
-      join(TEST_LOG_DIR, `hook-log-${oldDate}.jsonl`),
-      '{"old":true}\n',
-    );
+    const oldDate = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    writeFileSync(join(TEST_LOG_DIR, `hook-log-${oldDate}.jsonl`), '{"old":true}\n');
 
     appendHookLog(makeEntry(), TEST_LOG_DIR, true);
 
@@ -120,19 +110,12 @@ describe("appendHookLog — cleanup", () => {
 
   it("keeps files 7 days old or newer", () => {
     mkdirSync(TEST_LOG_DIR, { recursive: true });
-    const recentDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
-    writeFileSync(
-      join(TEST_LOG_DIR, `hook-log-${recentDate}.jsonl`),
-      '{"recent":true}\n',
-    );
+    const recentDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    writeFileSync(join(TEST_LOG_DIR, `hook-log-${recentDate}.jsonl`), '{"recent":true}\n');
 
     appendHookLog(makeEntry(), TEST_LOG_DIR, true);
 
-    expect(
-      existsSync(join(TEST_LOG_DIR, `hook-log-${recentDate}.jsonl`)),
-    ).toBe(true);
+    expect(existsSync(join(TEST_LOG_DIR, `hook-log-${recentDate}.jsonl`))).toBe(true);
   });
 });
 

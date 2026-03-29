@@ -11,12 +11,12 @@
  * 5. Logs "deleted" event
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, PaiError } from "@hooks/core/error";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
-import { PaiError, ErrorCode } from "@hooks/core/error";
-import { CronDeleteContract } from "./CronDelete.contract";
 import type { CronDeleteDeps } from "./CronDelete.contract";
+import { CronDeleteContract } from "./CronDelete.contract";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -43,7 +43,10 @@ function makeDeps(overrides: Partial<CronDeleteDeps> = {}): TestDeps {
   return {
     readFile: (path: string) => {
       if (path in files) return { ok: true as const, value: files[path] };
-      return { ok: false as const, error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`) };
+      return {
+        ok: false as const,
+        error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`),
+      };
     },
     writeFile: (path: string, content: string) => {
       files[path] = content;
@@ -88,7 +91,9 @@ describe("CronDeleteContract.accepts()", () => {
   });
 
   it("returns false for tool_name CronCreate", () => {
-    expect(CronDeleteContract.accepts(makeInput("cron-1", { tool_name: "CronCreate" }))).toBe(false);
+    expect(CronDeleteContract.accepts(makeInput("cron-1", { tool_name: "CronCreate" }))).toBe(
+      false,
+    );
   });
 
   it("returns false for tool_name Bash", () => {
@@ -108,8 +113,26 @@ describe("CronDeleteContract.execute() -- removes cron by ID", () => {
     seedSession(deps, {
       sessionId: "test-session-001",
       crons: [
-        { id: "cron-a", name: "alpha", schedule: "*/5 * * * *", recurring: true, prompt: "a", createdAt: 1000, fireCount: 0, lastFired: null },
-        { id: "cron-b", name: "beta", schedule: "*/10 * * * *", recurring: true, prompt: "b", createdAt: 2000, fireCount: 1, lastFired: 3000 },
+        {
+          id: "cron-a",
+          name: "alpha",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "a",
+          createdAt: 1000,
+          fireCount: 0,
+          lastFired: null,
+        },
+        {
+          id: "cron-b",
+          name: "beta",
+          schedule: "*/10 * * * *",
+          recurring: true,
+          prompt: "b",
+          createdAt: 2000,
+          fireCount: 1,
+          lastFired: 3000,
+        },
       ],
     });
 
@@ -141,7 +164,16 @@ describe("CronDeleteContract.execute() -- deletes file when last cron removed", 
     seedSession(deps, {
       sessionId: "test-session-001",
       crons: [
-        { id: "cron-only", name: "lonely", schedule: "0 * * * *", recurring: false, prompt: "x", createdAt: 1000, fireCount: 0, lastFired: null },
+        {
+          id: "cron-only",
+          name: "lonely",
+          schedule: "0 * * * *",
+          recurring: false,
+          prompt: "x",
+          createdAt: 1000,
+          fireCount: 0,
+          lastFired: null,
+        },
       ],
     });
 
@@ -189,7 +221,16 @@ describe("CronDeleteContract.execute() -- JSONL logging", () => {
     seedSession(deps, {
       sessionId: "test-session-001",
       crons: [
-        { id: "cron-del", name: "my-timer", schedule: "*/5 * * * *", recurring: true, prompt: "p", createdAt: 1000, fireCount: 0, lastFired: null },
+        {
+          id: "cron-del",
+          name: "my-timer",
+          schedule: "*/5 * * * *",
+          recurring: true,
+          prompt: "p",
+          createdAt: 1000,
+          fireCount: 0,
+          lastFired: null,
+        },
       ],
     });
 
@@ -216,7 +257,16 @@ describe("CronDeleteContract.execute() -- JSONL logging", () => {
     seedSession(deps, {
       sessionId: "test-session-001",
       crons: [
-        { id: "cron-exists", name: "exists", schedule: "0 * * * *", recurring: true, prompt: "p", createdAt: 1000, fireCount: 0, lastFired: null },
+        {
+          id: "cron-exists",
+          name: "exists",
+          schedule: "0 * * * *",
+          recurring: true,
+          prompt: "p",
+          createdAt: 1000,
+          fireCount: 0,
+          lastFired: null,
+        },
       ],
     });
 

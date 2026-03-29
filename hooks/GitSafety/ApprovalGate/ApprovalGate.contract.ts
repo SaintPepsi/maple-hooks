@@ -14,15 +14,15 @@ import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
-  continueOk,
+  type BlockOutput,
   block,
   type ContinueOutput,
-  type BlockOutput,
+  continueOk,
 } from "@hooks/core/types/hook-outputs";
 import {
+  checkCiStatus,
   extractPrNumber,
   resolvePrFromBranch,
-  checkCiStatus,
   type SharedDeps,
 } from "@hooks/hooks/GitSafety/shared";
 
@@ -41,7 +41,10 @@ function getCommand(input: ToolHookInput): string {
   return (input.tool_input?.command as string) || "";
 }
 
-function formatCiBlockMessage(prNumber: number, checks: Array<{ name: string; state: string }>): string {
+function formatCiBlockMessage(
+  prNumber: number,
+  checks: Array<{ name: string; state: string }>,
+): string {
   const checkLines = checks.map((c) => `  ${c.name}: ${c.state}`).join("\n");
   return [
     `APPROVAL BLOCKED: CI checks are failing on PR #${prNumber}.`,
@@ -70,7 +73,7 @@ function formatVerificationReminder(prNumber: number): string {
 
 const defaultDeps: ApprovalGateDeps = {
   exec: (cmd: string) => execSyncSafe(cmd, { timeout: 15_000 }),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────

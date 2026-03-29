@@ -9,22 +9,20 @@
  * Uses Result pattern from @hooks/core/result — no try-catch in business logic.
  */
 
-import type { Result } from "@hooks/core/result";
-import { ok } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { dirname as nodeDirname, resolve as nodeResolve } from "node:path";
+import type { HookManifest } from "@hooks/cli/types/manifest";
 import {
+  fileExists as adapterFileExists,
   readFile as adapterReadFile,
   readJson as adapterReadJson,
-  fileExists as adapterFileExists,
 } from "@hooks/core/adapters/fs";
-import type { HookManifest } from "@hooks/cli/types/manifest";
-import { dirname as nodeDirname, resolve as nodeResolve } from "path";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { ok } from "@hooks/core/result";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type DiagnosticCode =
-  | "MANIFEST_PARSE_ERROR"
-  | "CONTRACT_MISSING";
+export type DiagnosticCode = "MANIFEST_PARSE_ERROR" | "CONTRACT_MISSING";
 
 export interface ValidationDiagnostic {
   code: DiagnosticCode;
@@ -55,7 +53,7 @@ const defaultDeps: ValidatorDeps = {
   fileExists: adapterFileExists,
   dirname: nodeDirname,
   resolve: nodeResolve,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Validator ──────────────────────────────────────────────────────────────

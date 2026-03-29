@@ -8,30 +8,26 @@
  * Usage: bun scripts/self-audit.ts
  */
 
-import { join, relative } from "path";
-import { readFile, writeFile, readDir, ensureDir } from "@hooks/core/adapters/fs";
-import { findAllViolations, type Violation } from "@hooks/lib/coding-standards-checks";
-import { findAnyViolations } from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
-import { scoreFile, type QualityScore } from "@hooks/core/quality-scorer";
+import { join, relative } from "node:path";
+import { ensureDir, readDir, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
+import { type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
+import { findAnyViolations } from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
+import { findAllViolations, type Violation } from "@hooks/lib/coding-standards-checks";
 
 // ─── Configuration ──────────────────────────────────────────────────────────
 
 const BASE_DIR = import.meta.dir.replace(/\/scripts$/, "");
 const REPORT_DIR = join(BASE_DIR, "..", "MEMORY", "LEARNING", "QUALITY");
 
-const TARGET_DIRS = [
-  join(BASE_DIR, "contracts"),
-  join(BASE_DIR, "lib"),
-  join(BASE_DIR, "core"),
-];
+const TARGET_DIRS = [join(BASE_DIR, "contracts"), join(BASE_DIR, "lib"), join(BASE_DIR, "core")];
 
 const EXCLUDE_PATTERNS = [
   /\.test\.ts$/,
   /\.spec\.ts$/,
   /\.coverage\.test\.ts$/,
   /\.integration\.test\.ts$/,
-  /\/adapters\//,       // Adapters legitimately wrap builtins
+  /\/adapters\//, // Adapters legitimately wrap builtins
   /\/node_modules\//,
 ];
 
@@ -125,8 +121,7 @@ function summarize(audits: FileAudit[]): AuditSummary {
 
   for (const audit of audits) {
     const hasIssues =
-      audit.codingStandards.length > 0 ||
-      audit.typeStrictness.violations.length > 0;
+      audit.codingStandards.length > 0 || audit.typeStrictness.violations.length > 0;
 
     if (hasIssues) filesWithViolations++;
 
@@ -142,9 +137,8 @@ function summarize(audits: FileAudit[]): AuditSummary {
   }
 
   scores.sort((a, b) => a.score - b.score);
-  const avgScore = scores.length > 0
-    ? scores.reduce((sum, s) => sum + s.score, 0) / scores.length
-    : 0;
+  const avgScore =
+    scores.length > 0 ? scores.reduce((sum, s) => sum + s.score, 0) / scores.length : 0;
 
   return {
     totalFiles: audits.length,
@@ -177,7 +171,9 @@ function generateReport(audits: FileAudit[], summary: AuditSummary): string {
   lines.push("");
   lines.push("| Category | Count |");
   lines.push("|----------|-------|");
-  for (const [category, count] of Object.entries(summary.violationsByCategory).sort((a, b) => b[1] - a[1])) {
+  for (const [category, count] of Object.entries(summary.violationsByCategory).sort(
+    (a, b) => b[1] - a[1],
+  )) {
     lines.push(`| ${category} | ${count} |`);
   }
   if (summary.anyTypeViolations > 0) {
@@ -262,19 +258,29 @@ function generateReport(audits: FileAudit[], summary: AuditSummary): string {
     lines.push("");
 
     if (summary.violationsByCategory["relative-import"]) {
-      lines.push(`- **Relative imports** are the dominant issue (${summary.violationsByCategory["relative-import"]} instances). These files predate the @hooks/ path alias and were never migrated.`);
+      lines.push(
+        `- **Relative imports** are the dominant issue (${summary.violationsByCategory["relative-import"]} instances). These files predate the @hooks/ path alias and were never migrated.`,
+      );
     }
     if (summary.violationsByCategory["try-catch"]) {
-      lines.push(`- **Try-catch flow control** appears in ${summary.violationsByCategory["try-catch"]} files. These need Result<T> refactoring.`);
+      lines.push(
+        `- **Try-catch flow control** appears in ${summary.violationsByCategory["try-catch"]} files. These need Result<T> refactoring.`,
+      );
     }
     if (summary.violationsByCategory["process-env"]) {
-      lines.push(`- **Direct process.env** access in ${summary.violationsByCategory["process-env"]} locations. Most are module-level BASE_DIR consts that feed defaultDeps -- structurally borderline.`);
+      lines.push(
+        `- **Direct process.env** access in ${summary.violationsByCategory["process-env"]} locations. Most are module-level BASE_DIR consts that feed defaultDeps -- structurally borderline.`,
+      );
     }
     if (summary.violationsByCategory["raw-import"]) {
-      lines.push(`- **Raw Node builtins** in ${summary.violationsByCategory["raw-import"]} locations (likely homedir from "os").`);
+      lines.push(
+        `- **Raw Node builtins** in ${summary.violationsByCategory["raw-import"]} locations (likely homedir from "os").`,
+      );
     }
     if (summary.anyTypeViolations > 0) {
-      lines.push(`- **any types** in ${summary.anyTypeViolations} locations. These need proper typing or unknown.`);
+      lines.push(
+        `- **any types** in ${summary.anyTypeViolations} locations. These need proper typing or unknown.`,
+      );
     }
   }
 
@@ -298,7 +304,9 @@ function main(): void {
     const audit = analyzeFile(f);
     const issues = audit.codingStandards.length + audit.typeStrictness.violations.length;
     const icon = issues === 0 ? "OK" : "WARN";
-    console.log(`[${icon}] ${audit.relativePath}: ${issues} violations, score ${audit.qualityScore?.score ?? "N/A"}/10`);
+    console.log(
+      `[${icon}] ${audit.relativePath}: ${issues} violations, score ${audit.qualityScore?.score ?? "N/A"}/10`,
+    );
     return audit;
   });
 
@@ -321,7 +329,9 @@ function main(): void {
   console.log(`   With violations: ${summary.filesWithViolations}`);
   console.log(`   Clean: ${summary.cleanFiles}`);
   console.log(`   Avg quality: ${summary.averageQualityScore}/10`);
-  console.log(`   Top violation: ${Object.entries(summary.violationsByCategory).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "none"}`);
+  console.log(
+    `   Top violation: ${Object.entries(summary.violationsByCategory).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "none"}`,
+  );
 }
 
 main();

@@ -1,8 +1,8 @@
-import { describe, it, expect, mock, type Mock } from "bun:test";
-import { handleVoice, type VoiceNotificationDeps } from "@hooks/handlers/VoiceNotification";
-import { ok, err } from "@hooks/core/result";
-import type { Result } from "@hooks/core/result";
+import { describe, expect, it, type Mock, mock } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
+import { handleVoice, type VoiceNotificationDeps } from "@hooks/handlers/VoiceNotification";
 import type { ParsedTranscript } from "@pai/Tools/TranscriptParser";
 
 type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
@@ -14,7 +14,8 @@ type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 function makeDeps(overrides: Partial<VoiceNotificationDeps> = {}): VoiceNotificationDeps {
   return {
     fileExists: () => false,
-    readJson: <T = unknown>(): Result<T, PaiError> => err({ name: "PaiError", code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
+    readJson: <T = unknown>(): Result<T, PaiError> =>
+      err({ name: "PaiError", code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
     appendFile: (): Result<void, PaiError> => ok(undefined),
     ensureDir: (): Result<void, PaiError> => ok(undefined),
     getIdentity: () => ({
@@ -27,9 +28,7 @@ function makeDeps(overrides: Partial<VoiceNotificationDeps> = {}): VoiceNotifica
     getTimestamp: () => "2026-03-09T12:00:00.000Z",
     isValidVoiceCompletion: (text: string) => text.length >= 10,
     getVoiceFallback: () => "",
-    fetch: mock(() =>
-      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    ),
+    fetch: mock(() => Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }))),
     baseDir: "/tmp/test-pai",
     stderr: mock(() => {}),
     ...overrides,
@@ -125,7 +124,7 @@ describe("handleVoice", () => {
       fetch: fetchMock,
       stderr: stderrMock,
       isValidVoiceCompletion: () => false,
-      getVoiceFallback: () => "",  // empty fallback
+      getVoiceFallback: () => "", // empty fallback
     });
 
     const transcript = makeTranscript({ voiceCompletion: "tiny" });
@@ -143,7 +142,7 @@ describe("handleVoice", () => {
       fetch: fetchMock,
       stderr: stderrMock,
       isValidVoiceCompletion: () => false,
-      getVoiceFallback: () => "Hi",  // too short
+      getVoiceFallback: () => "Hi", // too short
     });
 
     const transcript = makeTranscript({ voiceCompletion: "x" });
@@ -214,9 +213,7 @@ describe("handleVoice", () => {
     expect(stderrMock).toHaveBeenCalled();
 
     // Should log failed event with status code
-    const logCalls = appendMock.mock.calls.filter(
-      (call) => call[0].includes("voice-events.jsonl"),
-    );
+    const logCalls = appendMock.mock.calls.filter((call) => call[0].includes("voice-events.jsonl"));
     expect(logCalls.length).toBeGreaterThan(0);
     const parsed = JSON.parse(logCalls[0][1].trim());
     expect(parsed.event_type).toBe("failed");
@@ -240,7 +237,9 @@ describe("handleVoice", () => {
     // Should write to both global and session voice.jsonl
     const logPaths = appendMock.mock.calls.map((call) => call[0]);
     const hasGlobal = logPaths.some((p) => p.includes("voice-events.jsonl"));
-    const hasSession = logPaths.some((p) => p.includes("voice.jsonl") && p.includes("my-session-dir"));
+    const hasSession = logPaths.some(
+      (p) => p.includes("voice.jsonl") && p.includes("my-session-dir"),
+    );
     expect(hasGlobal).toBe(true);
     expect(hasSession).toBe(true);
   });

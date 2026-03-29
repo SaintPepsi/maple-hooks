@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import { RelationshipMemory, type RelationshipMemoryDeps } from "./RelationshipMemory.contract";
+import { describe, expect, test } from "bun:test";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
+import { RelationshipMemory, type RelationshipMemoryDeps } from "./RelationshipMemory.contract";
 
 // ─── Types (mirrored for test use) ───────────────────────────────────────────
 
@@ -34,7 +34,7 @@ function makeDeps(
   const stderrLines: string[] = [];
   return {
     readTranscript: (_path: string) => entries,
-    analyzeForRelationship: (e: TranscriptEntry[]) => {
+    analyzeForRelationship: (_e: TranscriptEntry[]) => {
       // Default: return empty — tests that need notes override this
       return [];
     },
@@ -94,9 +94,7 @@ describe("RelationshipMemory", () => {
 
   describe("execute — no notes extracted", () => {
     test("returns silent output when analyzeForRelationship returns empty", () => {
-      const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "Hello there" } },
-      ];
+      const entries: TranscriptEntry[] = [{ type: "user", message: { content: "Hello there" } }];
       const deps = makeDeps(entries);
       const result = RelationshipMemory.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -106,9 +104,7 @@ describe("RelationshipMemory", () => {
     });
 
     test("does not call writeNotes when no notes extracted", () => {
-      const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "Hello there" } },
-      ];
+      const entries: TranscriptEntry[] = [{ type: "user", message: { content: "Hello there" } }];
       const deps = makeDeps(entries);
       RelationshipMemory.execute(makeInput(), deps);
       expect(deps.capturedNotes).toHaveLength(0);
@@ -117,9 +113,7 @@ describe("RelationshipMemory", () => {
 
   describe("execute — with positive pattern notes (O type)", () => {
     test("writeNotes is called with O-type note for positives", () => {
-      const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "some content" } },
-      ];
+      const entries: TranscriptEntry[] = [{ type: "user", message: { content: "some content" } }];
       const oNote: RelationshipNote = {
         type: "O",
         entities: ["@TestPrincipal"],
@@ -136,9 +130,7 @@ describe("RelationshipMemory", () => {
     });
 
     test("logs captured count after writing notes", () => {
-      const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "some content" } },
-      ];
+      const entries: TranscriptEntry[] = [{ type: "user", message: { content: "some content" } }];
       const oNote: RelationshipNote = {
         type: "O",
         entities: ["@TestPrincipal"],
@@ -155,9 +147,7 @@ describe("RelationshipMemory", () => {
 
   describe("execute — with frustration pattern notes (O type)", () => {
     test("writeNotes is called with O-type note for frustrations", () => {
-      const entries: TranscriptEntry[] = [
-        { type: "user", message: { content: "some content" } },
-      ];
+      const entries: TranscriptEntry[] = [{ type: "user", message: { content: "some content" } }];
       const frustrationNote: RelationshipNote = {
         type: "O",
         entities: ["@TestPrincipal"],
@@ -316,9 +306,7 @@ describe("RelationshipMemory", () => {
         {
           type: "user",
           message: {
-            content: [
-              { type: "text", text: "Perfect and excellent result here!" },
-            ],
+            content: [{ type: "text", text: "Perfect and excellent result here!" }],
           },
         },
       ];

@@ -22,9 +22,9 @@ export interface ParsedFunction {
   line: number;
   params: ParamInfo[];
   returnType: string | null;
-  imports: string[];       // module specifiers imported in the same file
+  imports: string[]; // module specifiers imported in the same file
   bodyNodeTypes: string[]; // flattened list of AST node types in function body
-  bodyHash: string;        // hash of normalized AST structure
+  bodyHash: string; // hash of normalized AST structure
 }
 
 export interface ParamInfo {

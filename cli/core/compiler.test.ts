@@ -10,14 +10,14 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/deps.ts).
  */
 
-import { describe, it, expect } from "bun:test";
-import { compileHook, compiledCommandString } from "@hooks/cli/core/compiler";
-import type { CompilerDeps, CompileHookOpts } from "@hooks/cli/core/compiler";
+import { describe, expect, it } from "bun:test";
 import type { ExecResult } from "@hooks/cli/adapters/process";
-import type { Result } from "@hooks/cli/core/result";
-import { ok } from "@hooks/cli/core/result";
+import type { CompileHookOpts, CompilerDeps } from "@hooks/cli/core/compiler";
+import { compiledCommandString, compileHook } from "@hooks/cli/core/compiler";
 import type { PaihError } from "@hooks/cli/core/error";
 import { PaihErrorCode } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { ok } from "@hooks/cli/core/result";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
@@ -151,9 +151,12 @@ describe("compileHook", () => {
   });
 
   it("returns BUILD_FAILED when bun build exits non-zero", () => {
-    const memDeps = new InMemoryDeps({
-      "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
-    }, "/source");
+    const memDeps = new InMemoryDeps(
+      {
+        "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
+      },
+      "/source",
+    );
 
     const deps: CompilerDeps = {
       readFile: (p) => memDeps.readFile(p),

@@ -8,10 +8,10 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ Independent mechanical steps may be dispatched in parallel.
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: SonnetDelegationDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -77,10 +77,7 @@ export const SonnetDelegation: SyncHookContract<
     return isExecutingPlans(input);
   },
 
-  execute(
-    _input: ToolHookInput,
-    deps: SonnetDelegationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(_input: ToolHookInput, deps: SonnetDelegationDeps): Result<ContinueOutput, PaiError> {
     deps.stderr("[SonnetDelegation] Injecting Sonnet delegation guidance for executing-plans");
     return ok({
       type: "continue",

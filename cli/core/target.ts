@@ -5,10 +5,10 @@
  * a `.claude/` directory. This identifies the Claude Code project root.
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok } from "@hooks/cli/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
 import { targetNotFound } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { ok } from "@hooks/cli/core/result";
 import type { CliDeps } from "@hooks/cli/types/deps";
 
 /**
@@ -18,18 +18,13 @@ import type { CliDeps } from "@hooks/cli/types/deps";
  * @param deps - Injectable filesystem dependencies
  * @param startDir - Directory to start searching from (defaults to deps.cwd())
  */
-export function resolveTarget(
-  deps: CliDeps,
-  startDir?: string,
-): Result<string, PaihError> {
+export function resolveTarget(deps: CliDeps, startDir?: string): Result<string, PaihError> {
   const start = startDir ?? deps.cwd();
   let current = start;
 
   // Walk up until we find .claude/ or hit the filesystem root
   for (;;) {
-    const candidatePath = current.endsWith("/")
-      ? `${current}.claude`
-      : `${current}/.claude`;
+    const candidatePath = current.endsWith("/") ? `${current}.claude` : `${current}/.claude`;
 
     if (deps.fileExists(candidatePath)) {
       return ok(current);

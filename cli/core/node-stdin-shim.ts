@@ -10,10 +10,10 @@
  * core/adapters/stdin.ts so that compiled Node output has no Bun.* globals.
  */
 
-import type { Result } from "@hooks/core/result";
-import { ok, err } from "@hooks/core/result";
-import { stdinTimeout, stdinReadFailed } from "@hooks/core/error";
 import type { PaiError } from "@hooks/core/error";
+import { stdinReadFailed, stdinTimeout } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
 
 /**
  * Read stdin using Node's process.stdin with a race-based timeout.
@@ -36,10 +36,7 @@ export async function readStdin(timeoutMs: number = 200): Promise<Result<string,
     });
   });
 
-  await Promise.race([
-    readLoop,
-    new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
-  ]);
+  await Promise.race([readLoop, new Promise<void>((resolve) => setTimeout(resolve, timeoutMs))]);
 
   if (streamError !== null) {
     return err(stdinReadFailed(streamError));

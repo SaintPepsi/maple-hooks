@@ -5,13 +5,13 @@
  * Supports wildcard groups: ["*"] expansion, multi-name union, and deduplication.
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { hookNotFound, depCycle } from "@hooks/cli/core/error";
-import type { HookManifest, GroupManifest, PresetEntry } from "@hooks/cli/types/manifest";
-import type { HookDef, ResolvedHooks } from "@hooks/cli/types/resolved";
 import { dedup } from "@hooks/cli/core/deps";
+import type { PaihError } from "@hooks/cli/core/error";
+import { hookNotFound } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
+import type { GroupManifest, PresetEntry } from "@hooks/cli/types/manifest";
+import type { HookDef, ResolvedHooks } from "@hooks/cli/types/resolved";
 
 // ─── Manifest Index ─────────────────────────────────────────────────────────
 
@@ -64,10 +64,7 @@ export function resolve(
 
 // ─── Single Name Resolution ─────────────────────────────────────────────────
 
-function resolveSingle(
-  name: string,
-  manifests: ManifestIndex,
-): Result<HookDef[], PaihError> {
+function resolveSingle(name: string, manifests: ManifestIndex): Result<HookDef[], PaihError> {
   // 1. Hook name (highest priority)
   const hook = manifests.hooks.get(name);
   if (hook) return ok([hook]);
@@ -85,10 +82,7 @@ function resolveSingle(
 
 // ─── Group Expansion ────────────────────────────────────────────────────────
 
-function expandGroup(
-  group: GroupManifest,
-  manifests: ManifestIndex,
-): Result<HookDef[], PaihError> {
+function expandGroup(group: GroupManifest, manifests: ManifestIndex): Result<HookDef[], PaihError> {
   const hooks: HookDef[] = [];
   for (const hookName of group.hooks) {
     const hook = manifests.hooks.get(hookName);
@@ -100,10 +94,7 @@ function expandGroup(
 
 // ─── Preset Expansion ───────────────────────────────────────────────────────
 
-function expandPreset(
-  preset: PresetEntry,
-  manifests: ManifestIndex,
-): Result<HookDef[], PaihError> {
+function expandPreset(preset: PresetEntry, manifests: ManifestIndex): Result<HookDef[], PaihError> {
   const hooks: HookDef[] = [];
 
   // includeAll → every hook in the index
@@ -143,10 +134,7 @@ function expandPreset(
  * Expand groups: ["*"] to all group names in the index.
  * Non-wildcard entries pass through unchanged.
  */
-function expandWildcardGroups(
-  groups: string[],
-  manifests: ManifestIndex,
-): string[] {
+function expandWildcardGroups(groups: string[], manifests: ManifestIndex): string[] {
   if (groups.length === 1 && groups[0] === "*") {
     return [...manifests.groups.keys()];
   }
@@ -159,10 +147,7 @@ function expandWildcardGroups(
  * Detect cycles in the hook dependency graph.
  * Hooks depend on other hooks through shared group membership.
  */
-function detectCycles(
-  hooks: HookDef[],
-  _manifests: ManifestIndex,
-): Result<void, PaihError> {
+function detectCycles(hooks: HookDef[], _manifests: ManifestIndex): Result<void, PaihError> {
   // Build adjacency: hook → hooks it shares deps with (via group)
   const hooksByGroup = new Map<string, string[]>();
   for (const hook of hooks) {
@@ -179,7 +164,7 @@ function detectCycles(
   return ok(undefined);
 }
 
-function dfs(
+function _dfs(
   node: string,
   adj: Map<string, Set<string>>,
   visited: Set<string>,
@@ -200,7 +185,7 @@ function dfs(
   const neighbors = adj.get(node);
   if (neighbors) {
     for (const neighbor of neighbors) {
-      const cycle = dfs(neighbor, adj, visited, inStack, path);
+      const cycle = _dfs(neighbor, adj, visited, inStack, path);
       if (cycle) return cycle;
     }
   }

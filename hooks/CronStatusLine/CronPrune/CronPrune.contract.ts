@@ -7,25 +7,29 @@
  * that owned those crons is gone. Deletes the file and logs the event.
  */
 
+import { join } from "node:path";
+import {
+  appendFile,
+  ensureDir,
+  fileExists,
+  readDir as fsReadDir,
+  stat as fsStat,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
-import type { CronFileDeps, CronPathDeps, CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
-import { cronDir, appendCronLog } from "@hooks/hooks/CronStatusLine/shared";
-import { join } from "path";
-import {
-  fileExists,
-  readFile,
-  writeFile,
-  ensureDir,
-  readDir as fsReadDir,
-  removeFile,
-  appendFile,
-  stat as fsStat,
-} from "@hooks/core/adapters/fs";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import type {
+  CronFileDeps,
+  CronPathDeps,
+  CronSessionFile,
+} from "@hooks/hooks/CronStatusLine/shared";
+import { appendCronLog, cronDir } from "@hooks/hooks/CronStatusLine/shared";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -56,7 +60,7 @@ export interface CronPruneDeps extends CronFileDeps, CronPathDeps {
 // ─── Pure Logic ─────────────────────────────────────────────────────────────
 
 function pruneStaleFiles(
-  input: SessionStartInput,
+  _input: SessionStartInput,
   deps: CronPruneDeps,
 ): Result<SilentOutput, PaiError> {
   const dir = cronDir(deps);
@@ -104,9 +108,7 @@ function pruneStaleFiles(
     }
 
     // Dynamic threshold: 2x longest cron interval, or default if no crons parseable
-    const pruneThreshold = longestCronMs > 0
-      ? longestCronMs * 2
-      : DEFAULT_PRUNE_THRESHOLD_MS;
+    const pruneThreshold = longestCronMs > 0 ? longestCronMs * 2 : DEFAULT_PRUNE_THRESHOLD_MS;
 
     if (ageMs <= pruneThreshold) continue;
 
@@ -114,11 +116,7 @@ function pruneStaleFiles(
     deps.removeFile(filePath);
 
     // Log the pruning event
-    appendCronLog(
-      { type: "pruned", sessionId, cronCount, reason: "session_dead" },
-      deps,
-      deps,
-    );
+    appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_dead" }, deps, deps);
   }
 
   return ok({ type: "silent" });
@@ -149,22 +147,22 @@ const defaultDeps: CronPruneDeps = {
   readDir: (path: string) => {
     const result = fsReadDir(path);
     if (!result.ok) return result;
-    return ok(result.value.map((e: { name?: string } | string) => typeof e === "string" ? e : (e.name ?? "")));
+    return ok(
+      result.value.map((e: { name?: string } | string) =>
+        typeof e === "string" ? e : (e.name ?? ""),
+      ),
+    );
   },
   removeFile,
   appendFile,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   now: () => Date.now(),
   stat: fsStat,
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronPrune: SyncHookContract<
-  SessionStartInput,
-  SilentOutput,
-  CronPruneDeps
-> = {
+export const CronPrune: SyncHookContract<SessionStartInput, SilentOutput, CronPruneDeps> = {
   name: "CronPrune",
   event: "SessionStart",
 
@@ -172,10 +170,7 @@ export const CronPrune: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: SessionStartInput,
-    deps: CronPruneDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: SessionStartInput, deps: CronPruneDeps): Result<SilentOutput, PaiError> {
     return pruneStaleFiles(input, deps);
   },
 

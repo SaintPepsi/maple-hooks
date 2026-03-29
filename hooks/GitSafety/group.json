@@ -10,7 +10,5 @@
     "ProtectedBranchGuard",
     "WorktreeSafetyVerification"
   ],
-  "sharedFiles": [
-    "shared.ts"
-  ]
+  "sharedFiles": ["shared.ts"]
 }

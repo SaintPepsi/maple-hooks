@@ -1,10 +1,10 @@
-import { describe, test, expect } from "bun:test";
-import { CodeQualityGuard, type CodeQualityGuardDeps } from "./CodeQualityGuard.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
-import { scoreFile, formatAdvisory, formatDelta } from "@hooks/core/quality-scorer";
+import { formatAdvisory, formatDelta, scoreFile } from "@hooks/core/quality-scorer";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { CodeQualityGuard, type CodeQualityGuardDeps } from "./CodeQualityGuard.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -84,8 +84,8 @@ function makeDeps(overrides: Partial<CodeQualityGuardDeps> = {}): CodeQualityGua
     formatAdvisory,
     formatDelta,
     signal: {
-      appendFile: () => ok(undefined as void),
-      ensureDir: () => ok(undefined as void),
+      appendFile: () => ok(undefined as undefined),
+      ensureDir: () => ok(undefined as undefined),
       baseDir: "/tmp/test",
     },
     stderr: (msg) => logs.push(msg),

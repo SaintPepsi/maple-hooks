@@ -1,8 +1,11 @@
-import { describe, test, expect } from "bun:test";
-import { SessionQualityReport, type SessionQualityReportDeps } from "./SessionQualityReport.contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import {
+  SessionQualityReport,
+  type SessionQualityReportDeps,
+} from "./SessionQualityReport.contract";
 
 // -- Test Helpers --
 
@@ -165,10 +168,11 @@ describe("SessionQualityReport", () => {
   describe("execute -- edge cases", () => {
     test("report without low-score files omits Needing Attention section", () => {
       const deps = makeDeps({
-        readJson: <T>() => ok({
-          "/src/clean1.ts": { score: 9, violations: 0, timestamp: "2026-02-27T10:00:00Z" },
-          "/src/clean2.ts": { score: 8, violations: 1, timestamp: "2026-02-27T10:00:00Z" },
-        }) as Result<T, PaiError>,
+        readJson: <T>() =>
+          ok({
+            "/src/clean1.ts": { score: 9, violations: 0, timestamp: "2026-02-27T10:00:00Z" },
+            "/src/clean2.ts": { score: 8, violations: 1, timestamp: "2026-02-27T10:00:00Z" },
+          }) as Result<T, PaiError>,
       });
       SessionQualityReport.execute(makeInput(), deps);
       expect(lastWrittenContent).not.toContain("Needing Attention");
@@ -176,9 +180,10 @@ describe("SessionQualityReport", () => {
 
     test("report without high-score files omits Clean Files section", () => {
       const deps = makeDeps({
-        readJson: <T>() => ok({
-          "/src/messy.ts": { score: 3, violations: 10, timestamp: "2026-02-27T10:00:00Z" },
-        }) as Result<T, PaiError>,
+        readJson: <T>() =>
+          ok({
+            "/src/messy.ts": { score: 3, violations: 10, timestamp: "2026-02-27T10:00:00Z" },
+          }) as Result<T, PaiError>,
       });
       SessionQualityReport.execute(makeInput(), deps);
       expect(lastWrittenContent).not.toContain("Clean Files");
@@ -202,7 +207,10 @@ describe("SessionQualityReport defaultDeps", () => {
   });
 
   test("defaultDeps.writeFile returns a Result", () => {
-    const result = SessionQualityReport.defaultDeps.writeFile("/tmp/pai-test-sqr-12345.txt", "test");
+    const result = SessionQualityReport.defaultDeps.writeFile(
+      "/tmp/pai-test-sqr-12345.txt",
+      "test",
+    );
     expect(typeof result.ok).toBe("boolean");
   });
 

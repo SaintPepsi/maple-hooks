@@ -1,5 +1,5 @@
-import type { ParsedFunction } from "@tools/pattern-detector/types";
 import { bodySimilarity } from "@tools/pattern-detector/similarity";
+import type { ParsedFunction } from "@tools/pattern-detector/types";
 
 export function importOverlap(a: ParsedFunction, b: ParsedFunction): number {
   const setA = new Set(a.imports);

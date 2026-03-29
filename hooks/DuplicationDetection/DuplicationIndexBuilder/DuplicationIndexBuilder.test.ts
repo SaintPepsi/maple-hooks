@@ -1,21 +1,21 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
+import {
+  readDir as adapterReadDir,
+  readFile as adapterReadFile,
+  stat as adapterStat,
+  writeFile as adapterWriteFile,
+  fileExists,
+} from "@hooks/core/adapters/fs";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   DuplicationIndexBuilderContract,
   type DuplicationIndexBuilderDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
-import {
-  readFile as adapterReadFile,
-  writeFile as adapterWriteFile,
-  fileExists,
-  stat as adapterStat,
-  readDir as adapterReadDir,
-} from "@hooks/core/adapters/fs";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -74,15 +74,17 @@ function makeRealIndexBuilderDeps(): IndexBuilderDeps {
       const result = adapterStat(path);
       return result.ok ? { mtimeMs: result.value.mtimeMs } : null;
     },
-    join: (...parts: string[]): string => require("path").join(...parts) as string,
-    resolve: (path: string): string => require("path").resolve(path) as string,
+    join: (...parts: string[]): string => require("node:path").join(...parts) as string,
+    resolve: (path: string): string => require("node:path").resolve(path) as string,
     parserDeps: defaultParserDeps,
   };
 }
 
 // ─── Mock Deps Builder ────────────────────────────────────────────────────────
 
-function makeMockDeps(overrides: Partial<DuplicationIndexBuilderDeps> = {}): DuplicationIndexBuilderDeps {
+function makeMockDeps(
+  overrides: Partial<DuplicationIndexBuilderDeps> = {},
+): DuplicationIndexBuilderDeps {
   const writtenFiles = new Map<string, string>();
   return {
     indexBuilderDeps: makeRealIndexBuilderDeps(),
@@ -103,7 +105,6 @@ function makeMockDeps(overrides: Partial<DuplicationIndexBuilderDeps> = {}): Dup
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("DuplicationIndexBuilderContract", () => {
-
   // ─── accepts() ────────────────────────────────────────────────────────────
 
   describe("accepts()", () => {
@@ -147,7 +148,7 @@ describe("DuplicationIndexBuilderContract", () => {
         indexBuilderDeps: {
           ...makeRealIndexBuilderDeps(),
           join: (...parts: string[]): string => {
-            const joined = require("path").join(...parts) as string;
+            const joined = require("node:path").join(...parts) as string;
             if (joined.endsWith(".duplication-index.json")) return tempPath;
             return joined;
           },
@@ -197,7 +198,9 @@ describe("DuplicationIndexBuilderContract", () => {
 
       const deps = makeMockDeps({
         findProjectRoot: (): null => null,
-        stderr: (msg: string): void => { stderrMessages.push(msg); },
+        stderr: (msg: string): void => {
+          stderrMessages.push(msg);
+        },
       });
 
       const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`);
@@ -212,7 +215,7 @@ describe("DuplicationIndexBuilderContract", () => {
       let capturedContent = "";
 
       const deps = makeMockDeps({
-        writeFile: (path: string, content: string): boolean => {
+        writeFile: (_path: string, content: string): boolean => {
           capturedContent = content;
           return true;
         },
@@ -222,7 +225,7 @@ describe("DuplicationIndexBuilderContract", () => {
         indexBuilderDeps: {
           ...makeRealIndexBuilderDeps(),
           join: (...parts: string[]): string => {
-            const joined = require("path").join(...parts) as string;
+            const joined = require("node:path").join(...parts) as string;
             if (joined.endsWith(".duplication-index.json")) return tempPath;
             return joined;
           },
@@ -249,7 +252,7 @@ describe("DuplicationIndexBuilderContract", () => {
       let capturedContent = "";
 
       const deps = makeMockDeps({
-        writeFile: (path: string, content: string): boolean => {
+        writeFile: (_path: string, content: string): boolean => {
           capturedContent = content;
           return true;
         },
@@ -259,7 +262,7 @@ describe("DuplicationIndexBuilderContract", () => {
         indexBuilderDeps: {
           ...makeRealIndexBuilderDeps(),
           join: (...parts: string[]): string => {
-            const joined = require("path").join(...parts) as string;
+            const joined = require("node:path").join(...parts) as string;
             if (joined.endsWith(".duplication-index.json")) return tempPath;
             return joined;
           },

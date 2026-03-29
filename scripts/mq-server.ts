@@ -23,7 +23,7 @@
  *       ...
  */
 
-import { mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync } from "fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 
 // ─── Arg Parsing ────────────────────────────────────────────────────────────
 
@@ -107,10 +107,7 @@ function startServer(sessionId: string, requestedPort: number): void {
   );
 }
 
-async function handleMessage(
-  req: Request,
-  messagesDir: string,
-): Promise<Response> {
+async function handleMessage(req: Request, messagesDir: string): Promise<Response> {
   let payload: Record<string, unknown>;
   try {
     payload = (await req.json()) as Record<string, unknown>;
@@ -148,10 +145,10 @@ function handleStatus(baseDir: string, messagesDir: string): Response {
     cursor = parseInt(raw, 10) || 0;
   }
 
-  return new Response(
-    JSON.stringify({ messageCount, cursor, pending: messageCount - cursor }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify({ messageCount, cursor, pending: messageCount - cursor }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────

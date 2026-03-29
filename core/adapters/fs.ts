@@ -5,30 +5,30 @@
  */
 
 import {
-  existsSync,
-  readFileSync,
-  writeFileSync,
   appendFileSync,
-  mkdirSync,
-  unlinkSync,
-  rmSync,
   copyFileSync,
-  statSync,
-  readdirSync,
-  symlinkSync,
-  lstatSync,
-  utimesSync,
   type Dirent,
-} from "fs";
-import { dirname } from "path";
-import { type Result, ok, tryCatch } from "../result";
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  unlinkSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
+import { dirname } from "node:path";
 import {
-  type PaiError,
+  dirCreateFailed,
   fileNotFound,
   fileReadFailed,
   fileWriteFailed,
-  dirCreateFailed,
+  type PaiError,
 } from "../error";
+import { type Result, tryCatch } from "../result";
 
 export function fileExists(path: string): boolean {
   return existsSync(path);
@@ -77,35 +77,45 @@ export function appendFile(path: string, content: string): Result<void, PaiError
 
 export function ensureDir(path: string): Result<void, PaiError> {
   return tryCatch(
-    () => { mkdirSync(path, { recursive: true }); },
+    () => {
+      mkdirSync(path, { recursive: true });
+    },
     (e) => dirCreateFailed(path, e),
   );
 }
 
 export function removeFile(path: string): Result<void, PaiError> {
   return tryCatch(
-    () => { unlinkSync(path); },
+    () => {
+      unlinkSync(path);
+    },
     (e) => fileWriteFailed(path, e),
   );
 }
 
 export function removeDir(path: string): Result<void, PaiError> {
   return tryCatch(
-    () => { rmSync(path, { recursive: true, force: true }); },
+    () => {
+      rmSync(path, { recursive: true, force: true });
+    },
     (e) => dirCreateFailed(path, e),
   );
 }
 
 export function setFileTimes(path: string, atime: Date, mtime: Date): Result<void, PaiError> {
   return tryCatch(
-    () => { utimesSync(path, atime, mtime); },
+    () => {
+      utimesSync(path, atime, mtime);
+    },
     (e) => fileWriteFailed(path, e),
   );
 }
 
 export function copyFile(src: string, dest: string): Result<void, PaiError> {
   return tryCatch(
-    () => { copyFileSync(src, dest); },
+    () => {
+      copyFileSync(src, dest);
+    },
     (e) => fileWriteFailed(dest, e),
   );
 }
@@ -122,16 +132,21 @@ export function stat(path: string): Result<{ mtimeMs: number; isDirectory(): boo
 
 export function readDir(path: string, opts: { withFileTypes: true }): Result<Dirent[], PaiError>;
 export function readDir(path: string): Result<string[], PaiError>;
-export function readDir(path: string, opts?: { withFileTypes: true }): Result<Dirent[] | string[], PaiError> {
+export function readDir(
+  path: string,
+  opts?: { withFileTypes: true },
+): Result<Dirent[] | string[], PaiError> {
   return tryCatch(
-    () => opts ? readdirSync(path, opts) : readdirSync(path),
+    () => (opts ? readdirSync(path, opts) : readdirSync(path)),
     (e) => fileReadFailed(path, e),
   );
 }
 
 export function symlink(target: string, path: string): Result<void, PaiError> {
   return tryCatch(
-    () => { symlinkSync(target, path); },
+    () => {
+      symlinkSync(target, path);
+    },
     (e) => fileWriteFailed(path, e),
   );
 }

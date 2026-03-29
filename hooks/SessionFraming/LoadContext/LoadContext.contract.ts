@@ -6,18 +6,18 @@
  * everything as a <system-reminder> ContextOutput.
  */
 
+import { join } from "node:path";
+import { fileExists, readDir, readFile, readJson, stat } from "@hooks/core/adapters/fs";
+import { exec, execSyncSafe } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
 import { unknownError } from "@hooks/core/error";
-import { fileExists, readFile, readJson, readDir, stat } from "@hooks/core/adapters/fs";
-import { exec, execSyncSafe } from "@hooks/core/adapters/process";
-import { join } from "path";
-import { setTabState, readTabState } from "@hooks/lib/tab-setter";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
+import { readTabState, setTabState } from "@hooks/lib/tab-setter";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -45,10 +45,20 @@ export interface LoadContextDeps {
   fileExists: (path: string) => boolean;
   readFile: (path: string) => Result<string, PaiError>;
   readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  readDir: (path: string, opts?: { withFileTypes: true }) => Result<{ name: string; isDirectory(): boolean }[], PaiError>;
+  readDir: (
+    path: string,
+    opts?: { withFileTypes: true },
+  ) => Result<{ name: string; isDirectory(): boolean }[], PaiError>;
   stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
-  execSyncSafe: (cmd: string, opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined }) => Result<string, PaiError>;
-  setTabState: (opts: { title: string; state: string; sessionId: string }) => Result<void, PaiError>;
+  execSyncSafe: (
+    cmd: string,
+    opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined },
+  ) => Result<string, PaiError>;
+  setTabState: (opts: {
+    title: string;
+    state: string;
+    sessionId: string;
+  }) => Result<void, PaiError>;
   readTabState: (sessionId: string) => Result<{ state: string } | null, PaiError>;
   getDAName: typeof getDAName;
   recordSessionStart: typeof recordSessionStart;
@@ -71,11 +81,7 @@ function loadSettings(baseDir: string, deps: LoadContextDeps): Settings {
 }
 
 function loadContextFiles(baseDir: string, settings: Settings, deps: LoadContextDeps): string {
-  const defaultFiles = [
-    "PAI/SKILL.md",
-    "PAI/AISTEERINGRULES.md",
-    "PAI/USER/AISTEERINGRULES.md",
-  ];
+  const defaultFiles = ["PAI/SKILL.md", "PAI/AISTEERINGRULES.md", "PAI/USER/AISTEERINGRULES.md"];
 
   const contextFiles = settings.contextFiles || defaultFiles;
   let combined = "";
@@ -198,11 +204,19 @@ function loadRelationshipContext(baseDir: string, deps: LoadContextDeps): string
 
   const recentNotes: string[] = [];
   for (const date of [today, yesterday]) {
-    const notePath = join(baseDir, "MEMORY/RELATIONSHIP", formatMonth(date), `${formatDate(date)}.md`);
+    const notePath = join(
+      baseDir,
+      "MEMORY/RELATIONSHIP",
+      formatMonth(date),
+      `${formatDate(date)}.md`,
+    );
     if (deps.fileExists(notePath)) {
       const result = deps.readFile(notePath);
       if (result.ok) {
-        const notes = result.value.split("\n").filter((line: string) => line.trim().startsWith("- ")).slice(0, 5);
+        const notes = result.value
+          .split("\n")
+          .filter((line: string) => line.trim().startsWith("- "))
+          .slice(0, 5);
         if (notes.length > 0) {
           recentNotes.push(`*${formatDate(date)}:*`);
           recentNotes.push(...notes);
@@ -308,7 +322,7 @@ function getRecentWorkSessions(baseDir: string, deps: LoadContextDeps): WorkSess
     sessions.push({
       type: "recent",
       name: dirName,
-      title: title.length > 60 ? title.substring(0, 57) + "..." : title,
+      title: title.length > 60 ? `${title.substring(0, 57)}...` : title,
       status,
       timestamp: `${y}-${mo}-${d} ${h}:${mi}`,
       stale: false,
@@ -323,7 +337,8 @@ function buildActiveWorkSummary(baseDir: string, deps: LoadContextDeps): string 
   const recentSessions = getRecentWorkSessions(baseDir, deps);
   if (recentSessions.length === 0) return null;
 
-  let summary = "\n\u{1F4CB} ACTIVE WORK:\n\n  \u{2500}\u{2500} Recent Sessions (last 48h) \u{2500}\u{2500}\n";
+  let summary =
+    "\n\u{1F4CB} ACTIVE WORK:\n\n  \u{2500}\u{2500} Recent Sessions (last 48h) \u{2500}\u{2500}\n";
   for (const s of recentSessions) {
     summary += `\n  \u{26A1} ${s.title}\n`;
     summary += `     ${s.timestamp} | Status: ${s.status}\n`;
@@ -342,7 +357,7 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   // Don't surface proposals while agent is still analyzing
   if (deps.fileExists(lockPath)) {
     const s = deps.stat(lockPath);
-    if (s.ok && (Date.now() - s.value.mtimeMs) < 10 * 60 * 1000) {
+    if (s.ok && Date.now() - s.value.mtimeMs < 10 * 60 * 1000) {
       return null; // Agent still working
     }
   }
@@ -353,7 +368,7 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   if (!filesResult.ok) return null;
 
   const proposals = filesResult.value.filter(
-    (f) => !f.isDirectory() && f.name.endsWith(".md") && f.name !== ".gitkeep"
+    (f) => !f.isDirectory() && f.name.endsWith(".md") && f.name !== ".gitkeep",
   );
   if (proposals.length === 0) return null;
 
@@ -369,7 +384,9 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
     const confidenceMatch = frontmatter?.[1]?.match(/^\s*agent_score:\s*(\d+)/m);
     const confidence = confidenceMatch ? ` | confidence: ${confidenceMatch[1]}` : "";
     if (titleMatch) {
-      summaries.push(`  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"}${confidence})`);
+      summaries.push(
+        `  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"}${confidence})`,
+      );
     }
   }
 
@@ -377,14 +394,18 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
 
   const more = proposals.length > 5 ? `\n  ...and ${proposals.length - 5} more` : "";
 
-  return `\n## Pending Improvement Proposals\n\n` +
+  return (
+    `\n## Pending Improvement Proposals\n\n` +
     `You have **${proposals.length}** pending improvement proposal${proposals.length === 1 ? "" : "s"} from recent learnings:\n` +
-    summaries.join("\n") + more + "\n\n" +
+    summaries.join("\n") +
+    more +
+    "\n\n" +
     `Present these to Ian for review using /review-proposals for structured batch review.\n` +
     `Path: MEMORY/LEARNING/PROPOSALS/pending/\n` +
     `To approve: apply the change, annotate with rationale, move to PROPOSALS/applied/\n` +
     `To reject: annotate with rationale, move to PROPOSALS/rejected/\n` +
-    `To defer: annotate with rationale, move to PROPOSALS/deferred/\n`;
+    `To defer: annotate with rationale, move to PROPOSALS/deferred/\n`
+  );
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -394,25 +415,38 @@ const defaultDeps: LoadContextDeps = {
   readFile,
   readJson,
   readDir: (path: string, _opts?: { withFileTypes: true }) =>
-    readDir(path, { withFileTypes: true }) as Result<{ name: string; isDirectory(): boolean }[], PaiError>,
+    readDir(path, { withFileTypes: true }) as Result<
+      { name: string; isDirectory(): boolean }[],
+      PaiError
+    >,
   stat,
   execSyncSafe,
-  setTabState: (opts) => tryCatch(() => setTabState(opts as Parameters<typeof setTabState>[0]), (e) => unknownError(e)),
-  readTabState: (id) => tryCatch(() => readTabState(id), (e) => unknownError(e)),
+  setTabState: (opts) =>
+    tryCatch(
+      () => setTabState(opts as Parameters<typeof setTabState>[0]),
+      (e) => unknownError(e),
+    ),
+  readTabState: (id) =>
+    tryCatch(
+      () => readTabState(id),
+      (e) => unknownError(e),
+    ),
   getDAName,
   recordSessionStart,
   getCurrentDate: async () => {
-    const r = await exec("date +\"%Y-%m-%d %H:%M:%S %Z\"", {
+    const r = await exec('date +"%Y-%m-%d %H:%M:%S %Z"', {
       timeout: 3000,
     });
     return r.ok ? r.value.stdout.trim() : new Date().toISOString();
   },
   isSubagent: () => {
     const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined;
+    return (
+      claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined
+    );
   },
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const LoadContext: AsyncHookContract<
@@ -439,10 +473,18 @@ export const LoadContext: AsyncHookContract<
 
     // Reset tab title (preserve working state through compaction)
     const tabResult = deps.readTabState(input.session_id);
-    if (tabResult.ok && tabResult.value && (tabResult.value.state === "working" || tabResult.value.state === "thinking")) {
+    if (
+      tabResult.ok &&
+      tabResult.value &&
+      (tabResult.value.state === "working" || tabResult.value.state === "thinking")
+    ) {
       deps.stderr(`Tab in ${tabResult.value.state} state - preserving title through compaction`);
     } else {
-      deps.setTabState({ title: `${deps.getDAName()} ready\u{2026}`, state: "idle", sessionId: input.session_id });
+      deps.setTabState({
+        title: `${deps.getDAName()} ready\u{2026}`,
+        state: "idle",
+        sessionId: input.session_id,
+      });
     }
 
     deps.recordSessionStart();
@@ -499,8 +541,8 @@ The assistant's name is: **${daName}**
 ---
 
 ${contextContent}
-${codingStandards ? "\n---\n\n## Coding Standards\n\n" + codingStandards + "\n" : ""}
-${relationshipContext ? "\n---\n" + relationshipContext : ""}
+${codingStandards ? `\n---\n\n## Coding Standards\n\n${codingStandards}\n` : ""}
+${relationshipContext ? `\n---\n${relationshipContext}` : ""}
 ---
 
 This context is now active. Additional context loads dynamically as needed.

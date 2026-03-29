@@ -7,13 +7,13 @@
  * Output: SilentOutput (report written to disk, no stdout needed).
  */
 
+import { join } from "node:path";
+import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { PaiError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { fileExists, readFile, readJson, writeFile, ensureDir } from "@hooks/core/adapters/fs";
-import { join } from "path";
 import { getLocalComponents } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -61,13 +61,12 @@ function buildReport(
     delta: null,
   }));
 
-  const improved = fileSummaries.filter((f) => f.delta !== null && f.delta > 0);
-  const degraded = fileSummaries.filter((f) => f.delta !== null && f.delta < 0);
-  const unchanged = fileSummaries.filter((f) => f.delta === null || f.delta === 0);
+  const _improved = fileSummaries.filter((f) => f.delta !== null && f.delta > 0);
+  const _degraded = fileSummaries.filter((f) => f.delta !== null && f.delta < 0);
+  const _unchanged = fileSummaries.filter((f) => f.delta === null || f.delta === 0);
 
-  const avgScore = files.length > 0
-    ? files.reduce((sum, [, e]) => sum + e.score, 0) / files.length
-    : 0;
+  const avgScore =
+    files.length > 0 ? files.reduce((sum, [, e]) => sum + e.score, 0) / files.length : 0;
 
   const lines: string[] = [
     `# Session Quality Report`,
@@ -101,7 +100,9 @@ function buildReport(
     if (lowScore.length > 0) {
       lines.push(`### Files Needing Attention`);
       for (const [filePath, entry] of lowScore) {
-        lines.push(`- **${filePath.split("/").pop()}** (${entry.score}/10): ${entry.violations} violations`);
+        lines.push(
+          `- **${filePath.split("/").pop()}** (${entry.score}/10): ${entry.violations} violations`,
+        );
       }
       lines.push(``);
     }
@@ -132,7 +133,7 @@ const defaultDeps: SessionQualityReportDeps = {
   ensureDir,
   getLocalComponents,
   baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const SessionQualityReport: SyncHookContract<
@@ -147,11 +148,13 @@ export const SessionQualityReport: SyncHookContract<
     return !!input.session_id;
   },
 
-  execute(
-    input: SessionEndInput,
-    deps: SessionQualityReportDeps,
-  ): Result<SilentOutput, PaiError> {
-    const baselinePath = join(deps.baseDir, "MEMORY", "STATE", `quality-baselines-${input.session_id}.json`);
+  execute(input: SessionEndInput, deps: SessionQualityReportDeps): Result<SilentOutput, PaiError> {
+    const baselinePath = join(
+      deps.baseDir,
+      "MEMORY",
+      "STATE",
+      `quality-baselines-${input.session_id}.json`,
+    );
 
     if (!deps.fileExists(baselinePath)) {
       deps.stderr("[SessionQualityReport] No quality baselines found, skipping");
@@ -173,7 +176,13 @@ export const SessionQualityReport: SyncHookContract<
     const time = deps.getLocalComponents();
     const report = buildReport(baselines, input.session_id, time);
 
-    const qualityDir = join(deps.baseDir, "MEMORY", "LEARNING", "QUALITY", `${time.year}-${time.month}`);
+    const qualityDir = join(
+      deps.baseDir,
+      "MEMORY",
+      "LEARNING",
+      "QUALITY",
+      `${time.year}-${time.month}`,
+    );
     deps.ensureDir(qualityDir);
 
     const filename = `quality-${time.year}${time.month}${time.day}-${time.hours}${time.minutes}.md`;

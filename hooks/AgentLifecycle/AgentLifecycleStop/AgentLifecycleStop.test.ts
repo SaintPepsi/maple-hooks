@@ -1,9 +1,9 @@
-import { describe, test, expect } from "bun:test";
-import { AgentLifecycleStop } from "./AgentLifecycleStop.contract";
-import type { AgentLifecycleDeps, AgentFileData } from "../shared";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { fileNotFound, fileWriteFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SubagentStopInput } from "@hooks/core/types/hook-inputs";
+import type { AgentFileData, AgentLifecycleDeps } from "../shared";
+import { AgentLifecycleStop } from "./AgentLifecycleStop.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -203,7 +203,11 @@ describe("AgentLifecycleStop", () => {
         stderr: (msg) => messages.push(msg),
       });
       AgentLifecycleStop.execute(stopInput, deps);
-      expect(messages.some((m) => m.includes("crash") || m.includes("recovery") || m.includes("missing"))).toBe(true);
+      expect(
+        messages.some(
+          (m) => m.includes("crash") || m.includes("recovery") || m.includes("missing"),
+        ),
+      ).toBe(true);
     });
   });
 

@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
-import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract";
-import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+import { describe, expect, it } from "bun:test";
+import type { PaiError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract";
+import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
 
 const TEST_STATE_DIR = "/tmp/pai-citation-test";
 
@@ -77,9 +77,14 @@ describe("CitationTracker", () => {
   it("writes flag file on execute", () => {
     let writtenPath = "";
     const deps = makeDeps({
-      writeFlag: (path: string) => { writtenPath = path; },
+      writeFlag: (path: string) => {
+        writtenPath = path;
+      },
     });
-    const result = CitationTracker.execute(makeToolInput("WebSearch"), deps) as Result<ContinueOutput, PaiError>;
+    const result = CitationTracker.execute(makeToolInput("WebSearch"), deps) as Result<
+      ContinueOutput,
+      PaiError
+    >;
 
     expect(result.ok).toBe(true);
     expect(writtenPath).toContain("research-active");
@@ -93,11 +98,15 @@ describe("CitationEnforcement", () => {
   });
 
   it("accepts Write tool", () => {
-    expect(CitationEnforcement.accepts(makeToolInput("Write", { file_path: "/tmp/test.md" }))).toBe(true);
+    expect(CitationEnforcement.accepts(makeToolInput("Write", { file_path: "/tmp/test.md" }))).toBe(
+      true,
+    );
   });
 
   it("accepts Edit tool", () => {
-    expect(CitationEnforcement.accepts(makeToolInput("Edit", { file_path: "/tmp/test.md" }))).toBe(true);
+    expect(CitationEnforcement.accepts(makeToolInput("Edit", { file_path: "/tmp/test.md" }))).toBe(
+      true,
+    );
   });
 
   it("rejects non-write tools", () => {
@@ -153,12 +162,11 @@ describe("CitationEnforcement", () => {
     const deps = makeDeps({
       fileExists: () => true,
       readReminded: () => [],
-      writeReminded: (_path: string, files: string[]) => { writtenPaths = files; },
+      writeReminded: (_path: string, files: string[]) => {
+        writtenPaths = files;
+      },
     });
-    CitationEnforcement.execute(
-      makeToolInput("Write", { file_path: "/tmp/new-article.md" }),
-      deps,
-    );
+    CitationEnforcement.execute(makeToolInput("Write", { file_path: "/tmp/new-article.md" }), deps);
 
     expect(writtenPaths).toContain("/tmp/new-article.md");
   });
@@ -167,10 +175,10 @@ describe("CitationEnforcement", () => {
     const deps = makeDeps({
       fileExists: () => true,
     });
-    const result = CitationEnforcement.execute(
-      makeToolInput("Write", {}),
-      deps,
-    ) as Result<ContinueOutput, PaiError>;
+    const result = CitationEnforcement.execute(makeToolInput("Write", {}), deps) as Result<
+      ContinueOutput,
+      PaiError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;

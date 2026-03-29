@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { VoiceGate, type VoiceGateDeps } from "@hooks/hooks/VoiceGate/VoiceGate/VoiceGate.contract";
+import { describe, expect, it } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { VoiceGate, type VoiceGateDeps } from "@hooks/hooks/VoiceGate/VoiceGate/VoiceGate.contract";
 
 function makeDeps(overrides: Partial<VoiceGateDeps> = {}): VoiceGateDeps {
   return {
@@ -30,19 +30,19 @@ describe("VoiceGate", () => {
   });
 
   it("accepts voice server commands", () => {
-    expect(VoiceGate.accepts(makeInput('curl -s localhost:8888/notify'))).toBe(true);
+    expect(VoiceGate.accepts(makeInput("curl -s localhost:8888/notify"))).toBe(true);
   });
 
   it("allows voice request from main session", () => {
     const deps = makeDeps({ getIsSubagent: () => false });
-    const result = VoiceGate.execute(makeInput('curl localhost:8888/notify'), deps);
+    const result = VoiceGate.execute(makeInput("curl localhost:8888/notify"), deps);
     expect(result.ok).toBe(true);
     expect(result.value?.type).toBe("continue");
   });
 
   it("blocks voice request from subagent", () => {
     const deps = makeDeps({ getIsSubagent: () => true });
-    const result = VoiceGate.execute(makeInput('curl localhost:8888/notify'), deps);
+    const result = VoiceGate.execute(makeInput("curl localhost:8888/notify"), deps);
     expect(result.ok).toBe(true);
     expect(result.value?.type).toBe("block");
     if (result.ok && result.value.type === "block") {

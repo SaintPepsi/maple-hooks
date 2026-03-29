@@ -5,9 +5,14 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/types/deps.ts).
  */
 
-import { describe, it, expect } from "bun:test";
-import { readSettings, writeSettings, mergeHookEntry, detectForeignHooks } from "@hooks/cli/core/settings";
+import { describe, expect, it } from "bun:test";
 import type { SettingsJson } from "@hooks/cli/core/settings";
+import {
+  detectForeignHooks,
+  mergeHookEntry,
+  readSettings,
+  writeSettings,
+} from "@hooks/cli/core/settings";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
 import type { Lockfile } from "@hooks/cli/types/lockfile";
 
@@ -65,7 +70,9 @@ describe("mergeHookEntry", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.hooks?.PreToolUse).toHaveLength(1);
-      expect(result.value.hooks?.PreToolUse?.[0].hooks[0].command).toBe("./hooks/Test/Test.hook.ts");
+      expect(result.value.hooks?.PreToolUse?.[0].hooks[0].command).toBe(
+        "./hooks/Test/Test.hook.ts",
+      );
     }
   });
 
@@ -117,9 +124,7 @@ describe("mergeHookEntry", () => {
     const settings: SettingsJson = {
       hooks: {
         SessionStart: [{ hooks: [{ type: "command", command: "./foreign.ts" }] }],
-        PreToolUse: [
-          { matcher: "Bash", hooks: [{ type: "command", command: "./bash-hook.ts" }] },
-        ],
+        PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: "./bash-hook.ts" }] }],
       },
     };
     const result = mergeHookEntry(settings, "PreToolUse", undefined, "./hooks/New/New.hook.ts");
@@ -173,9 +178,7 @@ describe("detectForeignHooks", () => {
   it("returns empty when all hooks are tracked", () => {
     const settings: SettingsJson = {
       hooks: {
-        PreToolUse: [
-          { hooks: [{ type: "command", command: "./hooks/A/A.hook.ts" }] },
-        ],
+        PreToolUse: [{ hooks: [{ type: "command", command: "./hooks/A/A.hook.ts" }] }],
       },
     };
     const lockfile: Lockfile = {

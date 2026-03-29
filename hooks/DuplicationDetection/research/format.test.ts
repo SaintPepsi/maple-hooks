@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { formatClusters, formatSummary } from "@tools/pattern-detector/format";
 import type { Cluster } from "@tools/pattern-detector/types";
 
@@ -66,7 +66,12 @@ describe("formatClusters", () => {
   test("groups output by detector type", () => {
     const clusters = [
       makeCluster({ detector: "import", id: "import:aaa", label: "shared:react" }),
-      makeCluster({ detector: "structural", id: "structural:bbb", label: "Structural match: fn1, fn2", confidence: 1.0 }),
+      makeCluster({
+        detector: "structural",
+        id: "structural:bbb",
+        label: "Structural match: fn1, fn2",
+        confidence: 1.0,
+      }),
     ];
     const result = formatClusters(clusters, { homeDir: "/home/user" });
     expect(result).toContain("Detector A");
@@ -79,18 +84,16 @@ describe("formatClusters", () => {
   });
 
   test("shows correct detector header for structural detector", () => {
-    const result = formatClusters(
-      [makeCluster({ detector: "structural", id: "structural:x" })],
-      { homeDir: "/home/user" }
-    );
+    const result = formatClusters([makeCluster({ detector: "structural", id: "structural:x" })], {
+      homeDir: "/home/user",
+    });
     expect(result).toContain("Detector B: Structural Hash Bucketing");
   });
 
   test("shows correct detector header for layered detector", () => {
-    const result = formatClusters(
-      [makeCluster({ detector: "layered", id: "layered:x" })],
-      { homeDir: "/home/user" }
-    );
+    const result = formatClusters([makeCluster({ detector: "layered", id: "layered:x" })], {
+      homeDir: "/home/user",
+    });
     expect(result).toContain("Detector C: Layered");
   });
 

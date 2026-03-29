@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { ModeAnalytics, type ModeAnalyticsDeps } from "./ModeAnalytics.contract";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { processExecFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { ModeAnalytics, type ModeAnalyticsDeps } from "./ModeAnalytics.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -51,7 +51,8 @@ describe("ModeAnalytics", () => {
     });
 
     test("calls CollectModeData.ts with correct path and timeout", () => {
-      const calls: Array<{ cmd: string; opts: { cwd?: string; timeout?: number } | undefined }> = [];
+      const calls: Array<{ cmd: string; opts: { cwd?: string; timeout?: number } | undefined }> =
+        [];
       const deps = makeDeps({
         execSyncSafe: (cmd, opts) => {
           calls.push({ cmd, opts });
@@ -65,7 +66,8 @@ describe("ModeAnalytics", () => {
     });
 
     test("calls GenerateDashboard.ts with correct path and timeout", () => {
-      const calls: Array<{ cmd: string; opts: { cwd?: string; timeout?: number } | undefined }> = [];
+      const calls: Array<{ cmd: string; opts: { cwd?: string; timeout?: number } | undefined }> =
+        [];
       const deps = makeDeps({
         execSyncSafe: (cmd, opts) => {
           calls.push({ cmd, opts });

@@ -10,13 +10,17 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
 import type { PaiError } from "@hooks/core/error";
-import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
+import {
+  defaultSignalLoggerDeps,
+  logSignal,
+  type SignalLoggerDeps,
+} from "@hooks/lib/signal-logger";
+import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -35,19 +39,21 @@ export interface TypeStrictnessDeps {
 
 /** Strip single-line comments, multi-line comments, string literals, and regex literals. */
 export function stripCommentsAndStrings(code: string): string {
-  return code
-    // Multi-line comments
-    .replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, " "))
-    // Single-line comments
-    .replace(/\/\/.*$/gm, (match) => " ".repeat(match.length))
-    // Template literals (simplified — handles single-line)
-    .replace(/`[^`]*`/g, (match) => match.replace(/[^\n]/g, " "))
-    // Double-quoted strings
-    .replace(/"(?:[^"\\]|\\.)*"/g, (match) => " ".repeat(match.length))
-    // Single-quoted strings
-    .replace(/'(?:[^'\\]|\\.)*'/g, (match) => " ".repeat(match.length))
-    // Regex literals (e.g., /pattern/flags)
-    .replace(/\/(?:[^/\\]|\\.)+\/[gimsuy]*/g, (match) => " ".repeat(match.length));
+  return (
+    code
+      // Multi-line comments
+      .replace(/\/\*[\s\S]*?\*\//g, (match) => match.replace(/[^\n]/g, " "))
+      // Single-line comments
+      .replace(/\/\/.*$/gm, (match) => " ".repeat(match.length))
+      // Template literals (simplified — handles single-line)
+      .replace(/`[^`]*`/g, (match) => match.replace(/[^\n]/g, " "))
+      // Double-quoted strings
+      .replace(/"(?:[^"\\]|\\.)*"/g, (match) => " ".repeat(match.length))
+      // Single-quoted strings
+      .replace(/'(?:[^'\\]|\\.)*'/g, (match) => " ".repeat(match.length))
+      // Regex literals (e.g., /pattern/flags)
+      .replace(/\/(?:[^/\\]|\\.)+\/[gimsuy]*/g, (match) => " ".repeat(match.length))
+  );
 }
 
 /**
@@ -176,7 +182,7 @@ export function findLazyUnknownUsage(content: string): UnknownWarning[] {
       if (!p.regex.test(strippedLine)) continue;
 
       // Check exemptions against original line (needs string content for JSON.parse etc.)
-      const isExempt = UNKNOWN_EXEMPTIONS.some(ex => ex.test(originalLine));
+      const isExempt = UNKNOWN_EXEMPTIONS.some((ex) => ex.test(originalLine));
       if (isExempt) continue;
 
       warnings.push({
@@ -192,9 +198,7 @@ export function findLazyUnknownUsage(content: string): UnknownWarning[] {
 }
 
 function formatLazyUnknownAdvisory(warnings: UnknownWarning[], filePath: string): string {
-  const lines = warnings.map(
-    (w) => `  Line ${w.line}: ${w.content}\n           → ${w.pattern}`
-  );
+  const lines = warnings.map((w) => `  Line ${w.line}: ${w.content}\n           → ${w.pattern}`);
 
   return [
     `⚠️ LAZY TYPE WARNING — ${warnings.length} bare \`unknown\` usage${warnings.length === 1 ? "" : "s"} in ${filePath}:`,
@@ -214,9 +218,7 @@ function formatLazyUnknownAdvisory(warnings: UnknownWarning[], filePath: string)
 // ─── Block Message ──────────────────────────────────────────────────────────
 
 function formatBlockMessage(violations: AnyViolation[], filePath: string): string {
-  const lines = violations.map(
-    (v) => `  Line ${v.line}: ${v.content}\n           → ${v.pattern}`
-  );
+  const lines = violations.map((v) => `  Line ${v.line}: ${v.content}\n           → ${v.pattern}`);
 
   const opener = pickNarrative("TypeStrictness", violations.length);
   return [
@@ -249,7 +251,7 @@ function formatBlockMessage(violations: AnyViolation[], filePath: string): strin
 
 const defaultDeps: TypeStrictnessDeps = {
   signal: defaultSignalLoggerDeps,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 export const TypeStrictness: SyncHookContract<
@@ -299,7 +301,7 @@ export const TypeStrictness: SyncHookContract<
       file: filePath,
       outcome,
       ...(violations.length > 0 && {
-        violations: violations.map(v => ({
+        violations: violations.map((v) => ({
           line: v.line,
           content: v.content,
           pattern: v.pattern,
@@ -312,7 +314,9 @@ export const TypeStrictness: SyncHookContract<
       const unknownWarnings = findLazyUnknownUsage(content);
       if (unknownWarnings.length > 0) {
         const advisory = formatLazyUnknownAdvisory(unknownWarnings, filePath);
-        deps.stderr(`[TypeStrictness] ${filePath}: ${unknownWarnings.length} lazy unknown warning(s)`);
+        deps.stderr(
+          `[TypeStrictness] ${filePath}: ${unknownWarnings.length} lazy unknown warning(s)`,
+        );
 
         logSignal(deps.signal, "type-strictness.jsonl", {
           session_id: input.session_id,
