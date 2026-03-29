@@ -1,10 +1,14 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type { PaiError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
 import { formatAdvisory, formatDelta, scoreFile } from "@hooks/core/quality-scorer";
 import { err, ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { CodeQualityGuard, type CodeQualityGuardDeps } from "./CodeQualityGuard.contract";
+import {
+  _resetViolationCache,
+  CodeQualityGuard,
+  type CodeQualityGuardDeps,
+} from "./CodeQualityGuard.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -105,6 +109,10 @@ function makeInput(overrides: Partial<ToolHookInput> = {}): ToolHookInput {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("CodeQualityGuard", () => {
+  beforeEach(() => {
+    _resetViolationCache();
+  });
+
   describe("accepts", () => {
     test("accepts Edit on source files", () => {
       expect(CodeQualityGuard.accepts(makeInput({ tool_name: "Edit" }))).toBe(true);
