@@ -220,7 +220,7 @@ function formatLazyUnknownAdvisory(warnings: UnknownWarning[], filePath: string)
 function formatBlockMessage(violations: AnyViolation[], filePath: string): string {
   const lines = violations.map((v) => `  Line ${v.line}: ${v.content}\n           → ${v.pattern}`);
 
-  const opener = pickNarrative("TypeStrictness", violations.length);
+  const opener = pickNarrative("TypeStrictness", violations.length, import.meta.dir);
   return [
     opener,
     "",

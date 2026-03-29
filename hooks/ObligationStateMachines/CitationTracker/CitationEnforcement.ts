@@ -108,7 +108,7 @@ export const CitationTracker: SyncHookContract<
 // ─── Contract 2: CitationEnforcement ─────────────────────────────────────────
 
 function buildCitationReminder(): string {
-  const opener = pickNarrative("CitationEnforcement", 1);
+  const opener = pickNarrative("CitationEnforcement", 1, join(import.meta.dir, "../CitationEnforcement"));
   return [
     opener,
     "Ensure every factual claim in your written content includes a citation:",

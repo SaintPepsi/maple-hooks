@@ -44,7 +44,7 @@ export const HookDocEnforcer: SyncHookContract<
       return ok({ type: "silent" });
     }
 
-    const opener = pickNarrative("HookDocEnforcer", result.pending.length);
+    const opener = pickNarrative("HookDocEnforcer", result.pending.length, import.meta.dir);
     const fileList = result.pending.map((f) => `  - ${f}`).join("\n");
     const suggestions = buildDocSuggestions(result.pending, settings);
     const reason = `${opener}\n\nHook source files modified without documentation:\n${fileList}\n\n${suggestions}`;

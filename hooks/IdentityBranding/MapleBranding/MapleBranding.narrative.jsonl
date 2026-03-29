@@ -1,0 +1,10 @@
+{"message": "Hang on, I need to use the HTML image sign-off for GitHub, not the emoji. Let me swap that out.", "score": 1}
+{"message": "One sec — wrong sign-off format for GitHub. Switching to the img tag.", "score": 1}
+{"message": "Almost sent the emoji version. GitHub needs the image tag, so let me fix the sign-off.", "score": 1}
+{"message": "Wait — that sign-off won't render right on GitHub. I need to use the img tag instead of the emoji.", "score": 2}
+{"message": "I used the wrong sign-off format. GitHub comments need the HTML image tag, not the plain emoji. Fixing.", "score": 2}
+{"message": "That's the plain-text sign-off, but GitHub renders HTML. Replacing with the img tag now.", "score": 2}
+{"message": "Caught it — wrong branding format for this platform. Swapping the emoji for the img tag.", "score": 2}
+{"message": "No. GitHub comments get the HTML image sign-off, not the emoji. Replacing it now.", "score": 3}
+{"message": "Stop. Wrong identity format for GitHub. Replacing with the img tag immediately.", "score": 3}
+{"message": "That's the terminal sign-off, not the GitHub one. Switching to the HTML image tag.", "score": 3}

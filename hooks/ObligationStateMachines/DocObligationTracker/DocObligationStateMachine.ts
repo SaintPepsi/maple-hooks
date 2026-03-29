@@ -292,7 +292,7 @@ export const DocObligationEnforcer: SyncHookContract<
       return ok({ type: "silent" });
     }
 
-    const opener = pickNarrative("DocObligationEnforcer", pending.length);
+    const opener = pickNarrative("DocObligationEnforcer", pending.length, join(import.meta.dir, "../DocObligationEnforcer"));
     const fileList = pending.map((f) => `  - ${f}`).join("\n");
     const suggestions = buildDocSuggestions(pending, deps);
     const reason = `${opener}\n\nModified files without documentation updates:\n${fileList}\n\n${suggestions}`;

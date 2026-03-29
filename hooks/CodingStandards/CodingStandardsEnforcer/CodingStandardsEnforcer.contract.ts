@@ -95,7 +95,7 @@ function formatBlockMessage(violations: Violation[], filePath: string): string {
     (grouped[v.category] ??= []).push(v);
   }
 
-  const opener = pickNarrative("CodingStandardsEnforcer", violations.length);
+  const opener = pickNarrative("CodingStandardsEnforcer", violations.length, import.meta.dir);
   const sections: string[] = [
     opener,
     "",

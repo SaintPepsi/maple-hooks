@@ -13,7 +13,7 @@ import {
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 function buildCitationReminder(): string {
-  const opener = pickNarrative("CitationEnforcement", 1);
+  const opener = pickNarrative("CitationEnforcement", 1, import.meta.dir);
   return [
     opener,
     "Ensure every factual claim in your written content includes a citation:",
