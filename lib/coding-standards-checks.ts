@@ -56,6 +56,7 @@ export function stripStringLiterals(line: string): string {
 
 // ─── Patterns ────────────────────────────────────────────────────────────────
 
+// node:path is intentionally exempt — pure functions, no I/O side effects
 export const RAW_BUILTIN_PATTERNS: ReadonlyArray<{ regex: RegExp; module: string }> = [
   { regex: /^\s*import\b.*from\s+["']fs["']/, module: "fs" },
   { regex: /^\s*import\b.*from\s+["']node:fs["']/, module: "node:fs" },
