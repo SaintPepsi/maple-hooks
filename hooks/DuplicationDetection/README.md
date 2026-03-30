@@ -12,7 +12,7 @@ See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for
 
 ### DuplicationChecker (PreToolUse)
 
-Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. If a function matches on 3 or more dimensions (body hash, name frequency, signature + fingerprint similarity), it surfaces an advisory via `additionalContext`. The agent can proceed — this hook never blocks.
+Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. Tiered response: 2-3/4 signal matches are logged silently, 4/4 matches block the operation (configurable via `hookConfig.duplicationChecker.blocking`).
 
 Every check (clean or with findings) is logged to `/tmp/pai/duplication/{hash}/{branch}/checker.jsonl` as JSONL for later inspection.
 
@@ -50,7 +50,7 @@ For monorepos without a root `package.json`, the first PostToolUse event on a su
 ```
 DuplicationDetection/
 ├── README.md                          — this file
-├── shared.ts                          — index types, loading, cache, check logic, formatting, getCurrentBranch
+├── shared.ts                          — index types, loading, cache, check logic, formatting, PROJECT_MARKERS, getArtifactsDir, getCurrentBranch
 ├── parser.ts                          — TypeScript function extraction
 ├── index-builder-logic.ts             — file scanning and index construction
 ├── DuplicationIndexBuilder/
@@ -82,7 +82,7 @@ For example, from the pai-hooks root:
 bun Tools/pattern-detector/variants/index-builder.ts build /path/to/your/project
 ```
 
-The index is written to `index.json` in the target directory.
+The CLI writes `index.json` to the target directory. The hooks write to `/tmp/pai/duplication/{hash}/{branch}/index.json`.
 
 ## Inspecting the Log
 
@@ -99,4 +99,4 @@ cat /tmp/pai/duplication/{hash}/{branch}/checker.jsonl | jq 'select(.matches | l
 cat /tmp/pai/duplication/{hash}/{branch}/checker.jsonl | jq -r 'select(.matches | length > 0) | .file' | sort | uniq -c | sort -rn
 ```
 
-Both the index and the log live in `/tmp/pai/duplication/{project-hash}/`, outside the project tree. No gitignore entries needed.
+Both the index and the log live in `/tmp/pai/duplication/{project-hash}/{branch}/`, outside the project tree. No gitignore entries needed.

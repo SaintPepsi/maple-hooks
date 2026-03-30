@@ -2,7 +2,7 @@
 
 ## Overview
 
-DuplicationIndexBuilder builds a duplication detection index (`index.json`) in `/tmp/pai/duplication/{project-hash}/`. It fires on **SessionStart** (eager pre-warming) and **PostToolUse** (after TypeScript file writes). The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.
+DuplicationIndexBuilder builds a duplication detection index (`index.json`) in `/tmp/pai/duplication/{project-hash}/{branch}/`. It fires on **SessionStart** (eager pre-warming) and **PostToolUse** (after TypeScript file writes). The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.
 
 The index is built lazily: it skips rebuilds if the existing index is less than 30 minutes old. On SessionStart, it uses CWD as the project anchor. On PostToolUse, it uses the written file's path. This is a silent background operation that never injects additional context into the conversation.
 
@@ -33,11 +33,11 @@ It does **not** fire when:
 ## What It Does
 
 1. Determines the anchor path: CWD on SessionStart, file path on PostToolUse
-2. Walks up the directory tree to find the project root (looks for `package.json` or `.git`)
-3. Checks if `/tmp/pai/duplication/{hash}/index.json` exists and is fresh (< 30 minutes old)
+2. Walks up the directory tree to find the project root (checks for project markers: `.git`, `package.json`, `composer.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`)
+3. Checks if `/tmp/pai/duplication/{hash}/{branch}/index.json` exists and is fresh (< 30 minutes old)
 4. If the index is stale or missing, calls `buildIndex()` to scan all project TypeScript files
 5. Extracts function signatures from every `.ts` file using the SWC parser
-6. Writes the resulting index as JSON to `/tmp/pai/duplication/{hash}/index.json` in the project root
+6. Writes the resulting index as JSON to `/tmp/pai/duplication/{hash}/{branch}/index.json`
 7. Logs build statistics (function count, file count, size, and build time) to stderr
 
 ```typescript

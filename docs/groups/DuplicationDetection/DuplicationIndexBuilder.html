@@ -1758,8 +1758,8 @@ section[id] {
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>DuplicationIndexBuilder is a <strong>PostToolUse</strong> hook that builds a duplication detection index (<code>.duplication-index.json</code>) in the project root after a TypeScript file is written or edited. The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.</p>
-      <p>The index is built lazily: it only triggers on the first <code>.ts</code> file write in a session and skips rebuilds if the existing index is less than 30 minutes old. This is a silent background operation that never injects additional context into the conversation.</p>
+      <p>DuplicationIndexBuilder builds a duplication detection index (<code>index.json</code>) in <code>/tmp/pai/duplication/{project-hash}/{branch}/</code>. It fires on <strong>SessionStart</strong> (eager pre-warming) and <strong>PostToolUse</strong> (after TypeScript file writes). The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.</p>
+      <p>The index is built lazily: it skips rebuilds if the existing index is less than 30 minutes old. On SessionStart, it uses CWD as the project anchor. On PostToolUse, it uses the written file's path. This is a silent background operation that never injects additional context into the conversation.</p>
     </div>
   </section>
 
@@ -1770,7 +1770,8 @@ section[id] {
         <div class="card-icon">&#x26A1;</div>
         <h3>Event</h3>
       </div>
-      <p><code>PostToolUse</code> — fires after Write or Edit operations on <code>.ts</code> files and rebuilds the duplication index if it is stale or missing.</p>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>SessionStart</code> — builds the index eagerly at session start using CWD to find the project root</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>PostToolUse</code> — rebuilds after Write or Edit operations on <code>.ts</code> files using the file path to find the project root</div>
     </div>
   </section>
 
@@ -1781,12 +1782,17 @@ section[id] {
         <div class="card-icon">&#x1F3AF;</div>
         <h3>When It Fires</h3>
       </div>
+      <p>On <strong>SessionStart</strong>:</p>
+      <div class="reason"><span class="ri">&#x2022;</span> Every session start (no tool filter)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The project root can be determined from CWD (contains a project marker like <code>.git</code>, <code>package.json</code>, <code>composer.json</code>, etc.)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The existing index is missing or older than 30 minutes</div>
+      <p>On <strong>PostToolUse</strong>:</p>
       <div class="reason"><span class="ri">&#x2022;</span> A Write or Edit tool has just completed on a <code>.ts</code> file (not <code>.d.ts</code>)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The project root can be determined (contains <code>package.json</code> or <code>.git</code>)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The project root can be determined (contains a project marker like <code>.git</code>, <code>package.json</code>, <code>composer.json</code>, etc.)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The existing index is missing or older than 30 minutes</div>
       <p>It does <strong>not</strong> fire when:</p>
-      <div class="reason"><span class="ri">&#x2022;</span> The tool is not Write or Edit</div>
-<div class="reason"><span class="ri">&#x2022;</span> The target file is not a <code>.ts</code> file (or is a <code>.d.ts</code> definition file)</div>
+      <div class="reason"><span class="ri">&#x2022;</span> PostToolUse: The tool is not Write or Edit</div>
+<div class="reason"><span class="ri">&#x2022;</span> PostToolUse: The target file is not a <code>.ts</code> file (or is a <code>.d.ts</code> definition file)</div>
 <div class="reason"><span class="ri">&#x2022;</span> No project root can be found (walks up to 10 directories)</div>
 <div class="reason"><span class="ri">&#x2022;</span> A fresh index already exists (modified less than 30 minutes ago)</div>
     </div>
@@ -1802,17 +1808,17 @@ section[id] {
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Extracts the file path from the tool input</p></div>
+          <div class="step-content"><p>Determines the anchor path: CWD on SessionStart, file path on PostToolUse</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">2</div>
-          <div class="step-content"><p>Walks up the directory tree to find the project root (looks for <code>package.json</code> or <code>.git</code>)</p></div>
+          <div class="step-content"><p>Walks up the directory tree to find the project root (checks for project markers: <code>.git</code>, <code>package.json</code>, <code>composer.json</code>, <code>go.mod</code>, <code>Cargo.toml</code>, <code>pyproject.toml</code>)</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Checks if <code>.duplication-index.json</code> exists and is fresh (< 30 minutes old)</p></div>
+          <div class="step-content"><p>Checks if <code>/tmp/pai/duplication/{hash}/{branch}/index.json</code> exists and is fresh (< 30 minutes old)</p></div>
         </div>
 
         <div class="flow-step">
@@ -1827,7 +1833,7 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>Writes the resulting index as JSON to <code>.duplication-index.json</code> in the project root</p></div>
+          <div class="step-content"><p>Writes the resulting index as JSON to <code>/tmp/pai/duplication/{hash}/{branch}/index.json</code></p></div>
         </div>
 
         <div class="flow-step">
@@ -1843,9 +1849,12 @@ section[id] {
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Core index build flow
-const projectRoot = deps.findProjectRoot(filePath);
-const indexPath = deps.indexBuilderDeps.join(projectRoot, ".duplication-index.json");
+// Core index build flow — anchor differs by event type
+const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
+const projectRoot = deps.findProjectRoot(anchor);
+const branch = getCurrentBranch() ?? null;
+const indexDir = getArtifactsDir(projectRoot, branch);
+const indexPath = deps.indexBuilderDeps.join(indexDir, "index.json");
 
 if (isIndexFresh(indexPath, deps)) return ok({ type: "continue", continue: true });
 
@@ -1853,6 +1862,7 @@ const index = buildIndex(projectRoot, deps.indexBuilderDeps);
 deps.writeFile(indexPath, JSON.stringify(index));</div>
         </div>
       </div>
+      <p>The hook shell routes by event type: SessionStart uses <code>runHookWith</code> (bypasses tool_name validation in the runner), PostToolUse uses standard <code>runHook</code> with <code>stdinOverride</code>.</p>
     </div>
   </section>
 
@@ -1864,14 +1874,21 @@ deps.writeFile(indexPath, JSON.stringify(index));</div>
         <h3>Examples</h3>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: First TypeScript write in session</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Session start pre-warms the index</h3>
       
       <div class="uc-example">
-        <div>The model edits <code>src/utils.ts</code>. No <code>.duplication-index.json</code> exists yet. DuplicationIndexBuilder scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms. Subsequent writes within 30 minutes skip the rebuild.</div>
+        <div>A new session starts in a TypeScript project. No <code>index.json</code> exists yet. DuplicationIndexBuilder uses CWD to find the project root, scans all <code>.ts</code> files, finds 142 functions across 28 files, and writes a 45KB index. The first Write/Edit in this session benefits from an already-warm index.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Index is still fresh</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: First TypeScript write in session (no SessionStart)</h3>
+      
+      <div class="uc-example">
+        <div>The model edits <code>src/utils.ts</code>. No <code>index.json</code> exists yet. DuplicationIndexBuilder scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms. Subsequent writes within 30 minutes skip the rebuild.</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Index is still fresh</h3>
       
       <div class="uc-example">
         <div>The model writes to <code>src/api.ts</code> five minutes after the last index build. DuplicationIndexBuilder checks the index mtime, finds it is only 5 minutes old (under the 30-minute threshold), and skips the rebuild entirely.</div>

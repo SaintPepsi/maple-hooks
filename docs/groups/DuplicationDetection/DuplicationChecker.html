@@ -1761,7 +1761,7 @@ section[id] {
       <p>DuplicationChecker is a <strong>PreToolUse</strong> hook with tiered response that fires before writing or editing TypeScript files. It compares functions in the new code against a pre-built duplication index (created by DuplicationIndexBuilder) using 4 signal dimensions: body hash, name frequency, type signature, and fingerprint similarity.</p>
       <p>Response tiers based on signal count:</p>
       <div class="reason"><span class="ri">&#x2022;</span> <strong>1/4 signals</strong>: Ignore (no log, no action)</div>
-<div class="reason"><span class="ri">&#x2022;</span> <strong>2/4 or 3/4 signals</strong>: Log to <code>.duplication-checker.log</code> only (no block, no advisory)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>2/4 or 3/4 signals</strong>: Log to <code>checker.jsonl</code> only (no block, no advisory)</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>4/4 signals</strong>: Block the operation (configurable)</div>
       <p>Blocking can be disabled via <code>settings.json</code>:</p>
       
@@ -1781,7 +1781,7 @@ section[id] {
 }</div>
         </div>
       </div>
-      <p>The hook is branch-aware: the index records which git branch it was built on, and is discarded when the branch changes. Log entries also include the current branch.</p>
+      <p>The hook is branch-aware: each branch gets its own artifact directory (<code>/tmp/pai/duplication/{hash}/{branch}/</code>), so switching branches automatically uses a separate index and log. No rebuild needed when switching back.</p>
     </div>
   </section>
 
@@ -1804,15 +1804,13 @@ section[id] {
         <h3>When It Fires</h3>
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> A Write or Edit tool targets a <code>.ts</code> file (not <code>.d.ts</code>)</div>
-<div class="reason"><span class="ri">&#x2022;</span> A duplication index (<code>.duplication-index.json</code>) exists in the project</div>
-<div class="reason"><span class="ri">&#x2022;</span> The index was built on the current git branch</div>
+<div class="reason"><span class="ri">&#x2022;</span> A duplication index (<code>index.json</code>) exists in the artifacts directory</div>
 <div class="reason"><span class="ri">&#x2022;</span> The new content contains extractable functions</div>
 <div class="reason"><span class="ri">&#x2022;</span> At least 2 signal dimensions match an existing function in the index</div>
       <p>It does <strong>not</strong> fire when:</p>
       <div class="reason"><span class="ri">&#x2022;</span> The tool is not Write or Edit</div>
 <div class="reason"><span class="ri">&#x2022;</span> The target file is not a <code>.ts</code> file (or is a <code>.d.ts</code> definition file)</div>
-<div class="reason"><span class="ri">&#x2022;</span> No duplication index exists in the project hierarchy</div>
-<div class="reason"><span class="ri">&#x2022;</span> The index was built on a different git branch (discarded)</div>
+<div class="reason"><span class="ri">&#x2022;</span> No duplication index exists in the artifacts directory</div>
 <div class="reason"><span class="ri">&#x2022;</span> No functions are found in the new content</div>
 <div class="reason"><span class="ri">&#x2022;</span> Fewer than 2 signal dimensions match</div>
     </div>
@@ -1833,12 +1831,12 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">2</div>
-          <div class="step-content"><p>Searches up the directory tree for a <code>.duplication-index.json</code> file</p></div>
+          <div class="step-content"><p>Searches for <code>index.json</code> in <code>/tmp/pai/duplication/{hash}/{branch}/</code> (with legacy fallback to project <code>.claude/</code>)</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Loads and parses the index; discards if built on a different branch</p></div>
+          <div class="step-content"><p>Loads and parses the index</p></div>
         </div>
 
         <div class="flow-step">
@@ -1863,7 +1861,7 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">8</div>
-          <div class="step-content"><p>Logs all checks to <code>.duplication-checker.log</code> with branch metadata</p></div>
+          <div class="step-content"><p>Logs all checks to <code>checker.jsonl</code> with branch metadata</p></div>
         </div>
 
         <div class="flow-step">
@@ -1915,7 +1913,7 @@ return ok({ type: "continue", continue: true });</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Partial match logged (2-3 signals)</h3>
       
       <div class="uc-example">
-        <div>The model writes a <code>makeDeps</code> function with a different body but matching name and signature. 2/4 dimensions match. DuplicationChecker logs the finding to <code>.duplication-checker.log</code> and returns continue silently.</div>
+        <div>The model writes a <code>makeDeps</code> function with a different body but matching name and signature. 2/4 dimensions match. DuplicationChecker logs the finding to <code>checker.jsonl</code> and returns continue silently.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
@@ -1942,7 +1940,7 @@ return ok({ type: "continue", continue: true });</div>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td><code>readFile</code>, <code>fileExists</code>, <code>readJson</code>, <code>appendFile</code>, <code>ensureDir</code></td></tr>
           <tr><td><code>lib/paths</code></td><td>lib</td><td><code>getSettingsPath</code> for reading hookConfig</td></tr>
-          <tr><td><code>DuplicationDetection/shared</code></td><td>shared</td><td><code>getFilePath</code>, <code>getWriteContent</code>, <code>simulateEdit</code>, <code>loadIndex</code>, <code>findIndexPath</code>, <code>checkFunctions</code>, <code>formatFindings</code>, <code>getCurrentBranch</code>, <code>BLOCK_THRESHOLD</code>, <code>STALENESS_SECONDS</code></td></tr>
+          <tr><td><code>DuplicationDetection/shared</code></td><td>shared</td><td><code>getFilePath</code>, <code>getWriteContent</code>, <code>simulateEdit</code>, <code>loadIndex</code>, <code>findIndexPath</code>, <code>checkFunctions</code>, <code>formatFindings</code>, <code>getArtifactsDir</code>, <code>getCurrentBranch</code>, <code>BLOCK_THRESHOLD</code>, <code>STALENESS_SECONDS</code></td></tr>
           <tr><td><code>DuplicationDetection/parser</code></td><td>shared</td><td><code>extractFunctions</code> for SWC-based function extraction</td></tr>
           <tr><td><code>lib/narrative-reader</code></td><td>lib</td><td><code>pickNarrative</code> for severity-tiered block message openers</td></tr>
           <tr><td><code>DuplicationChecker.narrative.jsonl</code></td><td>data</td><td>9 agent narratives (3 per severity tier) with DRY/WET theming</td></tr>

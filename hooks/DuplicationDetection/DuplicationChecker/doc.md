@@ -29,7 +29,7 @@ The hook is branch-aware: each branch gets its own artifact directory (`/tmp/pai
 ## When It Fires
 
 - A Write or Edit tool targets a `.ts` file (not `.d.ts`)
-- A duplication index (`index.json`) exists in the project
+- A duplication index (`index.json`) exists in the artifacts directory
 - The new content contains extractable functions
 - At least 2 signal dimensions match an existing function in the index
 
@@ -44,8 +44,8 @@ It does **not** fire when:
 ## What It Does
 
 1. Extracts the file path from the tool input (via shared `getFilePath`)
-2. Searches for `index.json` in `/tmp/pai/duplication/{hash}/` (with legacy fallback)
-3. Loads and parses the index; discards if built on a different branch
+2. Searches for `index.json` in `/tmp/pai/duplication/{hash}/{branch}/` (with legacy fallback to project `.claude/`)
+3. Loads and parses the index
 4. Checks the index age against the staleness threshold (300s)
 5. For Write operations, uses the content directly; for Edit operations, simulates the edit via shared `simulateEdit`
 6. Extracts function signatures from the content using SWC parser
@@ -86,7 +86,7 @@ return ok({ type: "continue", continue: true });
 | `result` | core | `ok()` for Result-based returns |
 | `fs` | adapter | `readFile`, `fileExists`, `readJson`, `appendFile`, `ensureDir` |
 | `lib/paths` | lib | `getSettingsPath` for reading hookConfig |
-| `DuplicationDetection/shared` | shared | `getFilePath`, `getWriteContent`, `simulateEdit`, `loadIndex`, `findIndexPath`, `checkFunctions`, `formatFindings`, `getCurrentBranch`, `BLOCK_THRESHOLD`, `STALENESS_SECONDS` |
+| `DuplicationDetection/shared` | shared | `getFilePath`, `getWriteContent`, `simulateEdit`, `loadIndex`, `findIndexPath`, `checkFunctions`, `formatFindings`, `getArtifactsDir`, `getCurrentBranch`, `BLOCK_THRESHOLD`, `STALENESS_SECONDS` |
 | `DuplicationDetection/parser` | shared | `extractFunctions` for SWC-based function extraction |
 | `lib/narrative-reader` | lib | `pickNarrative` for severity-tiered block message openers |
 | `DuplicationChecker.narrative.jsonl` | data | 9 agent narratives (3 per severity tier) with DRY/WET theming |
