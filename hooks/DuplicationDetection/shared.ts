@@ -264,15 +264,8 @@ export function checkFunctions(
 
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
-export const STALENESS_SECONDS = 300;
-
 export function formatMatch(m: DuplicationMatch): string {
   const sigStr = m.signals.join("+");
   const score = (m.topScore * 100).toFixed(0);
   return `Similar: ${m.functionName} → ${m.targetFile}:${m.targetName} (${sigStr}, ${score}%)`;
-}
-
-export function formatFindings(matches: DuplicationMatch[], stale: boolean): string {
-  const prefix = stale ? "stale: " : "";
-  return matches.map((m) => `${prefix}${formatMatch(m)}`).join("\n");
 }
