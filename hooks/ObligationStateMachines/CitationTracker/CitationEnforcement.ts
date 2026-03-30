@@ -16,6 +16,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -54,7 +55,7 @@ function remindedPath(stateDir: string): string {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+  const paiDir = getPaiDir();
   return join(paiDir, "MEMORY", "STATE", "citation");
 }
 
