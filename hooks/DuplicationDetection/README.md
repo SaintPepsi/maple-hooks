@@ -37,7 +37,7 @@ The builder produces the index; the checker reads it. On a first run (no index y
 
 ### Branch Awareness
 
-Each branch gets its own artifact directory: `/tmp/pai/duplication/{hash}/{branch}/{branch}/`. Switching branches means the builder and checker automatically use a separate index and log. No rebuild needed when switching back — the previous branch's index persists.
+Each branch gets its own artifact directory: `/tmp/pai/duplication/{hash}/{branch}/`. Switching branches means the builder and checker automatically use a separate index and log. No rebuild needed when switching back — the previous branch's index persists.
 
 ### Monorepo Behavior
 
@@ -79,7 +79,7 @@ bun Tools/pattern-detector/variants/index-builder.ts build <dir>
 For example, from the pai-hooks root:
 
 ```sh
-bun Tools/pattern-detector/variants/index-builder.ts build /Users/hogers//tmp/pai/duplication/{hash}/{branch}/pai-hooks
+bun Tools/pattern-detector/variants/index-builder.ts build /path/to/your/project
 ```
 
 The index is written to `index.json` in the target directory.

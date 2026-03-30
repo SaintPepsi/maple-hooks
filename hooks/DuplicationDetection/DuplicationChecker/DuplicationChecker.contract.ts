@@ -147,7 +147,7 @@ export const DuplicationCheckerContract: SyncHookContract<
     const logPath = `${logDir}/checker.jsonl`;
     const logEntry = {
       ts: new Date(deps.now()).toISOString(),
-      branch: getCurrentBranch() ?? "unknown",
+      branch,
       file: relPath,
       functions: functions.length,
       matches: matches.map((m) => ({
