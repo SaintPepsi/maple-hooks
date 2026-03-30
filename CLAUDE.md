@@ -17,7 +17,7 @@ Contracts use narrowed types from `core/contract.ts`:
 
 ## Coding Standards
 
-- No raw Node builtins — use adapters from `core/adapters/`
+- No raw Node builtins — use adapters from `core/adapters/` (`node:path` is exempt — pure functions, no I/O)
 - No try-catch in business logic — use `Result<T, PaiError>` pipelines
 - No direct `process.env` outside `defaultDeps`
 - Use `@hooks/*` path aliases, not relative imports
