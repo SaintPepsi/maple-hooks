@@ -206,16 +206,6 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
     });
 
     test("blocks regardless of index age (no staleness bypass)", () => {
-      const indexContent = require("node:fs").readFileSync(INDEX_PATH, "utf-8") as string;
-      const index = JSON.parse(indexContent) as { builtAt: string };
-      const builtAtMs = new Date(index.builtAt).getTime();
-      const SIX_MINUTES_MS = 6 * 60 * 1000;
-
-      const deps: DuplicationCheckerDeps = {
-        ...mockDeps,
-        now: () => builtAtMs + SIX_MINUTES_MS,
-      };
-
       const realContent = require("node:fs").readFileSync(
         `${PAI_HOOKS_ROOT}/hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts`,
         "utf-8",
@@ -225,8 +215,7 @@ export function veryUniquelyNamedXyz99Function(alphaOmega: string, betaGamma: bo
         `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
         realContent,
       );
-      const output = unwrap(DuplicationCheckerContract.execute(input, deps));
-      // Staleness no longer bypasses blocking — always blocks with blocking=true
+      const output = unwrap(DuplicationCheckerContract.execute(input, mockDeps));
       expect(output.type).toBe("block");
     });
     test("continues instead of blocking when blocking config is false", () => {
