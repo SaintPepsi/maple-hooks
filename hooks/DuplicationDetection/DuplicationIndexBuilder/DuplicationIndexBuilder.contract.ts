@@ -24,7 +24,7 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
-import { getArtifactsDir, getFilePath } from "@hooks/hooks/DuplicationDetection/shared";
+import { getArtifactsDir, getCurrentBranch, getFilePath, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -48,11 +48,18 @@ const FRESHNESS_MS = 30 * 60 * 1000; // 30 minutes
 
 function defaultFindProjectRoot(filePath: string): string | null {
   const { dirname, join } = require("node:path");
+
+  // Check if the path itself is a project root (handles directory inputs from SessionStart)
+  for (const marker of PROJECT_MARKERS) {
+    if (fileExists(join(filePath, marker) as string)) return filePath;
+  }
+
+  // Walk up from the parent directory
   let dir = dirname(filePath) as string;
   for (let i = 0; i < 10; i++) {
-    const pkg = join(dir, "package.json") as string;
-    const git = join(dir, ".git") as string;
-    if (fileExists(pkg) || fileExists(git)) return dir;
+    for (const marker of PROJECT_MARKERS) {
+      if (fileExists(join(dir, marker) as string)) return dir;
+    }
     const parent = dirname(dir) as string;
     if (parent === dir) break;
     dir = parent;
@@ -147,7 +154,8 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       return ok({ type: "continue", continue: true });
     }
 
-    const indexDir = getArtifactsDir(projectRoot);
+    const branch = getCurrentBranch() ?? null;
+    const indexDir = getArtifactsDir(projectRoot, branch);
     const indexPath = deps.indexBuilderDeps.join(indexDir, INDEX_FILENAME);
 
     // Skip if index is fresh

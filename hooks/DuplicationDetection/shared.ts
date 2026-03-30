@@ -91,6 +91,17 @@ export function getCurrentBranch(): string | null {
   return branch.length > 0 ? branch : null;
 }
 
+// ─── Project Markers ───────────────────────────────────────────────────────
+
+export const PROJECT_MARKERS = [
+  ".git",
+  "package.json",
+  "composer.json",
+  "go.mod",
+  "Cargo.toml",
+  "pyproject.toml",
+];
+
 // ─── Artifact Location ─────────────────────────────────────────────────────
 
 const ARTIFACTS_BASE = "/tmp/pai/duplication";
@@ -104,9 +115,15 @@ export function projectHash(root: string): string {
   return Math.abs(h).toString(16).padStart(8, "0");
 }
 
-/** Returns the artifacts directory for a given project root: /tmp/pai/duplication/{hash}/ */
-export function getArtifactsDir(projectRoot: string): string {
-  return `${ARTIFACTS_BASE}/${projectHash(projectRoot)}`;
+/** Sanitize branch name for use as directory segment. */
+function sanitizeBranch(branch: string): string {
+  return branch.replace(/[/\\]/g, "-");
+}
+
+/** Returns the artifacts directory: /tmp/pai/duplication/{hash}/{branch}/ */
+export function getArtifactsDir(projectRoot: string, branch?: string | null): string {
+  const branchDir = sanitizeBranch(branch || "default");
+  return `${ARTIFACTS_BASE}/${projectHash(projectRoot)}/${branchDir}`;
 }
 
 // ─── Index Loading ──────────────────────────────────────────────────────────
@@ -121,11 +138,7 @@ export function loadIndex(indexPath: string, deps: SharedDeps): DuplicationIndex
   const parsed = JSON.parse(content) as DuplicationIndex;
   if (!parsed.version || !parsed.entries) return null;
 
-  // Discard index if it was built on a different branch
-  if (parsed.branch) {
-    const currentBranch = getCurrentBranch();
-    if (currentBranch && parsed.branch !== currentBranch) return null;
-  }
+  // Branch isolation is now handled by directory structure (/tmp/pai/duplication/{hash}/{branch}/)
 
   cachedIndex = parsed;
   cachedIndexPath = indexPath;
@@ -138,14 +151,20 @@ export function clearIndexCache(): void {
 }
 
 export function findIndexPath(filePath: string, deps: SharedDeps): string | null {
-  const { dirname, join } = require("node:path");
-  // Look in /tmp/pai/duplication/{hash}/ for each ancestor that could be a project root
+  const { dirname } = require("node:path");
+  const branch = getCurrentBranch() ?? "default";
+
+  // Check the path itself first (handles directory inputs from SessionStart)
+  const selfCandidate = `${getArtifactsDir(filePath, branch)}/index.json`;
+  if (deps.exists(selfCandidate)) return selfCandidate;
+
+  // Walk up from dirname
   let dir = dirname(filePath) as string;
   for (let i = 0; i < 10; i++) {
-    const candidate = `${getArtifactsDir(dir)}/index.json`;
+    const candidate = `${getArtifactsDir(dir, branch)}/index.json`;
     if (deps.exists(candidate)) return candidate;
-    // Also check legacy location for backwards compatibility
-    const legacy = join(dir, ".claude", ".duplication-index.json") as string;
+    // Legacy location fallback
+    const legacy = `${dir}/.claude/.duplication-index.json`;
     if (deps.exists(legacy)) return legacy;
     const parent = dirname(dir) as string;
     if (parent === dir) break;

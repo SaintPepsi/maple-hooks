@@ -140,8 +140,9 @@ export const DuplicationCheckerContract: SyncHookContract<
 
     const matches = checkFunctions(functions, index, relPath);
 
-    // Log all checks (findings or clean) to /tmp/pai/duplication/{hash}/checker.jsonl
-    const logDir = getArtifactsDir(index.root);
+    // Log all checks (findings or clean) to /tmp/pai/duplication/{hash}/{branch}/checker.jsonl
+    const branch = getCurrentBranch() ?? "default";
+    const logDir = getArtifactsDir(index.root, branch);
     deps.ensureDir(logDir);
     const logPath = `${logDir}/checker.jsonl`;
     const logEntry = {
