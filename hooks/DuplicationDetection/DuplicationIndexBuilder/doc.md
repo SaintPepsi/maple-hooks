@@ -2,7 +2,7 @@
 
 ## Overview
 
-DuplicationIndexBuilder builds a duplication detection index (`.duplication-index.json`) in the project's `.claude/` directory. It fires on **SessionStart** (eager pre-warming) and **PostToolUse** (after TypeScript file writes). The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.
+DuplicationIndexBuilder builds a duplication detection index (`index.json`) in `/tmp/pai/duplication/{project-hash}/`. It fires on **SessionStart** (eager pre-warming) and **PostToolUse** (after TypeScript file writes). The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.
 
 The index is built lazily: it skips rebuilds if the existing index is less than 30 minutes old. On SessionStart, it uses CWD as the project anchor. On PostToolUse, it uses the written file's path. This is a silent background operation that never injects additional context into the conversation.
 
@@ -34,17 +34,18 @@ It does **not** fire when:
 
 1. Determines the anchor path: CWD on SessionStart, file path on PostToolUse
 2. Walks up the directory tree to find the project root (looks for `package.json` or `.git`)
-3. Checks if `.claude/.duplication-index.json` exists and is fresh (< 30 minutes old)
+3. Checks if `/tmp/pai/duplication/{hash}/index.json` exists and is fresh (< 30 minutes old)
 4. If the index is stale or missing, calls `buildIndex()` to scan all project TypeScript files
 5. Extracts function signatures from every `.ts` file using the SWC parser
-6. Writes the resulting index as JSON to `.claude/.duplication-index.json` in the project root
+6. Writes the resulting index as JSON to `/tmp/pai/duplication/{hash}/index.json` in the project root
 7. Logs build statistics (function count, file count, size, and build time) to stderr
 
 ```typescript
 // Core index build flow — anchor differs by event type
 const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
 const projectRoot = deps.findProjectRoot(anchor);
-const indexPath = deps.indexBuilderDeps.join(projectRoot, ".claude", ".duplication-index.json");
+const indexDir = getArtifactsDir(projectRoot);
+const indexPath = deps.indexBuilderDeps.join(indexDir, "index.json");
 
 if (isIndexFresh(indexPath, deps)) return ok({ type: "continue", continue: true });
 
@@ -58,11 +59,11 @@ The hook shell routes by event type: SessionStart uses `runHookWith` (bypasses t
 
 ### Example 1: Session start pre-warms the index
 
-> A new session starts in a TypeScript project. No `.duplication-index.json` exists yet. DuplicationIndexBuilder uses CWD to find the project root, scans all `.ts` files, finds 142 functions across 28 files, and writes a 45KB index. The first Write/Edit in this session benefits from an already-warm index.
+> A new session starts in a TypeScript project. No `index.json` exists yet. DuplicationIndexBuilder uses CWD to find the project root, scans all `.ts` files, finds 142 functions across 28 files, and writes a 45KB index. The first Write/Edit in this session benefits from an already-warm index.
 
 ### Example 2: First TypeScript write in session (no SessionStart)
 
-> The model edits `src/utils.ts`. No `.duplication-index.json` exists yet. DuplicationIndexBuilder scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms. Subsequent writes within 30 minutes skip the rebuild.
+> The model edits `src/utils.ts`. No `index.json` exists yet. DuplicationIndexBuilder scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms. Subsequent writes within 30 minutes skip the rebuild.
 
 ### Example 3: Index is still fresh
 

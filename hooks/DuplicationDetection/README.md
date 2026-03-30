@@ -6,7 +6,7 @@ Detects duplicated functions across the codebase and warns before writing code t
 
 ### DuplicationIndexBuilder (PostToolUse)
 
-Fires after any Write or Edit to a `.ts` file. Scans the project root and builds `.duplication-index.json` — a compact lookup structure of all functions with their body hashes, names, parameter signatures, and fingerprints. Skips rebuild if the index was written within the last 30 minutes.
+Fires after any Write or Edit to a `.ts` file. Scans the project root and builds `index.json` — a compact lookup structure of all functions with their body hashes, names, parameter signatures, and fingerprints. Skips rebuild if the index was written within the last 30 minutes.
 
 See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for details.
 
@@ -14,7 +14,7 @@ See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for
 
 Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. If a function matches on 3 or more dimensions (body hash, name frequency, signature + fingerprint similarity), it surfaces an advisory via `additionalContext`. The agent can proceed — this hook never blocks.
 
-Every check (clean or with findings) is logged to `<project>/.claude/.duplication-checker.log` as JSONL for later inspection.
+Every check (clean or with findings) is logged to `/tmp/pai/duplication/{hash}/checker.jsonl` as JSONL for later inspection.
 
 ## How They Work Together
 
@@ -22,14 +22,14 @@ Every check (clean or with findings) is logged to `<project>/.claude/.duplicatio
 Write/Edit .ts file
        │
        ├─► PreToolUse: DuplicationChecker
-       │     reads .claude/.duplication-index.json
+       │     reads /tmp/pai/duplication/{hash}/index.json
        │     parses incoming content
        │     emits additionalContext if duplicates found
-       │     logs check to .claude/.duplication-checker.log
+       │     logs check to /tmp/pai/duplication/{hash}/checker.jsonl
        │
        └─► PostToolUse: DuplicationIndexBuilder
              scans project root
-             writes .claude/.duplication-index.json
+             writes /tmp/pai/duplication/{hash}/index.json
              (skips if index is fresh)
 ```
 
@@ -73,24 +73,24 @@ bun Tools/pattern-detector/variants/index-builder.ts build <dir>
 For example, from the pai-hooks root:
 
 ```sh
-bun Tools/pattern-detector/variants/index-builder.ts build /Users/hogers/.claude/pai-hooks
+bun Tools/pattern-detector/variants/index-builder.ts build /Users/hogers//tmp/pai/duplication/{hash}/pai-hooks
 ```
 
-The index is written to `.duplication-index.json` in the target directory.
+The index is written to `index.json` in the target directory.
 
 ## Inspecting the Log
 
-Every DuplicationChecker invocation logs a JSONL entry to `<project>/.claude/.duplication-checker.log`:
+Every DuplicationChecker invocation logs a JSONL entry to `/tmp/pai/duplication/{hash}/checker.jsonl`:
 
 ```sh
-# View all entries
-cat <project>/.claude/.duplication-checker.log | jq .
+# View all entries (replace {hash} with your project hash)
+cat /tmp/pai/duplication/{hash}/checker.jsonl | jq .
 
 # View only findings (non-empty matches)
-cat <project>/.claude/.duplication-checker.log | jq 'select(.matches | length > 0)'
+cat /tmp/pai/duplication/{hash}/checker.jsonl | jq 'select(.matches | length > 0)'
 
 # Count findings per file
-cat <project>/.claude/.duplication-checker.log | jq -r 'select(.matches | length > 0) | .file' | sort | uniq -c | sort -rn
+cat /tmp/pai/duplication/{hash}/checker.jsonl | jq -r 'select(.matches | length > 0) | .file' | sort | uniq -c | sort -rn
 ```
 
-Both the index and the log live in `.claude/` which is typically gitignored.
+Both the index and the log live in `/tmp/pai/duplication/{project-hash}/`, outside the project tree. No gitignore entries needed.

@@ -6,7 +6,7 @@ DuplicationChecker is a **PreToolUse** hook with tiered response that fires befo
 
 Response tiers based on signal count:
 - **1/4 signals**: Ignore (no log, no action)
-- **2/4 or 3/4 signals**: Log to `.duplication-checker.log` only (no block, no advisory)
+- **2/4 or 3/4 signals**: Log to `checker.jsonl` only (no block, no advisory)
 - **4/4 signals**: Block the operation (configurable)
 
 Blocking can be disabled via `settings.json`:
@@ -29,7 +29,7 @@ The hook is branch-aware: the index records which git branch it was built on, an
 ## When It Fires
 
 - A Write or Edit tool targets a `.ts` file (not `.d.ts`)
-- A duplication index (`.duplication-index.json`) exists in the project
+- A duplication index (`index.json`) exists in the project
 - The index was built on the current git branch
 - The new content contains extractable functions
 - At least 2 signal dimensions match an existing function in the index
@@ -38,7 +38,7 @@ It does **not** fire when:
 
 - The tool is not Write or Edit
 - The target file is not a `.ts` file (or is a `.d.ts` definition file)
-- No duplication index exists in the project hierarchy
+- No duplication index exists in the artifacts directory
 - The index was built on a different git branch (discarded)
 - No functions are found in the new content
 - Fewer than 2 signal dimensions match
@@ -46,13 +46,13 @@ It does **not** fire when:
 ## What It Does
 
 1. Extracts the file path from the tool input (via shared `getFilePath`)
-2. Searches up the directory tree for a `.duplication-index.json` file
+2. Searches for `index.json` in `/tmp/pai/duplication/{hash}/` (with legacy fallback)
 3. Loads and parses the index; discards if built on a different branch
 4. Checks the index age against the staleness threshold (300s)
 5. For Write operations, uses the content directly; for Edit operations, simulates the edit via shared `simulateEdit`
 6. Extracts function signatures from the content using SWC parser
 7. Compares extracted functions against the index using `checkFunctions`
-8. Logs all checks to `.duplication-checker.log` with branch metadata
+8. Logs all checks to `checker.jsonl` with branch metadata
 9. At 4/4 signals and blocking enabled: returns block with reason listing duplicate targets
 10. At 2-3/4 signals: logs finding, returns continue
 
@@ -75,7 +75,7 @@ return ok({ type: "continue", continue: true });
 
 ### Example 2: Partial match logged (2-3 signals)
 
-> The model writes a `makeDeps` function with a different body but matching name and signature. 2/4 dimensions match. DuplicationChecker logs the finding to `.duplication-checker.log` and returns continue silently.
+> The model writes a `makeDeps` function with a different body but matching name and signature. 2/4 dimensions match. DuplicationChecker logs the finding to `checker.jsonl` and returns continue silently.
 
 ### Example 3: Blocking disabled via config
 

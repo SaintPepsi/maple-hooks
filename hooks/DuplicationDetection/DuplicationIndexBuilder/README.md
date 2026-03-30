@@ -5,7 +5,7 @@ Builds the duplication index on SessionStart (eager pre-warming) and PostToolUse
 ## What It Does
 
 Scans the project root for all `.ts` files, extracts function signatures using the parser
-([`parser.ts`](../parser.ts)), and writes `.duplication-index.json` to the project's `.claude/` directory.
+([`parser.ts`](../parser.ts)), and writes `index.json` to `/tmp/pai/duplication/{project-hash}/`.
 The index contains body hashes, name groups, and signature groups used by DuplicationChecker
 ([`DuplicationChecker/DuplicationChecker.contract.ts`](../DuplicationChecker/DuplicationChecker.contract.ts))
 to identify duplicates.
