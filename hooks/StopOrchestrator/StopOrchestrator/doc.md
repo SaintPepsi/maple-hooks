@@ -27,7 +27,7 @@ It does **not** fire when:
 3. Determines if this is a main session (always true after kitty removal in #56)
 4. Runs handlers in parallel via `Promise.allSettled`:
    - **VoiceNotification** (main sessions only): Speaks the completion summary via TTS
-   - **TabState**: Updates the Kitty terminal tab with session state
+   - **TabState**: Updates the terminal tab title
    - **RebuildSkill**: Checks if skills need rebuilding
    - **AlgorithmEnrichment**: Enriches algorithm state from the response
 5. Logs any handler failures without blocking other handlers
@@ -48,7 +48,7 @@ await Promise.allSettled(handlers);
 
 ### Example 1: Main session with voice
 
-> Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript, detects a Kitty session file for the session ID, and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
+> Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
 
 ### Example 2: Subagent session (no voice)
 
@@ -60,7 +60,6 @@ await Promise.allSettled(handlers);
 | --- | --- | --- |
 | `TranscriptParser` | tool | Parses JSONL transcript into structured completion data |
 | `handlers/VoiceNotification` | handler | TTS announcement of completion summaries |
-| `handlers/TabState` | handler | Updates Kitty terminal tab styling |
+| `handlers/TabState` | handler | Updates terminal tab title |
 | `handlers/RebuildSkill` | handler | Checks and rebuilds stale skills |
 | `handlers/AlgorithmEnrichment` | handler | Enriches algorithm state from responses |
-| `handlers/TabState` | handler | Updates terminal tab title (logging only after kitty removal) |

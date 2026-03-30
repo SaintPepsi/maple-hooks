@@ -5,7 +5,7 @@
  * No more independent color definitions across 6 files.
  *
  * Phase-aware tabs: Each Algorithm phase gets a distinct background color
- * and symbol, so multiple Kitty tabs show at-a-glance where each session
+ * and symbol, so multiple tabs show at-a-glance where each session
  * is in the Algorithm.
  */
 
@@ -27,7 +27,7 @@ export type TabState = keyof typeof TAB_COLORS;
 /**
  * Phase-specific tab configuration.
  * Each Algorithm phase has a unique symbol and dark background color
- * optimized for readability with light text on Kitty tab bar.
+ * optimized for readability with light text on the tab bar.
  */
 export const PHASE_TAB_CONFIG: Record<
   string,
