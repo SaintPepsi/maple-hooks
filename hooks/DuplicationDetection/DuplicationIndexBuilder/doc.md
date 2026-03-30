@@ -15,12 +15,12 @@ The index is built lazily: it skips rebuilds if the existing index is less than 
 
 On **SessionStart**:
 - Every session start (no tool filter)
-- The project root can be determined from CWD (contains `package.json` or `.git`)
+- The project root can be determined from CWD (contains a project marker like `.git`, `package.json`, `composer.json`, etc.)
 - The existing index is missing or older than 30 minutes
 
 On **PostToolUse**:
 - A Write or Edit tool has just completed on a `.ts` file (not `.d.ts`)
-- The project root can be determined (contains `package.json` or `.git`)
+- The project root can be determined (contains a project marker like `.git`, `package.json`, `composer.json`, etc.)
 - The existing index is missing or older than 30 minutes
 
 It does **not** fire when:
@@ -44,7 +44,8 @@ It does **not** fire when:
 // Core index build flow — anchor differs by event type
 const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
 const projectRoot = deps.findProjectRoot(anchor);
-const indexDir = getArtifactsDir(projectRoot);
+const branch = getCurrentBranch() ?? null;
+const indexDir = getArtifactsDir(projectRoot, branch);
 const indexPath = deps.indexBuilderDeps.join(indexDir, "index.json");
 
 if (isIndexFresh(indexPath, deps)) return ok({ type: "continue", continue: true });

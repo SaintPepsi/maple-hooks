@@ -30,7 +30,6 @@ The hook is branch-aware: each branch gets its own artifact directory (`/tmp/pai
 
 - A Write or Edit tool targets a `.ts` file (not `.d.ts`)
 - A duplication index (`index.json`) exists in the project
-- The index was built on the current git branch
 - The new content contains extractable functions
 - At least 2 signal dimensions match an existing function in the index
 
@@ -39,7 +38,6 @@ It does **not** fire when:
 - The tool is not Write or Edit
 - The target file is not a `.ts` file (or is a `.d.ts` definition file)
 - No duplication index exists in the artifacts directory
-- The index was built on a different git branch (discarded)
 - No functions are found in the new content
 - Fewer than 2 signal dimensions match
 
