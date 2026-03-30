@@ -46,6 +46,7 @@ export interface DuplicationMatch {
   targetLine: number;
   signals: string[];
   topScore: number;
+  derivation?: boolean;
 }
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
@@ -210,11 +211,20 @@ export function checkFunctions(
     let bestTarget: { file: string; name: string; line: number } | null = null;
     let topScore = 0;
 
+    let isDerivation = false;
+    const fnSig = `(${fn.paramSig})→${fn.returnType}`;
     const hashPeers = hashMap.get(fn.bodyHash);
     if (hashPeers) {
       for (const idx of hashPeers) {
         const peer = index.entries[idx];
         if (peer.f === filePath) continue;
+        const peerSig = `(${peer.p})→${peer.r}`;
+        if (fnSig !== peerSig) {
+          isDerivation = true;
+          bestTarget = { file: peer.f, name: peer.n, line: peer.l };
+          topScore = 1.0;
+          break;
+        }
         signals.push("hash");
         bestTarget = { file: peer.f, name: peer.n, line: peer.l };
         topScore = 1.0;
@@ -251,7 +261,18 @@ export function checkFunctions(
       }
     }
 
-    if (signals.length >= LOG_THRESHOLD && bestTarget) {
+    if (isDerivation && bestTarget) {
+      matches.push({
+        functionName: fn.name,
+        line: fn.line,
+        targetFile: bestTarget.file,
+        targetName: bestTarget.name,
+        targetLine: bestTarget.line,
+        signals: ["hash"],
+        topScore,
+        derivation: true,
+      });
+    } else if (signals.length >= LOG_THRESHOLD && bestTarget) {
       matches.push({
         functionName: fn.name,
         line: fn.line,
@@ -270,6 +291,9 @@ export function checkFunctions(
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
 export function formatMatch(m: DuplicationMatch): string {
+  if (m.derivation) {
+    return `Derivation: ${m.functionName} has identical body to ${m.targetFile}:${m.targetName} but different signature — possible derivation issue`;
+  }
   const sigStr = m.signals.join("+");
   const score = (m.topScore * 100).toFixed(0);
   return `Similar: ${m.functionName} → ${m.targetFile}:${m.targetName} (${sigStr}, ${score}%)`;
