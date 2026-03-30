@@ -1,6 +1,5 @@
 import { join } from "node:path";
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
-import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { PaiError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
@@ -13,7 +12,6 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 export interface CanaryHookDeps {
   appendFile: (path: string, content: string) => Result<void, PaiError>;
   ensureDir: (path: string) => Result<void, PaiError>;
-  execSyncSafe: (cmd: string) => Result<string, PaiError>;
   baseDir: string;
 }
 
@@ -22,7 +20,6 @@ export interface CanaryHookDeps {
 const defaultDeps: CanaryHookDeps = {
   appendFile,
   ensureDir,
-  execSyncSafe,
   baseDir: join(process.env.HOME!, ".claude"),
 };
 
@@ -42,7 +39,6 @@ export const CanaryHook: SyncHookContract<SessionStartInput, ContinueOutput, Can
 
     deps.ensureDir(logDir);
     deps.appendFile(logFile, `${new Date().toISOString()}\n`);
-    deps.execSyncSafe(`code "${logFile}"`);
 
     return ok({ type: "continue" as const, continue: true as const });
   },
