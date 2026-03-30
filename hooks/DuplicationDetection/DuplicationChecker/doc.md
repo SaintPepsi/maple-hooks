@@ -20,7 +20,7 @@ Blocking can be disabled via `settings.json`:
 }
 ```
 
-The hook is branch-aware: the index records which git branch it was built on, and is discarded when the branch changes. Log entries also include the current branch.
+The hook is branch-aware: each branch gets its own artifact directory (`/tmp/pai/duplication/{hash}/{branch}/`), so switching branches automatically uses a separate index and log. No rebuild needed when switching back.
 
 ## Event
 
