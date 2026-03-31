@@ -1,7 +1,7 @@
 {
   "name": "DuplicationIndexBuilder",
   "group": "DuplicationDetection",
-  "event": "PostToolUse",
+  "event": ["SessionStart", "PostToolUse"],
   "description": "Builds duplication index on SessionStart (full scan) and PostToolUse (surgical update per .ts write)",
   "schemaVersion": 1,
   "tags": ["quality", "duplication"],

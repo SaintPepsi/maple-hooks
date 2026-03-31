@@ -23,9 +23,14 @@ import { readFile } from "@hooks/core/adapters/fs";
 export interface HookMeta {
   name: string;
   group: string;
-  event: string;
+  event: string | string[];
   description: string;
   hasDoc?: boolean;
+}
+
+/** Normalize event to an array for consistent rendering. */
+function eventList(event: string | string[]): string[] {
+  return Array.isArray(event) ? event : [event];
 }
 
 export interface GroupMeta {
@@ -582,7 +587,7 @@ export function renderHookPage(hook: HookMeta, markdownContent: string, groupNam
     sections.length > 2
       ? buildSidebar(
           hook.name,
-          `${groupName} / ${hook.event}`,
+          `${groupName} / ${eventList(hook.event).join(", ")}`,
           sections.map((s) => ({ id: s.id, label: s.heading })),
         )
       : "";
@@ -590,8 +595,8 @@ export function renderHookPage(hook: HookMeta, markdownContent: string, groupNam
   const hero = buildHero(
     "Hook Documentation",
     hook.name,
-    hook.description || `${hook.event} hook in the ${groupName} group.`,
-    [groupName, hook.event, "pai-hooks"],
+    hook.description || `${eventList(hook.event).join(" + ")} hook in the ${groupName} group.`,
+    [groupName, ...eventList(hook.event), "pai-hooks"],
   );
 
   const sectionHtml = sections.map(renderSection).join("\n");
@@ -601,7 +606,7 @@ ${hero}
 
 <div class="container">
   <div class="tags" style="margin-bottom: var(--sp-2xl);">
-    <span class="tag ${eventColor(hook.event)}">${esc(hook.event)}</span>
+    ${eventList(hook.event).map((e) => `<span class="tag ${eventColor(e)}">${esc(e)}</span>`).join("\n    ")}
     <span class="tag green">${esc(groupName)}</span>
   </div>
 
@@ -626,17 +631,22 @@ ${hero}
 export function renderGroupPage(group: GroupMeta): string {
   const cards = group.hooks
     .map((h) => {
-      const color = eventColor(h.event);
+      const events = eventList(h.event);
+      const primaryColor = eventColor(events[0]);
       const clickable = h.hasDoc !== false;
       const interactiveAttrs = clickable
         ? ` style="cursor:pointer;" onclick="location.href='${esc(h.name)}.html'"`
         : ` style="opacity:0.6;"`;
+      const badges = events.map((e) => {
+        const c = eventColor(e);
+        return `<span class="card-badge" style="background:var(--${c}-dim);color:var(--${c});">${esc(e)}</span>`;
+      }).join(" ");
       return `
-      <div class="card ${color}"${interactiveAttrs}>
+      <div class="card ${primaryColor}"${interactiveAttrs}>
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>${esc(h.name)}</h3>
-          <span class="card-badge" style="background:var(--${color}-dim);color:var(--${color});">${esc(h.event)}</span>
+          ${badges}
         </div>
         <p>${esc(h.description || "No description")}</p>
       </div>`;
@@ -650,10 +660,10 @@ export function renderGroupPage(group: GroupMeta): string {
     [`${group.hooks.length} hooks`, "pai-hooks"],
   );
 
-  const events = [...new Set(group.hooks.map((h) => h.event))];
+  const events = [...new Set(group.hooks.flatMap((h) => eventList(h.event)))];
   const summaryItems = events
     .map((event) => {
-      const count = group.hooks.filter((h) => h.event === event).length;
+      const count = group.hooks.filter((h) => eventList(h.event).includes(event)).length;
       return `<div class="summary-item"><div class="num">${count}</div><div class="label">${esc(event)}</div></div>`;
     })
     .join("\n    ");
