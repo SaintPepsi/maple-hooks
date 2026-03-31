@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  metadata: write
 
 jobs:
   update-description:
