@@ -154,8 +154,12 @@ export const DuplicationCheckerContract: SyncHookContract<
       return ok(continueOk());
     }
 
-    // Block on exact body hash match (identical code) OR all 4 signal dimensions
-    const blockMatches = matches.filter(
+    // Separate derivation matches (advisory) from real duplicates (blockable)
+    const derivationMatches = matches.filter((m) => m.derivation);
+    const realMatches = matches.filter((m) => !m.derivation);
+
+    // Block on exact body hash match (identical code + same sig) OR all 4 signal dimensions
+    const blockMatches = realMatches.filter(
       (m) => m.signals.includes("hash") || m.signals.length >= BLOCK_THRESHOLD,
     );
 
@@ -177,6 +181,18 @@ export const DuplicationCheckerContract: SyncHookContract<
       }
 
       deps.stderr(`[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`);
+    }
+
+    // Derivation matches: same body, different signature — advisory only, never block
+    if (derivationMatches.length > 0) {
+      const advisory = derivationMatches
+        .map((m) => `  ${m.functionName} has identical body to ${m.targetFile}:${m.targetName} but different signature — possible derivation issue`)
+        .join("\n");
+      deps.stderr(`[DuplicationChecker] ${filePath}: ${derivationMatches.length} derivation(s) detected`);
+      return ok({
+        ...continueOk(),
+        additionalContext: advisory,
+      });
     }
 
     // 2-3 signals: log only, no additionalContext, no block

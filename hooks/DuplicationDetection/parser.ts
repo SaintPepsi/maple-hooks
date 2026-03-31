@@ -100,19 +100,58 @@ export interface ParserDeps {
   createHash: (content: string) => string;
 }
 
+interface AstTypeNode {
+  type: string;
+  kind?: string;
+  typeName?: { value: string };
+  typeParams?: { params: AstTypeNode[] };
+  elemType?: AstTypeNode;
+  types?: AstTypeNode[];
+  elemTypes?: Array<{ ty: AstTypeNode }>;
+  members?: ReadonlyArray<{ type: string }>;
+  op?: string;
+  typeAnnotation?: AstTypeNode;
+}
+
 interface AstParamPattern {
   type: string;
-  typeAnnotation?: { typeAnnotation?: { type: string } };
+  typeAnnotation?: { typeAnnotation?: AstTypeNode };
 }
 
 interface AstParam {
   type?: string;
   pat?: AstParamPattern;
-  typeAnnotation?: { typeAnnotation?: { type: string } };
+  typeAnnotation?: { typeAnnotation?: AstTypeNode };
 }
 
 interface AstReturnType {
-  typeAnnotation?: { type: string };
+  typeAnnotation?: AstTypeNode;
+}
+
+function serializeType(node: AstTypeNode): string {
+  switch (node.type) {
+    case "TsKeywordType":
+      return node.kind ?? "";
+    case "TsTypeReference": {
+      const name = node.typeName?.value ?? "";
+      if (node.typeParams?.params.length) {
+        return `${name}<${node.typeParams.params.map(serializeType).join(",")}>`;
+      }
+      return name;
+    }
+    case "TsArrayType":
+      return node.elemType ? `${serializeType(node.elemType)}[]` : "[]";
+    case "TsUnionType":
+      return node.types?.map(serializeType).join("|") ?? "";
+    case "TsTupleType":
+      return `[${node.elemTypes?.map((e) => serializeType(e.ty)).join(",") ?? ""}]`;
+    case "TsTypeLiteral":
+      return "{object}";
+    case "TsTypeOperator":
+      return node.typeAnnotation ? serializeType(node.typeAnnotation) : "";
+    default:
+      return "";
+  }
 }
 
 interface AstBody {
@@ -184,12 +223,13 @@ export function extractFunctions(
           // FunctionDeclaration params: {type: "Parameter", pat: Pattern}
           // ArrowFunctionExpression params: Pattern directly (no pat wrapper)
           const pattern = p.pat ?? p;
-          return pattern.type === "Identifier" && pattern.typeAnnotation?.typeAnnotation?.type
-            ? pattern.typeAnnotation.typeAnnotation.type
-            : "";
+          if (pattern.type === "Identifier" && pattern.typeAnnotation?.typeAnnotation) {
+            return serializeType(pattern.typeAnnotation.typeAnnotation);
+          }
+          return "";
         })
         .join(","),
-      returnType: retType?.typeAnnotation?.type ?? "",
+      returnType: retType?.typeAnnotation ? serializeType(retType.typeAnnotation) : "",
       fingerprint: buildFingerprint(nodeTypes),
     });
   }
