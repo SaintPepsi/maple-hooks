@@ -666,7 +666,8 @@ export function renderGroupPage(group: GroupMeta): string {
   const summaryItems = events
     .map((event) => {
       const count = group.hooks.filter((h) => eventList(h.event).includes(event)).length;
-      return `<div class="summary-item"><div class="num">${count}</div><div class="label">${esc(event)}</div></div>`;
+      const color = eventColor(event);
+      return `<div class="summary-item"><div class="num" style="color:var(--${color === "accent" ? "accent-bright" : color});">${count}</div><div class="label">${esc(event)}</div></div>`;
     })
     .join("\n    ");
 

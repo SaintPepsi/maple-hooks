@@ -814,18 +814,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
