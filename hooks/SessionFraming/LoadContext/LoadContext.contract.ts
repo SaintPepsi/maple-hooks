@@ -97,31 +97,6 @@ function loadContextFiles(baseDir: string, settings: Settings, deps: LoadContext
   return combined;
 }
 
-function loadCodingStandards(baseDir: string, deps: LoadContextDeps): string | null {
-  const standardsDir = join(baseDir, "PAI/SYSTEM/CODINGSTANDARDS");
-  if (!deps.fileExists(standardsDir)) return null;
-
-  const parts: string[] = [];
-
-  // Always load general.md
-  const generalPath = join(standardsDir, "general.md");
-  if (deps.fileExists(generalPath)) {
-    const r = deps.readFile(generalPath);
-    if (r.ok) parts.push(r.value);
-  }
-
-  // Load domain files
-  for (const domain of ["hooks.md", "skills.md"]) {
-    const p = join(standardsDir, domain);
-    if (deps.fileExists(p)) {
-      const r = deps.readFile(p);
-      if (r.ok) parts.push(r.value);
-    }
-  }
-
-  return parts.length > 0 ? parts.join("\n\n---\n\n") : null;
-}
-
 function needsSkillRebuild(baseDir: string, deps: LoadContextDeps): boolean {
   const skillMdPath = join(baseDir, "PAI/SKILL.md");
   const componentsDir = join(baseDir, "PAI/Components");
@@ -479,8 +454,6 @@ export const LoadContext: AsyncHookContract<
     const principalName = settings.principal?.name || "User";
     const daName = settings.daidentity?.name || "PAI";
     const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
-    const codingStandards = loadCodingStandards(deps.baseDir, deps);
-
     const message = `<system-reminder>
 PAI CONTEXT (Auto-loaded at Session Start)
 
@@ -504,7 +477,6 @@ The assistant's name is: **${daName}**
 ---
 
 ${contextContent}
-${codingStandards ? `\n---\n\n## Coding Standards\n\n${codingStandards}\n` : ""}
 ${relationshipContext ? `\n---\n${relationshipContext}` : ""}
 ---
 

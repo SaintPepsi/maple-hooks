@@ -2,7 +2,7 @@
 
 ## Overview
 
-LoadContext is an **async SessionStart** hook that loads the full PAI context into a new Claude Code session. It rebuilds `SKILL.md` if any components have changed, loads context files (SKILL.md, AISTEERINGRULES.md, user rules), injects relationship context and coding standards, scans for active work sessions from the last 48 hours, surfaces pending improvement proposals, and wraps everything into a `<system-reminder>` block.
+LoadContext is an **async SessionStart** hook that loads the full PAI context into a new Claude Code session. It rebuilds `SKILL.md` if any components have changed, loads context files (SKILL.md, AISTEERINGRULES.md, user rules), injects relationship context, scans for active work sessions from the last 48 hours, surfaces pending improvement proposals, and wraps everything into a `<system-reminder>` block.
 
 This is the primary context injection hook, responsible for establishing the agent's identity, session awareness, and knowledge of active work. It skips entirely for subagent sessions.
 
@@ -28,8 +28,7 @@ It does **not** fire when:
 4. Checks if SKILL.md needs rebuilding by comparing component file timestamps
 5. If rebuild is needed, runs `RebuildPAI.ts` to regenerate SKILL.md from components
 6. Loads settings.json and reads context files (SKILL.md, AISTEERINGRULES.md, user rules)
-7. Loads coding standards from `PAI/SYSTEM/CODINGSTANDARDS/` (general.md, hooks.md, skills.md)
-8. Loads relationship context: high-confidence opinions and recent relationship notes
+7. Loads relationship context: high-confidence opinions and recent relationship notes
 9. Builds a `<system-reminder>` block with date, session ID, identity rules, and all loaded context
 10. Scans `MEMORY/WORK/` for active work sessions from the last 48 hours
 11. Checks for pending improvement proposals in `MEMORY/LEARNING/PROPOSALS/pending/`
@@ -40,7 +39,6 @@ It does **not** fire when:
 const settings = loadSettings(deps.baseDir, deps);
 const contextContent = loadContextFiles(deps.baseDir, settings, deps);
 const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
-const codingStandards = loadCodingStandards(deps.baseDir, deps);
 const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
 const proposals = loadPendingProposals(deps.baseDir, deps);
 ```

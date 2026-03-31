@@ -16,7 +16,6 @@ Hooks that implement or support the PAI Algorithm workflow.
 | `PRDSync`               | PostToolUse      | Syncs PRD frontmatter and criteria to work.json for dashboard |
 | `AutoWorkCreation`      | UserPromptSubmit | Creates MEMORY/WORK directories for new tasks                 |
 | `LoadContext`           | SessionStart     | Loads PAI context files at session start                      |
-| `StartupGreeting`       | SessionStart     | Displays PAI banner and system status                         |
 | `CheckVersion`          | SessionStart     | Checks for Claude Code updates                                |
 | `CheckAlgorithmVersion` | SessionStart     | Validates Algorithm version at session start                  |
 | `SkillGuard`            | PreToolUse       | Validates Skill tool invocations                              |

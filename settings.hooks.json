@@ -6,10 +6,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/StartupGreeting/StartupGreeting.hook.ts"
-          },
-          {
-            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionFraming/LoadContext/LoadContext.hook.ts"
           },
           {
