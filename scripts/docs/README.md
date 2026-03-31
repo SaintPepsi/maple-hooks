@@ -23,4 +23,4 @@ bun run scripts/docs/check.ts               # Verify all hooks have valid doc.md
 
 ## Multi-event badges
 
-`hook.json` supports `event` as a string or string array. Hooks registered for multiple events (e.g. `["SessionStart", "PostToolUse"]`) render multiple colored badges in the docs.
+`hook.json` supports `event` as a string or string array. Hooks registered for multiple events (e.g. `["SessionStart", "PostToolUse"]`) render multiple colored badges in the docs. Badge colors are consistent across all views (summary counts, card badges, detail page tags) via a shared `eventColor()` mapping in `template.ts`.
