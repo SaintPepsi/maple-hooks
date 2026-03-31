@@ -640,13 +640,15 @@ export function renderGroupPage(group: GroupMeta): string {
       const badges = events.map((e) => {
         const c = eventColor(e);
         return `<span class="card-badge" style="background:var(--${c}-dim);color:var(--${c});">${esc(e)}</span>`;
-      }).join(" ");
+      }).join("\n            ");
       return `
       <div class="card ${primaryColor}"${interactiveAttrs}>
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>${esc(h.name)}</h3>
-          ${badges}
+          <div class="card-badges">
+            ${badges}
+          </div>
         </div>
         <p>${esc(h.description || "No description")}</p>
       </div>`;

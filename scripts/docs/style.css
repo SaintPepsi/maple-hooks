@@ -468,6 +468,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,13 +518,19 @@ section > p {
   white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
