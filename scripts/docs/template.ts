@@ -45,6 +45,18 @@ interface DocSection {
   body: string;
 }
 
+// ─── GitHub Links ────────────────────────────────────────────────────────────
+
+const GITHUB_BASE = "https://github.com/SaintPepsi/pai-hooks/tree/main/hooks";
+
+function githubGroupUrl(groupName: string): string {
+  return `${GITHUB_BASE}/${groupName}`;
+}
+
+function githubHookUrl(groupName: string, hookName: string): string {
+  return `${GITHUB_BASE}/${groupName}/${hookName}/${hookName}.contract.ts`;
+}
+
 // ─── CSS Loader ───────────────────────────────────────────────────────────────
 
 let cachedCSS: string | null = null;
@@ -605,9 +617,16 @@ export function renderHookPage(hook: HookMeta, markdownContent: string, groupNam
 ${hero}
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
+  <div class="tags" style="margin-bottom: var(--sp-md);">
     ${eventList(hook.event).map((e) => `<span class="tag ${eventColor(e)}">${esc(e)}</span>`).join("\n    ")}
     <span class="tag green">${esc(groupName)}</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl);">
+    <a href="${githubHookUrl(groupName, hook.name)}" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">${esc(hook.name)}.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
   ${cleanPreamble ? `<p style="color: var(--text-dim); font-size: 15px; margin-bottom: var(--sp-2xl); max-width: 680px;">${inlineMd(cleanPreamble)}</p>` : ""}
@@ -675,6 +694,14 @@ export function renderGroupPage(group: GroupMeta): string {
 ${hero}
 
 <div class="container">
+  <div style="margin-bottom: var(--sp-lg);">
+    <a href="${githubGroupUrl(group.name)}" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C2;</span>
+      <code style="color: var(--cyan); font-size: 12px;">hooks/${esc(group.name)}/</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
+  </div>
+
   <div class="summary-grid">
     ${summaryItems}
   </div>
