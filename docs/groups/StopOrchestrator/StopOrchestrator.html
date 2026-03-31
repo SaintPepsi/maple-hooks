@@ -474,6 +474,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,15 +518,25 @@ section > p {
 
 .card-header h3 {
   margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -809,18 +820,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
@@ -1743,9 +1743,16 @@ section[id] {
 </div>
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
+  <div class="tags" style="margin-bottom: var(--sp-md);">
     <span class="tag red">Stop</span>
     <span class="tag green">StopOrchestrator</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/StopOrchestrator/StopOrchestrator/StopOrchestrator.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">StopOrchestrator.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
   
@@ -1759,7 +1766,7 @@ section[id] {
         <h3>Overview</h3>
       </div>
       <p>StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to four handlers in parallel: VoiceNotification, TabState, RebuildSkill, and AlgorithmEnrichment.</p>
-      <p>Voice notifications are only enabled for main terminal sessions (identified via Kitty session tracking files), preventing subagent sessions from triggering speech output.</p>
+      <p>Voice notifications are only enabled for main terminal sessions, preventing subagent sessions from triggering speech output.</p>
     </div>
   </section>
 
@@ -1809,7 +1816,7 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Determines if this is a main session by checking for a Kitty session file (<code>MEMORY/STATE/kitty-sessions/{session_id}.json</code>)</p></div>
+          <div class="step-content"><p>Determines if this is a main session (always true after kitty removal in #56)</p></div>
         </div>
 
         <div class="flow-step">
@@ -1867,7 +1874,7 @@ await Promise.allSettled(handlers);</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Subagent session (no voice)</h3>
       
       <div class="uc-example">
-        <div>A spawned subagent (e.g., from ArticleWriter) completes a response. StopOrchestrator parses the transcript but finds no Kitty session file for the subagent's session ID. It runs TabState, RebuildSkill, and AlgorithmEnrichment but skips VoiceNotification.</div>
+        <div>A spawned subagent (e.g., from ArticleWriter) completes a response. StopOrchestrator parses the transcript. Since <code>isMainSession</code> always returns true now, voice is enabled for all sessions — but subagents are filtered upstream before this hook runs.</div>
       </div>
       </div>
     </div>
@@ -1889,7 +1896,7 @@ await Promise.allSettled(handlers);</div>
           <tr><td><code>handlers/TabState</code></td><td>handler</td><td>Updates Kitty terminal tab styling</td></tr>
           <tr><td><code>handlers/RebuildSkill</code></td><td>handler</td><td>Checks and rebuilds stale skills</td></tr>
           <tr><td><code>handlers/AlgorithmEnrichment</code></td><td>handler</td><td>Enriches algorithm state from responses</td></tr>
-          <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>Checks Kitty session file existence</td></tr>
+          <tr><td><code>handlers/TabState</code></td><td>handler</td><td>Updates terminal tab title (logging only after kitty removal)</td></tr>
         </tbody>
       </table>
     </div>

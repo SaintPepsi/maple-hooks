@@ -474,6 +474,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,15 +518,25 @@ section > p {
 
 .card-header h3 {
   margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -809,18 +820,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
@@ -1743,9 +1743,16 @@ section[id] {
 </div>
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
+  <div class="tags" style="margin-bottom: var(--sp-md);">
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">QuestionAnswered</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/QuestionAnswered/QuestionAnswered/QuestionAnswered.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">QuestionAnswered.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
   
@@ -1758,8 +1765,7 @@ section[id] {
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>QuestionAnswered is a <strong>PostToolUse</strong> hook that resets the terminal tab state after the user answers an <code>AskUserQuestion</code> prompt. When Claude asks the user a question, the tab transitions to a "question" state (teal color). Once the user responds, this hook restores the tab to its previous "working" state (orange on inactive tabs only), preserving the original tab title when possible.</p>
-      <p>This hook works with the <code>tab-setter</code> library to manage terminal tab colors and titles across iTerm2 and Kitty terminals.</p>
+      <p>QuestionAnswered is a <strong>PostToolUse</strong> hook that fires after an <code>AskUserQuestion</code> tool completes. Following kitty terminal removal in #56, this hook is a no-op that returns <code>silent</code> immediately.</p>
     </div>
   </section>
 
@@ -1770,7 +1776,7 @@ section[id] {
         <div class="card-icon">&#x26A1;</div>
         <h3>Event</h3>
       </div>
-      <p><code>PostToolUse</code> — fires after an <code>AskUserQuestion</code> tool completes, restoring the terminal tab from question state back to working state.</p>
+      <p><code>PostToolUse</code> — fires after an <code>AskUserQuestion</code> tool completes. Returns <code>silent</code> immediately (no-op after kitty removal).</p>
     </div>
   </section>
 
@@ -1782,10 +1788,9 @@ section[id] {
         <h3>When It Fires</h3>
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> After any tool use completes (accepts returns true for all inputs)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The <code>AskUserQuestion</code> tool filtering is handled by the matcher in <code>settings.json</code>, not the contract itself</div>
+<div class="reason"><span class="ri">&#x2022;</span> The <code>AskUserQuestion</code> tool filtering is handled by the matcher in <code>settings.json</code></div>
       <p>It does <strong>not</strong> fire when:</p>
       <div class="reason"><span class="ri">&#x2022;</span> No tool has been used (only fires on PostToolUse)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The settings.json matcher excludes the tool (filtering happens before the hook)</div>
     </div>
   </section>
 
@@ -1799,32 +1804,7 @@ section[id] {
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Reads the current tab state for the session using <code>readTabState</code></p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">2</div>
-          <div class="step-content"><p>Checks if a <code>previousTitle</code> was stored when the tab entered question state</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">3</div>
-          <div class="step-content"><p>If a previous title exists, strips any state prefix and uses it as the restored title</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">4</div>
-          <div class="step-content"><p>If no previous title is found, defaults to "Processing answer."</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">5</div>
-          <div class="step-content"><p>Sets the tab state back to "working" with a gear emoji prefix on the title</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">6</div>
-          <div class="step-content"><p>Logs the state transition to stderr</p></div>
+          <div class="step-content"><p>Returns <code>{ type: "silent" }</code> immediately</p></div>
         </div>
 </div>
       
@@ -1835,20 +1815,9 @@ section[id] {
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Restore tab to working state
-const currentState = deps.readTabState(input.session_id);
-let restoredTitle = "Processing answer.";
-
-if (currentState?.previousTitle) {
-  const rawTitle = deps.stripPrefix(currentState.previousTitle);
-  if (rawTitle) restoredTitle = rawTitle;
-}
-
-deps.setTabState({
-  title: "\u2699\uFE0F" + restoredTitle,
-  state: "working",
-  sessionId: input.session_id,
-});</div>
+execute(_input, _deps): Result&lt;SilentOutput, PaiError&gt; {
+  return ok({ type: "silent" });
+}</div>
         </div>
       </div>
     </div>
@@ -1862,17 +1831,10 @@ deps.setTabState({
         <h3>Examples</h3>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Question answered with prior title</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: User answers a question</h3>
       
       <div class="uc-example">
-        <div>During a session titled "Refactoring auth module", Claude asks the user a question and the tab turns teal. The user answers. QuestionAnswered reads the stored previous title ("Refactoring auth module"), strips any prefix, and sets the tab back to working state with the title "Refactoring auth module" and orange coloring on inactive tabs.</div>
-      </div>
-      </div>
-      <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Question answered without prior title</h3>
-      
-      <div class="uc-example">
-        <div>Claude asks a question at the very start of a session before any title was set. The user answers. QuestionAnswered finds no <code>previousTitle</code> in the tab state and defaults to "Processing answer." as the restored title, setting the tab to working state.</div>
+        <div>Claude asks the user a question via <code>AskUserQuestion</code>. The user responds. QuestionAnswered fires and returns silent. No tab state changes occur.</div>
       </div>
       </div>
     </div>
@@ -1889,7 +1851,6 @@ deps.setTabState({
       <table class="tbl">
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
-          <tr><td><code>tab-setter</code></td><td>lib</td><td>Provides <code>setTabState</code>, <code>readTabState</code>, and <code>stripPrefix</code> for terminal tab management</td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code> and <code>Result</code> type for error handling</td></tr>
         </tbody>
       </table>

@@ -474,6 +474,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,15 +518,25 @@ section > p {
 
 .card-header h3 {
   margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -809,18 +820,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
@@ -1743,9 +1743,16 @@ section[id] {
 </div>
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
+  <div class="tags" style="margin-bottom: var(--sp-md);">
     <span class="tag cyan">SessionEnd</span>
     <span class="tag green">WorkLifecycle</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/WorkLifecycle/SessionSummary/SessionSummary.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">SessionSummary.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
   
@@ -1758,8 +1765,8 @@ section[id] {
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>SessionSummary finalizes a session by marking the WORK/ directory as COMPLETED, deleting the current-work state file, and resetting the Kitty terminal tab styling. It is the cleanup counterpart to AutoWorkCreation, ensuring that session state does not persist beyond the session's lifetime.</p>
-      <p>The hook updates META.yaml to set <code>status: "COMPLETED"</code> and <code>completed_at</code> with the current timestamp, removes the session-scoped state file, resets the Kitty tab title to idle, and cleans up any Kitty session tracking files.</p>
+      <p>SessionSummary finalizes a session by marking the WORK/ directory as COMPLETED, deleting the current-work state file, and resetting the terminal tab styling. It is the cleanup counterpart to AutoWorkCreation, ensuring that session state does not persist beyond the session's lifetime.</p>
+      <p>The hook updates META.yaml to set <code>status: "COMPLETED"</code> and <code>completed_at</code> with the current timestamp, removes the session-scoped state file, and resets the tab title to idle.</p>
     </div>
   </section>
 
@@ -1820,12 +1827,7 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Resets the Kitty terminal tab to idle state (title cleared, state set to "idle")</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">6</div>
-          <div class="step-content"><p>Cleans up Kitty session tracking files for the session ID</p></div>
+          <div class="step-content"><p>Resets the terminal tab to idle state (title cleared, state set to "idle")</p></div>
         </div>
 </div>
       
@@ -1858,14 +1860,14 @@ deps.setTabState({ title: "", state: "idle", sessionId: input.session_id });</di
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Normal session cleanup</h3>
       
       <div class="uc-example">
-        <div>You end a session that created work under <code>MEMORY/WORK/20260328-143025_refactor-auth/</code>. SessionSummary updates META.yaml to show <code>status: "COMPLETED"</code> and <code>completed_at: "2026-03-28T15:45:00Z"</code>, deletes <code>current-work-{session_id}.json</code>, resets the Kitty tab to idle, and cleans up session tracking.</div>
+        <div>You end a session that created work under <code>MEMORY/WORK/20260328-143025_refactor-auth/</code>. SessionSummary updates META.yaml to show <code>status: "COMPLETED"</code> and <code>completed_at: "2026-03-28T15:45:00Z"</code>, deletes <code>current-work-{session_id}.json</code>, and resets the terminal tab to idle.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: No active work</h3>
       
       <div class="uc-example">
-        <div>You end a session where no work directories were created (e.g., a brief question-only session). SessionSummary finds no state file and logs "No current work to complete", then still resets the Kitty tab state.</div>
+        <div>You end a session where no work directories were created (e.g., a brief question-only session). SessionSummary finds no state file and logs "No current work to complete", then still resets the terminal tab state.</div>
       </div>
       </div>
     </div>
@@ -1884,7 +1886,7 @@ deps.setTabState({ title: "", state: "idle", sessionId: input.session_id });</di
         <tbody>
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>File read/write/remove for state and META.yaml</td></tr>
           <tr><td><code>lib/time</code></td><td>lib</td><td>ISO timestamp for completion time</td></tr>
-          <tr><td><code>lib/tab-setter</code></td><td>lib</td><td>Kitty terminal tab state and session cleanup</td></tr>
+          <tr><td><code>lib/tab-setter</code></td><td>lib</td><td>Terminal tab state reset</td></tr>
           <tr><td><code>core/error</code></td><td>core</td><td>Error wrapping for tryCatch operations</td></tr>
           <tr><td><code>core/result</code></td><td>core</td><td>Result type and tryCatch utility</td></tr>
         </tbody>

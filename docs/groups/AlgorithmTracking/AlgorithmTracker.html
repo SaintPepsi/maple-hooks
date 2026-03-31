@@ -474,6 +474,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,15 +518,25 @@ section > p {
 
 .card-header h3 {
   margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -809,18 +820,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
@@ -1743,9 +1743,16 @@ section[id] {
 </div>
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
+  <div class="tags" style="margin-bottom: var(--sp-md);">
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">AlgorithmTracking</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/AlgorithmTracking/AlgorithmTracker/AlgorithmTracker.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">AlgorithmTracker.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
   
@@ -1759,7 +1766,7 @@ section[id] {
         <h3>Overview</h3>
       </div>
       <p>AlgorithmTracker is a <strong>sync PostToolUse</strong> hook that consolidates four algorithm state tracking responsibilities into a single hook. It monitors Bash commands for voice notification curls that signal phase transitions, TaskCreate events for ISC criteria creation, TaskUpdate events for criteria status changes, and Task tool events for agent spawns. All state is persisted via the <code>algorithm-state</code> library.</p>
-      <p>The hook also handles rework detection (re-entering OBSERVE from a completed state), effort level inference based on criteria count, and terminal tab labeling for active phases.</p>
+      <p>The hook also handles rework detection (re-entering OBSERVE from a completed state) and effort level inference based on criteria count.</p>
     </div>
   </section>
 
@@ -1804,7 +1811,7 @@ section[id] {
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p><strong>Phase tracking (Bash):</strong> Detects voice curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, updates the terminal tab, and handles rework detection</p></div>
+          <div class="step-content"><p><strong>Phase tracking (Bash):</strong> Detects voice curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, and handles rework detection</p></div>
         </div>
 
         <div class="flow-step">
@@ -1835,7 +1842,6 @@ const { phase, isAlgorithmEntry } = detectPhaseFromBash(tool_input.command);
 if (phase) {
   ensureSessionActive(session_id, deps);
   deps.phaseTransition(session_id, phase);
-  deps.setPhaseTab(phase, session_id);
 }
 
 // Criteria from TaskCreate
@@ -1864,7 +1870,7 @@ if (criterion) {
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Phase transition detected</h3>
       
       <div class="uc-example">
-        <div>Claude executes a Bash curl to <code>localhost:8888/notify</code> with <code>"message": "Entering the Build phase"</code>. AlgorithmTracker detects the BUILD phase, transitions the algorithm state, updates the terminal tab title to show "BUILD", and logs the transition.</div>
+        <div>Claude executes a Bash curl to <code>localhost:8888/notify</code> with <code>"message": "Entering the Build phase"</code>. AlgorithmTracker detects the BUILD phase, transitions the algorithm state, and logs the transition.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
@@ -1897,7 +1903,6 @@ if (criterion) {
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result wrapping</td></tr>
           <tr><td><code>algorithm-state</code></td><td>lib</td><td><code>readState</code>, <code>writeState</code>, <code>phaseTransition</code>, <code>criteriaAdd</code>, <code>criteriaUpdate</code>, <code>agentAdd</code>, <code>effortLevelUpdate</code></td></tr>
-          <tr><td><code>tab-setter</code></td><td>lib</td><td><code>setPhaseTab</code> for terminal tab labeling</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td><code>fileExists</code>, <code>readJson</code> for state and session name access</td></tr>
         </tbody>
       </table>

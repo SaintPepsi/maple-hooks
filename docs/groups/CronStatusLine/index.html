@@ -474,6 +474,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,15 +518,25 @@ section > p {
 
 .card-header h3 {
   margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -809,18 +820,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
@@ -1719,11 +1719,19 @@ section[id] {
 </div>
 
 <div class="container">
+  <div style="margin-bottom: var(--sp-lg);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CronStatusLine" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C2;</span>
+      <code style="color: var(--cyan); font-size: 12px;">hooks/CronStatusLine/</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
+  </div>
+
   <div class="summary-grid">
-    <div class="summary-item"><div class="num">2</div><div class="label">PostToolUse</div></div>
-    <div class="summary-item"><div class="num">1</div><div class="label">UserPromptSubmit</div></div>
-    <div class="summary-item"><div class="num">1</div><div class="label">SessionStart</div></div>
-    <div class="summary-item"><div class="num">1</div><div class="label">SessionEnd</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--blue);">2</div><div class="label">PostToolUse</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--accent-bright);">1</div><div class="label">UserPromptSubmit</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--green);">1</div><div class="label">SessionStart</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--cyan);">1</div><div class="label">SessionEnd</div></div>
   </div>
 
   <div class="section-label">Hooks</div>
@@ -1734,7 +1742,9 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>CronCreate</h3>
-          <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
+          </div>
         </div>
         <p>Records new cron job creation</p>
       </div>
@@ -1743,7 +1753,9 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>CronDelete</h3>
-          <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
+          </div>
         </div>
         <p>Records cron job deletion</p>
       </div>
@@ -1752,7 +1764,9 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>CronFire</h3>
-          <span class="card-badge" style="background:var(--accent-dim);color:var(--accent);">UserPromptSubmit</span>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--accent-dim);color:var(--accent);">UserPromptSubmit</span>
+          </div>
         </div>
         <p>Detect and record cron fires by matching user prompts against session crons</p>
       </div>
@@ -1761,7 +1775,9 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>CronPrune</h3>
-          <span class="card-badge" style="background:var(--green-dim);color:var(--green);">SessionStart</span>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--green-dim);color:var(--green);">SessionStart</span>
+          </div>
         </div>
         <p>Removes expired cron jobs on session start</p>
       </div>
@@ -1770,7 +1786,9 @@ section[id] {
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>CronSessionEnd</h3>
-          <span class="card-badge" style="background:var(--cyan-dim);color:var(--cyan);">SessionEnd</span>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--cyan-dim);color:var(--cyan);">SessionEnd</span>
+          </div>
         </div>
         <p>Updates cron status at session end</p>
       </div>

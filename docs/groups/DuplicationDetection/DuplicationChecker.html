@@ -474,6 +474,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,15 +518,25 @@ section > p {
 
 .card-header h3 {
   margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -809,18 +820,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
@@ -1743,9 +1743,16 @@ section[id] {
 </div>
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
+  <div class="tags" style="margin-bottom: var(--sp-md);">
     <span class="tag orange">PreToolUse</span>
     <span class="tag green">DuplicationDetection</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">DuplicationChecker.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
   
@@ -1759,10 +1766,11 @@ section[id] {
         <h3>Overview</h3>
       </div>
       <p>DuplicationChecker is a <strong>PreToolUse</strong> hook with tiered response that fires before writing or editing TypeScript files. It compares functions in the new code against a pre-built duplication index (created by DuplicationIndexBuilder) using 4 signal dimensions: body hash, name frequency, type signature, and fingerprint similarity.</p>
-      <p>Response tiers based on signal count:</p>
-      <div class="reason"><span class="ri">&#x2022;</span> <strong>1/4 signals</strong>: Ignore (no log, no action)</div>
-<div class="reason"><span class="ri">&#x2022;</span> <strong>2/4 or 3/4 signals</strong>: Log to <code>checker.jsonl</code> only (no block, no advisory)</div>
+      <p>Response tiers:</p>
+      <div class="reason"><span class="ri">&#x2022;</span> <strong>Body hash match</strong>: Block the operation — identical code regardless of function name (configurable)</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>4/4 signals</strong>: Block the operation (configurable)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>2/4 or 3/4 signals</strong> (no hash match): Log to <code>checker.jsonl</code> only (no block, no advisory)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>1/4 signals</strong>: Ignore (no log, no action)</div>
       <p>Blocking can be disabled via <code>settings.json</code>:</p>
       
       <div class="code-window">
@@ -1841,36 +1849,31 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">4</div>
-          <div class="step-content"><p>Checks the index age against the staleness threshold (300s)</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">5</div>
           <div class="step-content"><p>For Write operations, uses the content directly; for Edit operations, simulates the edit via shared <code>simulateEdit</code></p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">6</div>
+          <div class="step-dot">5</div>
           <div class="step-content"><p>Extracts function signatures from the content using SWC parser</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">7</div>
+          <div class="step-dot">6</div>
           <div class="step-content"><p>Compares extracted functions against the index using <code>checkFunctions</code></p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">8</div>
+          <div class="step-dot">7</div>
           <div class="step-content"><p>Logs all checks to <code>checker.jsonl</code> with branch metadata</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">9</div>
+          <div class="step-dot">8</div>
           <div class="step-content"><p>At 4/4 signals and blocking enabled: returns block with reason listing duplicate targets</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">10</div>
+          <div class="step-dot">9</div>
           <div class="step-content"><p>At 2-3/4 signals: logs finding, returns continue</p></div>
         </div>
 </div>
@@ -1940,7 +1943,8 @@ return ok({ type: "continue", continue: true });</div>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td><code>readFile</code>, <code>fileExists</code>, <code>readJson</code>, <code>appendFile</code>, <code>ensureDir</code></td></tr>
           <tr><td><code>lib/paths</code></td><td>lib</td><td><code>getSettingsPath</code> for reading hookConfig</td></tr>
-          <tr><td><code>DuplicationDetection/shared</code></td><td>shared</td><td><code>getFilePath</code>, <code>getWriteContent</code>, <code>simulateEdit</code>, <code>loadIndex</code>, <code>findIndexPath</code>, <code>checkFunctions</code>, <code>formatFindings</code>, <code>getArtifactsDir</code>, <code>getCurrentBranch</code>, <code>BLOCK_THRESHOLD</code>, <code>STALENESS_SECONDS</code></td></tr>
+          <tr><td><code>lib/tool-input</code></td><td>lib</td><td><code>getFilePath</code>, <code>getWriteContent</code> for extracting tool input fields</td></tr>
+          <tr><td><code>DuplicationDetection/shared</code></td><td>shared</td><td><code>simulateEdit</code>, <code>loadIndex</code>, <code>findIndexPath</code>, <code>checkFunctions</code>, <code>getArtifactsDir</code>, <code>getCurrentBranch(cwd?)</code>, <code>BLOCK_THRESHOLD</code></td></tr>
           <tr><td><code>DuplicationDetection/parser</code></td><td>shared</td><td><code>extractFunctions</code> for SWC-based function extraction</td></tr>
           <tr><td><code>lib/narrative-reader</code></td><td>lib</td><td><code>pickNarrative</code> for severity-tiered block message openers</td></tr>
           <tr><td><code>DuplicationChecker.narrative.jsonl</code></td><td>data</td><td>9 agent narratives (3 per severity tier) with DRY/WET theming</td></tr>

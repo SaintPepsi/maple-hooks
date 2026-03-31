@@ -474,6 +474,7 @@ section > p {
 .card-header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 14px;
 }
@@ -517,15 +518,25 @@ section > p {
 
 .card-header h3 {
   margin-bottom: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* Card badge — floats right in header */
+/* Card badges — grouped at the end of the header */
+.card-badges {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .card-badge {
   font-size: 10px;
   font-weight: 600;
   padding: 3px 10px;
   border-radius: var(--r-pill);
-  margin-left: auto;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   white-space: nowrap;
@@ -809,18 +820,7 @@ section > p {
   margin-bottom: 4px;
 }
 
-.summary-item:nth-child(1) .num {
-  color: var(--green);
-}
-.summary-item:nth-child(2) .num {
-  color: var(--orange);
-}
-.summary-item:nth-child(3) .num {
-  color: var(--blue);
-}
-.summary-item:nth-child(4) .num {
-  color: var(--accent-bright);
-}
+/* Summary item .num color is set inline from the event color mapping */
 
 .summary-item .label {
   font-size: 11px;
@@ -1705,7 +1705,7 @@ section[id] {
 <nav class="wiki-nav" id="wikiNav">
   <div class="wiki-nav-header">
     <h4>DuplicationIndexBuilder</h4>
-    <p>DuplicationDetection / PostToolUse</p>
+    <p>DuplicationDetection / SessionStart, PostToolUse</p>
   </div>
   <ul class="wiki-nav-list">
     <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
@@ -1733,9 +1733,10 @@ section[id] {
   <div class="container">
     <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
     <h1>DuplicationIndexBuilder</h1>
-    <p>Builds duplication detection index on first .ts file write per session</p>
+    <p>Builds duplication index on SessionStart (full scan) and PostToolUse (surgical update per .ts write)</p>
     <div class="hero-meta">
       <span>DuplicationDetection</span>
+      <span>SessionStart</span>
       <span>PostToolUse</span>
       <span>pai-hooks</span>
     </div>
@@ -1743,9 +1744,17 @@ section[id] {
 </div>
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag green">SessionStart</span>
     <span class="tag blue">PostToolUse</span>
     <span class="tag green">DuplicationDetection</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">DuplicationIndexBuilder.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
   </div>
 
   
@@ -1759,7 +1768,7 @@ section[id] {
         <h3>Overview</h3>
       </div>
       <p>DuplicationIndexBuilder builds a duplication detection index (<code>index.json</code>) in <code>/tmp/pai/duplication/{project-hash}/{branch}/</code>. It fires on <strong>SessionStart</strong> (eager pre-warming) and <strong>PostToolUse</strong> (after TypeScript file writes). The index catalogs all functions across the project so that DuplicationChecker can warn about potential duplicates before new code is written.</p>
-      <p>The index is built lazily: it skips rebuilds if the existing index is less than 30 minutes old. On SessionStart, it uses CWD as the project anchor. On PostToolUse, it uses the written file's path. This is a silent background operation that never injects additional context into the conversation.</p>
+      <p>On PostToolUse, the builder does a <strong>surgical update</strong>: it loads the existing index, re-indexes only the changed file, recomputes duplicate groups, and writes back. On SessionStart (or when no index exists), it does a full rebuild. This is a silent background operation that never injects additional context into the conversation.</p>
     </div>
   </section>
 
@@ -1785,16 +1794,13 @@ section[id] {
       <p>On <strong>SessionStart</strong>:</p>
       <div class="reason"><span class="ri">&#x2022;</span> Every session start (no tool filter)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The project root can be determined from CWD (contains a project marker like <code>.git</code>, <code>package.json</code>, <code>composer.json</code>, etc.)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The existing index is missing or older than 30 minutes</div>
       <p>On <strong>PostToolUse</strong>:</p>
       <div class="reason"><span class="ri">&#x2022;</span> A Write or Edit tool has just completed on a <code>.ts</code> file (not <code>.d.ts</code>)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The project root can be determined (contains a project marker like <code>.git</code>, <code>package.json</code>, <code>composer.json</code>, etc.)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The existing index is missing or older than 30 minutes</div>
       <p>It does <strong>not</strong> fire when:</p>
       <div class="reason"><span class="ri">&#x2022;</span> PostToolUse: The tool is not Write or Edit</div>
 <div class="reason"><span class="ri">&#x2022;</span> PostToolUse: The target file is not a <code>.ts</code> file (or is a <code>.d.ts</code> definition file)</div>
 <div class="reason"><span class="ri">&#x2022;</span> No project root can be found (walks up to 10 directories)</div>
-<div class="reason"><span class="ri">&#x2022;</span> A fresh index already exists (modified less than 30 minutes ago)</div>
     </div>
   </section>
 
@@ -1818,27 +1824,32 @@ section[id] {
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Checks if <code>/tmp/pai/duplication/{hash}/{branch}/index.json</code> exists and is fresh (< 30 minutes old)</p></div>
+          <div class="step-content"><p>Checks if an existing index exists at <code>/tmp/pai/duplication/{hash}/{branch}/index.json</code></p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">4</div>
-          <div class="step-content"><p>If the index is stale or missing, calls <code>buildIndex()</code> to scan all project TypeScript files</p></div>
+          <div class="step-content"><p>If index exists and triggered by PostToolUse: <strong>surgical update</strong> — re-indexes only the changed file via <code>updateIndexForFile()</code></p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Extracts function signatures from every <code>.ts</code> file using the SWC parser</p></div>
+          <div class="step-content"><p>If no index exists or triggered by SessionStart: <strong>full rebuild</strong> — scans all <code>.ts</code> files via <code>buildIndex()</code></p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">6</div>
-          <div class="step-content"><p>Writes the resulting index as JSON to <code>/tmp/pai/duplication/{hash}/{branch}/index.json</code></p></div>
+          <div class="step-content"><p>Recomputes duplicate group lookups (hash, name, signature)</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>Logs build statistics (function count, file count, size, and build time) to stderr</p></div>
+          <div class="step-content"><p>Writes the resulting index as JSON to <code>/tmp/pai/duplication/{hash}/{branch}/index.json</code></p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">8</div>
+          <div class="step-content"><p>Logs build/update statistics (function count, file count, size, and build time) to stderr</p></div>
         </div>
 </div>
       
@@ -1849,17 +1860,17 @@ section[id] {
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Core index build flow — anchor differs by event type
+// Core flow — surgical update on PostToolUse, full rebuild on SessionStart
 const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
 const projectRoot = deps.findProjectRoot(anchor);
-const branch = getCurrentBranch() ?? null;
+const branch = getCurrentBranch(projectRoot) ?? null;
 const indexDir = getArtifactsDir(projectRoot, branch);
-const indexPath = deps.indexBuilderDeps.join(indexDir, "index.json");
 
-if (isIndexFresh(indexPath, deps)) return ok({ type: "continue", continue: true });
-
-const index = buildIndex(projectRoot, deps.indexBuilderDeps);
-deps.writeFile(indexPath, JSON.stringify(index));</div>
+if (existingIndex &amp;&amp; changedFile) {
+  index = updateIndexForFile(existing, changedFile, content, deps.indexBuilderDeps);
+} else {
+  index = buildIndex(projectRoot, deps.indexBuilderDeps);
+}</div>
         </div>
       </div>
       <p>The hook shell routes by event type: SessionStart uses <code>runHookWith</code> (bypasses tool_name validation in the runner), PostToolUse uses standard <code>runHook</code> with <code>stdinOverride</code>.</p>
@@ -1884,14 +1895,14 @@ deps.writeFile(indexPath, JSON.stringify(index));</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: First TypeScript write in session (no SessionStart)</h3>
       
       <div class="uc-example">
-        <div>The model edits <code>src/utils.ts</code>. No <code>index.json</code> exists yet. DuplicationIndexBuilder scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms. Subsequent writes within 30 minutes skip the rebuild.</div>
+        <div>The model edits <code>src/utils.ts</code>. No <code>index.json</code> exists yet. DuplicationIndexBuilder does a full rebuild, scans the entire project, finds 142 functions across 28 files, and writes a 45KB index file in 320ms.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Index is still fresh</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Surgical update on subsequent writes</h3>
       
       <div class="uc-example">
-        <div>The model writes to <code>src/api.ts</code> five minutes after the last index build. DuplicationIndexBuilder checks the index mtime, finds it is only 5 minutes old (under the 30-minute threshold), and skips the rebuild entirely.</div>
+        <div>The model writes to <code>src/api.ts</code> after the index already exists. DuplicationIndexBuilder loads the existing index, re-indexes only <code>src/api.ts</code>, recomputes duplicate groups, and writes the updated index in ~5ms.</div>
       </div>
       </div>
     </div>
@@ -1910,7 +1921,8 @@ deps.writeFile(indexPath, JSON.stringify(index));</div>
         <tbody>
           <tr><td><code>result</code></td><td>core</td><td><code>ok()</code> for Result-based returns</td></tr>
           <tr><td><code>fs</code></td><td>adapter</td><td><code>readFile</code>, <code>writeFile</code>, <code>fileExists</code>, <code>stat</code>, <code>readDir</code>, <code>ensureDir</code> for file operations</td></tr>
-          <tr><td><code>DuplicationDetection/index-builder-logic</code></td><td>shared</td><td><code>buildIndex</code> function and <code>IndexBuilderDeps</code> type</td></tr>
+          <tr><td><code>lib/tool-input</code></td><td>lib</td><td><code>getFilePath</code> for extracting tool input fields</td></tr>
+          <tr><td><code>DuplicationDetection/index-builder-logic</code></td><td>shared</td><td><code>buildIndex</code>, <code>updateIndexForFile</code> functions and <code>IndexBuilderDeps</code> type</td></tr>
           <tr><td><code>DuplicationDetection/parser</code></td><td>shared</td><td><code>defaultParserDeps</code> for SWC-based function extraction</td></tr>
         </tbody>
       </table>
