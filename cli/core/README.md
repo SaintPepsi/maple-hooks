@@ -25,7 +25,7 @@ Core logic for the `paih` CLI. Business logic modules that power CLI commands.
 ## Patterns
 
 All modules follow the project coding standards:
-- Result pattern (`Result<T, PaiError>`) for error handling, no try-catch in business logic
+- Result pattern (`Result<T, E>`) for error handling, no try-catch in business logic
 - DI via Deps interfaces for testability
 - Adapters for all I/O (no raw Node builtins)
 - `@hooks/*` path aliases

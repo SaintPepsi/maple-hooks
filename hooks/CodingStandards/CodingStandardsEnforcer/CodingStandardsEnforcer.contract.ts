@@ -4,7 +4,7 @@
  * PreToolUse hook that fires on Edit and Write operations targeting
  * ANY .ts/.tsx file. Scans the FULL FILE content for violations:
  *   1. Raw Node builtin imports (fs, child_process, http, crypto)
- *   2. Try-catch used for flow control (should use explicit error handling)
+ *   2. Try-catch used for flow control (should use Result<T, E> pipelines)
  *   3. Hardcoded environment variable access (should inject via configuration)
  *
  * For Edit operations: reads the current file from disk, applies the edit,
@@ -103,7 +103,7 @@ function formatBlockMessage(violations: Violation[], filePath: string): string {
 
   const categoryLabels: Record<string, string> = {
     "raw-import": "Raw Node builtin imports (use an adapters/ wrapper instead):",
-    "try-catch": "Try-catch flow control (use explicit error returns instead):",
+    "try-catch": "Try-catch flow control (use Result<T, E> pipelines instead):",
     "process-env": "Direct env access (inject via Deps + defaultDeps):",
     "inline-import-type": "Inline import types (use top-level import type declarations):",
     "as-any": "Unsafe type casts (use proper types or unknown intermediate):",
@@ -124,7 +124,7 @@ function formatBlockMessage(violations: Violation[], filePath: string): string {
 
   const fixMap: Record<string, string> = {
     "raw-import": "Wrap I/O behind injectable dependencies (not raw Node builtins)",
-    "try-catch": "Use explicit error returns (not try-catch for flow control)",
+    "try-catch": "Use Result<T, E> pipelines (not try-catch for flow control)",
     "process-env": "Inject environment config via parameters (not hardcoded globals)",
     "inline-import-type": "Use top-level import type declarations (not inline import types)",
     "as-any": "Use proper types (not unsafe type casts)",

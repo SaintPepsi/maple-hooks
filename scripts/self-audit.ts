@@ -264,7 +264,7 @@ function generateReport(audits: FileAudit[], summary: AuditSummary): string {
     }
     if (summary.violationsByCategory["try-catch"]) {
       lines.push(
-        `- **Try-catch flow control** appears in ${summary.violationsByCategory["try-catch"]} files. These need Result<T> refactoring.`,
+        `- **Try-catch flow control** appears in ${summary.violationsByCategory["try-catch"]} files. These need Result<T, E> pipeline refactoring.`,
       );
     }
     if (summary.violationsByCategory["process-env"]) {

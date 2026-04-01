@@ -240,7 +240,7 @@ bun run test:coverage   # Run with coverage report (90%+ line coverage)
 - **Runtime:** Bun (TypeScript)
 - **Test framework:** bun:test
 - **Git hooks:** Husky
-- **Error handling:** Result<T, PaiError> (no try-catch in business logic)
+- **Error handling:** Result<T, E> (no try-catch in business logic)
 - **I/O:** Adapter pattern (core/adapters/) wrapping Node builtins
 - **Dependencies:** Injected via Deps interfaces on every contract
 

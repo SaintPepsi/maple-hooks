@@ -100,7 +100,7 @@ export function findTryCatchFlowControl(lines: string[]): Violation[] {
         line: i + 1,
         content: lines[i].trim(),
         category: "try-catch",
-        message: "Try-catch for flow control. Use explicit error returns instead.",
+        message: "Try-catch for flow control. Use Result<T, E> pipelines instead.",
       });
     }
   }
@@ -342,7 +342,7 @@ export function findAllViolations(
 
 const FIX_INSTRUCTIONS: Record<string, string> = {
   "raw-import": "Create or use an adapters layer for Node builtins",
-  "try-catch": "Replace try-catch with Result<T> error returns",
+  "try-catch": "Replace try-catch with Result<T, E> pipelines",
   "process-env": "Move environment access into a Deps interface + defaultDeps",
   "inline-import-type": "Replace inline import types with top-level import type declarations",
   "as-any": "Replace unsafe type casts with proper types or unknown intermediate",
