@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
 import type { CronCreateDeps } from "./CronCreate.contract";
@@ -44,7 +44,7 @@ function makeDeps(overrides: Partial<CronCreateDeps> = {}): TestDeps {
       if (path in files) return { ok: true as const, value: files[path] };
       return {
         ok: false as const,
-        error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`),
+        error: new ResultError(ErrorCode.FileNotFound, `File not found: ${path}`),
       };
     },
     writeFile: (path: string, content: string) => {

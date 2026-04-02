@@ -26,7 +26,7 @@ import {
   fileNotFound,
   fileReadFailed,
   fileWriteFailed,
-  type PaiError,
+  type ResultError,
 } from "@hooks/core/error";
 import { type Result, tryCatch } from "@hooks/core/result";
 
@@ -34,7 +34,7 @@ export function fileExists(path: string): boolean {
   return existsSync(path);
 }
 
-export function readFile(path: string): Result<string, PaiError> {
+export function readFile(path: string): Result<string, ResultError> {
   if (!existsSync(path)) return { ok: false, error: fileNotFound(path) };
   return tryCatch(
     () => readFileSync(path, "utf-8") as string,
@@ -42,7 +42,7 @@ export function readFile(path: string): Result<string, PaiError> {
   );
 }
 
-export function readJson<T = unknown>(path: string): Result<T, PaiError> {
+export function readJson<T = unknown>(path: string): Result<T, ResultError> {
   const content = readFile(path);
   if (!content.ok) return content;
   return tryCatch(
@@ -51,7 +51,7 @@ export function readJson<T = unknown>(path: string): Result<T, PaiError> {
   );
 }
 
-export function writeFile(path: string, content: string): Result<void, PaiError> {
+export function writeFile(path: string, content: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       mkdirSync(dirname(path), { recursive: true });
@@ -61,7 +61,7 @@ export function writeFile(path: string, content: string): Result<void, PaiError>
   );
 }
 
-export function writeJson(path: string, data: unknown): Result<void, PaiError> {
+export function writeJson(path: string, data: unknown): Result<void, ResultError> {
   return writeFile(path, JSON.stringify(data, null, 2));
 }
 
@@ -70,7 +70,7 @@ export function writeJson(path: string, data: unknown): Result<void, PaiError> {
  * err if it already exists or another error occurs.
  * Used by the dedup guard for cross-process lock acquisition.
  */
-export function writeFileExclusive(path: string, content: string): Result<void, PaiError> {
+export function writeFileExclusive(path: string, content: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       writeFileSync(path, content, { flag: "wx" });
@@ -79,7 +79,7 @@ export function writeFileExclusive(path: string, content: string): Result<void, 
   );
 }
 
-export function appendFile(path: string, content: string): Result<void, PaiError> {
+export function appendFile(path: string, content: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       mkdirSync(dirname(path), { recursive: true });
@@ -89,7 +89,7 @@ export function appendFile(path: string, content: string): Result<void, PaiError
   );
 }
 
-export function ensureDir(path: string): Result<void, PaiError> {
+export function ensureDir(path: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       mkdirSync(path, { recursive: true });
@@ -98,7 +98,7 @@ export function ensureDir(path: string): Result<void, PaiError> {
   );
 }
 
-export function removeFile(path: string): Result<void, PaiError> {
+export function removeFile(path: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       unlinkSync(path);
@@ -107,7 +107,7 @@ export function removeFile(path: string): Result<void, PaiError> {
   );
 }
 
-export function removeDir(path: string): Result<void, PaiError> {
+export function removeDir(path: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       rmSync(path, { recursive: true, force: true });
@@ -116,7 +116,7 @@ export function removeDir(path: string): Result<void, PaiError> {
   );
 }
 
-export function setFileTimes(path: string, atime: Date, mtime: Date): Result<void, PaiError> {
+export function setFileTimes(path: string, atime: Date, mtime: Date): Result<void, ResultError> {
   return tryCatch(
     () => {
       utimesSync(path, atime, mtime);
@@ -125,7 +125,7 @@ export function setFileTimes(path: string, atime: Date, mtime: Date): Result<voi
   );
 }
 
-export function copyFile(src: string, dest: string): Result<void, PaiError> {
+export function copyFile(src: string, dest: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       copyFileSync(src, dest);
@@ -134,7 +134,7 @@ export function copyFile(src: string, dest: string): Result<void, PaiError> {
   );
 }
 
-export function stat(path: string): Result<{ mtimeMs: number; isDirectory(): boolean }, PaiError> {
+export function stat(path: string): Result<{ mtimeMs: number; isDirectory(): boolean }, ResultError> {
   return tryCatch(
     () => {
       const s = statSync(path);
@@ -144,19 +144,19 @@ export function stat(path: string): Result<{ mtimeMs: number; isDirectory(): boo
   );
 }
 
-export function readDir(path: string, opts: { withFileTypes: true }): Result<Dirent[], PaiError>;
-export function readDir(path: string): Result<string[], PaiError>;
+export function readDir(path: string, opts: { withFileTypes: true }): Result<Dirent[], ResultError>;
+export function readDir(path: string): Result<string[], ResultError>;
 export function readDir(
   path: string,
   opts?: { withFileTypes: true },
-): Result<Dirent[] | string[], PaiError> {
+): Result<Dirent[] | string[], ResultError> {
   return tryCatch(
     () => (opts ? readdirSync(path, opts) : readdirSync(path)),
     (e) => fileReadFailed(path, e),
   );
 }
 
-export function symlink(target: string, path: string): Result<void, PaiError> {
+export function symlink(target: string, path: string): Result<void, ResultError> {
   return tryCatch(
     () => {
       symlinkSync(target, path);
@@ -165,7 +165,7 @@ export function symlink(target: string, path: string): Result<void, PaiError> {
   );
 }
 
-export function lstat(path: string): Result<{ isSymbolicLink(): boolean }, PaiError> {
+export function lstat(path: string): Result<{ isSymbolicLink(): boolean }, ResultError> {
   return tryCatch(
     () => {
       const s = lstatSync(path);

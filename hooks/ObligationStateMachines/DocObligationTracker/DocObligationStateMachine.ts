@@ -20,7 +20,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
@@ -35,7 +35,7 @@ import { pickNarrative } from "@hooks/lib/narrative-reader";
 export function projectHasHook(
   name: string,
   dirExists: (path: string) => boolean = fsFileExists,
-  listDir: (path: string) => Result<string[], PaiError> = fsReadDir,
+  listDir: (path: string) => Result<string[], ResultError> = fsReadDir,
 ): boolean {
   const hookDir = join(process.cwd(), ".claude", "hooks");
   if (!dirExists(hookDir)) return false;
@@ -171,7 +171,7 @@ export const DocObligationTracker: SyncHookContract<
     return isDocFile(filePath) || isNonTestCodeFile(filePath);
   },
 
-  execute(input: ToolHookInput, deps: DocObligationDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: DocObligationDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input);
     if (!filePath) {
       return ok(continueOk());
@@ -263,7 +263,7 @@ export const DocObligationEnforcer: SyncHookContract<
     return true;
   },
 
-  execute(input: StopInput, deps: DocObligationDeps): Result<BlockOutput | SilentOutput, PaiError> {
+  execute(input: StopInput, deps: DocObligationDeps): Result<BlockOutput | SilentOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (!deps.fileExists(flagFile)) {

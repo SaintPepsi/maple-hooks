@@ -5,7 +5,7 @@
  * injected deps.exec for testability. Fails open on parse errors.
  */
 
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
 import { type Result, tryCatch } from "@hooks/core/result";
 
@@ -34,7 +34,7 @@ export interface ReviewStatus {
 }
 
 export interface SharedDeps {
-  exec: (cmd: string) => Result<string, PaiError>;
+  exec: (cmd: string) => Result<string, ResultError>;
   stderr: (msg: string) => void;
 }
 

@@ -9,7 +9,7 @@
 
 import { join } from "node:path";
 import { appendFile, ensureDir, readDir, removeFile } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ export function appendHookLog(
   logDir?: string,
   forceCleanup?: boolean,
   stderr?: (msg: string) => void,
-): Result<void, PaiError> {
+): Result<void, ResultError> {
   const dir = logDir ?? join(process.env.HOME!, ".claude", "MEMORY", "STATE", "logs");
 
   if (!dirEnsured || logDir !== undefined) {

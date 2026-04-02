@@ -10,7 +10,7 @@
 import { appendHookLog, type HookLogEntry } from "@hooks/core/adapters/log";
 import { readStdin } from "@hooks/core/adapters/stdin";
 import type { HookContract } from "@hooks/core/contract";
-import { ErrorCode, jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { ErrorCode, jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import { isDuplicate } from "@hooks/core/dedup";
 import type { HookInput, HookInputBase } from "@hooks/core/types/hook-inputs";
@@ -76,7 +76,7 @@ function formatOutput(output: HookOutput, eventName: string): string | null {
 
 // ─── JSON Parsing ────────────────────────────────────────────────────────────
 
-function parseJson(raw: string): Result<HookInput, PaiError> {
+function parseJson(raw: string): Result<HookInput, ResultError> {
   return tryCatch(
     () => JSON.parse(raw) as HookInput,
     (e) => jsonParseFailed(raw, e),
@@ -246,7 +246,7 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
 
   const runStdinPipeline = async (): Promise<void> => {
     // Step 1: Read stdin
-    let rawResult: Result<string, PaiError>;
+    let rawResult: Result<string, ResultError>;
     if (options.stdinOverride !== undefined) {
       rawResult = ok(options.stdinOverride);
     } else {

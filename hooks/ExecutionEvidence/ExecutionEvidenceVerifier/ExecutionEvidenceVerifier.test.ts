@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -431,7 +431,7 @@ describe("ExecutionEvidenceVerifier contract", () => {
     const input = makeInput("git log --oneline", "abc123 fix: typo\ndef456 feat: add auth");
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -445,7 +445,7 @@ describe("ExecutionEvidenceVerifier contract", () => {
     const input = makeInput("git push origin main", output);
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -458,7 +458,7 @@ describe("ExecutionEvidenceVerifier contract", () => {
     const input = makeInput("git push origin main", "");
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -473,7 +473,7 @@ describe("ExecutionEvidenceVerifier contract", () => {
     const input = makeInput("git merge feature/auth", null);
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {
@@ -486,7 +486,7 @@ describe("ExecutionEvidenceVerifier contract", () => {
     const input = makeInput("git push --help", "Usage: git push ...");
     const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(r.ok).toBe(true);
     if (r.ok) {

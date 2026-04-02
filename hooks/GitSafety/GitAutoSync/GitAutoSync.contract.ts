@@ -18,7 +18,7 @@ import {
 } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -28,15 +28,15 @@ import { getLocalTimestamp } from "@hooks/lib/time";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface GitAutoSyncDeps {
-  execSync: (cmd: string, opts?: { cwd?: string; timeout?: number }) => Result<string, PaiError>;
-  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, PaiError>;
+  execSync: (cmd: string, opts?: { cwd?: string; timeout?: number }) => Result<string, ResultError>;
+  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readDir: (path: string) => Result<string[], PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  copyFile: (src: string, dest: string) => Result<void, PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readDir: (path: string) => Result<string[], ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  copyFile: (src: string, dest: string) => Result<void, ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
   dateNow: () => number;
   getTimestamp: () => string;
   claudeDir: string;
@@ -218,7 +218,7 @@ const defaultDeps: GitAutoSyncDeps = {
       value: result.value.map((e) =>
         typeof e === "string" ? e : ((e as { name?: string }).name ?? ""),
       ),
-    } as Result<string[], PaiError>;
+    } as Result<string[], ResultError>;
   },
   ensureDir,
   copyFile,
@@ -245,7 +245,7 @@ export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAut
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: GitAutoSyncDeps): Result<SilentOutput, PaiError> {
+  execute(_input: SessionEndInput, deps: GitAutoSyncDeps): Result<SilentOutput, ResultError> {
     // 0. Clean up stale agent tracking files (dead PIDs or TTL expired)
     cleanupStaleAgentFiles(deps);
 

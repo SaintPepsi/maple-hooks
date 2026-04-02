@@ -18,7 +18,7 @@
 
 import { readFile as adapterReadFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
@@ -76,7 +76,7 @@ export const CodingStandardsAdvisor: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: CodingStandardsAdvisorDeps,
-  ): Result<ContinueOutput, PaiError> {
+  ): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     let content = deps.readFile(filePath);

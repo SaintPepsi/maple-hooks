@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
 import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
 import { err, ok } from "@hooks/core/result";
@@ -52,7 +52,7 @@ function makeDeps(overrides: Partial<CodeQualityBaselineDeps> = {}): CodeQuality
   return {
     fileExists: () => false,
     readFile: () => ok(LONG_CLEAN),
-    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
+    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
     writeJson: (path, data) => {
       lastWrittenPath = path;
       lastWrittenJson = data;
@@ -259,7 +259,7 @@ describe("CodeQualityBaseline", () => {
   describe("execute — file read failure", () => {
     test("returns continue without storing when file unreadable", () => {
       const deps = makeDeps({
-        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as PaiError),
+        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as ResultError),
       });
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);

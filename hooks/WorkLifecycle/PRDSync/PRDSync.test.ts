@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import { fileReadFailed } from "@hooks/core/error";
@@ -59,7 +59,7 @@ updated: 2026-03-15T15:00:00+11:00
 - [ ] ISC-2: Second criterion
 `;
 
-  function mockReadJson(_path: string): Result<unknown, PaiError> {
+  function mockReadJson(_path: string): Result<unknown, ResultError> {
     return ok({});
   }
 

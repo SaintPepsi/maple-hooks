@@ -8,7 +8,7 @@
 
 import { join } from "node:path";
 import { fileExists as adapterFileExists, readJson } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 
 // ─── Voice Types ────────────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ export interface Settings {
 
 export interface IdentityDeps {
   settingsPath: string;
-  readJson: (path: string) => Result<Settings, PaiError>;
+  readJson: (path: string) => Result<Settings, ResultError>;
   fileExists: (path: string) => boolean;
 }
 

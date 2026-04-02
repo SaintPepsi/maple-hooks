@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { RatingCaptureDeps } from "./RatingCapture.contract";
@@ -54,7 +54,7 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
       seconds: "00",
     })),
     fileExists: mock(() => false),
-    readFile: mock(() => err(new PaiError(ErrorCode.FileNotFound, "not found"))),
+    readFile: mock(() => err(new ResultError(ErrorCode.FileNotFound, "not found"))),
     writeFile: mock(() => ok(undefined)),
     appendFile: mock(() => ok(undefined)),
     ensureDir: mock(() => ok(undefined)),

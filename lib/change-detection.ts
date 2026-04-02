@@ -7,7 +7,7 @@
 
 import { basename, join, relative } from "node:path";
 import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { tryCatch } from "@hooks/core/result";
 import { getPaiDir } from "@hooks/lib/paths";
@@ -56,11 +56,11 @@ export interface IntegrityState {
 // ============================================================================
 
 export interface ChangeDetectionDeps {
-  readFile: (path: string) => Result<string, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  parseJsonLine: <T>(raw: string) => Result<T, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  parseJsonLine: <T>(raw: string) => Result<T, ResultError>;
   paiDir: string;
 }
 
@@ -69,7 +69,7 @@ export const defaultChangeDetectionDeps: ChangeDetectionDeps = {
   fileExists,
   readJson,
   writeFile,
-  parseJsonLine: <T>(raw: string): Result<T, PaiError> =>
+  parseJsonLine: <T>(raw: string): Result<T, ResultError> =>
     tryCatch(
       () => JSON.parse(raw) as T,
       (e) => jsonParseFailed(raw.slice(0, 80), e),

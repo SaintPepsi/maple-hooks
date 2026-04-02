@@ -23,7 +23,7 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand } from "@hooks/lib/tool-input";
@@ -241,7 +241,7 @@ export const DestructiveDeleteGuard: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: DestructiveDeleteGuardDeps,
-  ): Result<ContinueOutput | BlockOutput | AskOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput | AskOutput, ResultError> {
     // Bash: detect destructive delete patterns, BLOCK
     if (input.tool_name === "Bash") {
       const command = getCommand(input);

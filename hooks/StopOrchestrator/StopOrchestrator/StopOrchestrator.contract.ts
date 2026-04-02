@@ -8,7 +8,7 @@
  */
 
 import type { AsyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -58,7 +58,7 @@ export const StopOrchestrator: AsyncHookContract<StopInput, SilentOutput, StopOr
   async execute(
     input: StopInput,
     deps: StopOrchestratorDeps,
-  ): Promise<Result<SilentOutput, PaiError>> {
+  ): Promise<Result<SilentOutput, ResultError>> {
     // Wait for transcript to be fully written
     await deps.delay(150);
 

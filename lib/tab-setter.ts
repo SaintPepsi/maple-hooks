@@ -19,7 +19,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import { execSyncSafe, getEnv } from "@hooks/core/adapters/process";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { paiPath } from "@hooks/lib/paths";
 import type { AlgorithmTabPhase, TabState } from "@hooks/lib/tab-constants";
@@ -35,16 +35,16 @@ import {
 
 export interface TabSetterDeps {
   fileExists: (path: string) => boolean;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  readDir: (path: string) => Result<string[], PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T>(path: string) => Result<T, PaiError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  readDir: (path: string) => Result<string[], ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T>(path: string) => Result<T, ResultError>;
   execSync: (
     cmd: string,
     opts?: { timeout?: number; stdio?: "pipe" | "inherit" | "ignore" },
-  ) => Result<string, PaiError>;
+  ) => Result<string, ResultError>;
   getEnv: (name: string) => string | undefined;
   stderr: (msg: string) => void;
 }

@@ -8,7 +8,7 @@
 
 import { describe, expect, test } from "bun:test";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
@@ -159,7 +159,7 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
 
 describe("AgentSpawnTracker parity with original JS hook", () => {
   const safeFetchOk = async () =>
-    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, PaiError>;
+    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, ResultError>;
 
   test("POST body matches original: { thread_id, agent_name, task }", async () => {
     // Original JS hook (AgentSpawnTracker.hook.js:97-103):
@@ -265,7 +265,7 @@ describe("AgentSpawnTracker parity with original JS hook", () => {
 
 describe("AgentCompleteTracker parity with original JS hook", () => {
   const safeFetchOk = async () =>
-    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, PaiError>;
+    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, ResultError>;
 
   test("skips spawn events (run_in_background true) like original", async () => {
     // Original JS hook (AgentCompleteTracker.hook.js:62-68):
@@ -372,7 +372,7 @@ describe("AgentCompleteTracker parity with original JS hook", () => {
 
 describe("SessionIdRegister parity with original JS hook", () => {
   const safeFetchOk = async () =>
-    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, PaiError>;
+    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, ResultError>;
 
   test("POST body matches original: { sessionId, threadId }", async () => {
     // Original JS hook (SessionIdRegister.hook.js:79):

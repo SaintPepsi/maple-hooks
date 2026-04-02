@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -38,7 +38,7 @@ function makeEditInput(filePath: string): ToolHookInput {
   };
 }
 
-function unwrap(result: Result<ContinueOutput, PaiError>): ContinueOutput {
+function unwrap(result: Result<ContinueOutput, ResultError>): ContinueOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }

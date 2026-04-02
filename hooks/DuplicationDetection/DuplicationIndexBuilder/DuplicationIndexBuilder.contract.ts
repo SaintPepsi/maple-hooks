@@ -17,7 +17,7 @@ import {
   fileExists,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -146,7 +146,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
   execute(
     input: HookInput,
     deps: DuplicationIndexBuilderDeps,
-  ): Result<ContinueOutput, PaiError> {
+  ): Result<ContinueOutput, ResultError> {
     // SessionStart: use CWD. PostToolUse: use file path from tool input.
     const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
     const projectRoot = deps.findProjectRoot(anchor);

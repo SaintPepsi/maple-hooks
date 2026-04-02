@@ -24,7 +24,7 @@ import {
   readJson as adapterReadJson,
   writeFile as adapterWriteFile,
 } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { invalidInput } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
@@ -33,10 +33,10 @@ import type { HookEventType } from "@hooks/core/types/hook-inputs";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface GeneratorDeps {
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  readDir: (path: string) => Result<string[], PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  readDir: (path: string) => Result<string[], ResultError>;
   fileExists: (path: string) => boolean;
   stderr: (msg: string) => void;
 }
@@ -86,7 +86,7 @@ const VALID_EVENTS = new Set<HookEventType>([
 /**
  * Extract event type from contract source via regex.
  */
-export function extractEvent(source: string): Result<HookEventType, PaiError> {
+export function extractEvent(source: string): Result<HookEventType, ResultError> {
   const match = source.match(/event:\s*["'](\w+)["']/);
   if (!match) {
     return err(invalidInput("No event field found in contract source"));
@@ -114,7 +114,7 @@ interface DiscoveredHook {
 export function discoverHooks(
   hooksDir: string,
   deps: GeneratorDeps,
-): Result<DiscoveredHook[], PaiError> {
+): Result<DiscoveredHook[], ResultError> {
   const groupsResult = deps.readDir(hooksDir);
   if (!groupsResult.ok) return groupsResult;
 
@@ -161,7 +161,7 @@ function discoverSharedFilesViaManifest(groupDir: string, deps: GeneratorDeps): 
 
 // ─── Duplicate Check ────────────────────────────────────────────────────────
 
-function checkDuplicateNames(hooks: DiscoveredHook[]): Result<void, PaiError> {
+function checkDuplicateNames(hooks: DiscoveredHook[]): Result<void, ResultError> {
   const seen = new Map<string, string>();
   for (const hook of hooks) {
     const existing = seen.get(hook.name);
@@ -183,7 +183,7 @@ function buildHookManifest(
   hook: DiscoveredHook,
   source: string,
   existing: Partial<HookManifest> | null,
-): Result<HookManifest, PaiError> {
+): Result<HookManifest, ResultError> {
   const eventResult = extractEvent(source);
   if (!eventResult.ok) {
     return err(invalidInput(`${hook.contractPath}: ${eventResult.error.message}`));
@@ -222,7 +222,7 @@ function buildGroupManifest(
 export function generate(
   options: GeneratorOptions,
   deps: GeneratorDeps = defaultDeps,
-): Result<GeneratorOutput, PaiError> {
+): Result<GeneratorOutput, ResultError> {
   const { hooksDir, repoRoot, dryRun } = options;
 
   // 1. Discover hooks

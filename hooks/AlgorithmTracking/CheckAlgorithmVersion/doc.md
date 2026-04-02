@@ -65,5 +65,5 @@ if (isNewer(upstreamVersion, localVersion)) {
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `result` | core | `ok()`, `err()` for Result wrapping |
-| `error` | core | `PaiError`, `ErrorCode` for typed errors |
+| `error` | core | `ResultError` type, `ErrorCode` for typed errors |
 | `fs` | adapter | `fileExists`, `readFile`, `writeFile`, `ensureDir` for file operations |

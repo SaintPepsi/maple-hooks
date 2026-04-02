@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
@@ -145,7 +145,7 @@ describe("CronSessionEnd execute", () => {
   it("returns silent when removeFile fails (does not crash hook chain)", () => {
     const stderrOutput: string[] = [];
     const deps = makeDeps({
-      removeFile: () => err(new PaiError(ErrorCode.FileWriteFailed, "permission denied")),
+      removeFile: () => err(new ResultError(ErrorCode.FileWriteFailed, "permission denied")),
       stderr: (msg: string) => {
         stderrOutput.push(msg);
       },
@@ -163,7 +163,7 @@ describe("CronSessionEnd execute", () => {
   it("logs cronCount 0 when cron file is unreadable", () => {
     const logged: string[] = [];
     const deps = makeDeps({
-      readFile: () => err(new PaiError(ErrorCode.FileReadFailed, "corrupt")),
+      readFile: () => err(new ResultError(ErrorCode.FileReadFailed, "corrupt")),
       appendFile: (_path: string, content: string) => {
         logged.push(content);
         return ok(undefined);

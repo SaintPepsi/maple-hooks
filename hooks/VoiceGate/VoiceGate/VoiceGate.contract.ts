@@ -8,7 +8,7 @@
 import { fileExists } from "@hooks/core/adapters/fs";
 import { isSubagent } from "@hooks/lib/environment";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -40,7 +40,7 @@ export const VoiceGate: SyncHookContract<
   execute(
     _input: ToolHookInput,
     deps: VoiceGateDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     if (!deps.getIsSubagent()) {
       return ok(continueOk());
     }

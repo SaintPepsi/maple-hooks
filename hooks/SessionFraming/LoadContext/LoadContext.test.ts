@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
@@ -12,12 +12,12 @@ function makeInput(overrides: Partial<SessionStartInput> = {}): SessionStartInpu
   return { session_id: "test-session-123", ...overrides };
 }
 
-function makeFileReadError(msg = "not found"): Result<never, PaiError> {
-  return err(new PaiError(ErrorCode.FileNotFound, msg));
+function makeFileReadError(msg = "not found"): Result<never, ResultError> {
+  return err(new ResultError(ErrorCode.FileNotFound, msg));
 }
 
-function makeFileDirError(msg = "dir not found"): Result<never, PaiError> {
-  return err(new PaiError(ErrorCode.FileReadFailed, msg));
+function makeFileDirError(msg = "dir not found"): Result<never, ResultError> {
+  return err(new ResultError(ErrorCode.FileReadFailed, msg));
 }
 
 function makeDirent(name: string, isDir: boolean) {
@@ -45,9 +45,9 @@ function makeDeps(overrides: Partial<LoadContextDeps> = {}): LoadContextDeps {
         contextFiles: ["PAI/SKILL.md"],
         principal: { name: "Ian" },
         daidentity: { name: "Maple" },
-      }) as Result<T, PaiError>,
+      }) as Result<T, ResultError>,
     readDir: (_path: string, _opts?: { withFileTypes: true }) =>
-      ok([]) as Result<{ name: string; isDirectory(): boolean }[], PaiError>,
+      ok([]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>,
     stat: (_path: string) => ok({ mtimeMs: 1000 }),
     execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => ok("rebuilt"),
     getDAName: () => "Maple",
@@ -127,7 +127,7 @@ describe("LoadContext — settings loading", () => {
           contextFiles: ["PAI/SKILL.md"],
           principal: { name: "TestPrincipal" },
           daidentity: { name: "Maple" },
-        }) as Result<T, PaiError>,
+        }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -143,7 +143,7 @@ describe("LoadContext — settings loading", () => {
           contextFiles: ["PAI/SKILL.md"],
           principal: { name: "Ian" },
           daidentity: { name: "SpecialDA" },
-        }) as Result<T, PaiError>,
+        }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -178,7 +178,7 @@ describe("LoadContext — settings loading", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        err(new PaiError(ErrorCode.JsonParseFailed, "parse error")) as Result<T, PaiError>,
+        err(new ResultError(ErrorCode.JsonParseFailed, "parse error")) as Result<T, ResultError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# SKILL content");
         return makeFileReadError();
@@ -205,7 +205,7 @@ describe("LoadContext — context files loading", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# My Skill Content");
         return makeFileReadError();
@@ -229,7 +229,7 @@ describe("LoadContext — context files loading", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["file-a.md", "file-b.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["file-a.md", "file-b.md"] }) as Result<T, ResultError>,
       readFile: (path: string) => {
         if (path.includes("file-a.md")) return ok("Content A");
         return makeFileReadError();
@@ -251,7 +251,7 @@ describe("LoadContext — context files loading", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["file-a.md", "file-b.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["file-a.md", "file-b.md"] }) as Result<T, ResultError>,
       readFile: (path: string) => {
         if (path.includes("file-a.md")) return ok("Content A");
         if (path.includes("file-b.md")) return ok("Content B");
@@ -271,7 +271,7 @@ describe("LoadContext — context files loading", () => {
     const deps = makeDeps({
       fileExists: (_path: string) => false,
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["nonexistent.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["nonexistent.md"] }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -293,7 +293,7 @@ describe("LoadContext — needsSkillRebuild", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: [] }) as Result<T, PaiError>,
+        ok({ contextFiles: [] }) as Result<T, ResultError>,
       execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => {
         rebuiltCalled = true;
         return ok("rebuilt");
@@ -321,13 +321,13 @@ describe("LoadContext — needsSkillRebuild", () => {
         if (path.includes("Components")) {
           return ok([makeDirent("component.md", false)]) as Result<
             { name: string; isDirectory(): boolean }[],
-            PaiError
+            ResultError
           >;
         }
-        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], PaiError>;
+        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill content");
         return makeFileReadError();
@@ -358,13 +358,13 @@ describe("LoadContext — needsSkillRebuild", () => {
         if (path.includes("Components")) {
           return ok([makeDirent("old-component.md", false)]) as Result<
             { name: string; isDirectory(): boolean }[],
-            PaiError
+            ResultError
           >;
         }
-        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], PaiError>;
+        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill content");
         return makeFileReadError();
@@ -387,7 +387,7 @@ describe("LoadContext — needsSkillRebuild", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: [] }) as Result<T, PaiError>,
+        ok({ contextFiles: [] }) as Result<T, ResultError>,
       execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) => ok("done"),
       stderr: (msg: string) => {
         stderrMessages.push(msg);
@@ -406,9 +406,9 @@ describe("LoadContext — needsSkillRebuild", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: [] }) as Result<T, PaiError>,
+        ok({ contextFiles: [] }) as Result<T, ResultError>,
       execSyncSafe: (_cmd: string, _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" }) =>
-        err(new PaiError(ErrorCode.ProcessExecFailed, "exec failed")),
+        err(new ResultError(ErrorCode.ProcessExecFailed, "exec failed")),
       stderr: (msg: string) => {
         stderrMessages.push(msg);
       },
@@ -446,7 +446,7 @@ Below threshold.
         return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -479,7 +479,7 @@ Just below threshold.
         return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -509,7 +509,7 @@ Very confident.
         return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -548,16 +548,16 @@ describe("LoadContext — work sessions", () => {
         if (path.includes("MEMORY/WORK")) {
           return ok([makeDirent(dirName, true)]) as Result<
             { name: string; isDirectory(): boolean }[],
-            PaiError
+            ResultError
           >;
         }
         if (path.includes(dirName)) {
           return ok([makeDirent("META.yaml", false)]) as Result<
             { name: string; isDirectory(): boolean }[],
-            PaiError
+            ResultError
           >;
         }
-        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], PaiError>;
+        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>;
       },
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
@@ -565,7 +565,7 @@ describe("LoadContext — work sessions", () => {
         return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -583,7 +583,7 @@ describe("LoadContext — work sessions", () => {
         return false;
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
         return makeFileReadError();
@@ -620,10 +620,10 @@ describe("LoadContext — work sessions", () => {
         if (path.includes("MEMORY/WORK")) {
           return ok([makeDirent(dirName, true)]) as Result<
             { name: string; isDirectory(): boolean }[],
-            PaiError
+            ResultError
           >;
         }
-        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], PaiError>;
+        return ok([]) as Result<{ name: string; isDirectory(): boolean }[], ResultError>;
       },
       readFile: (path: string) => {
         if (path.includes("SKILL.md")) return ok("# Skill");
@@ -631,7 +631,7 @@ describe("LoadContext — work sessions", () => {
         return makeFileReadError();
       },
       readJson: <T = unknown>(_path: string) =>
-        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, PaiError>,
+        ok({ contextFiles: ["PAI/SKILL.md"] }) as Result<T, ResultError>,
     });
     const result = await LoadContext.execute(makeInput(), deps);
     expect(result.ok).toBe(true);

@@ -17,7 +17,7 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -75,7 +75,7 @@ export const MessageQueueRelay: SyncHookContract<
     return input.tool_name === "Bash";
   },
 
-  execute(input: ToolHookInput, deps: MessageQueueRelayDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: MessageQueueRelayDeps): Result<ContinueOutput, ResultError> {
     const command = input.tool_input.command;
 
     // Only intercept mq-watcher completions

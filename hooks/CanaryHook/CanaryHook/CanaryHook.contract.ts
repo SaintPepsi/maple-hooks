@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
@@ -10,8 +10,8 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface CanaryHookDeps {
-  appendFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  appendFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   baseDir: string;
 }
 
@@ -33,7 +33,7 @@ export const CanaryHook: SyncHookContract<SessionStartInput, ContinueOutput, Can
     return true;
   },
 
-  execute(_input: SessionStartInput, deps: CanaryHookDeps): Result<ContinueOutput, PaiError> {
+  execute(_input: SessionStartInput, deps: CanaryHookDeps): Result<ContinueOutput, ResultError> {
     const logDir = join(deps.baseDir, "MEMORY", "STATE", "logs");
     const logFile = join(logDir, "canary-hook.log");
 

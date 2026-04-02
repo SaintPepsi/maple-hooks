@@ -22,7 +22,7 @@
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
 import type { AsyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -43,7 +43,7 @@ export interface AgentSpawnTrackerDeps {
   safeFetch: (
     url: string,
     opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string },
-  ) => Promise<Result<FetchResult, PaiError>>;
+  ) => Promise<Result<FetchResult, ResultError>>;
   getKoordConfig: () => { url: string | null };
   stderr: (msg: string) => void;
 }
@@ -74,7 +74,7 @@ export const AgentSpawnTracker: AsyncHookContract<
   async execute(
     input: ToolHookInput,
     deps: AgentSpawnTrackerDeps,
-  ): Promise<Result<ContinueOutput, PaiError>> {
+  ): Promise<Result<ContinueOutput, ResultError>> {
     const toolInput = input.tool_input;
 
     // Only fire for background agents

@@ -12,7 +12,7 @@
 import { join } from "node:path";
 import { readDir, readFile, stat } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -22,9 +22,9 @@ import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface PreCompactStatePersistDeps {
-  readDir: (path: string, opts?: { withFileTypes: true }) => Result<unknown[], PaiError>;
-  readFile: (path: string) => Result<string, PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
+  readDir: (path: string, opts?: { withFileTypes: true }) => Result<unknown[], ResultError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
   stderr: (msg: string) => void;
   baseDir: string;
 }
@@ -159,7 +159,7 @@ export const PreCompactStatePersist: SyncHookContract<
   execute(
     _input: PreCompactInput,
     deps: PreCompactStatePersistDeps,
-  ): Result<ContinueOutput, PaiError> {
+  ): Result<ContinueOutput, ResultError> {
     const workDir = join(deps.baseDir, "MEMORY", "WORK");
 
     const prdPath = findMostRecentPrd(workDir, deps);

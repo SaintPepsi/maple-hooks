@@ -21,7 +21,7 @@ import {
 import { defaultStderr } from "@hooks/lib/paths";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -95,7 +95,7 @@ export const DuplicationCheckerContract: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput, deps: DuplicationCheckerDeps): Result<ContinueOutput | BlockOutput, PaiError> {
+  execute(input: ToolHookInput, deps: DuplicationCheckerDeps): Result<ContinueOutput | BlockOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     const indexPath = findIndexPath(filePath, deps);
@@ -112,16 +112,26 @@ export const DuplicationCheckerContract: SyncHookContract<
 
     // Get content: Write has it directly, Edit needs simulation
     let content: string | null = null;
+    let preEditHashes: Set<string> | null = null;
     if (input.tool_name === "Write") {
       content = getWriteContent(input);
     } else {
       const currentContent = deps.readFile(filePath);
-      if (currentContent) content = simulateEdit(currentContent, input);
+      if (currentContent) {
+        content = simulateEdit(currentContent, input);
+        // Build set of body hashes present before this edit so we only flag new/changed functions
+        const preFunctions = extractFunctions(currentContent, filePath.endsWith(".tsx"));
+        preEditHashes = new Set(preFunctions.map((f) => f.bodyHash));
+      }
     }
 
     if (!content) return ok(continueOk());
 
-    const functions = extractFunctions(content, filePath.endsWith(".tsx"));
+    const allFunctions = extractFunctions(content, filePath.endsWith(".tsx"));
+    // For edits, exclude functions whose body was already present before the edit
+    const functions = preEditHashes
+      ? allFunctions.filter((f) => !preEditHashes!.has(f.bodyHash))
+      : allFunctions;
     if (functions.length === 0) return ok(continueOk());
 
     const relPath = filePath.startsWith(index.root)

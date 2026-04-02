@@ -1,5 +1,5 @@
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -28,7 +28,7 @@ export const HookDocEnforcer: SyncHookContract<
     return settings.enabled;
   },
 
-  execute(input: StopInput, deps: ObligationDeps): Result<BlockOutput | SilentOutput, PaiError> {
+  execute(input: StopInput, deps: ObligationDeps): Result<BlockOutput | SilentOutput, ResultError> {
     const result = checkObligation(deps, HOOK_DOC_CONFIG, input.session_id);
 
     if (result.action === "silent" || result.action === "release") {

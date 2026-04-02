@@ -11,7 +11,7 @@ import { ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters
 import { createRegex, safeRegexTest } from "@hooks/core/adapters/regex";
 import { safeParseYaml } from "@hooks/core/adapters/yaml";
 import type { SyncHookContract } from "@hooks/core/contract";
-import { type PaiError, securityBlock as securityBlockError } from "@hooks/core/error";
+import { type ResultError, securityBlock as securityBlockError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -51,9 +51,9 @@ type ValidationResult = { action: "allow" | "block" | "confirm" | "alert"; reaso
 
 export interface SecurityValidatorDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   safeParseYaml: (content: string) => unknown | null;
   safeRegexTest: (input: string, pattern: string, flags?: string) => boolean;
   createRegex: (pattern: string, flags?: string) => RegExp | null;
@@ -422,7 +422,7 @@ export const SecurityValidator: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: SecurityValidatorDeps,
-  ): Result<ContinueOutput | AskOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | AskOutput | BlockOutput, ResultError> {
     const { tool_name, session_id } = input;
     const patterns = loadPatterns(deps);
     const home = deps.homedir();

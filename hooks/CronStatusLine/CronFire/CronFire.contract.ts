@@ -25,7 +25,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
@@ -67,7 +67,7 @@ export const CronFireContract: SyncHookContract<UserPromptSubmitInput, SilentOut
       return true;
     },
 
-    execute(input: UserPromptSubmitInput, deps: CronFireDeps): Result<SilentOutput, PaiError> {
+    execute(input: UserPromptSubmitInput, deps: CronFireDeps): Result<SilentOutput, ResultError> {
       const prompt = input.prompt || input.user_prompt || "";
       if (!prompt) return ok(silent());
 

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, type Mock, mock } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
 import { handleVoice, type VoiceNotificationDeps } from "@hooks/handlers/VoiceNotification";
@@ -15,10 +15,10 @@ type FetchFn = (url: string, init?: RequestInit) => Promise<Response>;
 function makeDeps(overrides: Partial<VoiceNotificationDeps> = {}): VoiceNotificationDeps {
   return {
     fileExists: () => false,
-    readJson: <T = unknown>(): Result<T, PaiError> =>
-      err({ name: "PaiError", code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
-    appendFile: (): Result<void, PaiError> => ok(undefined),
-    ensureDir: (): Result<void, PaiError> => ok(undefined),
+    readJson: <T = unknown>(): Result<T, ResultError> =>
+      err({ name: "ResultError", code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
+    appendFile: (): Result<void, ResultError> => ok(undefined),
+    ensureDir: (): Result<void, ResultError> => ok(undefined),
     getIdentity: () => ({
       name: "TestDA",
       fullName: "Test Digital Assistant",
@@ -53,7 +53,7 @@ function makeTranscript(overrides: Partial<ParsedTranscript> = {}): ParsedTransc
 // handleVoice — sends notification to voice server
 // ---------------------------------------------------------------------------
 
-type AppendFn = (path: string, content: string) => Result<void, PaiError>;
+type AppendFn = (path: string, content: string) => Result<void, ResultError>;
 type StderrFn = (msg: string) => void;
 
 function makeFetchMock(response: Response): Mock<FetchFn> {
@@ -231,7 +231,7 @@ describe("handleVoice", () => {
       fetch: fetchMock,
       appendFile: appendMock,
       fileExists: (path: string) => path.includes("WORK/my-session-dir"),
-      readJson: <T = unknown>(): Result<T, PaiError> =>
+      readJson: <T = unknown>(): Result<T, ResultError> =>
         ok({ session_id: "test-session-9", session_dir: "my-session-dir" } as unknown as T),
     });
 

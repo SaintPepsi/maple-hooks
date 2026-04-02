@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -28,7 +28,7 @@ function makeNonBashInput(toolName: string): ToolHookInput {
   };
 }
 
-type GateResult = Result<ContinueOutput | BlockOutput, PaiError>;
+type GateResult = Result<ContinueOutput | BlockOutput, ResultError>;
 
 describe("IssueCreateGate", () => {
   it("has correct name and event", () => {

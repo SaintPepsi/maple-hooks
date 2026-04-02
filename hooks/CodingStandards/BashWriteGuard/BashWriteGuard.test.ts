@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -13,10 +13,10 @@ function makeInput(command: string): ToolHookInput {
   };
 }
 
-function result(input: ToolHookInput): Result<ContinueOutput | BlockOutput, PaiError> {
+function result(input: ToolHookInput): Result<ContinueOutput | BlockOutput, ResultError> {
   return BashWriteGuard.execute(input, BashWriteGuard.defaultDeps) as Result<
     ContinueOutput | BlockOutput,
-    PaiError
+    ResultError
   >;
 }
 

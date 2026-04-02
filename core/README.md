@@ -8,8 +8,8 @@ Three exported types for hook contracts:
 
 | Type | `execute()` returns | Use when |
 |------|-------------------|----------|
-| `SyncHookContract<I,O,D>` | `Result<O, PaiError>` | Most hooks (34 of 40) |
-| `AsyncHookContract<I,O,D>` | `Promise<Result<O, PaiError>>` | Hooks with async I/O (6 hooks) |
+| `SyncHookContract<I,O,D>` | `Result<O, E>` | Most hooks (34 of 40) |
+| `AsyncHookContract<I,O,D>` | `Promise<Result<O, E>>` | Hooks with async I/O (6 hooks) |
 | `HookContract<I,O,D>` | Union of both | Runner only — contracts should use the narrowed type |
 
 All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
@@ -20,7 +20,7 @@ All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
 
 ## Error Types (`error.ts`)
 
-`PaiError` with `ErrorCode` enum. Factory functions: `fileNotFound`, `fileReadFailed`, `fileWriteFailed`, `jsonParseFailed`, etc.
+`ResultError` type with `ErrorCode` enum. Factory functions: `fileNotFound`, `fileReadFailed`, `fileWriteFailed`, `jsonParseFailed`, etc.
 
 ## Runner (`runner.ts`)
 

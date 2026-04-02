@@ -26,7 +26,7 @@ import {
 } from "@hooks/core/adapters/fs";
 import { spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -37,13 +37,13 @@ import { getISOTimestamp } from "@hooks/lib/time";
 
 export interface LearningActionerDeps {
   fileExists: (path: string) => boolean;
-  readDir: (path: string, opts?: { withFileTypes: true }) => Result<unknown[], PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
-  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, PaiError>;
+  readDir: (path: string, opts?: { withFileTypes: true }) => Result<unknown[], ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
+  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, ResultError>;
   getISOTimestamp: () => string;
   baseDir: string;
   stderr: (msg: string) => void;
@@ -369,7 +369,7 @@ export const LearningActioner: SyncHookContract<
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: LearningActionerDeps): Result<SilentOutput, PaiError> {
+  execute(_input: SessionEndInput, deps: LearningActionerDeps): Result<SilentOutput, ResultError> {
     const proposalsDir = join(deps.baseDir, "MEMORY/LEARNING/PROPOSALS");
     const lockPath = join(proposalsDir, ".analyzing");
 

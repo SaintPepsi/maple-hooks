@@ -6,7 +6,7 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -27,7 +27,7 @@ export const SkillGuard: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput): Result<ContinueOutput | BlockOutput, PaiError> {
+  execute(input: ToolHookInput): Result<ContinueOutput | BlockOutput, ResultError> {
     const skillName = ((input.tool_input?.skill as string) || "").toLowerCase().trim();
 
     if (BLOCKED_SKILLS.includes(skillName)) {

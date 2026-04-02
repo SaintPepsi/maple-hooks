@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -254,7 +254,7 @@ describe("HookDocTracker", () => {
     const result = HookDocTracker.execute(
       makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(written).toContain("/hooks/G/H/H.contract.ts");
@@ -333,7 +333,7 @@ describe("HookDocEnforcer", () => {
     const deps = makeDeps({ fileExists: () => false });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -347,7 +347,7 @@ describe("HookDocEnforcer", () => {
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -361,7 +361,7 @@ describe("HookDocEnforcer", () => {
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -373,7 +373,7 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("/hooks/G/H/H.contract.ts");
@@ -384,7 +384,7 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("doc.md");
@@ -395,7 +395,7 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("## Overview");
@@ -409,7 +409,7 @@ describe("HookDocEnforcer", () => {
     });
     const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;

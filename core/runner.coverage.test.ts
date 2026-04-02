@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import type { HookContract } from "@hooks/core/contract";
-import { ErrorCode, invalidInput, PaiError } from "@hooks/core/error";
+import { ErrorCode, invalidInput, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import { type RunHookOptions, runHook, runHookWith } from "@hooks/core/runner";
 import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
@@ -135,7 +135,7 @@ describe("runHook — SecurityBlock exit code 2", () => {
       name: "TestSecurity",
       event: "PreToolUse",
       accepts: () => true,
-      execute: () => err(new PaiError(ErrorCode.SecurityBlock, "blocked for security")),
+      execute: () => err(new ResultError(ErrorCode.SecurityBlock, "blocked for security")),
       defaultDeps: {},
     };
     const io = createMockIO();

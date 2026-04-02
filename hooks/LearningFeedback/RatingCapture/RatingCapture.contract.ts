@@ -12,7 +12,7 @@
 import { join } from "node:path";
 import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput } from "@hooks/core/types/hook-outputs";
@@ -67,10 +67,10 @@ export interface RatingCaptureDeps {
   getISOTimestamp: typeof getISOTimestamp;
   getLocalComponents: typeof getLocalComponents;
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  appendFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  appendFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   spawnTrending: () => void;
   readAlgoVersion: () => string;
   baseDir: string;
@@ -282,7 +282,7 @@ export const RatingCapture: AsyncHookContract<
   async execute(
     input: UserPromptSubmitInput,
     deps: RatingCaptureDeps,
-  ): Promise<Result<ContextOutput, PaiError>> {
+  ): Promise<Result<ContextOutput, ResultError>> {
     const prompt = input.prompt || input.user_prompt || "";
     const sessionId = input.session_id;
     const signalsDir = join(deps.baseDir, "MEMORY", "LEARNING", "SIGNALS");

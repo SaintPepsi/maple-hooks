@@ -13,7 +13,7 @@ import {
   readFile as adapterReadFile,
   readJson as adapterReadJson,
 } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { type ValidationReport, type ValidatorDeps, validate } from "./validator";
 
@@ -30,7 +30,7 @@ const realDeps: ValidatorDeps = {
   stderr: () => {},
 };
 
-function expectValid(result: Result<ValidationReport, PaiError>, hookName: string): void {
+function expectValid(result: Result<ValidationReport, ResultError>, hookName: string): void {
   if (!result.ok) {
     throw new Error(`Validator error for ${hookName}: ${result.error.message}`);
   }

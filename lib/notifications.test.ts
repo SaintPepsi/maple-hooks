@@ -8,7 +8,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { clearCache, getIdentity, type IdentityDeps } from "@hooks/lib/identity";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch, err } from "@hooks/core/result";
 import type { NotificationDeps } from "@hooks/lib/notifications";
@@ -43,9 +43,9 @@ function seedIdentityCache(): void {
 
 // ─── Mock Deps ─────────────────────────────────────────────────────────────
 
-const mockReadFile = mock((_path: string): Result<string, PaiError> => err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError));
+const mockReadFile = mock((_path: string): Result<string, ResultError> => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError));
 const mockFileExists = mock((_path: string): boolean => false);
-const mockWriteFile = mock((_path: string, _content: string): Result<void, PaiError> => ok(undefined));
+const mockWriteFile = mock((_path: string, _content: string): Result<void, ResultError> => ok(undefined));
 const mockStderr = mock((_msg: string): void => {});
 
 function createMockDeps(overrides: Partial<NotificationDeps> = {}): NotificationDeps {
@@ -53,7 +53,7 @@ function createMockDeps(overrides: Partial<NotificationDeps> = {}): Notification
     readFile: mockReadFile,
     fileExists: mockFileExists,
     writeFile: mockWriteFile,
-    parseJson: <T>(raw: string): Result<T, PaiError> =>
+    parseJson: <T>(raw: string): Result<T, ResultError> =>
       tryCatch(
         () => JSON.parse(raw) as T,
         (e) => jsonParseFailed(raw.slice(0, 80), e),
@@ -90,7 +90,7 @@ function resetMocks(): void {
   mockWriteFile.mockReset();
   mockStderr.mockReset();
   mockFileExists.mockReturnValue(false);
-  mockReadFile.mockReturnValue(err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError));
+  mockReadFile.mockReturnValue(err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError));
   seedIdentityCache();
 }
 
@@ -169,7 +169,7 @@ describe("getNotificationConfig", () => {
     const stderrMessages: string[] = [];
     const deps = createMockDeps({
       fileExists: () => true,
-      readFile: () => err({ code: "FILE_READ_FAILED", message: "permission denied" } as PaiError),
+      readFile: () => err({ code: "FILE_READ_FAILED", message: "permission denied" } as ResultError),
       stderr: (msg) => {
         stderrMessages.push(msg);
       },

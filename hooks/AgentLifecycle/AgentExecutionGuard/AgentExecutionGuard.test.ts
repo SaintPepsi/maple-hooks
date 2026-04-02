@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -22,7 +22,7 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("passes when run_in_background is true", () => {
-    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
       makeInput({ run_in_background: true }),
       noDeps,
     );
@@ -31,7 +31,7 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("passes for Explore agent type", () => {
-    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
       makeInput({ subagent_type: "Explore" }),
       noDeps,
     );
@@ -40,7 +40,7 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("passes for haiku model", () => {
-    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
       makeInput({ model: "haiku" }),
       noDeps,
     );
@@ -49,7 +49,7 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("passes for FAST timing in prompt scope", () => {
-    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
       makeInput({ prompt: "## Scope\nTiming: FAST\nDo something quick" }),
       noDeps,
     );
@@ -58,7 +58,7 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("warns for foreground non-fast agent", () => {
-    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
       makeInput(),
       noDeps,
     );
@@ -70,7 +70,7 @@ describe("AgentExecutionGuard", () => {
   });
 
   it("warning includes agent description", () => {
-    const result: Result<ContinueOutput | ContextOutput, PaiError> = AgentExecutionGuard.execute(
+    const result: Result<ContinueOutput | ContextOutput, ResultError> = AgentExecutionGuard.execute(
       makeInput({ description: "research task" }),
       noDeps,
     );

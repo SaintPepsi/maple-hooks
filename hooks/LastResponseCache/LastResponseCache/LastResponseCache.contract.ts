@@ -11,7 +11,7 @@
 import { join } from "node:path";
 import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -20,8 +20,8 @@ import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface LastResponseCacheDeps {
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
   stderr: (msg: string) => void;
   baseDir: string;
 }
@@ -101,7 +101,7 @@ export const LastResponseCache: SyncHookContract<StopInput, SilentOutput, LastRe
     return !!input.transcript_path;
   },
 
-  execute(input: StopInput, deps: LastResponseCacheDeps): Result<SilentOutput, PaiError> {
+  execute(input: StopInput, deps: LastResponseCacheDeps): Result<SilentOutput, ResultError> {
     const lastResponse = extractLastAssistantMessage(input.transcript_path!, deps);
 
     if (!lastResponse) {

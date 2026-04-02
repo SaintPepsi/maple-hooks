@@ -3,7 +3,7 @@
  */
 
 import { execSync, spawnSync } from "node:child_process";
-import { envVarMissing, type PaiError, processExecFailed, processSpawnFailed } from "@hooks/core/error";
+import { envVarMissing, type ResultError, processExecFailed, processSpawnFailed } from "@hooks/core/error";
 import { err, ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 
 export interface ExecResult {
@@ -24,7 +24,7 @@ export function shellForPlatform(platform: string): [shell: string, flag: string
 export async function exec(
   cmd: string,
   opts: { timeout?: number; cwd?: string; platform?: string } = {},
-): Promise<Result<ExecResult, PaiError>> {
+): Promise<Result<ExecResult, ResultError>> {
   return tryCatchAsync(
     async () => {
       const [shell, flag] = shellForPlatform(opts.platform ?? process.platform);
@@ -57,7 +57,7 @@ export async function exec(
   );
 }
 
-export function spawnDetached(cmd: string, args: string[]): Result<void, PaiError> {
+export function spawnDetached(cmd: string, args: string[]): Result<void, ResultError> {
   return tryCatch(
     () => {
       Bun.spawn([cmd, ...args], {
@@ -78,7 +78,7 @@ export function spawnBackground(
   cmd: string,
   args: string[],
   opts: { cwd?: string } = {},
-): Result<void, PaiError> {
+): Result<void, ResultError> {
   return tryCatch(
     () => {
       const child = Bun.spawn([cmd, ...args], {
@@ -96,7 +96,7 @@ export function spawnBackground(
 export function execSyncSafe(
   cmd: string,
   opts: { cwd?: string; timeout?: number; stdio?: "pipe" | "inherit" | "ignore" } = {},
-): Result<string, PaiError> {
+): Result<string, ResultError> {
   return tryCatch(
     () => {
       const result = execSync(cmd, {
@@ -121,7 +121,7 @@ export function spawnSyncSafe(
     encoding?: BufferEncoding;
     env?: Record<string, string | undefined>;
   } = {},
-): Result<{ stdout: string; exitCode: number }, PaiError> {
+): Result<{ stdout: string; exitCode: number }, ResultError> {
   return tryCatch(
     () => {
       const encoding: BufferEncoding = opts.encoding ?? "utf-8";
@@ -141,7 +141,7 @@ export function spawnSyncSafe(
   );
 }
 
-export function getEnv(name: string): Result<string, PaiError> {
+export function getEnv(name: string): Result<string, ResultError> {
   const value = process.env[name];
   if (value === undefined) return err(envVarMissing(name));
   return ok(value);

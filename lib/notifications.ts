@@ -14,7 +14,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { getEnv } from "@hooks/core/adapters/process";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { type Result, tryCatch } from "@hooks/core/result";
 import { getIdentity } from "@hooks/lib/identity";
 
@@ -62,10 +62,10 @@ export interface NotificationConfig {
 // ============================================================================
 
 export interface NotificationDeps {
-  readFile: (path: string) => Result<string, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
   fileExists: (path: string) => boolean;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  parseJson: <T>(raw: string) => Result<T, PaiError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  parseJson: <T>(raw: string) => Result<T, ResultError>;
   lookupEnv: (key: string) => string | undefined;
   paiDir: string;
   stderr: (msg: string) => void;
@@ -85,7 +85,7 @@ export const defaultNotificationDeps: NotificationDeps = {
   readFile,
   fileExists,
   writeFile,
-  parseJson: <T>(raw: string): Result<T, PaiError> =>
+  parseJson: <T>(raw: string): Result<T, ResultError> =>
     tryCatch(
       () => JSON.parse(raw) as T,
       (e) => jsonParseFailed(raw.slice(0, 80), e),

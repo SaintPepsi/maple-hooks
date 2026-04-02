@@ -16,7 +16,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -45,12 +45,12 @@ interface PromptClassification {
 
 export interface AutoWorkCreationDeps {
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  symlink: (target: string, path: string) => Result<void, PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  lstat: (path: string) => Result<{ isSymbolicLink(): boolean }, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  symlink: (target: string, path: string) => Result<void, ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  lstat: (path: string) => Result<{ isSymbolicLink(): boolean }, ResultError>;
   getTimestamp: () => string;
   getLocalComponents: typeof getLocalComponents;
   generatePRDTemplate: typeof generatePRDTemplate;
@@ -138,7 +138,7 @@ export const AutoWorkCreation: SyncHookContract<
   execute(
     input: UserPromptSubmitInput,
     deps: AutoWorkCreationDeps,
-  ): Result<SilentOutput, PaiError> {
+  ): Result<SilentOutput, ResultError> {
     const prompt = input.prompt || input.user_prompt || "";
     const sessionId = input.session_id || "unknown";
     const workDir = join(deps.baseDir, "MEMORY", "WORK");

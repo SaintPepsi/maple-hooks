@@ -10,7 +10,7 @@
 import { join } from "node:path";
 import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -38,10 +38,10 @@ interface FileQualityChange {
 
 export interface SessionQualityReportDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   getLocalComponents: typeof getLocalComponents;
   baseDir: string;
   stderr: (msg: string) => void;
@@ -149,7 +149,7 @@ export const SessionQualityReport: SyncHookContract<
     return !!input.session_id;
   },
 
-  execute(input: SessionEndInput, deps: SessionQualityReportDeps): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: SessionQualityReportDeps): Result<SilentOutput, ResultError> {
     const baselinePath = join(
       deps.baseDir,
       "MEMORY",

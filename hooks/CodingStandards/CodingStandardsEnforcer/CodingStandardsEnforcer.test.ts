@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -56,7 +56,7 @@ function makeReadInput(filePath: string): ToolHookInput {
 }
 
 function unwrap(
-  result: Result<ContinueOutput | BlockOutput, PaiError>,
+  result: Result<ContinueOutput | BlockOutput, ResultError>,
 ): ContinueOutput | BlockOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;

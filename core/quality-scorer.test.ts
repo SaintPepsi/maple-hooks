@@ -9,20 +9,20 @@ const pyProfile = getLanguageProfile("test.py")!;
 
 const CLEAN_FILE = `
 import type { Result } from "./result";
-import type { PaiError } from "./error";
+import type { ResultError } from "./error";
 import { ok, err } from "./result";
 
 export interface ProcessDeps {
-  exec: (cmd: string) => Result<string, PaiError>;
+  exec: (cmd: string) => Result<string, ResultError>;
   stderr: (msg: string) => void;
 }
 
-function validateInput(input: string): Result<string, PaiError> {
-  if (!input.trim()) return err({ code: "INVALID", message: "Empty input" } as PaiError);
+function validateInput(input: string): Result<string, ResultError> {
+  if (!input.trim()) return err({ code: "INVALID", message: "Empty input" } as ResultError);
   return ok(input.trim());
 }
 
-function processData(data: string, deps: ProcessDeps): Result<string, PaiError> {
+function processData(data: string, deps: ProcessDeps): Result<string, ResultError> {
   const result = deps.exec(data);
   if (!result.ok) {
     deps.stderr("Processing failed");
@@ -31,7 +31,7 @@ function processData(data: string, deps: ProcessDeps): Result<string, PaiError> 
   return ok(result.value.toUpperCase());
 }
 
-export function runProcess(input: string, deps: ProcessDeps): Result<string, PaiError> {
+export function runProcess(input: string, deps: ProcessDeps): Result<string, ResultError> {
   const validated = validateInput(input);
   if (!validated.ok) return validated;
   return processData(validated.value, deps);
@@ -236,7 +236,7 @@ import type { T } from "./types";
     test("passes with good type import ratio", () => {
       const goodTypeRatio = `
 import type { Result } from "./result";
-import type { PaiError } from "./error";
+import type { ResultError } from "./error";
 import { ok, err } from "./result";
 `;
       const result = scoreFile(goodTypeRatio, tsProfile, "src/good-types.ts");

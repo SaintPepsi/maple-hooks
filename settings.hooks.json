@@ -507,10 +507,6 @@
           {
             "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/DocObligationEnforcer/DocObligationEnforcer.hook.ts"
-          },
-          {
-            "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/SpotCheckReview/SpotCheckReview.hook.ts"
           }
         ]
       }

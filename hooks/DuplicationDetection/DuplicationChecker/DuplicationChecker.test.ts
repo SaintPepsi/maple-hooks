@@ -1,7 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { ensureDir, writeFile } from "@hooks/core/adapters/fs";
 import { makeWriteInput, makeEditInput, makeToolInput } from "@hooks/lib/test-helpers";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -51,7 +51,7 @@ const mockDeps: DuplicationCheckerDeps = {
   blocking: true,
 };
 
-function unwrap(result: Result<ContinueOutput | BlockOutput, PaiError>): ContinueOutput | BlockOutput {
+function unwrap(result: Result<ContinueOutput | BlockOutput, ResultError>): ContinueOutput | BlockOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }

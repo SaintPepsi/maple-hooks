@@ -8,7 +8,7 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -79,7 +79,7 @@ export const SonnetDelegation: SyncHookContract<
     return isExecutingPlans(input);
   },
 
-  execute(_input: ToolHookInput, deps: SonnetDelegationDeps): Result<ContinueOutput, PaiError> {
+  execute(_input: ToolHookInput, deps: SonnetDelegationDeps): Result<ContinueOutput, ResultError> {
     deps.stderr("[SonnetDelegation] Injecting Sonnet delegation guidance for executing-plans");
     return ok(continueOk(DELEGATION_GUIDANCE));
   },

@@ -6,7 +6,7 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -29,7 +29,7 @@ export const QuestionAnswered: SyncHookContract<ToolHookInput, SilentOutput, Que
       return true; // Matcher in settings.json handles AskUserQuestion filtering
     },
 
-    execute(_input: ToolHookInput, _deps: QuestionAnsweredDeps): Result<SilentOutput, PaiError> {
+    execute(_input: ToolHookInput, _deps: QuestionAnsweredDeps): Result<SilentOutput, ResultError> {
       return ok({ type: "silent" });
     },
 

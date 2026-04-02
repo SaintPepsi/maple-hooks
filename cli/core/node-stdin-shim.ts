@@ -10,7 +10,7 @@
  * core/adapters/stdin.ts so that compiled Node output has no Bun.* globals.
  */
 
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { stdinReadFailed, stdinTimeout } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
@@ -21,7 +21,7 @@ import { err, ok } from "@hooks/core/result";
  * Pure Result pipeline — errors are returned, never thrown.
  * Mirrors the Bun.stdin.stream() approach in core/adapters/stdin.ts.
  */
-export async function readStdin(timeoutMs: number = 200): Promise<Result<string, PaiError>> {
+export async function readStdin(timeoutMs: number = 200): Promise<Result<string, ResultError>> {
   const chunks: Buffer[] = [];
   let streamError: unknown = null;
 

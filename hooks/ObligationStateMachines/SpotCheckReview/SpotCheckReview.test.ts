@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -60,7 +60,7 @@ describe("SpotCheckReview", () => {
 
     const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -77,7 +77,7 @@ describe("SpotCheckReview", () => {
 
     const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -90,7 +90,7 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/daemon/router.ts", "src/shared/types.ts"],
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -103,7 +103,7 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/index.ts"],
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -115,7 +115,7 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/index.ts"],
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -126,7 +126,7 @@ describe("SpotCheckReview", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/app.ts"],
     });
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("CLAUDE.md");
@@ -159,7 +159,7 @@ describe("SpotCheckReview", () => {
 
     const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -236,7 +236,7 @@ describe("SpotCheckReview", () => {
       }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -253,7 +253,7 @@ describe("SpotCheckReview", () => {
       readReviewedHashes: () => ({ "src/index.ts": "hash-old" }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -268,7 +268,7 @@ describe("SpotCheckReview", () => {
       readReviewedHashes: () => ({ "src/index.ts": "hash-aaa" }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;

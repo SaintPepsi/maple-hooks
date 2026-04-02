@@ -11,7 +11,7 @@
 import { join } from "node:path";
 import { fileExists, readJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -43,7 +43,7 @@ export interface AlgorithmTrackerDeps {
   agentAdd: typeof agentAdd;
   effortLevelUpdate: typeof effortLevelUpdate;
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
   fetch: typeof globalThis.fetch;
   baseDir: string;
   voiceId: string;
@@ -178,7 +178,7 @@ export const AlgorithmTracker: SyncHookContract<
     return ["Bash", "TaskCreate", "TaskUpdate", "Task"].includes(input.tool_name);
   },
 
-  execute(input: ToolHookInput, deps: AlgorithmTrackerDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: AlgorithmTrackerDeps): Result<ContinueOutput, ResultError> {
     const { tool_name, tool_input, session_id } = input;
     const tool_result = (input as unknown as Record<string, unknown>).tool_result;
     if (!session_id) return ok(continueOk());

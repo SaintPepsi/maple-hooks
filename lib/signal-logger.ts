@@ -20,12 +20,15 @@
  */
 
 import { join } from "node:path";
-import { appendFile, ensureDir } from "../core/adapters/fs";
-import type { PaiError } from "../core/error";
-import type { Result } from "../core/result";
-import type { HookEventType } from "../core/types/hook-inputs";
+import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { HookEventType } from "@hooks/core/types/hook-inputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+/** JSON-serialisable value — covers all extra fields callers pass to logSignal. */
+type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
 
 export interface SignalEntry {
   session_id: string;
@@ -34,24 +37,24 @@ export interface SignalEntry {
   tool: string;
   file: string;
   outcome: string;
-  [key: string]: unknown;
+  [key: string]: JsonValue;
 }
 
 export interface SignalLoggerDeps {
-  appendFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  appendFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   baseDir: string;
 }
 
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
-const BASE_DIR = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
-
-export const defaultSignalLoggerDeps: SignalLoggerDeps = {
+const defaultDeps: SignalLoggerDeps = {
   appendFile,
   ensureDir,
-  baseDir: BASE_DIR,
+  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
 };
+
+export const defaultSignalLoggerDeps: SignalLoggerDeps = defaultDeps;
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
 

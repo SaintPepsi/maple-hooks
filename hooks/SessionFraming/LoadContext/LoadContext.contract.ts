@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { fileExists, readDir, readFile, readJson, stat } from "@hooks/core/adapters/fs";
 import { exec, execSyncSafe } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -43,17 +43,17 @@ interface WorkSession {
 
 export interface LoadContextDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
   readDir: (
     path: string,
     opts?: { withFileTypes: true },
-  ) => Result<{ name: string; isDirectory(): boolean }[], PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
+  ) => Result<{ name: string; isDirectory(): boolean }[], ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
   execSyncSafe: (
     cmd: string,
     opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined },
-  ) => Result<string, PaiError>;
+  ) => Result<string, ResultError>;
   getDAName: typeof getDAName;
   recordSessionStart: typeof recordSessionStart;
   getCurrentDate: () => Promise<string>;
@@ -386,7 +386,7 @@ const defaultDeps: LoadContextDeps = {
   readDir: (path: string, _opts?: { withFileTypes: true }) =>
     readDir(path, { withFileTypes: true }) as Result<
       { name: string; isDirectory(): boolean }[],
-      PaiError
+      ResultError
     >,
   stat,
   execSyncSafe,
@@ -418,7 +418,7 @@ export const LoadContext: AsyncHookContract<
   async execute(
     input: SessionStartInput,
     deps: LoadContextDeps,
-  ): Promise<Result<ContextOutput | SilentOutput, PaiError>> {
+  ): Promise<Result<ContextOutput | SilentOutput, ResultError>> {
     // Skip for subagents
     if (deps.isSubagent()) {
       deps.stderr("Subagent session - skipping PAI context loading");

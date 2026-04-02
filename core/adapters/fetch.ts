@@ -2,7 +2,7 @@
  * Fetch Adapter — HTTP requests wrapped in Result with timeout via AbortController.
  */
 
-import { fetchFailed, fetchTimeout, type PaiError } from "@hooks/core/error";
+import { fetchFailed, fetchTimeout, type ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 
 export interface FetchResult {
@@ -14,7 +14,7 @@ export interface FetchResult {
 export async function safeFetch(
   url: string,
   opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string } = {},
-): Promise<Result<FetchResult, PaiError>> {
+): Promise<Result<FetchResult, ResultError>> {
   const controller = new AbortController();
   const timeoutMs = opts.timeout ?? 5000;
   const timer = setTimeout(() => controller.abort(), timeoutMs);

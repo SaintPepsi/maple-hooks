@@ -9,7 +9,7 @@
 import { join } from "node:path";
 import { spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -18,7 +18,7 @@ import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface UpdateCountsDeps {
-  spawnBackground: (cmd: string, args: string[]) => Result<void, PaiError>;
+  spawnBackground: (cmd: string, args: string[]) => Result<void, ResultError>;
   hooksDir: string;
   stderr: (msg: string) => void;
 }
@@ -39,7 +39,7 @@ export const UpdateCounts: SyncHookContract<SessionEndInput, SilentOutput, Updat
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: UpdateCountsDeps): Result<SilentOutput, PaiError> {
+  execute(_input: SessionEndInput, deps: UpdateCountsDeps): Result<SilentOutput, ResultError> {
     const handlerPath = join(deps.hooksDir, "handlers", "UpdateCounts.ts");
     const result = deps.spawnBackground("bun", [handlerPath]);
 

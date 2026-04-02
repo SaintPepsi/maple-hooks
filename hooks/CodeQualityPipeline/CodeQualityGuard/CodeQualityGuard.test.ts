@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
 import { formatAdvisory, formatDelta, scoreFile } from "@hooks/core/quality-scorer";
 import { err, ok } from "@hooks/core/result";
@@ -81,7 +81,7 @@ function makeDeps(overrides: Partial<CodeQualityGuardDeps> = {}): CodeQualityGua
   return {
     fileExists: () => false,
     readFile: () => ok(CLEAN_TS),
-    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
+    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
     getLanguageProfile,
     isScorableFile,
     scoreFile,
@@ -185,7 +185,7 @@ describe("CodeQualityGuard", () => {
   describe("execute — file read failure", () => {
     test("returns continue without context when file unreadable", () => {
       const deps = makeDeps({
-        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as PaiError),
+        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as ResultError),
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -233,7 +233,7 @@ describe("CodeQualityGuard", () => {
     test("no delta when no baseline exists", () => {
       const deps = makeDeps({
         readFile: () => ok(BLOATED_TS),
-        readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
+        readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);

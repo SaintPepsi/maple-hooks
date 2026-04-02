@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type PaiError, processExecFailed } from "@hooks/core/error";
+import { type ResultError, processExecFailed } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -15,7 +15,7 @@ import {
 } from "./WorktreeSafetyVerification.contract";
 
 /** Helper to create an err Result for exec failures in test mocks. */
-function execErr(cmd: string): Result<string, PaiError> {
+function execErr(cmd: string): Result<string, ResultError> {
   return err(processExecFailed(cmd, new Error(cmd)));
 }
 
@@ -63,7 +63,7 @@ describe("WorktreeSafetyVerification contract", () => {
     const deps = makeDeps();
     const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -77,7 +77,7 @@ describe("WorktreeSafetyVerification contract", () => {
     const deps = makeDeps();
     const result = WorktreeSafetyVerification.execute(input, deps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(result.ok).toBe(true);
     if (result.ok) {
@@ -89,7 +89,7 @@ describe("WorktreeSafetyVerification contract", () => {
     const deps = makeDeps({ existsSync: () => false });
     const result = WorktreeSafetyVerification.execute(makeInput(), deps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
     expect(result.ok).toBe(true);
     if (result.ok) {

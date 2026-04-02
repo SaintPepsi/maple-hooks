@@ -5,7 +5,7 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SubagentStopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -29,7 +29,7 @@ export const AgentLifecycleStop: SyncHookContract<
     return true;
   },
 
-  execute(input: SubagentStopInput, deps: AgentLifecycleDeps): Result<SilentOutput, PaiError> {
+  execute(input: SubagentStopInput, deps: AgentLifecycleDeps): Result<SilentOutput, ResultError> {
     const dirResult = deps.ensureDir(deps.getAgentsDir());
     if (!dirResult.ok) {
       deps.stderr(`[AgentLifecycle] Stop: failed to ensure agents dir: ${dirResult.error}`);

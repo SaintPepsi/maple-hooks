@@ -8,7 +8,7 @@
 import { join } from "node:path";
 import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -42,10 +42,10 @@ interface WorkMeta {
 
 export interface WorkCompletionLearningDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   getTimestamp: () => string;
   getLocalDate: () => string;
   getLearningCategory: (title: string, context?: string) => "SYSTEM" | "ALGORITHM";
@@ -160,7 +160,7 @@ export const WorkCompletionLearning: SyncHookContract<
   execute(
     input: SessionEndInput,
     deps: WorkCompletionLearningDeps,
-  ): Result<SilentOutput, PaiError> {
+  ): Result<SilentOutput, ResultError> {
     const stateDir = join(deps.baseDir, "MEMORY", "STATE");
     const workDir = join(deps.baseDir, "MEMORY", "WORK");
     const learningDir = join(deps.baseDir, "MEMORY", "LEARNING");

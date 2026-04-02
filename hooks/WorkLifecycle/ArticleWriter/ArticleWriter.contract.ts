@@ -25,7 +25,7 @@ import {
 } from "@hooks/core/adapters/fs";
 import { spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -37,13 +37,13 @@ import { getISOTimestamp } from "@hooks/lib/time";
 
 export interface ArticleWriterDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
-  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
+  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, ResultError>;
   getISOTimestamp: () => string;
   baseDir: string;
   websiteRepo: string;
@@ -312,7 +312,7 @@ export const ArticleWriter: SyncHookContract<SessionEndInput, SilentOutput, Arti
     return !!input.session_id;
   },
 
-  execute(input: SessionEndInput, deps: ArticleWriterDeps): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: ArticleWriterDeps): Result<SilentOutput, ResultError> {
     // Gate 1: Website repo must exist on disk
     if (!hasWebsiteRepo(deps)) {
       deps.stderr("[ArticleWriter] Website repo not found, skipping");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { fileReadFailed } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
@@ -122,7 +122,7 @@ describe("DocObligationTracker", () => {
     const result = DocObligationTracker.execute(
       makeToolInput("Edit", { file_path: "/src/handler.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/handler.ts");
@@ -140,7 +140,7 @@ describe("DocObligationTracker", () => {
     const result = DocObligationTracker.execute(
       makeToolInput("Write", { file_path: "/src/utils.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/utils.ts");
@@ -314,7 +314,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -330,7 +330,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -346,7 +346,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -362,7 +362,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -378,7 +378,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -401,7 +401,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -418,7 +418,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -435,7 +435,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -457,7 +457,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -478,7 +478,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -497,7 +497,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -517,7 +517,7 @@ describe("DocObligationEnforcer", () => {
 
     const result = DocObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);

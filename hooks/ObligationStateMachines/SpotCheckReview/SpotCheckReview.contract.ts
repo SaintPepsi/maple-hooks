@@ -8,7 +8,7 @@ import {
 } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -124,7 +124,7 @@ export const SpotCheckReview: SyncHookContract<
   execute(
     input: StopInput,
     deps: SpotCheckReviewDeps,
-  ): Result<BlockOutput | SilentOutput, PaiError> {
+  ): Result<BlockOutput | SilentOutput, ResultError> {
     if (process.cwd() === deps.paiDir) return ok({ type: "silent" });
     const files = deps.getChangedFiles();
 

@@ -22,7 +22,7 @@
 
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput, UpdatedInputOutput } from "@hooks/core/types/hook-outputs";
@@ -40,7 +40,7 @@ import {
 
 export interface AgentPrepromptInjectorDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
   getKoordConfig: () => { prepromptPath: string | null };
   getCwd: () => string;
   stderr: (msg: string) => void;
@@ -79,7 +79,7 @@ export const AgentPrepromptInjector: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: AgentPrepromptInjectorDeps,
-  ): Result<UpdatedInputOutput | ContinueOutput, PaiError> {
+  ): Result<UpdatedInputOutput | ContinueOutput, ResultError> {
     const toolInput = input.tool_input || {};
 
     // Resolve template path: settings.json config first, then cwd fallback

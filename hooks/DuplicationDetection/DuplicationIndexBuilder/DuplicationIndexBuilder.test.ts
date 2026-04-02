@@ -7,7 +7,7 @@ import {
   writeFile as adapterWriteFile,
   fileExists,
 } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -27,7 +27,7 @@ const PAI_HOOKS_ROOT = resolve(import.meta.dir, "../../../..");
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function unwrap(result: Result<ContinueOutput, PaiError>): ContinueOutput {
+function unwrap(result: Result<ContinueOutput, ResultError>): ContinueOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import {
@@ -33,7 +33,7 @@ function makeDeps(overrides: Partial<SessionQualityReportDeps> = {}): SessionQua
   return {
     fileExists: () => true,
     readFile: () => ok(""),
-    readJson: <T>() => ok(MOCK_BASELINES) as Result<T, PaiError>,
+    readJson: <T>() => ok(MOCK_BASELINES) as Result<T, ResultError>,
     writeFile: (path: string, content: string) => {
       lastWrittenPath = path;
       lastWrittenContent = content;
@@ -139,7 +139,7 @@ describe("SessionQualityReport", () => {
 
     test("skips when baselines are empty", () => {
       const deps = makeDeps({
-        readJson: <T>() => ok({}) as Result<T, PaiError>,
+        readJson: <T>() => ok({}) as Result<T, ResultError>,
       });
       const result = SessionQualityReport.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -148,7 +148,7 @@ describe("SessionQualityReport", () => {
 
     test("skips when baselines unreadable", () => {
       const deps = makeDeps({
-        readJson: () => err({ code: "FILE_READ_FAILED", message: "corrupt" } as PaiError),
+        readJson: () => err({ code: "FILE_READ_FAILED", message: "corrupt" } as ResultError),
       });
       const result = SessionQualityReport.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -172,7 +172,7 @@ describe("SessionQualityReport", () => {
           ok({
             "/src/clean1.ts": { score: 9, violations: 0, timestamp: "2026-02-27T10:00:00Z" },
             "/src/clean2.ts": { score: 8, violations: 1, timestamp: "2026-02-27T10:00:00Z" },
-          }) as Result<T, PaiError>,
+          }) as Result<T, ResultError>,
       });
       SessionQualityReport.execute(makeInput(), deps);
       expect(lastWrittenContent).not.toContain("Needing Attention");
@@ -183,7 +183,7 @@ describe("SessionQualityReport", () => {
         readJson: <T>() =>
           ok({
             "/src/messy.ts": { score: 3, violations: 10, timestamp: "2026-02-27T10:00:00Z" },
-          }) as Result<T, PaiError>,
+          }) as Result<T, ResultError>,
       });
       SessionQualityReport.execute(makeInput(), deps);
       expect(lastWrittenContent).not.toContain("Clean Files");

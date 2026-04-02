@@ -13,7 +13,7 @@ import {
   removeFile,
   writeFile,
 } from "@hooks/core/adapters/fs";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { tryCatch } from "@hooks/core/result";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -28,12 +28,12 @@ export interface AgentFileData {
 }
 
 export interface AgentLifecycleDeps {
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  readDir: (path: string) => Result<string[], PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  readDir: (path: string) => Result<string[], ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
   getAgentsDir: () => string;
   stderr: (msg: string) => void;
   now: () => Date;
@@ -46,7 +46,7 @@ export const defaultDeps: AgentLifecycleDeps = {
   writeFile,
   fileExists,
   ensureDir,
-  readDir: (path) => readDir(path) as Result<string[], PaiError>,
+  readDir: (path) => readDir(path) as Result<string[], ResultError>,
   removeFile,
   getAgentsDir: () => join(getPaiDir(), "MEMORY", "STATE", "agents"),
   stderr: defaultStderr,

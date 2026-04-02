@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary.contract";
@@ -40,9 +40,9 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
     },
     readFile: (path: string) => {
       if (path.includes("META.yaml")) return ok(MOCK_META_YAML);
-      return err({ code: "FILE_NOT_FOUND", message: `Not found: ${path}` } as PaiError);
+      return err({ code: "FILE_NOT_FOUND", message: `Not found: ${path}` } as ResultError);
     },
-    readJson: <T = unknown>(_path: string) => ok(MOCK_WORK_STATE) as Result<T, PaiError>,
+    readJson: <T = unknown>(_path: string) => ok(MOCK_WORK_STATE) as Result<T, ResultError>,
     writeFile: (path: string, content: string) => {
       lastWrittenPath = path;
       lastWrittenContent = content;
@@ -104,7 +104,7 @@ describe("SessionSummary", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(path: string) => {
           readJsonPath = path;
-          return ok(MOCK_WORK_STATE) as Result<T, PaiError>;
+          return ok(MOCK_WORK_STATE) as Result<T, ResultError>;
         },
       });
       SessionSummary.execute(makeInput(), deps);
@@ -187,7 +187,7 @@ describe("SessionSummary", () => {
         readJson: <T = unknown>(_path: string) =>
           ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
             T,
-            PaiError
+            ResultError
           >,
       });
       SessionSummary.execute(makeInput({ session_id: "test-session-123" }), deps);
@@ -200,7 +200,7 @@ describe("SessionSummary", () => {
         readJson: <T = unknown>(_path: string) =>
           ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
             T,
-            PaiError
+            ResultError
           >,
       });
       const result = SessionSummary.execute(makeInput(), deps);
@@ -258,7 +258,7 @@ describe("SessionSummary", () => {
 
     test("does not write META.yaml if readFile fails", () => {
       const deps = makeDeps({
-        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
+        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as ResultError),
       });
       SessionSummary.execute(makeInput(), deps);
       expect(lastWrittenPath).toBe("");
@@ -266,7 +266,7 @@ describe("SessionSummary", () => {
 
     test("still deletes state file even if META.yaml read fails", () => {
       const deps = makeDeps({
-        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
+        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as ResultError),
       });
       SessionSummary.execute(makeInput(), deps);
       expect(deletedPaths).toContain("/tmp/test/MEMORY/STATE/current-work-test-session-123.json");

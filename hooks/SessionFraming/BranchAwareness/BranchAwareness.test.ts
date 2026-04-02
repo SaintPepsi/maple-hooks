@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -32,7 +32,7 @@ describe("BranchAwareness", () => {
     const deps = makeDeps({ getBranch: () => "main" });
     const result = BranchAwareness.execute(makeInput(), deps) as Result<
       ContextOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -46,7 +46,7 @@ describe("BranchAwareness", () => {
     const deps = makeDeps({ getBranch: () => "feature/auth-refactor" });
     const result = BranchAwareness.execute(makeInput(), deps) as Result<
       ContextOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -60,7 +60,7 @@ describe("BranchAwareness", () => {
     const deps = makeDeps({ isSubagent: () => true });
     const result = BranchAwareness.execute(makeInput(), deps) as Result<
       ContextOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -72,7 +72,7 @@ describe("BranchAwareness", () => {
     const deps = makeDeps({ getBranch: () => null });
     const result = BranchAwareness.execute(makeInput(), deps) as Result<
       ContextOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -84,7 +84,7 @@ describe("BranchAwareness", () => {
     const deps = makeDeps({ getBranch: () => "" });
     const result = BranchAwareness.execute(makeInput(), deps) as Result<
       ContextOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);

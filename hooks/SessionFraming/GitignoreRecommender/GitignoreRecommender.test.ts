@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
@@ -43,7 +43,7 @@ describe("GitignoreRecommender", () => {
       const deps = makeDeps({ cwd: () => PAI_ROOT });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -66,7 +66,7 @@ describe("GitignoreRecommender", () => {
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -86,7 +86,7 @@ describe("GitignoreRecommender", () => {
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -107,7 +107,7 @@ describe("GitignoreRecommender", () => {
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -129,7 +129,7 @@ describe("GitignoreRecommender", () => {
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -143,7 +143,7 @@ describe("GitignoreRecommender", () => {
       const deps = makeDeps();
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -159,7 +159,7 @@ describe("GitignoreRecommender", () => {
       const deps = makeDeps();
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -181,7 +181,7 @@ describe("GitignoreRecommender", () => {
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -199,7 +199,7 @@ describe("GitignoreRecommender", () => {
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       // Fails open: injects recommendation (treats unreadable as not set)
@@ -220,7 +220,7 @@ describe("GitignoreRecommender", () => {
       });
       const result = GitignoreRecommender.execute(baseInput, deps) as Result<
         ContinueOutput,
-        PaiError
+        ResultError
       >;
       expect(result.ok).toBe(true);
       if (result.ok) {

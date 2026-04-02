@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -83,7 +83,7 @@ describe("CitationTracker", () => {
     });
     const result = CitationTracker.execute(makeToolInput("WebSearch"), deps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -119,7 +119,7 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/test.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -134,7 +134,7 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -150,7 +150,7 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -177,7 +177,7 @@ describe("CitationEnforcement", () => {
     });
     const result = CitationEnforcement.execute(makeToolInput("Write", {}), deps) as Result<
       ContinueOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -194,7 +194,7 @@ describe("CitationEnforcement", () => {
       tool_name: "Write",
       tool_input: "/tmp/test.md" as unknown as Record<string, unknown>,
     };
-    const result = CitationEnforcement.execute(input, deps) as Result<ContinueOutput, PaiError>;
+    const result = CitationEnforcement.execute(input, deps) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -209,7 +209,7 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article2.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;

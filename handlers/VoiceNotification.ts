@@ -11,7 +11,7 @@
 
 import { join } from "node:path";
 import { appendFile, ensureDir, fileExists, readJson } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { getIdentity } from "@hooks/lib/identity";
 import { getVoiceFallback, isValidVoiceCompletion } from "@hooks/lib/output-validators";
@@ -55,9 +55,9 @@ interface CurrentWorkState {
 
 export interface VoiceNotificationDeps {
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  appendFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  appendFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   getIdentity: typeof getIdentity;
   getTimestamp: typeof getISOTimestamp;
   isValidVoiceCompletion: typeof isValidVoiceCompletion;

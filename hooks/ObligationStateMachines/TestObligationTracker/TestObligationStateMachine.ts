@@ -20,7 +20,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
@@ -232,7 +232,7 @@ export const TestObligationTracker: SyncHookContract<
     return false;
   },
 
-  execute(input: ToolHookInput, deps: TestObligationDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: TestObligationDeps): Result<ContinueOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     // Bash: check if test command, clear matching files or all
@@ -302,7 +302,7 @@ export const TestObligationEnforcer: SyncHookContract<
   execute(
     input: StopInput,
     deps: TestObligationDeps,
-  ): Result<BlockOutput | SilentOutput, PaiError> {
+  ): Result<BlockOutput | SilentOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (!deps.fileExists(flagFile)) {

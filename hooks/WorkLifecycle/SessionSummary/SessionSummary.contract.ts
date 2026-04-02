@@ -8,7 +8,7 @@
 import { join } from "node:path";
 import { fileExists, readFile, readJson, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { unknownError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
@@ -21,9 +21,9 @@ import { getISOTimestamp } from "@hooks/lib/time";
 
 export interface SessionSummaryDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
   unlinkSync: (path: string) => void;
   getTimestamp: () => string;
   setTabState: (opts: { title: string; state: string; sessionId: string }) => void;
@@ -108,7 +108,7 @@ export const SessionSummary: SyncHookContract<SessionEndInput, SilentOutput, Ses
     return true;
   },
 
-  execute(input: SessionEndInput, deps: SessionSummaryDeps): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: SessionSummaryDeps): Result<SilentOutput, ResultError> {
     clearSessionWork(input.session_id, deps);
 
     const tabResult = tryCatch(

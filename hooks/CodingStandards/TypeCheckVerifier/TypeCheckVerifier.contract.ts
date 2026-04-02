@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
@@ -283,7 +283,7 @@ export const TypeCheckVerifier: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput, deps: TypeCheckVerifierDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: TypeCheckVerifierDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Discover project type-check command

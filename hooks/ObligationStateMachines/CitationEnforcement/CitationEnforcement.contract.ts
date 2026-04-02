@@ -1,5 +1,5 @@
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
@@ -37,7 +37,7 @@ export const CitationEnforcement: SyncHookContract<
     return input.tool_name === "Write" || input.tool_name === "Edit";
   },
 
-  execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, ResultError> {
     const flag = flagPath(deps.stateDir);
     if (!deps.fileExists(flag)) {
       return ok(continueOk());

@@ -1,5 +1,5 @@
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getFilePath } from "@hooks/lib/tool-input";
@@ -33,7 +33,7 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, Obl
     );
   },
 
-  execute(input: ToolHookInput, deps: ObligationDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: ObligationDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input);
     if (!filePath) return ok(continueOk());
 

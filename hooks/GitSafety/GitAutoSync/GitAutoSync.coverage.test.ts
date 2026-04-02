@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import {
@@ -37,7 +37,7 @@ function makeInput(): SessionEndInput {
 }
 
 function execError(msg: string) {
-  return err<string, PaiError>(new PaiError(ErrorCode.ProcessExecFailed, msg));
+  return err<string, ResultError>(new ResultError(ErrorCode.ProcessExecFailed, msg));
 }
 
 // ─── Pipeline Tests ──────────────────────────────────────────────────────────

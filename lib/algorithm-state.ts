@@ -31,7 +31,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import { getEnv } from "@hooks/core/adapters/process";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 
 // ── Types ──
@@ -170,14 +170,14 @@ export interface AlgorithmState {
 // ── Deps ──
 
 export interface AlgorithmStateDeps {
-  readFile: (path: string) => Result<string, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
   fileExists: (path: string) => boolean;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  readJson: <T>(path: string) => Result<T, PaiError>;
-  readDir: (path: string) => Result<string[], PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number; isDirectory(): boolean }, PaiError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  readJson: <T>(path: string) => Result<T, ResultError>;
+  readDir: (path: string) => Result<string[], ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number; isDirectory(): boolean }, ResultError>;
   stderr: (msg: string) => void;
   baseDir: string;
 }

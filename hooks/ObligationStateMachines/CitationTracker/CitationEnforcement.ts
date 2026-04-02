@@ -13,7 +13,7 @@
 import { join } from "node:path";
 import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -93,7 +93,7 @@ export const CitationTracker: SyncHookContract<
     return false;
   },
 
-  execute(_input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, PaiError> {
+  execute(_input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, ResultError> {
     const flag = flagPath(deps.stateDir);
     deps.writeFlag(flag);
     deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");
@@ -129,7 +129,7 @@ export const CitationEnforcement: SyncHookContract<
     return input.tool_name === "Write" || input.tool_name === "Edit";
   },
 
-  execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, ResultError> {
     const flag = flagPath(deps.stateDir);
     if (!deps.fileExists(flag)) {
       return ok(continueOk());

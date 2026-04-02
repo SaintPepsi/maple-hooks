@@ -33,7 +33,7 @@ export {
   fileWriteFailed,
   invalidInput,
   jsonParseFailed,
-  PaiError,
+  ResultError,
   processExecFailed,
   processSpawnFailed,
   securityBlock,

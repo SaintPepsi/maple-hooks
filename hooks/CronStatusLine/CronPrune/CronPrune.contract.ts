@@ -19,7 +19,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { jsonParseFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
@@ -55,7 +55,7 @@ export function cronIntervalMs(schedule: string): number {
 
 export interface CronPruneDeps extends CronFileDeps, CronPathDeps {
   now: () => number;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
 }
 
 // ─── Pure Logic ─────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ export interface CronPruneDeps extends CronFileDeps, CronPathDeps {
 function pruneStaleFiles(
   _input: SessionStartInput,
   deps: CronPruneDeps,
-): Result<SilentOutput, PaiError> {
+): Result<SilentOutput, ResultError> {
   const dir = cronDir(deps);
 
   // If directory doesn't exist, silent no-op
@@ -123,7 +123,7 @@ function pruneStaleFiles(
   return ok({ type: "silent" });
 }
 
-function safeParseCronFile(raw: string): Result<CronSessionFile | null, PaiError> {
+function safeParseCronFile(raw: string): Result<CronSessionFile | null, ResultError> {
   const trimmed = raw.trim();
   if (!trimmed) return ok(null);
 
@@ -171,7 +171,7 @@ export const CronPrune: SyncHookContract<SessionStartInput, SilentOutput, CronPr
     return true;
   },
 
-  execute(input: SessionStartInput, deps: CronPruneDeps): Result<SilentOutput, PaiError> {
+  execute(input: SessionStartInput, deps: CronPruneDeps): Result<SilentOutput, ResultError> {
     return pruneStaleFiles(input, deps);
   },
 

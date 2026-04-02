@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -151,7 +151,7 @@ describe("TestObligationTracker", () => {
     const result = TestObligationTracker.execute(
       makeToolInput("Edit", { file_path: "/src/handler.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/handler.ts");
@@ -169,7 +169,7 @@ describe("TestObligationTracker", () => {
     const result = TestObligationTracker.execute(
       makeToolInput("Write", { file_path: "/src/utils.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/utils.ts");
@@ -203,7 +203,7 @@ describe("TestObligationTracker", () => {
     const result = TestObligationTracker.execute(
       makeToolInput("Bash", { command: "bun test" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(removed).toBe(true);
@@ -483,7 +483,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -499,7 +499,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -515,7 +515,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -531,7 +531,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -550,7 +550,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -572,7 +572,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -595,7 +595,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -617,7 +617,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -639,7 +639,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -666,7 +666,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -685,7 +685,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -705,7 +705,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);
@@ -779,7 +779,7 @@ describe("TestObligationEnforcer", () => {
 
     const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
       BlockOutput | SilentOutput,
-      PaiError
+      ResultError
     >;
 
     expect(result.ok).toBe(true);

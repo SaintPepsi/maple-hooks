@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
@@ -117,7 +117,7 @@ describe("CronPrune execute", () => {
     const removed: string[] = [];
     const deps = makeDeps({
       fileExists: () => false,
-      readDir: () => err(new PaiError(ErrorCode.FileReadFailed, "no such dir")),
+      readDir: () => err(new ResultError(ErrorCode.FileReadFailed, "no such dir")),
       removeFile: (path: string) => {
         removed.push(path);
         return ok(undefined);
@@ -184,7 +184,7 @@ describe("CronPrune execute", () => {
       readDir: () => ok(["bad-file.json", "good-file.json"]),
       stat: (path: string) => {
         if (path.includes("bad-file")) {
-          return err(new PaiError(ErrorCode.FileReadFailed, "stat failed"));
+          return err(new ResultError(ErrorCode.FileReadFailed, "stat failed"));
         }
         return ok({ mtimeMs: STALE_AGO });
       },
@@ -389,7 +389,7 @@ describe("cronIntervalMs", () => {
 describe("CronPrune — readDir error path", () => {
   it("returns silent when readDir fails", () => {
     const deps = makeDeps({
-      readDir: () => err(new PaiError(ErrorCode.FileReadFailed, "permission denied")),
+      readDir: () => err(new ResultError(ErrorCode.FileReadFailed, "permission denied")),
     });
     const result = CronPrune.execute(makeInput(), deps);
     expect(result.ok).toBe(true);

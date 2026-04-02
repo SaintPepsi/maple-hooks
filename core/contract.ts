@@ -15,7 +15,7 @@
  *   D = deps type (injectable dependencies for testing)
  */
 
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { HookEventType, HookInput } from "@hooks/core/types/hook-inputs";
 import type { HookOutput } from "@hooks/core/types/hook-outputs";
@@ -44,7 +44,7 @@ export interface SyncHookContract<
   D = unknown,
 > extends HookContractBase<I, O, D> {
   /** SRP core: synchronous pure business logic. Returns Result, never throws. */
-  execute(input: I, deps: D): Result<O, PaiError>;
+  execute(input: I, deps: D): Result<O, ResultError>;
 }
 
 export interface AsyncHookContract<
@@ -53,7 +53,7 @@ export interface AsyncHookContract<
   D = unknown,
 > extends HookContractBase<I, O, D> {
   /** SRP core: async business logic. Returns Promise<Result>, never throws. */
-  execute(input: I, deps: D): Promise<Result<O, PaiError>>;
+  execute(input: I, deps: D): Promise<Result<O, ResultError>>;
 }
 
 /** Union type accepted by the runner. Contracts should use SyncHookContract or AsyncHookContract. */

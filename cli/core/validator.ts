@@ -16,7 +16,7 @@ import {
   readFile as adapterReadFile,
   readJson as adapterReadJson,
 } from "@hooks/core/adapters/fs";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { ok } from "@hooks/core/result";
 
@@ -37,8 +37,8 @@ export interface ValidationReport {
 }
 
 export interface ValidatorDeps {
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: (path: string) => Result<HookManifest, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: (path: string) => Result<HookManifest, ResultError>;
   fileExists: (path: string) => boolean;
   dirname: (path: string) => string;
   resolve: (...segments: string[]) => string;
@@ -62,7 +62,7 @@ export function validate(
   contractPath: string,
   manifestPath: string,
   deps: ValidatorDeps = defaultDeps,
-): Result<ValidationReport, PaiError> {
+): Result<ValidationReport, ResultError> {
   // Read and parse manifest JSON
   const manifestParseResult = deps.readJson(manifestPath);
   if (!manifestParseResult.ok) return manifestParseResult;

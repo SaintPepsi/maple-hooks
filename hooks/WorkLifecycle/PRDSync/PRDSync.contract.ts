@@ -12,7 +12,7 @@
 import { join } from "node:path";
 import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -47,10 +47,10 @@ export interface WorkEntry {
 export type WorkJson = Record<string, WorkEntry>;
 
 export interface PRDSyncDeps {
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
   stderr: (msg: string) => void;
   baseDir: string;
 }
@@ -189,7 +189,7 @@ function syncWorkJson(
   entry: WorkEntry,
   workJsonPath: string,
   deps: PRDSyncDeps,
-): Result<void, PaiError> {
+): Result<void, ResultError> {
   let existing: WorkJson = {};
 
   if (deps.fileExists(workJsonPath)) {
@@ -229,7 +229,7 @@ export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDep
     return filePath.includes("MEMORY/WORK/") && filePath.endsWith("PRD.md");
   },
 
-  execute(input: ToolHookInput, deps: PRDSyncDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: PRDSyncDeps): Result<ContinueOutput, ResultError> {
     const filePath = (input.tool_input?.file_path as string) ?? "";
 
     if (!deps.fileExists(filePath)) {

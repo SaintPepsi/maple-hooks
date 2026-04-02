@@ -18,7 +18,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -95,7 +95,7 @@ export const CronCreateContract: SyncHookContract<ToolHookInput, SilentOutput, C
     return input.tool_name === "CronCreate";
   },
 
-  execute(input: ToolHookInput, deps: CronCreateDeps): Result<SilentOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CronCreateDeps): Result<SilentOutput, ResultError> {
     const sessionId = input.session_id;
     const now = deps.now();
 

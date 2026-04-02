@@ -10,16 +10,16 @@
 import { dirname, join } from "node:path";
 import { ensureDir, fileExists, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
-type FsReadJson = <T = unknown>(path: string) => Result<T, PaiError>;
-type FsWriteJson = (path: string, data: unknown) => Result<void, PaiError>;
-type FsEnsureDir = (path: string) => Result<void, PaiError>;
+type FsReadJson = <T = unknown>(path: string) => Result<T, ResultError>;
+type FsWriteJson = (path: string, data: unknown) => Result<void, ResultError>;
+type FsEnsureDir = (path: string) => Result<void, ResultError>;
 type FsFileExists = (path: string) => boolean;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ export const ArchitectureEscalation: SyncHookContract<
     return input.tool_name === "TaskUpdate";
   },
 
-  execute(input: ToolHookInput, deps: ArchEscalationDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: ArchEscalationDeps): Result<ContinueOutput, ResultError> {
     const { tool_input, session_id } = input;
     const taskId = tool_input.taskId;
     const status = tool_input.status;

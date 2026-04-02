@@ -9,7 +9,7 @@
 import { join } from "node:path";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { fileReadFailed } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
@@ -21,7 +21,7 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 export interface GitignoreRecommenderDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
   cwd: () => string;
   paiRoot: string;
   stderr: (msg: string) => void;
@@ -48,7 +48,7 @@ const RECOMMENDATION_CONTEXT = [
   "(merging with existing content if the file exists).",
 ].join(" ");
 
-function parseJson(content: string, path: string): Result<Record<string, unknown>, PaiError> {
+function parseJson(content: string, path: string): Result<Record<string, unknown>, ResultError> {
   return tryCatch(
     () => JSON.parse(content) as Record<string, unknown>,
     (e) => fileReadFailed(path, e),
@@ -81,7 +81,7 @@ export const GitignoreRecommender: SyncHookContract<
   execute(
     _input: SessionStartInput,
     deps: GitignoreRecommenderDeps,
-  ): Result<ContinueOutput, PaiError> {
+  ): Result<ContinueOutput, ResultError> {
     const projectDir = deps.cwd();
 
     // Skip for PAI root — it manages its own settings

@@ -8,7 +8,7 @@
 import { join } from "node:path";
 import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -185,7 +185,7 @@ export const RelationshipMemory: SyncHookContract<StopInput, SilentOutput, Relat
       return !!input.transcript_path;
     },
 
-    execute(input: StopInput, deps: RelationshipMemoryDeps): Result<SilentOutput, PaiError> {
+    execute(input: StopInput, deps: RelationshipMemoryDeps): Result<SilentOutput, ResultError> {
       const entries = deps.readTranscript(input.transcript_path!);
       if (entries.length === 0) {
         deps.stderr("[RelationshipMemory] No transcript entries, skipping");

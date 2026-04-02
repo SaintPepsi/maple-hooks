@@ -19,7 +19,7 @@ import {
   writeFile,
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -60,7 +60,7 @@ export const CronSessionEnd: SyncHookContract<SessionEndInput, SilentOutput, Cro
     return true;
   },
 
-  execute(input: SessionEndInput, deps: CronSessionEndDeps): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: CronSessionEndDeps): Result<SilentOutput, ResultError> {
     const sessionId = input.session_id;
     const path = cronFilePath(sessionId, deps);
 

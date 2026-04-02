@@ -6,7 +6,7 @@
  * Only stripPrefix retains real logic.
  */
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, err } from "@hooks/core/result";
 import { fileReadFailed } from "@hooks/core/error";
 import type { TabSetterDeps } from "@hooks/lib/tab-setter";

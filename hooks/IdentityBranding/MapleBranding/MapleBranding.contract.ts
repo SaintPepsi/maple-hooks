@@ -7,7 +7,7 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -69,7 +69,7 @@ export const MapleBranding: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: MapleBrandingDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const command = String(input.tool_input?.command ?? "");
 
     if (containsClaudeCodeFooter(command)) {

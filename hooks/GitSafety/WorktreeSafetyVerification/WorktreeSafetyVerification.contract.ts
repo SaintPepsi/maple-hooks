@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { appendFile, ensureDir, fileExists, writeFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe, spawnBackground } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { map, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { continueOk } from "@hooks/core/types/hook-outputs";
@@ -22,7 +22,7 @@ import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface WorktreeSafetyDeps {
-  execSync: (cmd: string, opts?: Record<string, unknown>) => Result<string, PaiError>;
+  execSync: (cmd: string, opts?: Record<string, unknown>) => Result<string, ResultError>;
   spawnSync: (
     cmd: string,
     args: string[],
@@ -78,7 +78,7 @@ function tryExec(
   deps: WorktreeSafetyDeps,
   cmd: string,
   opts?: Record<string, unknown>,
-): Result<string, PaiError> {
+): Result<string, ResultError> {
   return map(deps.execSync(cmd, opts), (v) => v.trim());
 }
 
@@ -270,7 +270,7 @@ export const WorktreeSafetyVerification: SyncHookContract<
     return input.tool_name === "EnterWorktree";
   },
 
-  execute(input: ToolHookInput, deps: WorktreeSafetyDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: WorktreeSafetyDeps): Result<ContinueOutput, ResultError> {
     const worktreePath = extractWorktreePath(input);
 
     if (!worktreePath) {

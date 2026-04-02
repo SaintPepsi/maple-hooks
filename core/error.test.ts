@@ -12,7 +12,7 @@ import {
   fileWriteFailed,
   invalidInput,
   jsonParseFailed,
-  PaiError,
+  ResultError,
   processExecFailed,
   processSpawnFailed,
   securityBlock,
@@ -37,32 +37,32 @@ describe("ErrorCode", () => {
   });
 });
 
-// ─── PaiError Class ──────────────────────────────────────────────────────────
+// ─── ResultError Class ──────────────────────────────────────────────────────────
 
-describe("PaiError", () => {
+describe("ResultError", () => {
   it("stores code, message, and optional cause", () => {
     const cause = new Error("root");
-    const e = new PaiError(ErrorCode.Unknown, "something broke", cause);
+    const e = new ResultError(ErrorCode.Unknown, "something broke", cause);
     expect(e.code).toBe(ErrorCode.Unknown);
     expect(e.message).toBe("something broke");
     expect(e.cause).toBe(cause);
   });
 
   it("cause is optional", () => {
-    const e = new PaiError(ErrorCode.StdinTimeout, "timeout");
+    const e = new ResultError(ErrorCode.StdinTimeout, "timeout");
     expect(e.cause).toBeUndefined();
   });
 
   it("toString formats as [CODE] message", () => {
-    const e = new PaiError(ErrorCode.FileNotFound, "missing file");
+    const e = new ResultError(ErrorCode.FileNotFound, "missing file");
     expect(e.toString()).toBe("[FILE_NOT_FOUND] missing file");
   });
 
   it("extends Error for instanceof checks and stack traces", () => {
-    const e = new PaiError(ErrorCode.Unknown, "test");
+    const e = new ResultError(ErrorCode.Unknown, "test");
     expect(e instanceof Error).toBe(true);
-    expect(e instanceof PaiError).toBe(true);
-    expect(e.name).toBe("PaiError");
+    expect(e instanceof ResultError).toBe(true);
+    expect(e.name).toBe("ResultError");
     expect(e.stack).toBeDefined();
   });
 });
@@ -197,7 +197,7 @@ describe("factory functions", () => {
 // ─── All 18 factories produce correct codes ──────────────────────────────────
 
 describe("factory → code mapping", () => {
-  const mappings: [() => PaiError, ErrorCode][] = [
+  const mappings: [() => ResultError, ErrorCode][] = [
     [() => stdinTimeout(100), ErrorCode.StdinTimeout],
     [() => stdinReadFailed(null), ErrorCode.StdinReadFailed],
     [() => jsonParseFailed("x", null), ErrorCode.JsonParseFailed],

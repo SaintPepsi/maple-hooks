@@ -83,7 +83,7 @@ Most lib/ modules accept an optional `deps` parameter following the hook contrac
 
 ```typescript
 export interface ModuleDeps {
-  readFile: (path: string) => Result<string, PaiError>;
+  readFile: (path: string) => Result<string, E>;
   fileExists: (path: string) => boolean;
   // ... only the methods actually used
 }

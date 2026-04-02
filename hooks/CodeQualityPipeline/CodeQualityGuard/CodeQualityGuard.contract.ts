@@ -12,7 +12,7 @@
 import { join } from "node:path";
 import { fileExists, readFile, readJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
 import {
   formatAdvisory,
@@ -61,8 +61,8 @@ interface BaselineStore {
 
 export interface CodeQualityGuardDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
   getLanguageProfile: typeof getLanguageProfile;
   isScorableFile: typeof isScorableFile;
   scoreFile: typeof scoreFile;
@@ -135,7 +135,7 @@ export const CodeQualityGuard: SyncHookContract<
     return isScorableFile(filePath);
   },
 
-  execute(input: ToolHookInput, deps: CodeQualityGuardDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CodeQualityGuardDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Read the file content after the edit

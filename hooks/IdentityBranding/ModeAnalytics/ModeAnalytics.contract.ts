@@ -9,7 +9,7 @@
 import { join } from "node:path";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -21,7 +21,7 @@ export interface ModeAnalyticsDeps {
   execSyncSafe: (
     cmd: string,
     opts?: { cwd?: string; timeout?: number },
-  ) => Result<string, PaiError>;
+  ) => Result<string, ResultError>;
   stderr: (msg: string) => void;
   baseDir: string;
 }
@@ -44,7 +44,7 @@ export const ModeAnalytics: SyncHookContract<SessionEndInput, SilentOutput, Mode
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: ModeAnalyticsDeps): Result<SilentOutput, PaiError> {
+  execute(_input: SessionEndInput, deps: ModeAnalyticsDeps): Result<SilentOutput, ResultError> {
     const toolDir = join(deps.baseDir, "Tools", "mode-analytics");
 
     const collectResult = deps.execSyncSafe(`bun "${join(toolDir, "CollectModeData.ts")}"`, {

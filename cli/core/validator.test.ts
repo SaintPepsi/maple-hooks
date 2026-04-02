@@ -13,7 +13,7 @@ import {
   readFile as adapterReadFile,
   readJson as adapterReadJson,
 } from "@hooks/core/adapters/fs";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import { type ValidationReport, type ValidatorDeps, validate } from "@hooks/cli/core/validator";
 
@@ -42,7 +42,7 @@ function makeDeps(overrides: Partial<ValidatorDeps> = {}): ValidatorDeps {
   };
 }
 
-function expectOk(result: Result<ValidationReport, PaiError>): ValidationReport {
+function expectOk(result: Result<ValidationReport, ResultError>): ValidationReport {
   if (!result.ok) {
     throw new Error(`Expected ok, got err: ${result.error.message}`);
   }
@@ -70,7 +70,7 @@ describe("validate", () => {
       const deps = makeDeps({
         readFile: (path: string) => {
           if (path.endsWith(".ts")) {
-            return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
+            return err(new ResultError(ErrorCode.FileNotFound, `Not found: ${path}`));
           }
           return ok("{}");
         },
@@ -84,9 +84,9 @@ describe("validate", () => {
       const deps = makeDeps({
         readFile: (path: string) => {
           if (path.endsWith(".ts")) return ok('import { ok } from "@hooks/core/result";');
-          return err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`));
+          return err(new ResultError(ErrorCode.FileNotFound, `Not found: ${path}`));
         },
-        readJson: () => err(new PaiError(ErrorCode.JsonParseFailed, "Invalid JSON")),
+        readJson: () => err(new ResultError(ErrorCode.JsonParseFailed, "Invalid JSON")),
       });
 
       const result = validate("/fake/contract.ts", "/fake/hook.json", deps);
@@ -123,7 +123,7 @@ describe("validate", () => {
     it("returns err when manifest file cannot be read", () => {
       const deps = makeDeps({
         readFile: (_path: string) => ok('import { ok } from "@hooks/core/result";'),
-        readJson: (path: string) => err(new PaiError(ErrorCode.FileNotFound, `Not found: ${path}`)),
+        readJson: (path: string) => err(new ResultError(ErrorCode.FileNotFound, `Not found: ${path}`)),
       });
 
       const result = validate("/fake/contract.ts", "/fake/missing.json", deps);

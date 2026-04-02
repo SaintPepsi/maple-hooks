@@ -19,7 +19,7 @@
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
 import type { AsyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
@@ -33,7 +33,7 @@ export interface SessionIdRegisterDeps {
   safeFetch: (
     url: string,
     opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string },
-  ) => Promise<Result<FetchResult, PaiError>>;
+  ) => Promise<Result<FetchResult, ResultError>>;
   getKoordConfig: () => { url: string | null };
   stderr: (msg: string) => void;
 }
@@ -64,7 +64,7 @@ export const SessionIdRegister: AsyncHookContract<
   async execute(
     input: SessionStartInput,
     deps: SessionIdRegisterDeps,
-  ): Promise<Result<SilentOutput, PaiError>> {
+  ): Promise<Result<SilentOutput, ResultError>> {
     const sessionId = input.session_id;
     if (!sessionId) {
       deps.stderr("[SessionIdRegister] No session_id in hook input");

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { processExecFailed } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { err, ok } from "@hooks/core/result";
@@ -49,7 +49,7 @@ function makeDeps(
 ): MergeGateDeps {
   const { ciResponse = CI_ALL_PASSING, reviewResponse = REVIEWS_ONE_APPROVED } = opts;
   return {
-    exec: (cmd: string): Result<string, PaiError> => {
+    exec: (cmd: string): Result<string, ResultError> => {
       if (cmd.includes("gh pr checks")) {
         if (ciResponse === "error") return err(processExecFailed(cmd, new Error("network error")));
         return ok(ciResponse);
@@ -65,7 +65,7 @@ function makeDeps(
   };
 }
 
-type GateResult = Result<ContinueOutput | BlockOutput, PaiError>;
+type GateResult = Result<ContinueOutput | BlockOutput, ResultError>;
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 

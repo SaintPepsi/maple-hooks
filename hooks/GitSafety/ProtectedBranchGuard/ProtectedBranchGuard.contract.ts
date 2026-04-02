@@ -15,7 +15,7 @@
 import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { getCommand } from "@hooks/lib/tool-input";
@@ -136,7 +136,7 @@ export const ProtectedBranchGuard: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: ProtectedBranchGuardDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const command = getCommand(input);
 
     // Only check git mutation commands (commit, push, merge)

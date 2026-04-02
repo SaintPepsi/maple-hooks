@@ -12,7 +12,7 @@
 import { dirname, join } from "node:path";
 import { ensureDir, fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
 import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
 import { ok, type Result } from "@hooks/core/result";
@@ -38,10 +38,10 @@ interface BaselineStore {
 
 export interface CodeQualityBaselineDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeJson: (path: string, data: unknown) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeJson: (path: string, data: unknown) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   getLanguageProfile: typeof getLanguageProfile;
   isScorableFile: typeof isScorableFile;
   scoreFile: typeof scoreFile;
@@ -111,7 +111,7 @@ export const CodeQualityBaseline: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput, deps: CodeQualityBaselineDeps): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CodeQualityBaselineDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Read the file content

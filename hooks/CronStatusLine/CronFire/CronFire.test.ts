@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { ErrorCode, ResultError } from "@hooks/core/error";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
 import type { CronFireDeps } from "./CronFire.contract";
@@ -60,7 +60,7 @@ function makeDeps(overrides: Partial<CronFireDeps> = {}): TestDeps {
       if (path in files) return { ok: true as const, value: files[path] };
       return {
         ok: false as const,
-        error: new PaiError(ErrorCode.FileNotFound, `File not found: ${path}`),
+        error: new ResultError(ErrorCode.FileNotFound, `File not found: ${path}`),
       };
     },
     writeFile: (path: string, content: string) => {

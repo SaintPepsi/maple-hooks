@@ -6,7 +6,7 @@
  */
 
 import { join } from "node:path";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { fileNotFound, jsonParseFailed } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import { andThen, err, ok, tryCatch } from "@hooks/core/result";
@@ -42,13 +42,13 @@ export interface CronPathDeps {
 }
 
 export interface CronFileDeps {
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  readDir: (path: string) => Result<string[], PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  appendFile: (path: string, content: string) => Result<void, PaiError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  readDir: (path: string) => Result<string[], ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  appendFile: (path: string, content: string) => Result<void, ResultError>;
   stderr: (msg: string) => void;
 }
 
@@ -80,7 +80,7 @@ export function readCronFile(
   sessionId: string,
   pathDeps: CronPathDeps,
   fileDeps: CronFileDeps,
-): Result<CronSessionFile | null, PaiError> {
+): Result<CronSessionFile | null, ResultError> {
   const path = cronFilePath(sessionId, pathDeps);
 
   if (!fileDeps.fileExists(path)) return ok(null);
@@ -93,7 +93,7 @@ export function writeCronFile(
   data: CronSessionFile,
   pathDeps: CronPathDeps,
   fileDeps: CronFileDeps,
-): Result<void, PaiError> {
+): Result<void, ResultError> {
   const dir = cronDir(pathDeps);
   const path = cronFilePath(sessionId, pathDeps);
 
@@ -106,7 +106,7 @@ export function appendCronLog(
   event: CronLogEvent,
   pathDeps: CronPathDeps,
   fileDeps: CronFileDeps,
-): Result<void, PaiError> {
+): Result<void, ResultError> {
   const path = cronLogPath(pathDeps);
   const line = `${JSON.stringify({ ts: new Date().toISOString(), ...event })}\n`;
   return fileDeps.appendFile(path, line);
@@ -115,7 +115,7 @@ export function appendCronLog(
 // ─── Internal Helpers ────────────────────────────────────────────────────────
 
 /** Parse raw JSON string into CronSessionFile via tryCatch adapter bridge. */
-function parseCronSessionFile(raw: string, path: string): Result<CronSessionFile, PaiError> {
+function parseCronSessionFile(raw: string, path: string): Result<CronSessionFile, ResultError> {
   const trimmed = raw.trim();
   if (!trimmed) return err(fileNotFound(path));
 

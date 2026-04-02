@@ -7,7 +7,7 @@
 
 import { describe, expect, it } from "bun:test";
 import type { GroupManifest, HookManifest } from "@hooks/cli/types/manifest";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { fileNotFound } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import { hookUsesShared, parseImports } from "@hooks/lib/import-parser";
@@ -30,8 +30,8 @@ function makeFs(files: Record<string, string>, dirs: Record<string, string[]>): 
     },
     readJson: <T = unknown>(path: string) => {
       const content = files[path] ?? written.get(path);
-      if (content === undefined) return err<T, PaiError>(fileNotFound(path));
-      return ok<T, PaiError>(JSON.parse(content) as T);
+      if (content === undefined) return err<T, ResultError>(fileNotFound(path));
+      return ok<T, ResultError>(JSON.parse(content) as T);
     },
     readDir: (path) => {
       const entries = dirs[path];
@@ -47,7 +47,7 @@ const SAMPLE_CONTRACT = `
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { readFile } from "@hooks/core/adapters/fs";
 
 export const TestHook: SyncHookContract<ToolHookInput, any, any> = {
@@ -81,7 +81,7 @@ import { pickNarrative } from "@hooks/lib/narrative-reader";
   it("excludes import type statements", () => {
     const source = `
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok } from "@hooks/core/result";
 `;
     const deps = parseImports(source);

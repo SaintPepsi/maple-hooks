@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
@@ -74,7 +74,7 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -88,7 +88,7 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     if (!result.ok) return;
     const ctx = result.value.additionalContext!;
@@ -101,7 +101,7 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     if (!result.ok) return;
     const ctx = result.value.additionalContext!;

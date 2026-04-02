@@ -21,7 +21,7 @@
 import { join } from "node:path";
 import { readFile as adapterReadFile, readJson as adapterReadJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -192,7 +192,7 @@ export const CodingStandardsEnforcer: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: CodingStandardsEnforcerDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Determine the full file content that would exist after this operation

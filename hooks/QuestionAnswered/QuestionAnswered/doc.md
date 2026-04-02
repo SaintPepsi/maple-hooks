@@ -22,7 +22,7 @@ It does **not** fire when:
 1. Returns `{ type: "silent" }` immediately
 
 ```typescript
-execute(_input, _deps): Result<SilentOutput, PaiError> {
+execute(_input, _deps): Result<SilentOutput, E> {
   return ok({ type: "silent" });
 }
 ```
