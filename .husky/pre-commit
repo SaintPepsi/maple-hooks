@@ -1,2 +1,3 @@
 bunx biome check --staged --no-errors-on-unmatched
+bun run scripts/docs/pre-commit-regen.ts
 bun run scripts/docs/pre-commit-gate.ts
