@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary.contract";
+import { describe, expect, test } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary.contract";
 
 // ─── Test Helpers ─────────────────────────────────────────────────────────────
 
@@ -10,7 +10,6 @@ let lastWrittenPath: string = "";
 let lastWrittenContent: string = "";
 let deletedPaths: string[] = [];
 let setTabStateCalls: Array<{ title: string; state: string; sessionId?: string }> = [];
-let cleanupKittySessionCalls: string[] = [];
 
 const MOCK_TIMESTAMP = "2026-02-27T10:00:00Z";
 
@@ -31,7 +30,6 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
   lastWrittenContent = "";
   deletedPaths = [];
   setTabStateCalls = [];
-  cleanupKittySessionCalls = [];
 
   return {
     ...SessionSummary.defaultDeps,
@@ -42,9 +40,9 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
     },
     readFile: (path: string) => {
       if (path.includes("META.yaml")) return ok(MOCK_META_YAML);
-      return err({ code: "FILE_NOT_FOUND", message: `Not found: ${path}` } as PaiError);
+      return err({ code: "FILE_NOT_FOUND", message: `Not found: ${path}` } as ResultError);
     },
-    readJson: <T = unknown>(_path: string) => ok(MOCK_WORK_STATE) as Result<T, PaiError>,
+    readJson: <T = unknown>(_path: string) => ok(MOCK_WORK_STATE) as Result<T, ResultError>,
     writeFile: (path: string, content: string) => {
       lastWrittenPath = path;
       lastWrittenContent = content;
@@ -56,9 +54,6 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
     getTimestamp: () => MOCK_TIMESTAMP,
     setTabState: (opts: { title: string; state: string; sessionId?: string }) => {
       setTabStateCalls.push(opts);
-    },
-    cleanupKittySession: (sessionId: string) => {
-      cleanupKittySessionCalls.push(sessionId);
     },
     baseDir: "/tmp/test",
     stderr: () => {},
@@ -86,7 +81,9 @@ describe("SessionSummary", () => {
     });
 
     test("accepts with undefined session_id", () => {
-      expect(SessionSummary.accepts({ session_id: undefined as unknown as string } as SessionEndInput)).toBe(true);
+      expect(
+        SessionSummary.accepts({ session_id: undefined as unknown as string } as SessionEndInput),
+      ).toBe(true);
     });
   });
 
@@ -107,7 +104,7 @@ describe("SessionSummary", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(path: string) => {
           readJsonPath = path;
-          return ok(MOCK_WORK_STATE) as Result<T, PaiError>;
+          return ok(MOCK_WORK_STATE) as Result<T, ResultError>;
         },
       });
       SessionSummary.execute(makeInput(), deps);
@@ -131,17 +128,13 @@ describe("SessionSummary", () => {
     test("writes to correct META.yaml path inside WORK directory", () => {
       const deps = makeDeps();
       SessionSummary.execute(makeInput(), deps);
-      expect(lastWrittenPath).toBe(
-        "/tmp/test/MEMORY/WORK/2026-02-27-fix-auth/META.yaml",
-      );
+      expect(lastWrittenPath).toBe("/tmp/test/MEMORY/WORK/2026-02-27-fix-auth/META.yaml");
     });
 
     test("deletes the scoped state file", () => {
       const deps = makeDeps();
       SessionSummary.execute(makeInput(), deps);
-      expect(deletedPaths).toContain(
-        "/tmp/test/MEMORY/STATE/current-work-test-session-123.json",
-      );
+      expect(deletedPaths).toContain("/tmp/test/MEMORY/STATE/current-work-test-session-123.json");
     });
   });
 
@@ -192,7 +185,10 @@ describe("SessionSummary", () => {
     test("skips state update when session_id does not match state file", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(_path: string) =>
-          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<T, PaiError>,
+          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
+            T,
+            ResultError
+          >,
       });
       SessionSummary.execute(makeInput({ session_id: "test-session-123" }), deps);
       expect(lastWrittenPath).toBe("");
@@ -202,7 +198,10 @@ describe("SessionSummary", () => {
     test("still returns ok result when session ID mismatches", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(_path: string) =>
-          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<T, PaiError>,
+          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
+            T,
+            ResultError
+          >,
       });
       const result = SessionSummary.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -229,24 +228,10 @@ describe("SessionSummary", () => {
       expect(setTabStateCalls[0].sessionId).toBe("test-session-123");
     });
 
-    test("calls cleanupKittySession with session_id", () => {
-      const deps = makeDeps();
-      SessionSummary.execute(makeInput(), deps);
-      expect(cleanupKittySessionCalls).toContain("test-session-123");
-    });
-
-    test("skips cleanupKittySession when session_id is empty", () => {
-      const deps = makeDeps({
-        fileExists: () => false,
-      });
-      SessionSummary.execute(makeInput({ session_id: "" }), deps);
-      expect(cleanupKittySessionCalls).toHaveLength(0);
-    });
-
     test("does not throw if setTabState throws", () => {
       const deps = makeDeps({
         setTabState: () => {
-          throw new Error("kitty not running");
+          throw new Error("tab reset failed");
         },
       });
       expect(() => SessionSummary.execute(makeInput(), deps)).not.toThrow();
@@ -255,7 +240,7 @@ describe("SessionSummary", () => {
     test("still returns ok if tab reset throws", () => {
       const deps = makeDeps({
         setTabState: () => {
-          throw new Error("kitty not running");
+          throw new Error("tab reset failed");
         },
       });
       const result = SessionSummary.execute(makeInput(), deps);
@@ -273,8 +258,7 @@ describe("SessionSummary", () => {
 
     test("does not write META.yaml if readFile fails", () => {
       const deps = makeDeps({
-        readFile: () =>
-          err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
+        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as ResultError),
       });
       SessionSummary.execute(makeInput(), deps);
       expect(lastWrittenPath).toBe("");
@@ -282,13 +266,10 @@ describe("SessionSummary", () => {
 
     test("still deletes state file even if META.yaml read fails", () => {
       const deps = makeDeps({
-        readFile: () =>
-          err({ code: "FILE_NOT_FOUND", message: "no meta" } as PaiError),
+        readFile: () => err({ code: "FILE_NOT_FOUND", message: "no meta" } as ResultError),
       });
       SessionSummary.execute(makeInput(), deps);
-      expect(deletedPaths).toContain(
-        "/tmp/test/MEMORY/STATE/current-work-test-session-123.json",
-      );
+      expect(deletedPaths).toContain("/tmp/test/MEMORY/STATE/current-work-test-session-123.json");
     });
   });
 });

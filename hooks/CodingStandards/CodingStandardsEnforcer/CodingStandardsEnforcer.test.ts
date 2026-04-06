@@ -1,12 +1,12 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   CodingStandardsEnforcer,
   type CodingStandardsEnforcerDeps,
-} from "./CodingStandardsEnforcer.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+} from "@hooks/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -19,7 +19,7 @@ function makeDeps(
 ): CodingStandardsEnforcerDeps {
   return {
     readFile: () => null,
-    readSettings: () => ({}),
+    readConfig: () => null,
     signal: {
       baseDir: "/tmp/test-pai",
       appendFile: () => ({ ok: true, value: undefined }),
@@ -31,11 +31,7 @@ function makeDeps(
   };
 }
 
-function makeEditInput(
-  filePath: string,
-  oldStr: string,
-  newStr: string,
-): ToolHookInput {
+function makeEditInput(filePath: string, oldStr: string, newStr: string): ToolHookInput {
   return {
     session_id: "test-sess",
     tool_name: "Edit",
@@ -60,7 +56,7 @@ function makeReadInput(filePath: string): ToolHookInput {
 }
 
 function unwrap(
-  result: Result<ContinueOutput | BlockOutput, PaiError>,
+  result: Result<ContinueOutput | BlockOutput, ResultError>,
 ): ContinueOutput | BlockOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
@@ -78,31 +74,23 @@ describe("CodingStandardsEnforcer", () => {
 
   describe("accepts()", () => {
     it("accepts Edit on .ts files", () => {
-      expect(
-        CodingStandardsEnforcer.accepts(makeEditInput("/src/app.ts", "a", "b")),
-      ).toBe(true);
+      expect(CodingStandardsEnforcer.accepts(makeEditInput("/src/app.ts", "a", "b"))).toBe(true);
     });
 
     it("accepts Write on .tsx files", () => {
       expect(
-        CodingStandardsEnforcer.accepts(
-          makeWriteInput("/src/App.tsx", "export default {}"),
-        ),
+        CodingStandardsEnforcer.accepts(makeWriteInput("/src/App.tsx", "export default {}")),
       ).toBe(true);
     });
 
     it("rejects Read operations", () => {
-      expect(CodingStandardsEnforcer.accepts(makeReadInput("/src/app.ts"))).toBe(
-        false,
-      );
+      expect(CodingStandardsEnforcer.accepts(makeReadInput("/src/app.ts"))).toBe(false);
     });
 
     it("rejects non-TypeScript files", () => {
-      expect(
-        CodingStandardsEnforcer.accepts(
-          makeWriteInput("/src/style.css", "body {}"),
-        ),
-      ).toBe(false);
+      expect(CodingStandardsEnforcer.accepts(makeWriteInput("/src/style.css", "body {}"))).toBe(
+        false,
+      );
     });
 
     it("skips adapter files", () => {
@@ -116,10 +104,7 @@ describe("CodingStandardsEnforcer", () => {
     it("skips hooks/core/ files", () => {
       expect(
         CodingStandardsEnforcer.accepts(
-          makeWriteInput(
-            "/home/user/.claude/hooks/core/runner.ts",
-            "import fs from 'fs';",
-          ),
+          makeWriteInput("/home/user/.claude/hooks/core/runner.ts", "import fs from 'fs';"),
         ),
       ).toBe(false);
     });
@@ -169,26 +154,20 @@ describe("CodingStandardsEnforcer", () => {
     it("blocks try-catch flow control", () => {
       const input = makeWriteInput(
         "/src/handler.ts",
-        'export function go() {\n  try {\n    doThing();\n  } catch (e) {\n    return null;\n  }\n}',
+        "export function go() {\n  try {\n    doThing();\n  } catch (e) {\n    return null;\n  }\n}",
       );
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
       expect(result.type).toBe("block");
     });
 
     it("blocks direct process.env access", () => {
-      const input = makeWriteInput(
-        "/src/config.ts",
-        "export const port = process.env.PORT;",
-      );
+      const input = makeWriteInput("/src/config.ts", "export const port = process.env.PORT;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
       expect(result.type).toBe("block");
     });
 
     it("blocks as any casts", () => {
-      const input = makeWriteInput(
-        "/src/util.ts",
-        "const x = data as any;",
-      );
+      const input = makeWriteInput("/src/util.ts", "const x = data as any;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
       expect(result.type).toBe("block");
     });
@@ -250,8 +229,7 @@ describe("CodingStandardsEnforcer", () => {
     });
 
     it("blocks when existing file has violations even if edit is clean", () => {
-      const existingContent =
-        'import { readFileSync } from "fs";\nexport const name = "old";';
+      const existingContent = 'import { readFileSync } from "fs";\nexport const name = "old";';
       const deps = makeDeps({ readFile: () => existingContent });
       const input = makeEditInput("/src/mod.ts", '"old"', '"new"');
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
@@ -272,22 +250,14 @@ describe("CodingStandardsEnforcer", () => {
 
     it("continues when file does not exist on disk and editParts are empty", () => {
       const deps = makeDeps({ readFile: () => null });
-      const input = makeEditInput(
-        "/src/new.ts",
-        "",
-        "export const y = 2;",
-      );
+      const input = makeEditInput("/src/new.ts", "", "export const y = 2;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
       expect(result.type).toBe("continue");
     });
 
     it("checks just new_string when file does not exist on disk (new file via edit)", () => {
       const deps = makeDeps({ readFile: () => null });
-      const input = makeEditInput(
-        "/src/new.ts",
-        "placeholder",
-        "export const y = 2;",
-      );
+      const input = makeEditInput("/src/new.ts", "placeholder", "export const y = 2;");
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
       expect(result.type).toBe("continue");
     });
@@ -347,6 +317,52 @@ describe("CodingStandardsEnforcer", () => {
       expect(result.reason).toContain("proper types");
       expect(result.reason).not.toContain("adapters");
       expect(result.reason).not.toContain("try-catch");
+    });
+  });
+
+  describe("edge cases", () => {
+    it("continues for non-Write/non-Edit tools (null content)", () => {
+      const input: ToolHookInput = {
+        session_id: "test-sess",
+        tool_name: "Read",
+        tool_input: { file_path: "/src/utils.ts" },
+      };
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("continue");
+    });
+
+    it("continues for .svelte file without script block", () => {
+      const input = makeWriteInput("/src/NoScript.svelte", "<div>Just HTML</div>");
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("continue");
+    });
+
+    it("blocks violations in .svelte script block", () => {
+      const svelteContent = [
+        '<script lang="ts">',
+        "const x = data as any;",
+        "</script>",
+        "<div>hello</div>",
+      ].join("\n");
+      const input = makeWriteInput("/src/Component.svelte", svelteContent);
+      const result = unwrap(CodingStandardsEnforcer.execute(input, makeDeps()));
+      expect(result.type).toBe("block");
+    });
+  });
+
+  describe("defaultDeps", () => {
+    it("defaultDeps.readFile returns null for missing file", () => {
+      const result = CodingStandardsEnforcer.defaultDeps.readFile("/tmp/pai-nonexistent-cse.ts");
+      expect(result).toBeNull();
+    });
+
+    it("defaultDeps.readConfig returns null or object for missing config", () => {
+      const result = CodingStandardsEnforcer.defaultDeps.readConfig();
+      expect(result === null || typeof result === "object").toBe(true);
+    });
+
+    it("defaultDeps.stderr writes without throwing", () => {
+      expect(() => CodingStandardsEnforcer.defaultDeps.stderr("test")).not.toThrow();
     });
   });
 });

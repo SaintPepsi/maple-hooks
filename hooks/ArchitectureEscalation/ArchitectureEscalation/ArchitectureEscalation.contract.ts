@@ -7,17 +7,19 @@
  * Pattern from obra/superpowers systematic-debugging skill Phase 4.5.
  */
 
+import { dirname, join } from "node:path";
+import { ensureDir, fileExists, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readJson, writeJson, fileExists, ensureDir } from "@hooks/core/adapters/fs";
-import { join, dirname } from "path";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
-type FsReadJson = <T = unknown>(path: string) => Result<T, PaiError>;
-type FsWriteJson = (path: string, data: unknown) => Result<void, PaiError>;
-type FsEnsureDir = (path: string) => Result<void, PaiError>;
+type FsReadJson = <T = unknown>(path: string) => Result<T, ResultError>;
+type FsWriteJson = (path: string, data: unknown) => Result<void, ResultError>;
+type FsEnsureDir = (path: string) => Result<void, ResultError>;
 type FsFileExists = (path: string) => boolean;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -111,9 +113,9 @@ export function buildWarningMessage(criterionId: string, failedAttempts: number)
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: ArchEscalationDeps = {
-  getPaiDir: () => process.env.PAI_DIR ?? join(process.env.HOME!, ".claude"),
+  getPaiDir: () => getPaiDir(),
   now: () => Date.now(),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
   fileExists,
   readJson,
   writeJson,
@@ -132,20 +134,17 @@ export const ArchitectureEscalation: SyncHookContract<
     return input.tool_name === "TaskUpdate";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: ArchEscalationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: ArchEscalationDeps): Result<ContinueOutput, ResultError> {
     const { tool_input, session_id } = input;
     const taskId = tool_input.taskId;
     const status = tool_input.status;
 
     // Only track in_progress transitions
     if (typeof taskId !== "string" || taskId.trim() === "") {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
     if (status !== "in_progress") {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const criterionId = taskId.trim();
@@ -169,17 +168,21 @@ export const ArchitectureEscalation: SyncHookContract<
 
     if (failedAttempts >= STOP_THRESHOLD) {
       const message = buildWarningMessage(criterionId, failedAttempts);
-      deps.stderr(`[ArchEscalation] 🚨 STOP escalation for ${criterionId} (${failedAttempts} failures)`);
-      return ok({ type: "continue", continue: true, additionalContext: message });
+      deps.stderr(
+        `[ArchEscalation] 🚨 STOP escalation for ${criterionId} (${failedAttempts} failures)`,
+      );
+      return ok(continueOk(message));
     }
 
     if (failedAttempts >= WARN_THRESHOLD) {
       const message = buildWarningMessage(criterionId, failedAttempts);
-      deps.stderr(`[ArchEscalation] ⚠️  Warning escalation for ${criterionId} (${failedAttempts} failures)`);
-      return ok({ type: "continue", continue: true, additionalContext: message });
+      deps.stderr(
+        `[ArchEscalation] ⚠️  Warning escalation for ${criterionId} (${failedAttempts} failures)`,
+      );
+      return ok(continueOk(message));
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

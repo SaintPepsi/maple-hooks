@@ -1,20 +1,24 @@
-import { describe, it, expect } from "bun:test";
-import { HookDocTracker } from "@hooks/hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.contract";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { HookDocEnforcer } from "@hooks/hooks/ObligationStateMachines/HookDocEnforcer/HookDocEnforcer.contract";
 import {
-  isHookSourceFile,
-  isHookDocFile,
-  getHookDirFromPath,
-  validateDocSections,
+  allDocFileNames,
   buildDocSuggestions,
+  docFileNameFromPath,
+  getHookDirFromPath,
+  isAnyDocFile,
+  isHookDocFile,
+  isHookSourceFile,
+  parseTag,
   readHookDocSettings,
+  tagPending,
+  validateDocSections,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
+import { HookDocTracker } from "@hooks/hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.contract";
 import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, SilentOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -99,6 +103,80 @@ describe("getHookDirFromPath", () => {
   });
 });
 
+describe("allDocFileNames", () => {
+  it("returns primary + additional doc file names", () => {
+    const settings = {
+      ...readHookDocSettings(() => null),
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: [] }],
+    };
+    expect(allDocFileNames(settings)).toEqual(["doc.md", "IDEA.md"]);
+  });
+
+  it("returns only primary when no additionalDocs", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(allDocFileNames(settings)).toEqual(["doc.md"]);
+  });
+});
+
+describe("tagPending / parseTag", () => {
+  it("tags a source path with a doc file name", () => {
+    expect(tagPending("/hooks/G/H/H.contract.ts", "doc.md")).toBe(
+      "/hooks/G/H/H.contract.ts:doc.md",
+    );
+  });
+
+  it("parses tag back to source and doc", () => {
+    const { source, docFile } = parseTag("/hooks/G/H/H.contract.ts:doc.md");
+    expect(source).toBe("/hooks/G/H/H.contract.ts");
+    expect(docFile).toBe("doc.md");
+  });
+
+  it("treats untagged entries as primary doc", () => {
+    const { source, docFile } = parseTag("/hooks/G/H/H.contract.ts");
+    expect(source).toBe("/hooks/G/H/H.contract.ts");
+    expect(docFile).toBe("doc.md");
+  });
+
+  it("handles Windows-style paths", () => {
+    const { source, docFile } = parseTag("C:\\hooks\\G\\H\\H.contract.ts:IDEA.md");
+    expect(source).toBe("C:\\hooks\\G\\H\\H.contract.ts");
+    expect(docFile).toBe("IDEA.md");
+  });
+});
+
+describe("isAnyDocFile", () => {
+  it("matches primary doc file", () => {
+    const settings = {
+      ...readHookDocSettings(() => null),
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: [] }],
+    };
+    expect(isAnyDocFile("/hooks/G/H/doc.md", settings)).toBe(true);
+  });
+
+  it("matches additional doc file", () => {
+    const settings = {
+      ...readHookDocSettings(() => null),
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: [] }],
+    };
+    expect(isAnyDocFile("/hooks/G/H/IDEA.md", settings)).toBe(true);
+  });
+
+  it("rejects non-doc files", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(isAnyDocFile("/hooks/G/H/H.contract.ts", settings)).toBe(false);
+  });
+});
+
+describe("docFileNameFromPath", () => {
+  it("extracts file name from path", () => {
+    expect(docFileNameFromPath("/hooks/G/H/IDEA.md")).toBe("IDEA.md");
+  });
+
+  it("handles bare file name", () => {
+    expect(docFileNameFromPath("doc.md")).toBe("doc.md");
+  });
+});
+
 describe("validateDocSections", () => {
   it("returns valid when all sections present", () => {
     const content = "## Overview\nfoo\n## Event\nbar\n## When It Fires\nbaz";
@@ -123,10 +201,12 @@ describe("buildDocSuggestions", () => {
       requiredSections: ["## Overview"],
       docFileName: "doc.md",
       watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
     };
 
     const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
-    expect(result).toContain("/hooks/G/H/doc.md");
+    expect(result).toContain("Update `/hooks/G/H/doc.md`");
   });
 
   it("deduplicates directories", () => {
@@ -136,6 +216,8 @@ describe("buildDocSuggestions", () => {
       requiredSections: [],
       docFileName: "doc.md",
       watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
     };
 
     const result = buildDocSuggestions(["/hooks/G/H/a.ts", "/hooks/G/H/b.ts"], settings);
@@ -150,11 +232,63 @@ describe("buildDocSuggestions", () => {
       requiredSections: ["## Overview", "## Event"],
       docFileName: "doc.md",
       watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
     };
 
     const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
     expect(result).toContain("## Overview");
     expect(result).toContain("## Event");
+  });
+
+  it("groups tagged entries by directory and lists each doc", () => {
+    const settings = {
+      enabled: true,
+      blocking: true,
+      requiredSections: ["## Overview"],
+      docFileName: "doc.md",
+      watchPatterns: [],
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem"] }],
+      mode: "independent" as const,
+    };
+
+    const result = buildDocSuggestions(
+      ["/hooks/G/H/H.contract.ts:doc.md", "/hooks/G/H/H.contract.ts:IDEA.md"],
+      settings,
+    );
+    expect(result).toContain("doc.md");
+    expect(result).toContain("IDEA.md");
+  });
+
+  it("shows per-doc required sections for tagged entries", () => {
+    const settings = {
+      enabled: true,
+      blocking: true,
+      requiredSections: ["## Overview"],
+      docFileName: "doc.md",
+      watchPatterns: [],
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] }],
+      mode: "independent" as const,
+    };
+
+    const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts:IDEA.md"], settings);
+    expect(result).toContain("IDEA.md");
+    expect(result).toContain("## Problem");
+  });
+
+  it("handles untagged entries (backwards compat)", () => {
+    const settings = {
+      enabled: true,
+      blocking: true,
+      requiredSections: ["## Overview"],
+      docFileName: "doc.md",
+      watchPatterns: [],
+      additionalDocs: [],
+      mode: "independent" as const,
+    };
+
+    const result = buildDocSuggestions(["/hooks/G/H/H.contract.ts"], settings);
+    expect(result).toContain("doc.md");
   });
 });
 
@@ -197,6 +331,50 @@ describe("readHookDocSettings", () => {
     const settings = readHookDocSettings(() => "not json{{{");
     expect(settings.enabled).toBe(true); // defaults
   });
+
+  it("parses additionalDocs from config", () => {
+    const json = JSON.stringify({
+      hookConfig: {
+        hookDocEnforcer: {
+          additionalDocs: [
+            { fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] },
+          ],
+        },
+      },
+    });
+    const settings = readHookDocSettings(() => json);
+    expect(settings.additionalDocs).toHaveLength(1);
+    expect(settings.additionalDocs[0].fileName).toBe("IDEA.md");
+    expect(settings.additionalDocs[0].requiredSections).toEqual(["## Problem", "## Solution"]);
+  });
+
+  it("defaults additionalDocs to empty array", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(settings.additionalDocs).toEqual([]);
+  });
+
+  it("parses mode from config", () => {
+    const json = JSON.stringify({
+      hookConfig: {
+        hookDocEnforcer: { mode: "linked" },
+      },
+    });
+    const settings = readHookDocSettings(() => json);
+    expect(settings.mode).toBe("linked");
+  });
+
+  it("defaults mode to independent", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(settings.mode).toBe("independent");
+  });
+
+  it("ignores invalid mode values", () => {
+    const json = JSON.stringify({
+      hookConfig: { hookDocEnforcer: { mode: "bogus" } },
+    });
+    const settings = readHookDocSettings(() => json);
+    expect(settings.mode).toBe("independent");
+  });
 });
 
 // ─── HookDocTracker ───────────────────────────────────────────────────────────
@@ -210,19 +388,37 @@ describe("HookDocTracker", () => {
   // ── accepts ──
 
   it("accepts Edit on .contract.ts file", () => {
-    expect(HookDocTracker.accepts(makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }))).toBe(true);
+    expect(
+      HookDocTracker.accepts(makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" })),
+    ).toBe(true);
   });
 
   it("accepts Write on hook.json", () => {
-    expect(HookDocTracker.accepts(makeToolInput("Write", { file_path: "/hooks/G/H/hook.json" }))).toBe(true);
+    expect(
+      HookDocTracker.accepts(makeToolInput("Write", { file_path: "/hooks/G/H/hook.json" })),
+    ).toBe(true);
   });
 
   it("accepts Edit on doc.md (for clearing)", () => {
-    expect(HookDocTracker.accepts(makeToolInput("Edit", { file_path: "/hooks/G/H/doc.md" }))).toBe(true);
+    expect(HookDocTracker.accepts(makeToolInput("Edit", { file_path: "/hooks/G/H/doc.md" }))).toBe(
+      true,
+    );
+  });
+
+  it("accepts Write on IDEA.md when configured as additionalDoc", () => {
+    // Note: accepts depends on readHookDocSettings() reading real config.
+    // Without additionalDocs configured, IDEA.md won't match isAnyDocFile.
+    // This test documents the expected behavior when additionalDocs includes IDEA.md.
+    // With default settings (no additionalDocs), IDEA.md is not accepted.
+    expect(
+      HookDocTracker.accepts(makeToolInput("Write", { file_path: "/hooks/G/H/IDEA.md" })),
+    ).toBe(false);
   });
 
   it("rejects Read tool", () => {
-    expect(HookDocTracker.accepts(makeToolInput("Read", { file_path: "/hooks/G/H/H.contract.ts" }))).toBe(false);
+    expect(
+      HookDocTracker.accepts(makeToolInput("Read", { file_path: "/hooks/G/H/H.contract.ts" })),
+    ).toBe(false);
   });
 
   it("rejects non-hook files", () => {
@@ -239,31 +435,32 @@ describe("HookDocTracker", () => {
     let written: string[] = [];
     const deps = makeDeps({
       readPending: () => [],
-      writePending: (_p, files) => { written = files; },
+      writePending: (_p, files) => {
+        written = files;
+      },
     });
 
     const result = HookDocTracker.execute(
       makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    expect(written).toContain("/hooks/G/H/H.contract.ts");
+    expect(written).toContain("/hooks/G/H/H.contract.ts:doc.md");
   });
 
   it("does not duplicate pending entries", () => {
     let written: string[] = [];
     const deps = makeDeps({
-      readPending: () => ["/hooks/G/H/H.contract.ts"],
-      writePending: (_p, files) => { written = files; },
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md"],
+      writePending: (_p, files) => {
+        written = files;
+      },
     });
 
-    HookDocTracker.execute(
-      makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }),
-      deps,
-    );
+    HookDocTracker.execute(makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }), deps);
 
-    expect(written).toEqual(["/hooks/G/H/H.contract.ts"]);
+    expect(written).toEqual(["/hooks/G/H/H.contract.ts:doc.md"]);
   });
 
   // ── execute: doc file clearing ──
@@ -272,14 +469,13 @@ describe("HookDocTracker", () => {
     let removed = false;
     const deps = makeDeps({
       fileExists: () => true,
-      readPending: () => ["/hooks/G/H/H.contract.ts"],
-      removeFlag: () => { removed = true; },
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md"],
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
-    HookDocTracker.execute(
-      makeToolInput("Write", { file_path: "/hooks/G/H/doc.md" }),
-      deps,
-    );
+    HookDocTracker.execute(makeToolInput("Write", { file_path: "/hooks/G/H/doc.md" }), deps);
 
     expect(removed).toBe(true);
   });
@@ -288,29 +484,76 @@ describe("HookDocTracker", () => {
     let written: string[] = [];
     const deps = makeDeps({
       fileExists: () => true,
-      readPending: () => ["/hooks/G/H1/H1.contract.ts", "/hooks/G/H2/H2.contract.ts"],
-      writePending: (_p, files) => { written = files; },
+      readPending: () => ["/hooks/G/H1/H1.contract.ts:doc.md", "/hooks/G/H2/H2.contract.ts:doc.md"],
+      writePending: (_p, files) => {
+        written = files;
+      },
     });
 
-    HookDocTracker.execute(
-      makeToolInput("Write", { file_path: "/hooks/G/H1/doc.md" }),
-      deps,
-    );
+    HookDocTracker.execute(makeToolInput("Write", { file_path: "/hooks/G/H1/doc.md" }), deps);
 
-    expect(written).toEqual(["/hooks/G/H2/H2.contract.ts"]);
+    expect(written).toEqual(["/hooks/G/H2/H2.contract.ts:doc.md"]);
+  });
+
+  // ── execute: multi-doc tracking ──
+
+  it("creates tagged pending entry for primary doc", () => {
+    let written: string[] = [];
+    const deps = makeDeps({
+      readPending: () => [],
+      writePending: (_p, files) => {
+        written = files;
+      },
+    });
+
+    HookDocTracker.execute(makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }), deps);
+
+    expect(written).toContain("/hooks/G/H/H.contract.ts:doc.md");
+  });
+
+  // ── execute: independent mode clearing ──
+
+  it("clears only matching doc tag in independent mode", () => {
+    let written: string[] = [];
+    const deps = makeDeps({
+      fileExists: () => true,
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md", "/hooks/G/H/H.contract.ts:IDEA.md"],
+      writePending: (_p, files) => {
+        written = files;
+      },
+    });
+
+    HookDocTracker.execute(makeToolInput("Write", { file_path: "/hooks/G/H/doc.md" }), deps);
+
+    expect(written).toEqual(["/hooks/G/H/H.contract.ts:IDEA.md"]);
+  });
+
+  it("clears only doc.md tag and leaves other tags (independent mode)", () => {
+    let written: string[] = [];
+    const deps = makeDeps({
+      fileExists: () => true,
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md", "/hooks/G/H2/H2.contract.ts:doc.md"],
+      writePending: (_p, files) => {
+        written = files;
+      },
+    });
+
+    HookDocTracker.execute(makeToolInput("Write", { file_path: "/hooks/G/H/doc.md" }), deps);
+
+    // Only H's doc.md entry cleared; H2's remains
+    expect(written).toEqual(["/hooks/G/H2/H2.contract.ts:doc.md"]);
   });
 
   it("uses session_id in state file path", () => {
     let writtenPath = "";
     const deps = makeDeps({
       readPending: () => [],
-      writePending: (path) => { writtenPath = path; },
+      writePending: (path) => {
+        writtenPath = path;
+      },
     });
 
-    HookDocTracker.execute(
-      makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }),
-      deps,
-    );
+    HookDocTracker.execute(makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }), deps);
 
     expect(writtenPath).toContain("test-session");
   });
@@ -326,7 +569,10 @@ describe("HookDocEnforcer", () => {
 
   it("returns silent when no pending flag exists", () => {
     const deps = makeDeps({ fileExists: () => false });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
@@ -337,7 +583,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => [],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
@@ -348,7 +597,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("block");
@@ -359,7 +611,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("/hooks/G/H/H.contract.ts");
@@ -370,7 +625,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("doc.md");
@@ -381,7 +639,10 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("## Overview");
@@ -393,7 +654,10 @@ describe("HookDocEnforcer", () => {
       readPending: () => ["/hooks/G/H/H.contract.ts"],
       readBlockCount: () => 1,
     });
-    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = HookDocEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
@@ -405,7 +669,9 @@ describe("HookDocEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
       readBlockCount: () => 0,
-      writeBlockCount: (_p, count) => { writtenCount = count; },
+      writeBlockCount: (_p, count) => {
+        writtenCount = count;
+      },
     });
 
     HookDocEnforcer.execute(makeStopInput(), deps);
@@ -413,12 +679,14 @@ describe("HookDocEnforcer", () => {
   });
 
   it("cleans up state on release", () => {
-    let removedPaths: string[] = [];
+    const removedPaths: string[] = [];
     const deps = makeDeps({
       fileExists: () => true,
       readPending: () => ["/hooks/G/H/H.contract.ts"],
       readBlockCount: () => 1,
-      removeFlag: (p) => { removedPaths.push(p); },
+      removeFlag: (p) => {
+        removedPaths.push(p);
+      },
     });
 
     HookDocEnforcer.execute(makeStopInput(), deps);
@@ -445,5 +713,14 @@ describe("HookDocTracker defaultDeps", () => {
 
   it("defaultDeps.stderr writes without throwing", () => {
     expect(() => HookDocTracker.defaultDeps.stderr("test")).not.toThrow();
+  });
+});
+
+// ─── HookDocEnforcer.accepts ────────────────────────────────────────────────
+
+describe("HookDocEnforcer.accepts", () => {
+  it("returns a boolean for any StopInput", () => {
+    const result = HookDocEnforcer.accepts(makeStopInput());
+    expect(typeof result).toBe("boolean");
   });
 });

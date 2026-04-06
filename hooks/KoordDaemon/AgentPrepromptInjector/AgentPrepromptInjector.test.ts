@@ -1,8 +1,11 @@
-import { describe, test, expect } from "bun:test";
-import { AgentPrepromptInjector, type AgentPrepromptInjectorDeps } from "./AgentPrepromptInjector.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { fileReadFailed } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  AgentPrepromptInjector,
+  type AgentPrepromptInjectorDeps,
+} from "./AgentPrepromptInjector.contract";
 
 const TEMPLATE = "# Worker: {{agent_name}}\nThread: {{thread_id}}\nTask: {{task_description}}";
 
@@ -19,6 +22,7 @@ function makeDeps(overrides: Partial<AgentPrepromptInjectorDeps> = {}): AgentPre
 
 function makeInput(overrides: Record<string, unknown> = {}): ToolHookInput {
   return {
+    session_id: "test",
     hook_type: "PreToolUse",
     tool_name: "Agent",
     tool_input: {
@@ -48,6 +52,7 @@ describe("AgentPrepromptInjector", () => {
 
     test("rejects non-Agent tools", () => {
       const input: ToolHookInput = {
+        session_id: "test",
         hook_type: "PreToolUse",
         tool_name: "Bash",
         tool_input: { command: "ls", run_in_background: true },
@@ -89,7 +94,10 @@ describe("AgentPrepromptInjector", () => {
       let checkedPath = "";
       const deps = makeDeps({
         getKoordConfig: () => ({ prepromptPath: "/custom/worker.md" }),
-        fileExists: (path) => { checkedPath = path; return true; },
+        fileExists: (path) => {
+          checkedPath = path;
+          return true;
+        },
       });
       AgentPrepromptInjector.execute(makeInput(), deps);
       expect(checkedPath).toBe("/custom/worker.md");
@@ -98,7 +106,10 @@ describe("AgentPrepromptInjector", () => {
     test("falls back to cwd/src/prompts/worker.md", () => {
       let checkedPath = "";
       const deps = makeDeps({
-        fileExists: (path) => { checkedPath = path; return true; },
+        fileExists: (path) => {
+          checkedPath = path;
+          return true;
+        },
       });
       AgentPrepromptInjector.execute(makeInput(), deps);
       expect(checkedPath).toBe("/projects/koord/src/prompts/worker.md");

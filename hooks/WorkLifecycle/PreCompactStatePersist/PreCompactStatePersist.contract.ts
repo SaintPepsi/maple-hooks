@@ -9,21 +9,22 @@
  * Fails open: any read error yields continue with no context.
  */
 
+import { join } from "node:path";
+import { readDir, readFile, stat } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readFile, readDir, stat } from "@hooks/core/adapters/fs";
-import { join } from "path";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
+import type { PreCompactInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface PreCompactStatePersistDeps {
-  readDir: (path: string, opts?: { withFileTypes: true }) => Result<unknown[], PaiError>;
-  readFile: (path: string) => Result<string, PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
+  readDir: (path: string, opts?: { withFileTypes: true }) => Result<unknown[], ResultError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
   stderr: (msg: string) => void;
   baseDir: string;
 }
@@ -158,7 +159,7 @@ export const PreCompactStatePersist: SyncHookContract<
   execute(
     _input: PreCompactInput,
     deps: PreCompactStatePersistDeps,
-  ): Result<ContinueOutput, PaiError> {
+  ): Result<ContinueOutput, ResultError> {
     const workDir = join(deps.baseDir, "MEMORY", "WORK");
 
     const prdPath = findMostRecentPrd(workDir, deps);
@@ -179,10 +180,10 @@ export const PreCompactStatePersist: SyncHookContract<
       return ok(CONTINUE_SILENT);
     }
 
-    const task = fm["task"] ?? "";
-    const phase = fm["phase"] ?? "";
-    const progress = fm["progress"] ?? "";
-    const slug = fm["slug"] ?? "";
+    const task = fm.task ?? "";
+    const phase = fm.phase ?? "";
+    const progress = fm.progress ?? "";
+    const slug = fm.slug ?? "";
 
     if (!task && !slug) {
       deps.stderr("[PreCompactStatePersist] Frontmatter missing task and slug — skipping");
@@ -194,7 +195,7 @@ export const PreCompactStatePersist: SyncHookContract<
 
     deps.stderr(`[PreCompactStatePersist] Injecting PRD context: slug=${slug} phase=${phase}`);
 
-    return ok({ type: "continue", continue: true, additionalContext: summary });
+    return ok(continueOk(summary));
   },
 
   defaultDeps,

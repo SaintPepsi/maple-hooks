@@ -5,10 +5,12 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, ContextOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { ContextOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -24,7 +26,7 @@ const FAST_MODELS = ["haiku"];
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: AgentExecutionGuardDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 export const AgentExecutionGuard: SyncHookContract<
@@ -39,34 +41,42 @@ export const AgentExecutionGuard: SyncHookContract<
     return true; // All Task invocations are checked
   },
 
-  execute(input: ToolHookInput): Result<ContinueOutput | ContextOutput, PaiError> {
+  execute(
+    input: ToolHookInput,
+    deps: AgentExecutionGuardDeps,
+  ): Result<ContinueOutput | ContextOutput, ResultError> {
     const toolInput = input.tool_input || {};
+    const agentType = (toolInput.subagent_type as string) || "";
+    const desc = (toolInput.description as string) || agentType || "unknown";
 
     // Already using background — correct usage
     if (toolInput.run_in_background === true) {
-      return ok({ type: "continue", continue: true });
+      deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" already running in background`);
+      return ok(continueOk());
     }
 
     // Fast-tier agents don't need background
-    const agentType = (toolInput.subagent_type as string) || "";
     if (FAST_AGENT_TYPES.includes(agentType)) {
-      return ok({ type: "continue", continue: true });
+      deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" is fast-tier agent type (${agentType})`);
+      return ok(continueOk());
     }
 
     // Haiku model indicates fast-tier
     const model = (toolInput.model as string) || "";
     if (FAST_MODELS.includes(model)) {
-      return ok({ type: "continue", continue: true });
+      deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" uses fast model (${model})`);
+      return ok(continueOk());
     }
 
     // Check for FAST timing in prompt scope
     const prompt = (toolInput.prompt as string) || "";
     if (/##\s*Scope[\s\S]*?Timing:\s*FAST/i.test(prompt)) {
-      return ok({ type: "continue", continue: true });
+      deps.stderr(`[AgentExecutionGuard] PASS: "${desc}" has FAST timing in prompt scope`);
+      return ok(continueOk());
     }
 
     // VIOLATION: Non-fast agent without run_in_background
-    const desc = (toolInput.description as string) || agentType || "unknown";
+    deps.stderr(`[AgentExecutionGuard] WARN: "${desc}" (${agentType}) is foreground without run_in_background`);
 
     const warning = `<system-reminder>
 WARNING: FOREGROUND AGENT DETECTED — "${desc}" (${agentType})

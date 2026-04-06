@@ -1,11 +1,11 @@
-import { describe, it, expect } from "bun:test";
-import { MergeGate, type MergeGateDeps } from "./MergeGate.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import { ok, err } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
 import { processExecFailed } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { MergeGate, type MergeGateDeps } from "./MergeGate.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -44,19 +44,19 @@ const REVIEWS_NONE: string = "[]";
  * ciResponse: stdout for `gh pr checks`
  * reviewResponse: stdout for `gh pr view`
  */
-function makeDeps(opts: {
-  ciResponse?: string | "error";
-  reviewResponse?: string | "error";
-} = {}): MergeGateDeps {
+function makeDeps(
+  opts: { ciResponse?: string | "error"; reviewResponse?: string | "error" } = {},
+): MergeGateDeps {
   const { ciResponse = CI_ALL_PASSING, reviewResponse = REVIEWS_ONE_APPROVED } = opts;
   return {
-    exec: (cmd: string): Result<string, PaiError> => {
+    exec: (cmd: string): Result<string, ResultError> => {
       if (cmd.includes("gh pr checks")) {
         if (ciResponse === "error") return err(processExecFailed(cmd, new Error("network error")));
         return ok(ciResponse);
       }
       if (cmd.includes("gh pr view")) {
-        if (reviewResponse === "error") return err(processExecFailed(cmd, new Error("network error")));
+        if (reviewResponse === "error")
+          return err(processExecFailed(cmd, new Error("network error")));
         return ok(reviewResponse);
       }
       return ok("");
@@ -65,7 +65,7 @@ function makeDeps(opts: {
   };
 }
 
-type GateResult = Result<ContinueOutput | BlockOutput, PaiError>;
+type GateResult = Result<ContinueOutput | BlockOutput, ResultError>;
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
@@ -202,7 +202,9 @@ describe("MergeGate", () => {
     const stderrMessages: string[] = [];
     const deps: MergeGateDeps = {
       exec: () => err(processExecFailed("gh", new Error("network"))),
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
     expect(result.ok).toBe(true);
@@ -218,7 +220,9 @@ describe("MergeGate", () => {
         if (cmd.includes("gh pr checks")) return ok(CI_ALL_PASSING);
         return err(processExecFailed("gh", new Error("network")));
       },
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
     const result = MergeGate.execute(makeInput("gh pr merge 441"), deps) as GateResult;
     expect(result.ok).toBe(true);
@@ -261,13 +265,30 @@ describe("MergeGate", () => {
     expect(result.value.type).toBe("continue");
   });
 
+  it("allows merge with warning when PR number cannot be determined", () => {
+    const stderrMessages: string[] = [];
+    const deps: MergeGateDeps = {
+      exec: () => err(processExecFailed("gh pr view", new Error("not a git repo"))),
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
+    };
+    const result = MergeGate.execute(makeInput("gh pr merge --squash"), deps) as GateResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
+  });
+
   // ── Logs to stderr ──
 
   it("logs block reason to stderr", () => {
     const stderrMessages: string[] = [];
     const deps: MergeGateDeps = {
       ...makeDeps({ ciResponse: CI_ONE_FAILURE, reviewResponse: REVIEWS_ONE_APPROVED }),
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
     MergeGate.execute(makeInput("gh pr merge 441"), deps);
     expect(stderrMessages.some((m) => m.includes("MergeGate"))).toBe(true);

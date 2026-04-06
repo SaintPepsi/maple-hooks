@@ -1,15 +1,24 @@
-import { describe, it, expect } from "bun:test";
-import { join } from "path";
-import { homedir } from "os";
+import { describe, expect, it } from "bun:test";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 // StopOrchestrator imports handlers from @hooks/handlers/ which resolve via the
 // parent tsconfig at ~/.claude/tsconfig.json (not the submodule tsconfig).
 // We must spawn from the parent directory using the installed hook path.
 // See: contracts/StopOrchestrator.ts lines 16-19 for the @hooks/handlers imports.
 const PAI_DIR = join(homedir(), ".claude");
-const HOOK_PATH = join(PAI_DIR, "pai-hooks", "hooks", "StopOrchestrator", "StopOrchestrator", "StopOrchestrator.hook.ts");
+const HOOK_PATH = join(
+  PAI_DIR,
+  "pai-hooks",
+  "hooks",
+  "StopOrchestrator",
+  "StopOrchestrator",
+  "StopOrchestrator.hook.ts",
+);
 
-async function runHook(input: Record<string, unknown>): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function runHook(
+  input: Record<string, unknown>,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn(["bun", HOOK_PATH], {
     stdin: "pipe",
     stdout: "pipe",

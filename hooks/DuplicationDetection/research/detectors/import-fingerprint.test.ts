@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { detectImportFingerprint } from "@tools/pattern-detector/detectors/import-fingerprint";
 import type { ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
@@ -27,12 +27,8 @@ describe("detectImportFingerprint", () => {
 
   test("returns empty array when all functions have unique import sets", () => {
     const files = [
-      makeFile("/a.ts", [
-        makeFunction({ name: "fn1", imports: ["react"] }),
-      ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "fn2", imports: ["lodash"] }),
-      ]),
+      makeFile("/a.ts", [makeFunction({ name: "fn1", imports: ["react"] })]),
+      makeFile("/b.ts", [makeFunction({ name: "fn2", imports: ["lodash"] })]),
     ];
     expect(detectImportFingerprint(files)).toEqual([]);
   });
@@ -43,9 +39,7 @@ describe("detectImportFingerprint", () => {
         makeFunction({ name: "loner", imports: ["unique-lib"] }),
         makeFunction({ name: "shared1", imports: ["react", "fs"] }),
       ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "shared2", imports: ["react", "fs"] }),
-      ]),
+      makeFile("/b.ts", [makeFunction({ name: "shared2", imports: ["react", "fs"] })]),
     ];
     const clusters = detectImportFingerprint(files);
     expect(clusters).toHaveLength(1);
@@ -54,12 +48,8 @@ describe("detectImportFingerprint", () => {
 
   test("groups functions with identical import sets", () => {
     const files = [
-      makeFile("/a.ts", [
-        makeFunction({ name: "fn1", imports: ["react", "lodash"] }),
-      ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "fn2", imports: ["react", "lodash"] }),
-      ]),
+      makeFile("/a.ts", [makeFunction({ name: "fn1", imports: ["react", "lodash"] })]),
+      makeFile("/b.ts", [makeFunction({ name: "fn2", imports: ["react", "lodash"] })]),
     ];
     const clusters = detectImportFingerprint(files);
     expect(clusters).toHaveLength(1);
@@ -68,12 +58,8 @@ describe("detectImportFingerprint", () => {
 
   test("groups by sorted import fingerprint (order-independent)", () => {
     const files = [
-      makeFile("/a.ts", [
-        makeFunction({ name: "fn1", imports: ["lodash", "react"] }),
-      ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "fn2", imports: ["react", "lodash"] }),
-      ]),
+      makeFile("/a.ts", [makeFunction({ name: "fn1", imports: ["lodash", "react"] })]),
+      makeFile("/b.ts", [makeFunction({ name: "fn2", imports: ["react", "lodash"] })]),
     ];
     const clusters = detectImportFingerprint(files);
     // Same imports in different order -> same fingerprint -> one cluster
@@ -117,12 +103,8 @@ describe("detectImportFingerprint", () => {
 
   test("confidence is in [0, 1] range", () => {
     const files = [
-      makeFile("/a.ts", [
-        makeFunction({ name: "fn1", imports: ["react", "lodash"] }),
-      ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "fn2", imports: ["react", "lodash"] }),
-      ]),
+      makeFile("/a.ts", [makeFunction({ name: "fn1", imports: ["react", "lodash"] })]),
+      makeFile("/b.ts", [makeFunction({ name: "fn2", imports: ["react", "lodash"] })]),
     ];
     const [cluster] = detectImportFingerprint(files);
     expect(cluster.confidence).toBeGreaterThanOrEqual(0);
@@ -169,12 +151,8 @@ describe("detectImportFingerprint", () => {
 
   test("no-params functions have confidence equal to import score (param similarity = 1)", () => {
     const files = [
-      makeFile("/a.ts", [
-        makeFunction({ name: "fn1", imports: ["react"], params: [] }),
-      ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "fn2", imports: ["react"], params: [] }),
-      ]),
+      makeFile("/a.ts", [makeFunction({ name: "fn1", imports: ["react"], params: [] })]),
+      makeFile("/b.ts", [makeFunction({ name: "fn2", imports: ["react"], params: [] })]),
     ];
     const [cluster] = detectImportFingerprint(files);
     // sharedImports=["react"], union=["react"] -> importScore=1.0, paramSim=1.0 -> confidence=1.0

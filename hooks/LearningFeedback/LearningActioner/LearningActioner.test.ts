@@ -1,12 +1,12 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import { dirCreateFailed } from "@hooks/core/error";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import {
-  LearningActioner,
   buildAgentPrompt,
   evaluateCredit,
+  LearningActioner,
   type LearningActionerDeps,
 } from "./LearningActioner.contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { dirCreateFailed } from "@hooks/core/error";
 
 // Default readJson returns credit of 9.5 (just under threshold of 10)
 // and 0% utilization, so a single session pushes credit to 10.5 and triggers spawn.
@@ -22,7 +22,10 @@ function makeDeps(overrides: Partial<LearningActionerDeps> = {}): LearningAction
       if (path.includes("usage-cache.json")) {
         return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
       }
-      return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+      return {
+        ok: false,
+        error: { code: "NOT_FOUND", message: "not found", context: {} },
+      } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
     }) as unknown as LearningActionerDeps["readJson"],
     ensureDir: () => ({ ok: true, value: undefined }),
     writeFile: () => ({ ok: true, value: undefined }),
@@ -84,7 +87,10 @@ describe("LearningActioner contract", () => {
         }
         return { ok: true, value: { mtimeMs: Date.now() } };
       },
-      removeFile: (path: string) => { removedPath = path; return { ok: true, value: undefined }; },
+      removeFile: (path: string) => {
+        removedPath = path;
+        return { ok: true, value: undefined };
+      },
       spawnBackground: () => ({ ok: true, value: undefined }),
     });
     LearningActioner.execute(makeInput(), deps);
@@ -145,7 +151,10 @@ describe("LearningActioner contract", () => {
         if (path.includes("usage-cache.json")) {
           return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+        return {
+          ok: false,
+          error: { code: "NOT_FOUND", message: "not found", context: {} },
+        } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
       }) as unknown as LearningActionerDeps["readJson"],
     });
     const result = LearningActioner.execute(makeInput(), deps);
@@ -164,9 +173,15 @@ describe("LearningActioner contract", () => {
         if (path.includes("usage-cache.json")) {
           return { ok: true, value: { five_hour: { utilization: 0, resets_at: "" } } };
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+        return {
+          ok: false,
+          error: { code: "NOT_FOUND", message: "not found", context: {} },
+        } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
       }) as unknown as LearningActionerDeps["readJson"],
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
     LearningActioner.execute(makeInput(), deps);
     expect(spawned).toBe(true);
@@ -182,11 +197,25 @@ describe("LearningActioner contract", () => {
         }
         if (path.includes("usage-cache.json")) {
           // 80% with 4h remaining (1h elapsed) → projected 400%
-          return { ok: true, value: { five_hour: { utilization: 80, resets_at: new Date(Date.now() + 4 * 3600 * 1000).toISOString() } } };
+          return {
+            ok: true,
+            value: {
+              five_hour: {
+                utilization: 80,
+                resets_at: new Date(Date.now() + 4 * 3600 * 1000).toISOString(),
+              },
+            },
+          };
         }
-        return { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+        return {
+          ok: false,
+          error: { code: "NOT_FOUND", message: "not found", context: {} },
+        } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
       }) as unknown as LearningActionerDeps["readJson"],
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
     LearningActioner.execute(makeInput(), deps);
     expect(spawned).toBe(false);
@@ -196,8 +225,17 @@ describe("LearningActioner contract", () => {
     let spawned = false;
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      ensureDir: () => ({ ok: false, error: dirCreateFailed("/tmp/test-pai/MEMORY/LEARNING/PROPOSALS/pending", new Error("permission denied")) }),
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      ensureDir: () => ({
+        ok: false,
+        error: dirCreateFailed(
+          "/tmp/test-pai/MEMORY/LEARNING/PROPOSALS/pending",
+          new Error("permission denied"),
+        ),
+      }),
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -209,8 +247,17 @@ describe("LearningActioner contract", () => {
     let spawned = false;
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
-      writeFile: () => ({ ok: false, error: dirCreateFailed("/tmp/test-pai/MEMORY/LEARNING/PROPOSALS/.analyzing", new Error("read-only filesystem")) }),
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      writeFile: () => ({
+        ok: false,
+        error: dirCreateFailed(
+          "/tmp/test-pai/MEMORY/LEARNING/PROPOSALS/.analyzing",
+          new Error("read-only filesystem"),
+        ),
+      }),
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
@@ -232,7 +279,10 @@ describe("LearningActioner contract", () => {
         }
         return { ok: true, value: [] };
       },
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
     LearningActioner.execute(makeInput(), deps);
     expect(spawned).toBe(true);
@@ -243,14 +293,15 @@ describe("LearningActioner contract", () => {
     const deps = makeDeps({
       fileExists: (path: string) => {
         // Directory exists but no source files
-        if (path.endsWith("ALGORITHM") || path.endsWith("SYSTEM") || path.endsWith("QUALITY")) return true;
+        if (path.endsWith("ALGORITHM") || path.endsWith("SYSTEM") || path.endsWith("QUALITY"))
+          return true;
         return false;
       },
       readDir: () => ({ ok: true, value: [] }),
       stderr: (msg: string) => stderrLines.push(msg),
     });
     LearningActioner.execute(makeInput(), deps);
-    expect(stderrLines.some(l => l.includes("No learning sources found"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("No learning sources found"))).toBe(true);
   });
 
   it("logs stale lock removal failure", () => {
@@ -267,12 +318,15 @@ describe("LearningActioner contract", () => {
         }
         return { ok: true, value: { mtimeMs: Date.now() } };
       },
-      removeFile: () => ({ ok: false, error: dirCreateFailed("/tmp/.analyzing", new Error("permission denied")) }),
+      removeFile: () => ({
+        ok: false,
+        error: dirCreateFailed("/tmp/.analyzing", new Error("permission denied")),
+      }),
       spawnBackground: () => ({ ok: true, value: undefined }),
       stderr: (msg: string) => stderrLines.push(msg),
     });
     LearningActioner.execute(makeInput(), deps);
-    expect(stderrLines.some(l => l.includes("Failed to remove stale lock"))).toBe(true);
+    expect(stderrLines.some((l) => l.includes("Failed to remove stale lock"))).toBe(true);
   });
 
   it("handles stat failure in isTimestampFresh (lock treated as not fresh)", () => {
@@ -285,7 +339,10 @@ describe("LearningActioner contract", () => {
       },
       stat: () => ({ ok: false, error: dirCreateFailed("/tmp", new Error("no stat")) }),
       removeFile: () => ({ ok: true, value: undefined }),
-      spawnBackground: () => { spawned = true; return { ok: true, value: undefined }; },
+      spawnBackground: () => {
+        spawned = true;
+        return { ok: true, value: undefined };
+      },
     });
     LearningActioner.execute(makeInput(), deps);
     // stat fails => isTimestampFresh returns false => stale lock => cleaned up => proceeds
@@ -302,7 +359,9 @@ describe("buildAgentPrompt", () => {
   it("interpolates baseDir in working directory and proposals path", () => {
     const prompt = buildAgentPrompt("/Users/ian/.claude");
     expect(prompt).toContain("WORKING DIRECTORY: /Users/ian/.claude");
-    expect(prompt).toContain("Write proposals to: /Users/ian/.claude/MEMORY/LEARNING/PROPOSALS/pending/");
+    expect(prompt).toContain(
+      "Write proposals to: /Users/ian/.claude/MEMORY/LEARNING/PROPOSALS/pending/",
+    );
   });
 
   it("mentions learning source paths", () => {
@@ -373,23 +432,36 @@ describe("buildAgentPrompt", () => {
 });
 
 describe("evaluateCredit", () => {
-  function makeCreditDeps(opts: {
-    credit?: number;
-    creditMissing?: boolean;
-    utilization?: number;
-    resetsAt?: string;
-    usageMissing?: boolean;
-  } = {}): LearningActionerDeps {
-    const notFound = { ok: false, error: { code: "NOT_FOUND", message: "not found", context: {} } } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
+  function makeCreditDeps(
+    opts: {
+      credit?: number;
+      creditMissing?: boolean;
+      utilization?: number;
+      resetsAt?: string;
+      usageMissing?: boolean;
+    } = {},
+  ): LearningActionerDeps {
+    const notFound = {
+      ok: false,
+      error: { code: "NOT_FOUND", message: "not found", context: {} },
+    } as unknown as ReturnType<LearningActionerDeps["readJson"]>;
     return makeDeps({
       readJson: ((path: string) => {
         if (path.includes("learning-agent-credit.json")) {
           if (opts.creditMissing) return notFound;
-          return { ok: true, value: { credit: opts.credit ?? 0, last_updated: "2026-01-01T00:00:00Z" } };
+          return {
+            ok: true,
+            value: { credit: opts.credit ?? 0, last_updated: "2026-01-01T00:00:00Z" },
+          };
         }
         if (path.includes("usage-cache.json")) {
           if (opts.usageMissing) return notFound;
-          return { ok: true, value: { five_hour: { utilization: opts.utilization ?? 0, resets_at: opts.resetsAt ?? "" } } };
+          return {
+            ok: true,
+            value: {
+              five_hour: { utilization: opts.utilization ?? 0, resets_at: opts.resetsAt ?? "" },
+            },
+          };
         }
         return notFound;
       }) as unknown as LearningActionerDeps["readJson"],
@@ -398,7 +470,7 @@ describe("evaluateCredit", () => {
 
   it("accumulates credit proportional to remaining headroom", () => {
     const result = evaluateCredit("/tmp/test", makeCreditDeps({ utilization: 50, credit: 0 }));
-    expect(result.newCredit).toBeCloseTo(0.50);
+    expect(result.newCredit).toBeCloseTo(0.5);
     expect(result.shouldSpawn).toBe(false);
   });
 
@@ -409,21 +481,27 @@ describe("evaluateCredit", () => {
   });
 
   it("hard blocks when projected 5h usage >= 100%", () => {
-    const result = evaluateCredit("/tmp/test", makeCreditDeps({
-      utilization: 80,
-      resetsAt: new Date(Date.now() + 4 * 3600 * 1000).toISOString(), // 4h remaining = 1h elapsed
-      credit: 9.99,
-    }));
+    const result = evaluateCredit(
+      "/tmp/test",
+      makeCreditDeps({
+        utilization: 80,
+        resetsAt: new Date(Date.now() + 4 * 3600 * 1000).toISOString(), // 4h remaining = 1h elapsed
+        credit: 9.99,
+      }),
+    );
     expect(result.shouldSpawn).toBe(false);
     expect(result.newCredit).toBe(-1); // Blocked, no accumulation
   });
 
   it("does not accumulate credit when projection blocks", () => {
-    const result = evaluateCredit("/tmp/test", makeCreditDeps({
-      utilization: 95,
-      resetsAt: new Date(Date.now() + 4.5 * 3600 * 1000).toISOString(),
-      credit: 5.0,
-    }));
+    const result = evaluateCredit(
+      "/tmp/test",
+      makeCreditDeps({
+        utilization: 95,
+        resetsAt: new Date(Date.now() + 4.5 * 3600 * 1000).toISOString(),
+        credit: 5.0,
+      }),
+    );
     expect(result.newCredit).toBe(-1);
   });
 
@@ -433,8 +511,11 @@ describe("evaluateCredit", () => {
   });
 
   it("falls back to 0 credit when credit file missing", () => {
-    const result = evaluateCredit("/tmp/test", makeCreditDeps({ utilization: 50, creditMissing: true }));
-    expect(result.newCredit).toBeCloseTo(0.50);
+    const result = evaluateCredit(
+      "/tmp/test",
+      makeCreditDeps({ utilization: 50, creditMissing: true }),
+    );
+    expect(result.newCredit).toBeCloseTo(0.5);
   });
 
   it("resets credit to 0 on spawn", () => {
@@ -455,7 +536,7 @@ describe("LearningActioner defaultDeps", () => {
   });
 
   it("defaultDeps.writeFile returns a Result", () => {
-    const tmpPath = "/tmp/pai-test-la-" + Date.now() + ".txt";
+    const tmpPath = `/tmp/pai-test-la-${Date.now()}.txt`;
     const result = LearningActioner.defaultDeps.writeFile(tmpPath, "test");
     expect(typeof result.ok).toBe("boolean");
   });

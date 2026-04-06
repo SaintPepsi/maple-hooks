@@ -2,31 +2,31 @@
 // Reuses patterns from Tools/ast-spike.ts (line mapper, parseSync config, function walking).
 
 import type {
+  ArrowFunctionExpression,
+  BindingIdentifier,
+  BlockStatement,
+  ExportDeclaration,
+  FunctionDeclaration,
+  FunctionExpression,
+  ImportDeclaration,
   Module,
   ModuleItem,
-  Statement,
-  ExportDeclaration,
-  VariableDeclaration,
-  FunctionDeclaration,
-  ArrowFunctionExpression,
-  FunctionExpression,
-  BlockStatement,
-  ImportDeclaration,
-  TsType,
   Param,
-  BindingIdentifier,
   Pattern,
+  Statement,
+  TsType,
+  VariableDeclaration,
 } from "@swc/core";
-import type { ParsedFile, ParsedFunction, ParamInfo } from "@tools/pattern-detector/types";
 import {
-  readFileSafe,
-  readDirSafe,
   isDirectorySafe,
-  sha256Short,
-  parseTsSourceSafe,
   joinPath,
+  parseTsSourceSafe,
+  readDirSafe,
+  readFileSafe,
   resolvePath,
+  sha256Short,
 } from "@tools/pattern-detector/adapters";
+import type { ParamInfo, ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
@@ -107,9 +107,10 @@ function isBindingIdentifier(pat: Pattern): pat is BindingIdentifier {
 function extractParams(params: Param[]): ParamInfo[] {
   return params.map((p, i) => ({
     index: i,
-    typeAnnotation: isBindingIdentifier(p.pat) && p.pat.typeAnnotation
-      ? typeToString(p.pat.typeAnnotation.typeAnnotation)
-      : null,
+    typeAnnotation:
+      isBindingIdentifier(p.pat) && p.pat.typeAnnotation
+        ? typeToString(p.pat.typeAnnotation.typeAnnotation)
+        : null,
   }));
 }
 
@@ -144,10 +145,7 @@ function extractFromFunction(
   };
 }
 
-function walkStatements(
-  stmts: (ModuleItem | Statement)[],
-  ctx: ExtractContext,
-): ParsedFunction[] {
+function walkStatements(stmts: (ModuleItem | Statement)[], ctx: ExtractContext): ParsedFunction[] {
   const functions: ParsedFunction[] = [];
 
   function processVarDecl(decl: VariableDeclaration): void {
@@ -162,7 +160,9 @@ function walkStatements(
           // ArrowFunctionExpression has Pattern[], FunctionExpression has Param[]
           // Normalize Pattern[] to Param[] by wrapping bare patterns
           const params: Param[] = arrow.params.map((p) =>
-            "pat" in p ? p as Param : { type: "Parameter" as const, pat: p, span: arrow.span, decorators: [] },
+            "pat" in p
+              ? (p as Param)
+              : { type: "Parameter" as const, pat: p, span: arrow.span, decorators: [] },
           );
           const fn = extractFromFunction(
             name,

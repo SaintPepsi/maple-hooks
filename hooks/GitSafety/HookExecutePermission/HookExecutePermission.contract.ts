@@ -6,15 +6,17 @@
  * where new hooks are created without +x and fail silently.
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import { execSyncSafe } from "@hooks/core/adapters/process";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 export interface HookExecutePermissionDeps {
-  execSync: (cmd: string) => Result<string, PaiError>;
+  execSync: (cmd: string) => Result<string, ResultError>;
   stderr: (msg: string) => void;
 }
 
@@ -24,7 +26,7 @@ function isHookFile(filePath: string): boolean {
 
 const defaultDeps: HookExecutePermissionDeps = {
   execSync: (cmd) => execSyncSafe(cmd, { timeout: 5000 }),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 export const HookExecutePermission: SyncHookContract<
@@ -41,10 +43,7 @@ export const HookExecutePermission: SyncHookContract<
     return isHookFile(filePath);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: HookExecutePermissionDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: HookExecutePermissionDeps): Result<ContinueOutput, ResultError> {
     const filePath = input.tool_input?.file_path as string;
 
     const result = deps.execSync(`chmod +x "${filePath}"`);
@@ -54,7 +53,7 @@ export const HookExecutePermission: SyncHookContract<
       deps.stderr(`[HookExecutePermission] Set +x on ${filePath}`);
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

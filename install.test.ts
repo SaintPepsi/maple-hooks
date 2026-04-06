@@ -1,5 +1,12 @@
-import { describe, it, expect } from "bun:test";
-import { mergeHooksIntoSettings, isAlreadyInstalled, buildZshrcBlock, addToZshrc, removeFromZshrc, type MatcherGroup } from "@hooks/install";
+import { describe, expect, it } from "bun:test";
+import {
+  addToZshrc,
+  buildZshrcBlock,
+  isAlreadyInstalled,
+  type MatcherGroup,
+  mergeHooksIntoSettings,
+  removeFromZshrc,
+} from "@hooks/install";
 
 describe("isAlreadyInstalled", () => {
   it("returns false when env var is not set and no hooks present", () => {
@@ -17,7 +24,9 @@ describe("isAlreadyInstalled", () => {
       env: {},
       hooks: {
         PreToolUse: [
-          { hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/Foo.hook.ts" }] },
+          {
+            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/Foo.hook.ts" }],
+          },
         ],
       },
     };
@@ -52,7 +61,12 @@ describe("mergeHooksIntoSettings", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts",
+              },
+            ],
           },
         ],
       },
@@ -71,7 +85,12 @@ describe("mergeHooksIntoSettings", () => {
       envVar: "SAINTPEPSI_PAI_HOOKS_DIR",
       hooks: {
         SessionStart: [
-          { matcher: "*", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/StartupGreeting.hook.ts" }] },
+          {
+            matcher: "*",
+            hooks: [
+              { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/StartupGreeting.hook.ts" },
+            ],
+          },
         ],
       },
     };
@@ -87,7 +106,12 @@ describe("mergeHooksIntoSettings", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts",
+              },
+            ],
           },
         ],
       },
@@ -98,7 +122,12 @@ describe("mergeHooksIntoSettings", () => {
         PreToolUse: [
           {
             matcher: "Edit",
-            hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts" }],
+            hooks: [
+              {
+                type: "command",
+                command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandardsEnforcer.hook.ts",
+              },
+            ],
           },
         ],
       },
@@ -106,9 +135,7 @@ describe("mergeHooksIntoSettings", () => {
 
     const result = mergeHooksIntoSettings(settings, exported);
 
-    const editMatchers = result.hooks.PreToolUse.filter(
-      (m: MatcherGroup) => m.matcher === "Edit"
-    );
+    const editMatchers = result.hooks.PreToolUse.filter((m: MatcherGroup) => m.matcher === "Edit");
     expect(editMatchers).toHaveLength(1);
     expect(result.env.SAINTPEPSI_PAI_HOOKS_DIR).toBeUndefined();
   });

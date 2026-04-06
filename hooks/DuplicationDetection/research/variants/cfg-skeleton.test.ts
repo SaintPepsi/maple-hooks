@@ -1,16 +1,17 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { parseDirectory } from "@tools/pattern-detector/parse";
 import type { ParsedFile } from "@tools/pattern-detector/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const REPO_ROOT = "/Users/hogers/.claude";
-const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/cfg-skeleton.ts`;
-const DETECTORS_DIR = `${REPO_ROOT}/Tools/pattern-detector/detectors`;
-const PATTERN_DETECTOR_DIR = `${REPO_ROOT}/Tools/pattern-detector`;
-const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
+const SCRIPT_PATH = import.meta.dir + "/cfg-skeleton.ts";
+const DETECTORS_DIR = import.meta.dir + "/../detectors";
+const PATTERN_DETECTOR_DIR = import.meta.dir + "/..";
+const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
-async function runCLI(args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function runCLI(
+  args: string[],
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   // Bun.spawnSync stdout/stderr pipe capture is broken inside this project's
   // bun test runner — use temp files to capture output instead.
   const id = Math.random().toString(36).slice(2);
@@ -20,16 +21,20 @@ async function runCLI(args: string[]): Promise<{ stdout: string; stderr: string;
   const stdoutFile = Bun.file(stdoutPath);
   const stderrFile = Bun.file(stderrPath);
 
-  const proc = Bun.spawn(["bun", SCRIPT_PATH, ...args], {
-    cwd: REPO_ROOT,
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+    cwd: import.meta.dir,
     stdout: stdoutFile,
     stderr: stderrFile,
   });
   const exitCode = await proc.exited;
 
   const [stdout, stderr] = await Promise.all([
-    Bun.file(stdoutPath).text().catch(() => ""),
-    Bun.file(stderrPath).text().catch(() => ""),
+    Bun.file(stdoutPath)
+      .text()
+      .catch(() => ""),
+    Bun.file(stderrPath)
+      .text()
+      .catch(() => ""),
   ]);
 
   return { stdout, stderr, exitCode };
@@ -355,7 +360,9 @@ describe("parseDirectory integration", () => {
 
   test("skeletons can be extracted from real function body types", () => {
     const files: ParsedFile[] = parseDirectory(DETECTORS_DIR);
-    const functionsWithNodes = files.flatMap((f) => f.functions).filter((fn) => fn.bodyNodeTypes.length >= 2);
+    const functionsWithNodes = files
+      .flatMap((f) => f.functions)
+      .filter((fn) => fn.bodyNodeTypes.length >= 2);
     expect(functionsWithNodes.length).toBeGreaterThan(0);
 
     for (const fn of functionsWithNodes.slice(0, 5)) {
@@ -462,12 +469,24 @@ describe("CLI: stderr parse stats", () => {
 
 describe("CLI: --min-depth flag", () => {
   test("--min-depth 0 exits successfully", async () => {
-    const { exitCode } = await runCLI([PATTERN_DETECTOR_DIR, "--min-depth", "0", "--min-members", "2"]);
+    const { exitCode } = await runCLI([
+      PATTERN_DETECTOR_DIR,
+      "--min-depth",
+      "0",
+      "--min-members",
+      "2",
+    ]);
     expect(exitCode).toBe(0);
   });
 
   test("--min-depth 5 exits successfully", async () => {
-    const { exitCode } = await runCLI([PATTERN_DETECTOR_DIR, "--min-depth", "5", "--min-members", "2"]);
+    const { exitCode } = await runCLI([
+      PATTERN_DETECTOR_DIR,
+      "--min-depth",
+      "5",
+      "--min-members",
+      "2",
+    ]);
     expect(exitCode).toBe(0);
   });
 

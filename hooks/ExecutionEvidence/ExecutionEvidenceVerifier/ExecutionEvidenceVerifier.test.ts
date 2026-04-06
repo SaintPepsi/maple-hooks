@@ -1,15 +1,15 @@
-import { describe, it, expect } from "bun:test";
-import {
-  classifyCommand,
-  hasSubstantiveOutput,
-  buildReminder,
-  splitCommandSegments,
-} from "@hooks/lib/execution-classification";
-import { ExecutionEvidenceVerifier } from "@hooks/hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.contract";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { ExecutionEvidenceVerifier } from "@hooks/hooks/ExecutionEvidence/ExecutionEvidenceVerifier/ExecutionEvidenceVerifier.contract";
+import {
+  buildReminder,
+  classifyCommand,
+  hasSubstantiveOutput,
+  splitCommandSegments,
+} from "@hooks/lib/execution-classification";
 
 // ─── Classification Tests ───────────────────────────────────────────────────
 
@@ -139,7 +139,7 @@ describe("classifyCommand", () => {
   });
 
   it("identifies curl with -d as state-changing", () => {
-    const r = classifyCommand("curl -d '{\"name\":\"test\"}' https://api.example.com");
+    const r = classifyCommand('curl -d \'{"name":"test"}\' https://api.example.com');
     expect(r.isStateChanging).toBe(true);
     expect(r.category).toBe("api-mutation");
   });
@@ -317,11 +317,14 @@ describe("hasSubstantiveOutput", () => {
   });
 
   it("returns false for help/usage block", () => {
-    expect(hasSubstantiveOutput("Usage: git push [<options>] [<remote>] [<refspec>...]")).toBe(false);
+    expect(hasSubstantiveOutput("Usage: git push [<options>] [<remote>] [<refspec>...]")).toBe(
+      false,
+    );
   });
 
   it("returns true for substantive output", () => {
-    const output = "To github.com:user/repo.git\n   abc1234..def5678  main -> main\nEverything up-to-date";
+    const output =
+      "To github.com:user/repo.git\n   abc1234..def5678  main -> main\nEverything up-to-date";
     expect(hasSubstantiveOutput(output)).toBe(true);
   });
 
@@ -370,7 +373,7 @@ describe("buildReminder", () => {
   });
 
   it("truncates long commands to 80 chars", () => {
-    const longCmd = "git push " + "a".repeat(200);
+    const longCmd = `git push ${"a".repeat(200)}`;
     const reminder = buildReminder(longCmd, {
       isStateChanging: true,
       category: "git-write",
@@ -426,7 +429,10 @@ describe("ExecutionEvidenceVerifier contract", () => {
 
   it("returns continue without context for read-only commands", () => {
     const input = makeInput("git log --oneline", "abc123 fix: typo\ndef456 feat: add auth");
-    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
+      ContinueOutput,
+      ResultError
+    >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.continue).toBe(true);
@@ -437,7 +443,10 @@ describe("ExecutionEvidenceVerifier contract", () => {
   it("returns continue without context when output is substantive", () => {
     const output = "To github.com:user/repo.git\n   abc1234..def5678  main -> main\n";
     const input = makeInput("git push origin main", output);
-    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
+      ContinueOutput,
+      ResultError
+    >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.continue).toBe(true);
@@ -447,7 +456,10 @@ describe("ExecutionEvidenceVerifier contract", () => {
 
   it("injects additionalContext for thin output on state-changing command", () => {
     const input = makeInput("git push origin main", "");
-    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
+      ContinueOutput,
+      ResultError
+    >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.continue).toBe(true);
@@ -459,7 +471,10 @@ describe("ExecutionEvidenceVerifier contract", () => {
 
   it("injects additionalContext for null response on state-changing command", () => {
     const input = makeInput("git merge feature/auth", null);
-    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
+      ContinueOutput,
+      ResultError
+    >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.additionalContext).toBeDefined();
@@ -469,7 +484,10 @@ describe("ExecutionEvidenceVerifier contract", () => {
 
   it("returns continue without context for --help on state-changing command", () => {
     const input = makeInput("git push --help", "Usage: git push ...");
-    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<ContinueOutput, PaiError>;
+    const r = ExecutionEvidenceVerifier.execute(input, mockDeps) as Result<
+      ContinueOutput,
+      ResultError
+    >;
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.value.additionalContext).toBeUndefined();

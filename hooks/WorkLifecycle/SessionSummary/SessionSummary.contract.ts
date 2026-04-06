@@ -2,32 +2,31 @@
  * SessionSummary Contract — Mark work complete and clear state at session end.
  *
  * Finalizes a session by marking the WORK/ directory as COMPLETED,
- * deleting current-work state, and resetting the Kitty tab.
+ * deleting current-work state, and resetting the terminal tab.
  */
 
+import { join } from "node:path";
+import { fileExists, readFile, readJson, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { unknownError } from "@hooks/core/error";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { unknownError } from "@hooks/core/error";
-import { fileExists, readFile, readJson, writeFile, removeFile } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { setTabState } from "@hooks/lib/tab-setter";
 import { getISOTimestamp } from "@hooks/lib/time";
-import { setTabState, cleanupKittySession } from "@hooks/lib/tab-setter";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface SessionSummaryDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
   unlinkSync: (path: string) => void;
   getTimestamp: () => string;
   setTabState: (opts: { title: string; state: string; sessionId: string }) => void;
-  cleanupKittySession: (sessionId: string) => void;
   baseDir: string;
   stderr: (msg: string) => void;
 }
@@ -45,10 +44,7 @@ function findStateFile(
   return null;
 }
 
-function clearSessionWork(
-  sessionId: string | undefined,
-  deps: SessionSummaryDeps,
-): void {
+function clearSessionWork(sessionId: string | undefined, deps: SessionSummaryDeps): void {
   const stateDir = join(deps.baseDir, "MEMORY", "STATE");
   const workDir = join(deps.baseDir, "MEMORY", "WORK");
 
@@ -78,7 +74,9 @@ function clearSessionWork(
         `completed_at: "${deps.getTimestamp()}"`,
       );
       deps.writeFile(metaPath, metaContent);
-      deps.stderr(`[SessionSummary] Marked work directory as COMPLETED: ${currentWork.session_dir}`);
+      deps.stderr(
+        `[SessionSummary] Marked work directory as COMPLETED: ${currentWork.session_dir}`,
+      );
     }
   }
 
@@ -93,19 +91,16 @@ const defaultDeps: SessionSummaryDeps = {
   readFile,
   readJson,
   writeFile,
-  unlinkSync: (path) => { removeFile(path); },
+  unlinkSync: (path) => {
+    removeFile(path);
+  },
   getTimestamp: getISOTimestamp,
   setTabState: (opts) => setTabState(opts as Parameters<typeof setTabState>[0]),
-  cleanupKittySession: (id) => cleanupKittySession(id),
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };
 
-export const SessionSummary: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  SessionSummaryDeps
-> = {
+export const SessionSummary: SyncHookContract<SessionEndInput, SilentOutput, SessionSummaryDeps> = {
   name: "SessionSummary",
   event: "SessionEnd",
 
@@ -113,10 +108,7 @@ export const SessionSummary: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: SessionEndInput,
-    deps: SessionSummaryDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: SessionSummaryDeps): Result<SilentOutput, ResultError> {
     clearSessionWork(input.session_id, deps);
 
     const tabResult = tryCatch(
@@ -127,13 +119,6 @@ export const SessionSummary: SyncHookContract<
       deps.stderr("[SessionSummary] Tab reset to default styling");
     } else {
       deps.stderr("[SessionSummary] Tab reset failed (non-critical)");
-    }
-
-    if (input.session_id) {
-      tryCatch(
-        () => deps.cleanupKittySession(input.session_id),
-        (e) => unknownError(e),
-      );
     }
 
     return ok({ type: "silent" });

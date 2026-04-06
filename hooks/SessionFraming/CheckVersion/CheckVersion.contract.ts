@@ -5,32 +5,34 @@
  * to stderr if an update is available. Skips for subagents.
  */
 
-import type { AsyncHookContract } from "@hooks/core/contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import { exec } from "@hooks/core/adapters/process";
+import type { AsyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface CheckVersionDeps {
-  getCurrentVersion: () => Promise<Result<string, PaiError>>;
-  getLatestVersion: () => Promise<Result<string, PaiError>>;
+  getCurrentVersion: () => Promise<Result<string, ResultError>>;
+  getLatestVersion: () => Promise<Result<string, ResultError>>;
   isSubagent: () => boolean;
   stderr: (msg: string) => void;
 }
 
 // ─── Default Implementations ─────────────────────────────────────────────────
 
-async function defaultGetCurrentVersion(): Promise<Result<string, PaiError>> {
+async function defaultGetCurrentVersion(): Promise<Result<string, ResultError>> {
   const result = await exec("claude --version", { timeout: 5000 });
   if (!result.ok) return result;
   const match = result.value.stdout.match(/(\d+\.\d+\.\d+)/);
   return ok(match ? match[1] : "unknown");
 }
 
-async function defaultGetLatestVersion(): Promise<Result<string, PaiError>> {
+async function defaultGetLatestVersion(): Promise<Result<string, ResultError>> {
   const result = await exec("npm view @anthropic-ai/claude-code version", { timeout: 10000 });
   if (!result.ok) return result;
   const trimmed = result.value.stdout.trim();
@@ -42,18 +44,11 @@ async function defaultGetLatestVersion(): Promise<Result<string, PaiError>> {
 const defaultDeps: CheckVersionDeps = {
   getCurrentVersion: defaultGetCurrentVersion,
   getLatestVersion: defaultGetLatestVersion,
-  isSubagent: () => {
-    const projectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return projectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined;
-  },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  isSubagent: () => isSubagent((k) => process.env[k]),
+  stderr: defaultStderr,
 };
 
-export const CheckVersion: AsyncHookContract<
-  SessionStartInput,
-  SilentOutput,
-  CheckVersionDeps
-> = {
+export const CheckVersion: AsyncHookContract<SessionStartInput, SilentOutput, CheckVersionDeps> = {
   name: "CheckVersion",
   event: "SessionStart",
 
@@ -64,7 +59,7 @@ export const CheckVersion: AsyncHookContract<
   async execute(
     _input: SessionStartInput,
     deps: CheckVersionDeps,
-  ): Promise<Result<SilentOutput, PaiError>> {
+  ): Promise<Result<SilentOutput, ResultError>> {
     if (deps.isSubagent()) {
       return ok({ type: "silent" });
     }

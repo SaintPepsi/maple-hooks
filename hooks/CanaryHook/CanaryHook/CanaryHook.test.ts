@@ -1,7 +1,7 @@
-import { describe, test, expect } from "bun:test";
-import { CanaryHook, type CanaryHookDeps } from "./CanaryHook.contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { describe, expect, test } from "bun:test";
 import { ok } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { CanaryHook, type CanaryHookDeps } from "./CanaryHook.contract";
 
 const mockInput: SessionStartInput = {
   hook_type: "SessionStart",
@@ -12,7 +12,6 @@ function makeDeps(overrides: Partial<CanaryHookDeps> = {}): CanaryHookDeps {
   return {
     appendFile: () => ok(undefined),
     ensureDir: () => ok(undefined),
-    execSyncSafe: () => ok(""),
     baseDir: "/tmp/test-claude",
     ...overrides,
   };
@@ -40,7 +39,10 @@ describe("CanaryHook", () => {
   test("ensures log directory exists", () => {
     let ensuredPath = "";
     const deps = makeDeps({
-      ensureDir: (path) => { ensuredPath = path; return ok(undefined); },
+      ensureDir: (path) => {
+        ensuredPath = path;
+        return ok(undefined);
+      },
     });
     CanaryHook.execute(mockInput, deps);
     expect(ensuredPath).toContain("MEMORY/STATE/logs");
@@ -61,13 +63,4 @@ describe("CanaryHook", () => {
     expect(appendedContent).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
-  test("opens log file with code command", () => {
-    let executedCmd = "";
-    const deps = makeDeps({
-      execSyncSafe: (cmd) => { executedCmd = cmd; return ok(""); },
-    });
-    CanaryHook.execute(mockInput, deps);
-    expect(executedCmd).toContain("code");
-    expect(executedCmd).toContain("canary-hook.log");
-  });
 });

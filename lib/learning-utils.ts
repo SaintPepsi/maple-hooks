@@ -17,8 +17,8 @@
  * @param content - The main content to analyze
  * @param comment - Optional user comment to include in analysis
  */
-export function getLearningCategory(content: string, comment?: string): 'SYSTEM' | 'ALGORITHM' {
-  const text = `${content} ${comment || ''}`.toLowerCase();
+export function getLearningCategory(content: string, comment?: string): "SYSTEM" | "ALGORITHM" {
+  const text = `${content} ${comment || ""}`.toLowerCase();
 
   // ALGORITHM indicators - task execution/approach issues (check first)
   const algorithmIndicators = [
@@ -31,7 +31,7 @@ export function getLearningCategory(content: string, comment?: string): 'SYSTEM'
     /didn't understand/,
     /wrong direction/,
     /not what i wanted/,
-    /approach|method|strategy|reasoning/
+    /approach|method|strategy|reasoning/,
   ];
 
   // SYSTEM indicators - tooling/infrastructure issues
@@ -39,20 +39,20 @@ export function getLearningCategory(content: string, comment?: string): 'SYSTEM'
     /hook|crash|broken/,
     /tool|config|deploy|path/,
     /import|module|file.*not.*found/,
-    /typescript|javascript|npm|bun/
+    /typescript|javascript|npm|bun/,
   ];
 
   // Check ALGORITHM first (user feedback about approach is valuable)
   for (const pattern of algorithmIndicators) {
-    if (pattern.test(text)) return 'ALGORITHM';
+    if (pattern.test(text)) return "ALGORITHM";
   }
 
   for (const pattern of systemIndicators) {
-    if (pattern.test(text)) return 'SYSTEM';
+    if (pattern.test(text)) return "SYSTEM";
   }
 
   // Default: learnings reflect task quality → ALGORITHM
-  return 'ALGORITHM';
+  return "ALGORITHM";
 }
 
 /**
@@ -66,7 +66,7 @@ export function isLearningCapture(text: string, summary?: string, analysis?: str
     /lesson|takeaway|now we know|next time/i,
   ];
 
-  const checkText = `${summary || ''} ${analysis || ''} ${text}`;
+  const checkText = `${summary || ""} ${analysis || ""} ${text}`;
 
   let indicatorCount = 0;
   for (const pattern of learningIndicators) {

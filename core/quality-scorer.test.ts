@@ -1,6 +1,6 @@
-import { describe, test, expect } from "bun:test";
-import { scoreFile, formatAdvisory, formatDelta, type QualityScore } from "./quality-scorer";
+import { describe, expect, test } from "bun:test";
 import { getLanguageProfile } from "./language-profiles";
+import { formatAdvisory, formatDelta, type QualityScore, scoreFile } from "./quality-scorer";
 
 const tsProfile = getLanguageProfile("test.ts")!;
 const pyProfile = getLanguageProfile("test.py")!;
@@ -9,20 +9,20 @@ const pyProfile = getLanguageProfile("test.py")!;
 
 const CLEAN_FILE = `
 import type { Result } from "./result";
-import type { PaiError } from "./error";
+import type { ResultError } from "./error";
 import { ok, err } from "./result";
 
 export interface ProcessDeps {
-  exec: (cmd: string) => Result<string, PaiError>;
+  exec: (cmd: string) => Result<string, ResultError>;
   stderr: (msg: string) => void;
 }
 
-function validateInput(input: string): Result<string, PaiError> {
-  if (!input.trim()) return err({ code: "INVALID", message: "Empty input" } as PaiError);
+function validateInput(input: string): Result<string, ResultError> {
+  if (!input.trim()) return err({ code: "INVALID", message: "Empty input" } as ResultError);
   return ok(input.trim());
 }
 
-function processData(data: string, deps: ProcessDeps): Result<string, PaiError> {
+function processData(data: string, deps: ProcessDeps): Result<string, ResultError> {
   const result = deps.exec(data);
   if (!result.ok) {
     deps.stderr("Processing failed");
@@ -31,7 +31,7 @@ function processData(data: string, deps: ProcessDeps): Result<string, PaiError> 
   return ok(result.value.toUpperCase());
 }
 
-export function runProcess(input: string, deps: ProcessDeps): Result<string, PaiError> {
+export function runProcess(input: string, deps: ProcessDeps): Result<string, ResultError> {
   const validated = validateInput(input);
   if (!validated.ok) return validated;
   return processData(validated.value, deps);
@@ -236,7 +236,7 @@ import type { T } from "./types";
     test("passes with good type import ratio", () => {
       const goodTypeRatio = `
 import type { Result } from "./result";
-import type { PaiError } from "./error";
+import type { ResultError } from "./error";
 import { ok, err } from "./result";
 `;
       const result = scoreFile(goodTypeRatio, tsProfile, "src/good-types.ts");
@@ -361,7 +361,7 @@ function b() { try { doB(); } catch (e) { console.error(e); } }
 function c() { try { doC(); } catch (e) { console.error(e); } }
 `;
       const result = scoreFile(tryCatchHeavy, tsProfile, "src/heavy.ts");
-      const violation = result.violations.find(v => v.check === "try-catch-count");
+      const violation = result.violations.find((v) => v.check === "try-catch-count");
       expect(violation).toBeDefined();
       expect(violation!.severity).toBe("moderate");
     });
@@ -372,14 +372,14 @@ import { readFile } from "../core/adapters/fs";
 export function doStuff() { return readFile("x"); }
 `;
       const result = scoreFile(noContract, tsProfile, "hooks/contracts/Bad.ts");
-      const violation = result.violations.find(v => v.check === "contract-pattern");
+      const violation = result.violations.find((v) => v.check === "contract-pattern");
       expect(violation).toBeDefined();
       expect(violation!.severity).toBe("major");
     });
 
     test("skips contract-pattern check for non-contract files", () => {
       const result = scoreFile("export function x() {}", tsProfile, "src/utils.ts");
-      const violation = result.violations.find(v => v.check === "contract-pattern");
+      const violation = result.violations.find((v) => v.check === "contract-pattern");
       expect(violation).toBeUndefined();
     });
 
@@ -390,7 +390,7 @@ import { execSync } from "child_process";
 export const Bad: HookContract<any, any, any> = { name: "Bad", event: "PreToolUse", accepts: () => true, execute: () => ({} as any), defaultDeps: {} as any };
 `;
       const result = scoreFile(rawImports, tsProfile, "hooks/contracts/Bad.ts");
-      const violation = result.violations.find(v => v.check === "adapter-bypass");
+      const violation = result.violations.find((v) => v.check === "adapter-bypass");
       expect(violation).toBeDefined();
       expect(violation!.severity).toBe("major");
     });
@@ -398,7 +398,7 @@ export const Bad: HookContract<any, any, any> = { name: "Bad", event: "PreToolUs
     test("skips adapter-bypass for non-contract files", () => {
       const rawImports = `import { readFileSync } from "fs";`;
       const result = scoreFile(rawImports, tsProfile, "src/script.ts");
-      const violation = result.violations.find(v => v.check === "adapter-bypass");
+      const violation = result.violations.find((v) => v.check === "adapter-bypass");
       expect(violation).toBeUndefined();
     });
 
@@ -414,7 +414,7 @@ function checkPatterns(content: string): number {
 }
 `;
       const result = scoreFile(regexPatterns, tsProfile, "src/checker.ts");
-      const infraViolation = result.violations.find(v => v.check === "infra-imports");
+      const infraViolation = result.violations.find((v) => v.check === "infra-imports");
       expect(infraViolation).toBeUndefined();
     });
 
@@ -424,7 +424,7 @@ import { readFileSync } from "fs";
 export const Bad: HookContract<any, any, any> = { name: "Bad", event: "PreToolUse", accepts: () => true, execute: () => ({} as any), defaultDeps: {} as any };
 `;
       const result = scoreFile(rawImports, tsProfile, "hooks/contracts/Bad.ts");
-      const bypass = result.violations.find(v => v.check === "adapter-bypass");
+      const bypass = result.violations.find((v) => v.check === "adapter-bypass");
       expect(bypass?.message).toContain("CODINGSTANDARDS");
     });
   });
@@ -460,6 +460,69 @@ function bar() {}
       const result = scoreFile(jsCode, jsProfile, "utils.js");
       const interfaceCheck = result.checkResults.find((c) => c.check === "interface-members");
       expect(interfaceCheck).toBeUndefined();
+    });
+
+    test("detects excessive interface members", () => {
+      const wideInterface = `
+interface BigDeps {
+  a: string;
+  b: string;
+  c: string;
+  d: string;
+  e: string;
+  f: string;
+  g: string;
+  h: string;
+  i: string;
+}
+`;
+      const result = scoreFile(wideInterface, tsProfile, "src/wide.ts");
+      const violation = result.violations.find((v) => v.check === "interface-members");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/wide.ts");
+      expect(advisory).toContain("Interface has");
+    });
+
+    test("detects throw statements in non-adapter files", () => {
+      const throwHeavy = `
+import { ok } from "./result";
+function validate(x: string) {
+  if (!x) throw new Error("empty");
+  if (x.length > 100) throw new Error("too long");
+}
+`;
+      const result = scoreFile(throwHeavy, tsProfile, "src/validator.ts");
+      const violation = result.violations.find((v) => v.check === "throw-count");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/validator.ts");
+      expect(advisory).toContain("throw statements");
+    });
+
+    test("detects excessive null returns", () => {
+      const nullReturns = `
+function findA(): string | null { return null; }
+function findB(): string | null { return null; }
+function findC(): string | null { return null; }
+`;
+      const result = scoreFile(nullReturns, tsProfile, "src/finders.ts");
+      const violation = result.violations.find((v) => v.check === "null-return-count");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/finders.ts");
+      expect(advisory).toContain("null/undefined returns");
+    });
+
+    test("detects mixed error strategies", () => {
+      const mixed = `
+import type { Result } from "./result";
+import { ok, err } from "./result";
+function safe(): Result<string, Error> { return ok("ok"); }
+function unsafe() { try { doStuff(); } catch (e) { throw e; } }
+`;
+      const result = scoreFile(mixed, tsProfile, "src/mixed.ts");
+      const violation = result.violations.find((v) => v.check === "mixed-error-strategy");
+      expect(violation).toBeDefined();
+      const advisory = formatAdvisory(result, "src/mixed.ts");
+      expect(advisory).toContain("mixes Result");
     });
   });
 });

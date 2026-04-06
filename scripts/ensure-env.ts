@@ -12,8 +12,8 @@
  *   - Main repo .husky/post-merge and .husky/post-checkout
  */
 
-import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
-import { join, resolve } from "path";
+import { join, resolve } from "node:path";
+import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { addToZshrc } from "@hooks/install";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
@@ -31,8 +31,8 @@ const defaultDeps: EnsureEnvDeps = {
   readFile,
   writeFile,
   fileExists,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
-  stdout: (msg) => process.stdout.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stdout: (msg) => process.stdout.write(`${msg}\n`),
   homeDir: process.env.HOME || process.env.USERPROFILE || "",
 };
 

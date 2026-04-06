@@ -1,21 +1,34 @@
 /**
  * CLI filesystem adapter tests.
+ *
+ * Uses os.tmpdir() for CI portability — no dependency on repo-relative paths.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import { join } from "path";
-import { readFile, writeFile, fileExists, readDir, ensureDir, stat } from "@hooks/cli/adapters/fs";
-import { ensureDir as coreEnsureDir, removeDir } from "@hooks/core/adapters/fs";
-import { writeFile as coreWriteFile } from "@hooks/core/adapters/fs";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  chmod,
+  deleteFile,
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  removeDir as cliRemoveDir,
+  stat,
+  writeFile,
+} from "@hooks/cli/adapters/fs";
+import { removeDir } from "@hooks/core/adapters/fs";
 
-const TEST_DIR = join(import.meta.dir, "../../test-fixtures/cli-fs-test");
+const TEST_DIR = join(tmpdir(), `pai-cli-fs-test-${process.pid}`);
 
 describe("cli/adapters/fs", () => {
   beforeAll(() => {
-    coreEnsureDir(TEST_DIR);
-    coreWriteFile(join(TEST_DIR, "sample.txt"), "hello");
-    coreEnsureDir(join(TEST_DIR, "subdir"));
-    coreWriteFile(join(TEST_DIR, "subdir/nested.txt"), "nested");
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(join(TEST_DIR, "sample.txt"), "hello");
+    mkdirSync(join(TEST_DIR, "subdir"), { recursive: true });
+    writeFileSync(join(TEST_DIR, "subdir/nested.txt"), "nested");
   });
 
   afterAll(() => {
@@ -88,6 +101,60 @@ describe("cli/adapters/fs", () => {
       const result = stat(join(TEST_DIR, "subdir"));
       expect(result.ok).toBe(true);
       if (result.ok) expect(result.value.isDirectory).toBe(true);
+    });
+
+    it("returns error for nonexistent path", () => {
+      const result = stat(join(TEST_DIR, "nonexistent"));
+      expect(result.ok).toBe(false);
+    });
+  });
+
+  describe("deleteFile", () => {
+    it("deletes an existing file", () => {
+      const path = join(TEST_DIR, "to-delete.txt");
+      writeFile(path, "temp");
+      expect(fileExists(path)).toBe(true);
+      const result = deleteFile(path);
+      expect(result.ok).toBe(true);
+      expect(fileExists(path)).toBe(false);
+    });
+
+    it("returns error for nonexistent file", () => {
+      const result = deleteFile(join(TEST_DIR, "no-such-file.txt"));
+      expect(result.ok).toBe(false);
+    });
+  });
+
+  describe("removeDir", () => {
+    it("removes directory with nested contents", () => {
+      const dir = join(TEST_DIR, "rm-test");
+      ensureDir(join(dir, "nested"));
+      writeFile(join(dir, "a.txt"), "a");
+      writeFile(join(dir, "nested/b.txt"), "b");
+      expect(fileExists(dir)).toBe(true);
+
+      const result = cliRemoveDir(dir);
+      expect(result.ok).toBe(true);
+      expect(fileExists(dir)).toBe(false);
+    });
+
+    it("returns ok for nonexistent directory", () => {
+      const result = cliRemoveDir(join(TEST_DIR, "no-such-dir"));
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe("chmod", () => {
+    it("changes file permissions", () => {
+      const path = join(TEST_DIR, "chmod-test.txt");
+      writeFile(path, "test");
+      const result = chmod(path, 0o755);
+      expect(result.ok).toBe(true);
+    });
+
+    it("returns error for nonexistent file", () => {
+      const result = chmod(join(TEST_DIR, "no-such-chmod.txt"), 0o755);
+      expect(result.ok).toBe(false);
     });
   });
 });

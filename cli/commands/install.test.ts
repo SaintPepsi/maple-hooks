@@ -9,12 +9,12 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/commands/install.ts).
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { install } from "@hooks/cli/commands/install";
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import { InMemoryDeps } from "@hooks/cli/types/deps";
-import type { SettingsJson } from "@hooks/cli/core/settings";
 import { PaihErrorCode } from "@hooks/cli/core/error";
+import type { SettingsJson } from "@hooks/cli/core/settings";
+import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 // ─── Test Fixtures ──────────────────────────────────────────────────────────
 
@@ -39,11 +39,10 @@ function makeSourceRepo(): Record<string, string> {
       presets: ["quality"],
     }),
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts":
-      '// TypeStrictness hook\nexport default {};\n',
+      "// TypeStrictness hook\nexport default {};\n",
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts":
-      '// TypeStrictness contract\nexport default {};\n',
-    "/source/core/result.ts":
-      '// core result module\nexport const ok = true;\n',
+      "// TypeStrictness contract\nexport default {};\n",
+    "/source/core/result.ts": "// core result module\nexport const ok = true;\n",
     "/source/presets.json": JSON.stringify({
       quality: {
         description: "Code quality",
@@ -77,9 +76,9 @@ function makeMultiHookRepo(): Record<string, string> {
       presets: [],
     }),
     "/source/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts":
-      '// BashWriteGuard hook\nexport default {};\n',
+      "// BashWriteGuard hook\nexport default {};\n",
     "/source/hooks/CodingStandards/BashWriteGuard/BashWriteGuard.contract.ts":
-      '// BashWriteGuard contract\nexport default {};\n',
+      "// BashWriteGuard contract\nexport default {};\n",
   };
 }
 
@@ -100,8 +99,16 @@ describe("install command", () => {
     const files = deps.getFiles();
 
     // Hook files copied
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts")).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
+      ),
+    ).toBe(true);
 
     // Core dep deduped into pai-hooks/
     expect(files.has("/project/.claude/hooks/pai-hooks/core/result.ts")).toBe(true);
@@ -137,8 +144,16 @@ describe("install command", () => {
     if (!result.ok) return;
 
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts")).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts",
+      ),
+    ).toBe(true);
 
     const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock = JSON.parse(lockContent);
@@ -153,7 +168,11 @@ describe("install command", () => {
     if (!result.ok) return;
 
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(true);
   });
 
   it("is idempotent — re-install does not duplicate settings entries", () => {
@@ -172,15 +191,19 @@ describe("install command", () => {
     const settings: SettingsJson = JSON.parse(settingsContent);
 
     // Only one entry, not two
-    const allCommands = settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
+    const allCommands =
+      settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
     const tsCommands = allCommands.filter((c) => c.includes("TypeStrictness"));
     expect(tsCommands).toHaveLength(1);
   });
 
   it("returns TARGET_NOT_FOUND when .claude/ is missing", () => {
-    const deps = new InMemoryDeps({
-      "/source/hooks/CodingStandards/TypeStrictness/hook.json": "{}",
-    }, "/source");
+    const deps = new InMemoryDeps(
+      {
+        "/source/hooks/CodingStandards/TypeStrictness/hook.json": "{}",
+      },
+      "/source",
+    );
     const args = makeArgs(["TypeStrictness"], { to: "/nowhere" });
     const result = install(args, deps, "/source");
 
@@ -201,7 +224,11 @@ describe("install command", () => {
 
     expect(result.ok).toBe(true);
     const files = deps.getFiles();
-    expect(files.has("/other/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(
+      files.has(
+        "/other/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(true);
   });
 
   it("--dry-run previews without writing", () => {
@@ -217,7 +244,11 @@ describe("install command", () => {
 
     // No files written to target
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(false);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(false);
   });
 
   it("returns HOOK_NOT_FOUND for unknown name", () => {
@@ -270,6 +301,10 @@ describe("install command", () => {
     expect(result.ok).toBe(true);
     const files = deps.getFiles();
     expect(files.has("/project/.claude/hooks/pai-hooks/AgentLifecycle/shared.ts")).toBe(true);
-    expect(files.has("/project/.claude/hooks/pai-hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts")).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts",
+      ),
+    ).toBe(true);
   });
 });

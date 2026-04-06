@@ -1,16 +1,14 @@
-import { describe, test, expect, beforeAll } from "bun:test";
+import { beforeAll, describe, expect, test } from "bun:test";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const REPO_ROOT = "/Users/hogers/.claude";
-const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/index-builder.ts`;
-const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
+const SCRIPT_PATH = import.meta.dir + "/index-builder.ts";
+const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 const UNIQUE_ID = Math.random().toString(36).slice(2);
 const SHARED_INDEX_PATH = `/tmp/test-dup-index-${UNIQUE_ID}.json`;
 
-const CODING_STANDARDS_FILE =
-  `${PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract.ts`;
+const CODING_STANDARDS_FILE = `${PAI_HOOKS_DIR}/hooks/CodingStandards/CodingStandardsEnforcer/CodingStandardsEnforcer.contract.ts`;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -21,16 +19,20 @@ async function runCLI(
   const stdoutPath = `/tmp/index-builder-test-${id}-stdout.txt`;
   const stderrPath = `/tmp/index-builder-test-${id}-stderr.txt`;
 
-  const proc = Bun.spawn(["bun", SCRIPT_PATH, ...args], {
-    cwd: REPO_ROOT,
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+    cwd: import.meta.dir,
     stdout: Bun.file(stdoutPath),
     stderr: Bun.file(stderrPath),
   });
   const exitCode = await proc.exited;
 
   const [stdout, stderr] = await Promise.all([
-    Bun.file(stdoutPath).text().catch(() => ""),
-    Bun.file(stderrPath).text().catch(() => ""),
+    Bun.file(stdoutPath)
+      .text()
+      .catch(() => ""),
+    Bun.file(stderrPath)
+      .text()
+      .catch(() => ""),
   ]);
 
   return { stdout, stderr, exitCode };
@@ -39,12 +41,7 @@ async function runCLI(
 // ─── Build index once for reuse ──────────────────────────────────────────────
 
 beforeAll(async () => {
-  const { exitCode } = await runCLI([
-    "build",
-    PAI_HOOKS_DIR,
-    "--output",
-    SHARED_INDEX_PATH,
-  ]);
+  const { exitCode } = await runCLI(["build", PAI_HOOKS_DIR, "--output", SHARED_INDEX_PATH]);
   if (exitCode !== 0) {
     throw new Error(`beforeAll: index build failed with exit code ${exitCode}`);
   }
@@ -69,12 +66,7 @@ describe("build command: missing args", () => {
 describe("build command: success", () => {
   test("exits 0 for pai-hooks with --output", async () => {
     const outPath = `/tmp/test-dup-index-${Math.random().toString(36).slice(2)}.json`;
-    const { exitCode } = await runCLI([
-      "build",
-      PAI_HOOKS_DIR,
-      "--output",
-      outPath,
-    ]);
+    const { exitCode } = await runCLI(["build", PAI_HOOKS_DIR, "--output", outPath]);
     expect(exitCode).toBe(0);
   });
 
@@ -173,23 +165,13 @@ describe("build command: success", () => {
 
   test("stderr reports function count", async () => {
     const outPath = `/tmp/test-dup-index-${Math.random().toString(36).slice(2)}.json`;
-    const { stderr } = await runCLI([
-      "build",
-      PAI_HOOKS_DIR,
-      "--output",
-      outPath,
-    ]);
+    const { stderr } = await runCLI(["build", PAI_HOOKS_DIR, "--output", outPath]);
     expect(stderr).toMatch(/\d+ functions/);
   });
 
   test("stderr reports file count", async () => {
     const outPath = `/tmp/test-dup-index-${Math.random().toString(36).slice(2)}.json`;
-    const { stderr } = await runCLI([
-      "build",
-      PAI_HOOKS_DIR,
-      "--output",
-      outPath,
-    ]);
+    const { stderr } = await runCLI(["build", PAI_HOOKS_DIR, "--output", outPath]);
     expect(stderr).toMatch(/\d+ files/);
   });
 });
@@ -240,63 +222,33 @@ describe("check command: duplication detection", () => {
     expect(exitCode).toBe(0);
   });
 
-  test("stdout contains getFilePath as a duplication signal", async () => {
-    const { stdout } = await runCLI([
-      "check",
-      CODING_STANDARDS_FILE,
-      "--index",
-      SHARED_INDEX_PATH,
-    ]);
-    expect(stdout).toContain("getFilePath");
+  test("stdout contains getWriteContent as a duplication signal", async () => {
+    const { stdout } = await runCLI(["check", CODING_STANDARDS_FILE, "--index", SHARED_INDEX_PATH]);
+    expect(stdout).toContain("getWriteContent");
   });
 
   test("stdout contains signal indicator bars (● and ○)", async () => {
-    const { stdout } = await runCLI([
-      "check",
-      CODING_STANDARDS_FILE,
-      "--index",
-      SHARED_INDEX_PATH,
-    ]);
+    const { stdout } = await runCLI(["check", CODING_STANDARDS_FILE, "--index", SHARED_INDEX_PATH]);
     expect(stdout).toMatch(/[●○]/);
   });
 
   test("stdout contains percentage scores", async () => {
-    const { stdout } = await runCLI([
-      "check",
-      CODING_STANDARDS_FILE,
-      "--index",
-      SHARED_INDEX_PATH,
-    ]);
+    const { stdout } = await runCLI(["check", CODING_STANDARDS_FILE, "--index", SHARED_INDEX_PATH]);
     expect(stdout).toMatch(/\d+%/);
   });
 
   test("stderr reports load time in ms", async () => {
-    const { stderr } = await runCLI([
-      "check",
-      CODING_STANDARDS_FILE,
-      "--index",
-      SHARED_INDEX_PATH,
-    ]);
+    const { stderr } = await runCLI(["check", CODING_STANDARDS_FILE, "--index", SHARED_INDEX_PATH]);
     expect(stderr).toMatch(/Loaded index in \d+ms/);
   });
 
   test("stderr reports check time in ms", async () => {
-    const { stderr } = await runCLI([
-      "check",
-      CODING_STANDARDS_FILE,
-      "--index",
-      SHARED_INDEX_PATH,
-    ]);
+    const { stderr } = await runCLI(["check", CODING_STANDARDS_FILE, "--index", SHARED_INDEX_PATH]);
     expect(stderr).toMatch(/checked in [\d.]+ms/);
   });
 
   test("check time is under 50ms", async () => {
-    const { stderr } = await runCLI([
-      "check",
-      CODING_STANDARDS_FILE,
-      "--index",
-      SHARED_INDEX_PATH,
-    ]);
+    const { stderr } = await runCLI(["check", CODING_STANDARDS_FILE, "--index", SHARED_INDEX_PATH]);
     const match = stderr.match(/checked in ([\d.]+)ms/);
     expect(match).not.toBeNull();
     const checkTimeMs = parseFloat(match![1]);
@@ -338,11 +290,7 @@ describe("stats command", () => {
   });
 
   test("exits 1 when index is missing", async () => {
-    const { exitCode } = await runCLI([
-      "stats",
-      "--index",
-      "/tmp/nonexistent-stats-index.json",
-    ]);
+    const { exitCode } = await runCLI(["stats", "--index", "/tmp/nonexistent-stats-index.json"]);
     expect(exitCode).toBe(1);
   });
 });

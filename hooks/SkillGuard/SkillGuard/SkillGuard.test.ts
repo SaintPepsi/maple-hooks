@@ -1,6 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { SkillGuard } from "@hooks/hooks/SkillGuard/SkillGuard/SkillGuard.contract";
+import { describe, expect, it } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { SkillGuard } from "@hooks/hooks/SkillGuard/SkillGuard/SkillGuard.contract";
 
 function makeInput(skill: string): ToolHookInput {
   return {

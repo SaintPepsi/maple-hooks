@@ -1,24 +1,29 @@
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand, getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
-  type TestObligationDeps,
   defaultDeps,
+  defaultTrackerExcludeDeps,
+  extractTestedSourceFiles,
   isNonTestCodeFile,
   isTestCommand,
-  extractTestedSourceFiles,
+  matchesExcludePattern,
   pendingMatchesSource,
-  getFilePath,
-  getCommand,
   pendingPath,
+  type TestObligationDeps,
+  type TestTrackerExcludeDeps,
 } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+
+export type TestTrackerDeps = TestObligationDeps & TestTrackerExcludeDeps;
 
 export const TestObligationTracker: SyncHookContract<
   ToolHookInput,
   ContinueOutput,
-  TestObligationDeps
+  TestTrackerDeps
 > = {
   name: "TestObligationTracker",
   event: "PostToolUse",
@@ -35,10 +40,7 @@ export const TestObligationTracker: SyncHookContract<
     return false;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: TestObligationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: TestTrackerDeps): Result<ContinueOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (input.tool_name === "Bash") {
@@ -60,16 +62,24 @@ export const TestObligationTracker: SyncHookContract<
             deps.stderr("[TestObligationTracker] All pending files tested — clearing flag");
           } else {
             deps.writePending(flagFile, remaining);
-            deps.stderr(`[TestObligationTracker] Cleared tested files, ${remaining.length} still pending`);
+            deps.stderr(
+              `[TestObligationTracker] Cleared tested files, ${remaining.length} still pending`,
+            );
           }
         }
       }
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
+    }
+
+    const excludePatterns = deps.getExcludePatterns();
+    if (excludePatterns.length > 0 && matchesExcludePattern(filePath, excludePatterns)) {
+      deps.stderr(`[TestObligationTracker] Excluded: ${filePath}`);
+      return ok(continueOk());
     }
 
     const pending = deps.readPending(flagFile);
@@ -79,8 +89,8 @@ export const TestObligationTracker: SyncHookContract<
     deps.writePending(flagFile, pending);
     deps.stderr(`[TestObligationTracker] Code modified: ${filePath} — tests pending`);
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
-  defaultDeps,
+  defaultDeps: { ...defaultDeps, ...defaultTrackerExcludeDeps },
 };

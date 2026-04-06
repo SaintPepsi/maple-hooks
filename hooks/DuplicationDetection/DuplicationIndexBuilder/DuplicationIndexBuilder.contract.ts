@@ -1,62 +1,68 @@
 /**
- * DuplicationIndexBuilder Contract — PostToolUse notification on Write/Edit to .ts files.
+ * DuplicationIndexBuilder Contract — builds the duplication index on PostToolUse
+ * (Write/Edit to .ts files) and SessionStart (eager pre-warming).
  *
  * Builds the duplication index (.duplication-index.json) on the first .ts file
- * write in a session. Subsequent writes skip if the index is fresh (<30 min).
+ * write in a session, or eagerly at session start. Subsequent triggers skip
+ * On PostToolUse, does a surgical update of the changed file only.
  * No additionalContext — this is a silent background operation.
- *
- * Design: docs/plans/2026-03-27-duplication-index-builder-hook-design.md
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import {
-  readFile as adapterReadFile,
-  writeFile as adapterWriteFile,
-  fileExists,
-  stat as adapterStat,
   readDir as adapterReadDir,
+  readFile as adapterReadFile,
+  stat as adapterStat,
+  writeFile as adapterWriteFile,
   ensureDir,
+  fileExists,
 } from "@hooks/core/adapters/fs";
-import { buildIndex } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
-import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
+import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
+import { buildIndex, updateIndexForFile } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
+import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import { getFilePath } from "@hooks/lib/tool-input";
+import { getArtifactsDir, getCurrentBranch, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface DuplicationIndexBuilderDeps {
   indexBuilderDeps: IndexBuilderDeps;
   writeFile: (path: string, content: string) => boolean;
+  readFile: (path: string) => string | null;
   exists: (path: string) => boolean;
   stat: (path: string) => { mtimeMs: number } | null;
   stderr: (msg: string) => void;
   now: () => number;
   findProjectRoot: (filePath: string) => string | null;
+  cwd: () => string;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const INDEX_DIR = ".claude";
-const INDEX_FILENAME = ".duplication-index.json";
-const FRESHNESS_MS = 30 * 60 * 1000; // 30 minutes
+const INDEX_FILENAME = "index.json";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
-}
-
 function defaultFindProjectRoot(filePath: string): string | null {
-  const { dirname, join } = require("path");
+  const { dirname, join } = require("node:path");
+
+  // Check if the path itself is a project root (handles directory inputs from SessionStart)
+  for (const marker of PROJECT_MARKERS) {
+    if (fileExists(join(filePath, marker) as string)) return filePath;
+  }
+
+  // Walk up from the parent directory
   let dir = dirname(filePath) as string;
   for (let i = 0; i < 10; i++) {
-    const pkg = join(dir, "package.json") as string;
-    const git = join(dir, ".git") as string;
-    if (fileExists(pkg) || fileExists(git)) return dir;
+    for (const marker of PROJECT_MARKERS) {
+      if (fileExists(join(dir, marker) as string)) return dir;
+    }
     const parent = dirname(dir) as string;
     if (parent === dir) break;
     dir = parent;
@@ -64,12 +70,6 @@ function defaultFindProjectRoot(filePath: string): string | null {
   return null;
 }
 
-function isIndexFresh(indexPath: string, deps: DuplicationIndexBuilderDeps): boolean {
-  if (!deps.exists(indexPath)) return false;
-  const s = deps.stat(indexPath);
-  if (!s) return false;
-  return (deps.now() - s.mtimeMs) < FRESHNESS_MS;
-}
 
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
@@ -92,35 +92,49 @@ const defaultDeps: DuplicationIndexBuilderDeps = {
       const result = adapterStat(path);
       return result.ok ? { mtimeMs: result.value.mtimeMs } : null;
     },
-    join: (...parts: string[]): string => require("path").join(...parts) as string,
-    resolve: (path: string): string => require("path").resolve(path) as string,
+    join: (...parts: string[]): string => require("node:path").join(...parts) as string,
+    resolve: (path: string): string => require("node:path").resolve(path) as string,
     parserDeps: defaultParserDeps,
   },
   writeFile: (path: string, content: string): boolean => {
     const result = adapterWriteFile(path, content);
     return result.ok;
   },
+  readFile: (path: string): string | null => {
+    const result = adapterReadFile(path);
+    return result.ok ? result.value : null;
+  },
   exists: (path: string): boolean => fileExists(path),
   stat: (path: string): { mtimeMs: number } | null => {
     const result = adapterStat(path);
     return result.ok ? { mtimeMs: result.value.mtimeMs } : null;
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
   now: () => Date.now(),
   findProjectRoot: defaultFindProjectRoot,
+  cwd: () => process.cwd(),
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
+/** Type guard: true when input came from a tool event (has tool_name). */
+function isToolInput(input: HookInput): input is ToolHookInput {
+  return "tool_name" in input;
+}
+
 export const DuplicationIndexBuilderContract: SyncHookContract<
-  ToolHookInput,
+  HookInput,
   ContinueOutput,
   DuplicationIndexBuilderDeps
 > = {
   name: "DuplicationIndexBuilder",
   event: "PostToolUse",
 
-  accepts(input: ToolHookInput): boolean {
+  accepts(input: HookInput): boolean {
+    // SessionStart — always accept (eager pre-warming)
+    if (!isToolInput(input)) return true;
+
+    // PostToolUse — only Write/Edit on .ts files
     if (input.tool_name !== "Write" && input.tool_name !== "Edit") return false;
     const filePath = getFilePath(input);
     if (!filePath) return false;
@@ -130,52 +144,69 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
   },
 
   execute(
-    input: ToolHookInput,
+    input: HookInput,
     deps: DuplicationIndexBuilderDeps,
-  ): Result<ContinueOutput, PaiError> {
-    const filePath = getFilePath(input)!;
-
-    // Find project root
-    const projectRoot = deps.findProjectRoot(filePath);
+  ): Result<ContinueOutput, ResultError> {
+    // SessionStart: use CWD. PostToolUse: use file path from tool input.
+    const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
+    const projectRoot = deps.findProjectRoot(anchor);
     if (!projectRoot) {
       deps.stderr("[DuplicationIndexBuilder] No project root found — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
-    const indexDir = deps.indexBuilderDeps.join(projectRoot, INDEX_DIR);
+    const branch = getCurrentBranch(projectRoot) ?? null;
+    const indexDir = getArtifactsDir(projectRoot, branch);
     const indexPath = deps.indexBuilderDeps.join(indexDir, INDEX_FILENAME);
 
-    // Skip if index is fresh
-    if (isIndexFresh(indexPath, deps)) {
-      deps.stderr("[DuplicationIndexBuilder] Index is fresh — skipping rebuild");
-      return ok({ type: "continue", continue: true });
+    const start = performance.now();
+    let index: ReturnType<typeof buildIndex>;
+
+    // Surgical update: if index exists and we have a specific file, update just that file
+    const changedFile = isToolInput(input) ? getFilePath(input) : null;
+    const existingJson = deps.readFile(indexPath);
+
+    const parseResult = existingJson
+      ? tryCatch(() => JSON.parse(existingJson) as ReturnType<typeof buildIndex>, () => null)
+      : null;
+    const existing = parseResult?.ok ? parseResult.value : null;
+
+    if (existing && changedFile) {
+      const content = deps.indexBuilderDeps.readFile(changedFile);
+      if (content) {
+        index = updateIndexForFile(existing, changedFile, content, deps.indexBuilderDeps);
+      } else {
+        // File was deleted — remove its entries by passing empty content
+        index = updateIndexForFile(existing, changedFile, "", deps.indexBuilderDeps);
+      }
+    } else {
+      // No existing index, parse failed, or SessionStart — full rebuild
+      index = buildIndex(projectRoot, deps.indexBuilderDeps);
     }
 
-    // Build the index
-    const start = performance.now();
-    const index = buildIndex(projectRoot, deps.indexBuilderDeps);
     const buildMs = performance.now() - start;
 
-    if (index.functionCount === 0) {
+    if (index.functionCount === 0 && !existingJson) {
       deps.stderr("[DuplicationIndexBuilder] No functions found — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
-    // Ensure .claude/ directory exists and write the index
+    // Write the index
     ensureDir(indexDir);
     const json = JSON.stringify(index);
     const written = deps.writeFile(indexPath, json);
 
     if (written) {
+      const mode = existingJson && changedFile ? "updated" : "built";
       const sizeKB = (json.length / 1024).toFixed(1);
       deps.stderr(
-        `[DuplicationIndexBuilder] Built index: ${index.functionCount} functions from ${index.fileCount} files (${sizeKB}KB) in ${buildMs.toFixed(0)}ms`,
+        `[DuplicationIndexBuilder] ${mode} index: ${index.functionCount} functions from ${index.fileCount} files (${sizeKB}KB) in ${buildMs.toFixed(0)}ms`,
       );
     } else {
       deps.stderr("[DuplicationIndexBuilder] Failed to write index — continuing without");
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

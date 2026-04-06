@@ -12,17 +12,16 @@
  * Pattern: pai-hooks/contracts/BashWriteGuard.ts
  */
 
-import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type {
-  BlockOutput,
-  ContinueOutput,
-} from "@hooks/core/types/hook-outputs";
-import { getSettingsPath } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,14 +30,6 @@ export interface ProtectedBranchGuardDeps {
   getCwd: () => string;
   getExemptDirs: () => string[];
   stderr: (msg: string) => void;
-}
-
-interface SettingsJson {
-  hookConfig?: {
-    protectedBranchGuard?: {
-      exemptDirs?: string[];
-    };
-  };
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -56,12 +47,6 @@ const BUILTIN_EXEMPT_PATTERNS: RegExp[] = [/\/\.claude(?:\/|$)/];
 const GIT_MUTATION_PATTERN = /\bgit\s+(commit|push|merge)\b/;
 
 // ─── Pure Functions ─────────────────────────────────────────────────────────
-
-/** Extract the command string from tool input. */
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
 
 /** Check if command contains a git mutation (commit/push/merge). */
 function isGitMutation(command: string): boolean {
@@ -83,32 +68,6 @@ function isExemptDir(cwd: string, extraDirs: string[]): boolean {
   return allPatterns.some((p) => p.test(cwd));
 }
 
-/** Extract exemptDirs from a parsed settings object. */
-function extractExemptDirs(parsed: SettingsJson): string[] {
-  const dirs = parsed.hookConfig?.protectedBranchGuard?.exemptDirs;
-  if (!Array.isArray(dirs)) return [];
-  if (!dirs.every((d): d is string => typeof d === "string")) return [];
-  return dirs;
-}
-
-/**
- * Read exemptDirs from settings.json at hookConfig.protectedBranchGuard.exemptDirs.
- * Returns empty array if not configured or on any read/parse error (fails open).
- */
-function readExemptDirsFromSettings(
-  settingsPath: string,
-  readFileFn: (path: string) => string | null,
-): string[] {
-  const raw = readFileFn(settingsPath);
-  if (!raw) return [];
-  const parseResult = tryCatch(
-    () => JSON.parse(raw) as SettingsJson,
-    (cause) => jsonParseFailed(raw.slice(0, 100), cause),
-  );
-  if (!parseResult.ok) return [];
-  return extractExemptDirs(parseResult.value);
-}
-
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
 const defaultDeps: ProtectedBranchGuardDeps = {
@@ -118,8 +77,14 @@ const defaultDeps: ProtectedBranchGuardDeps = {
     return result.value.trim() || null;
   },
   getCwd: () => process.cwd(),
-  getExemptDirs: () => readExemptDirsFromSettings(getSettingsPath(), (p) => { const r = readFile(p); return r.ok ? r.value : null; }),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  getExemptDirs: () => {
+    const cfg = readHookConfig<{ exemptDirs?: string[] }>("protectedBranchGuard");
+    const dirs = cfg?.exemptDirs;
+    if (!Array.isArray(dirs)) return [];
+    if (!dirs.every((d): d is string => typeof d === "string")) return [];
+    return dirs;
+  },
+  stderr: defaultStderr,
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -139,18 +104,18 @@ export const ProtectedBranchGuard: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: ProtectedBranchGuardDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const command = getCommand(input);
 
     // Only check git mutation commands (commit, push, merge)
     if (!isGitMutation(command)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Exempt configured directories (builtins + settings.json)
     const extraDirs = deps.getExemptDirs();
     if (isExemptDir(deps.getCwd(), extraDirs)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Check current branch
@@ -158,10 +123,8 @@ export const ProtectedBranchGuard: SyncHookContract<
 
     // Fail open if branch cannot be determined
     if (!branch) {
-      deps.stderr(
-        "[ProtectedBranchGuard] Could not determine branch — allowing",
-      );
-      return ok({ type: "continue", continue: true });
+      deps.stderr("[ProtectedBranchGuard] Could not determine branch — allowing");
+      return ok(continueOk());
     }
 
     // Block if on a protected branch
@@ -180,9 +143,7 @@ export const ProtectedBranchGuard: SyncHookContract<
         `  "hookConfig": { "protectedBranchGuard": { "exemptDirs": ["your-project-dir"] } }`,
       ].join("\n");
 
-      deps.stderr(
-        `[ProtectedBranchGuard] BLOCK: git mutation on protected branch '${branch}'`,
-      );
+      deps.stderr(`[ProtectedBranchGuard] BLOCK: git mutation on protected branch '${branch}'`);
 
       return ok({
         type: "block",
@@ -191,7 +152,7 @@ export const ProtectedBranchGuard: SyncHookContract<
       });
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

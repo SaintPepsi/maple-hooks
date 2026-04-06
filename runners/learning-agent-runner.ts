@@ -11,12 +11,12 @@
  * so any SessionEnd hooks in the child claude session will see the lock and skip.
  */
 
-import { execSyncSafe } from "@hooks/core/adapters/process";
+import { join } from "node:path";
 import { removeFile } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { execSyncSafe } from "@hooks/core/adapters/process";
 import { buildAgentPrompt } from "@hooks/hooks/LearningFeedback/LearningActioner/LearningActioner.contract";
 
-const defaultDeps = {
+const _defaultDeps = {
   processEnv: process.env as Record<string, string | undefined>,
 };
 

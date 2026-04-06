@@ -5,13 +5,14 @@
  * Subagents are blocked to prevent duplicate TTS notifications.
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import { fileExists } from "@hooks/core/adapters/fs";
-import { join } from "path";
+import { isSubagent } from "@hooks/lib/environment";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 export interface VoiceGateDeps {
   existsSync: (path: string) => boolean;
@@ -20,7 +21,7 @@ export interface VoiceGateDeps {
 
 const defaultDeps: VoiceGateDeps = {
   existsSync: fileExists,
-  getIsSubagent: () => process.env.CLAUDE_CODE_AGENT_SUBAGENT === "true",
+  getIsSubagent: () => isSubagent((k) => process.env[k]),
 };
 
 export const VoiceGate: SyncHookContract<
@@ -37,17 +38,18 @@ export const VoiceGate: SyncHookContract<
   },
 
   execute(
-    input: ToolHookInput,
+    _input: ToolHookInput,
     deps: VoiceGateDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     if (!deps.getIsSubagent()) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     return ok({
       type: "block",
       decision: "block",
-      reason: "Voice server access is restricted to the main session. Subagent requests are suppressed to prevent duplicate TTS notifications.",
+      reason:
+        "Voice server access is restricted to the main session. Subagent requests are suppressed to prevent duplicate TTS notifications.",
     });
   },
 

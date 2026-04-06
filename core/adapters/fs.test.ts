@@ -1,17 +1,34 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync, symlinkSync } from "fs";
-import { join } from "path";
-import { readFile, readJson, writeFile, writeJson, appendFile, ensureDir, fileExists, removeFile, copyFile, stat, readDir, symlink, lstat } from "./fs";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ErrorCode } from "../error";
+import {
+  appendFile,
+  copyFile,
+  ensureDir,
+  fileExists,
+  lstat,
+  readDir,
+  readFile,
+  readJson,
+  removeDir,
+  removeFile,
+  stat,
+  symlink,
+  writeFile,
+  writeFileExclusive,
+  writeJson,
+} from "./fs";
 
-const TEST_DIR = "/tmp/pai-fs-adapter-test";
+const TEST_DIR = join(tmpdir(), `pai-fs-adapter-test-${process.pid}`);
 
 beforeEach(() => {
   mkdirSync(TEST_DIR, { recursive: true });
 });
 
 afterEach(() => {
-  rmSync(TEST_DIR, { recursive: true, force: true });
+  removeDir(TEST_DIR);
 });
 
 // ─── fileExists ──────────────────────────────────────────────────────────────
@@ -101,6 +118,25 @@ describe("writeJson", () => {
     const content = readFile(p);
     expect(content.ok).toBe(true);
     expect(JSON.parse(content.value!)).toEqual({ a: 1 });
+  });
+});
+
+// ─── writeFileExclusive ──────────────────────────────────────────────────────
+
+describe("writeFileExclusive", () => {
+  it("creates file when it does not exist", () => {
+    const p = join(TEST_DIR, "exclusive.txt");
+    const r = writeFileExclusive(p, "lock");
+    expect(r.ok).toBe(true);
+    expect(existsSync(p)).toBe(true);
+  });
+
+  it("returns error when file already exists", () => {
+    const p = join(TEST_DIR, "already.txt");
+    writeFileSync(p, "first");
+    const r = writeFileExclusive(p, "second");
+    expect(r.ok).toBe(false);
+    expect(r.error!.code).toBe(ErrorCode.FileWriteFailed);
   });
 });
 

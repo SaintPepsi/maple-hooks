@@ -1,14 +1,6 @@
 {
   "name": "CronStatusLine",
   "description": "Cron job scheduling and status line management",
-  "hooks": [
-    "CronCreate",
-    "CronDelete",
-    "CronFire",
-    "CronPrune",
-    "CronSessionEnd"
-  ],
-  "sharedFiles": [
-    "shared.ts"
-  ]
+  "hooks": ["CronCreate", "CronDelete", "CronFire", "CronPrune", "CronSessionEnd"],
+  "sharedFiles": ["shared.ts"]
 }

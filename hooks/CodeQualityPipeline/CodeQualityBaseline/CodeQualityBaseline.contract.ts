@@ -9,16 +9,19 @@
  * Skips small files (under 50 lines), non-source files, and test files.
  */
 
+import { dirname, join } from "node:path";
+import { ensureDir, fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { fileExists, readFile, readJson, writeJson, ensureDir } from "@hooks/core/adapters/fs";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
-import { scoreFile, formatAdvisory, type QualityScore } from "@hooks/core/quality-scorer";
-import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
-import { join, dirname } from "path";
+import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -35,10 +38,10 @@ interface BaselineStore {
 
 export interface CodeQualityBaselineDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeJson: (path: string, data: unknown) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeJson: (path: string, data: unknown) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   getLanguageProfile: typeof getLanguageProfile;
   isScorableFile: typeof isScorableFile;
   scoreFile: typeof scoreFile;
@@ -52,13 +55,6 @@ export interface CodeQualityBaselineDeps {
 
 const MIN_LINES = 50;
 const LOW_SCORE_THRESHOLD = 6.0;
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input === "object" && input.tool_input !== null) {
-    return (input.tool_input.file_path as string) ?? null;
-  }
-  return null;
-}
 
 function isTestFile(filePath: string): boolean {
   const name = filePath.split("/").pop() ?? "";
@@ -94,8 +90,8 @@ const defaultDeps: CodeQualityBaselineDeps = {
   scoreFile,
   formatAdvisory,
   getTimestamp: () => new Date().toISOString(),
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  baseDir: getPaiDir(),
+  stderr: defaultStderr,
 };
 
 export const CodeQualityBaseline: SyncHookContract<
@@ -115,17 +111,14 @@ export const CodeQualityBaseline: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: CodeQualityBaselineDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CodeQualityBaselineDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Read the file content
     const contentResult = deps.readFile(filePath);
     if (!contentResult.ok) {
       deps.stderr(`[CodeQualityBaseline] Could not read ${filePath}, skipping`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     let content = contentResult.value;
@@ -134,19 +127,19 @@ export const CodeQualityBaseline: SyncHookContract<
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(content);
       if (!scriptContent) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
       content = scriptContent;
     }
 
     // Skip small files
     if (countLines(content) < MIN_LINES) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const profile = deps.getLanguageProfile(filePath);
     if (!profile) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Score the file
@@ -177,15 +170,11 @@ export const CodeQualityBaseline: SyncHookContract<
     if (result.score < LOW_SCORE_THRESHOLD) {
       const advisory = deps.formatAdvisory(result, filePath);
       if (advisory) {
-        return ok({
-          type: "continue",
-          continue: true,
-          additionalContext: `Note: Pre-existing quality concerns detected.\n${advisory}`,
-        });
+        return ok(continueOk(`Note: Pre-existing quality concerns detected.\n${advisory}`));
       }
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

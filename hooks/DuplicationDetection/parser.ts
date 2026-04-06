@@ -20,10 +20,22 @@ export interface ExtractedFunction {
 // ─── Fingerprint ────────────────────────────────────────────────────────────
 
 const TOP_NODE_TYPES = [
-  "Identifier", "CallExpression", "MemberExpression", "StringLiteral",
-  "VariableDeclarator", "VariableDeclaration", "BlockStatement", "ReturnStatement",
-  "IfStatement", "BinaryExpression", "ObjectExpression", "KeyValueProperty",
-  "ExpressionStatement", "TemplateLiteral", "TemplateElement", "ArrayExpression",
+  "Identifier",
+  "CallExpression",
+  "MemberExpression",
+  "StringLiteral",
+  "VariableDeclarator",
+  "VariableDeclaration",
+  "BlockStatement",
+  "ReturnStatement",
+  "IfStatement",
+  "BinaryExpression",
+  "ObjectExpression",
+  "KeyValueProperty",
+  "ExpressionStatement",
+  "TemplateLiteral",
+  "TemplateElement",
+  "ArrayExpression",
 ] as const;
 
 const NODE_TYPE_INDEX = new Map(TOP_NODE_TYPES.map((t, i) => [t, i]));
@@ -31,10 +43,12 @@ const NODE_TYPE_INDEX = new Map(TOP_NODE_TYPES.map((t, i) => [t, i]));
 export function buildFingerprint(nodeTypes: string[]): string {
   const counts = new Uint8Array(16);
   for (const t of nodeTypes) {
-    const idx = NODE_TYPE_INDEX.get(t as typeof TOP_NODE_TYPES[number]);
+    const idx = NODE_TYPE_INDEX.get(t as (typeof TOP_NODE_TYPES)[number]);
     if (idx !== undefined && counts[idx] < 255) counts[idx]++;
   }
-  return Array.from(counts).map((c) => c.toString(16).padStart(2, "0")).join("");
+  return Array.from(counts)
+    .map((c) => c.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 // ─── AST Utilities ──────────────────────────────────────────────────────────
@@ -86,12 +100,58 @@ export interface ParserDeps {
   createHash: (content: string) => string;
 }
 
+interface AstTypeNode {
+  type: string;
+  kind?: string;
+  typeName?: { value: string };
+  typeParams?: { params: AstTypeNode[] };
+  elemType?: AstTypeNode;
+  types?: AstTypeNode[];
+  elemTypes?: Array<{ ty: AstTypeNode }>;
+  members?: ReadonlyArray<{ type: string }>;
+  op?: string;
+  typeAnnotation?: AstTypeNode;
+}
+
+interface AstParamPattern {
+  type: string;
+  typeAnnotation?: { typeAnnotation?: AstTypeNode };
+}
+
 interface AstParam {
-  pat: { type: string; typeAnnotation?: { typeAnnotation?: { type: string } } };
+  type?: string;
+  pat?: AstParamPattern;
+  typeAnnotation?: { typeAnnotation?: AstTypeNode };
 }
 
 interface AstReturnType {
-  typeAnnotation?: { type: string };
+  typeAnnotation?: AstTypeNode;
+}
+
+function serializeType(node: AstTypeNode): string {
+  switch (node.type) {
+    case "TsKeywordType":
+      return node.kind ?? "";
+    case "TsTypeReference": {
+      const name = node.typeName?.value ?? "";
+      if (node.typeParams?.params.length) {
+        return `${name}<${node.typeParams.params.map(serializeType).join(",")}>`;
+      }
+      return name;
+    }
+    case "TsArrayType":
+      return node.elemType ? `${serializeType(node.elemType)}[]` : "[]";
+    case "TsUnionType":
+      return node.types?.map(serializeType).join("|") ?? "";
+    case "TsTupleType":
+      return `[${node.elemTypes?.map((e) => serializeType(e.ty)).join(",") ?? ""}]`;
+    case "TsTypeLiteral":
+      return "{object}";
+    case "TsTypeOperator":
+      return node.typeAnnotation ? serializeType(node.typeAnnotation) : "";
+    default:
+      return "";
+  }
 }
 
 interface AstBody {
@@ -122,7 +182,11 @@ interface AstStatement {
 export const defaultParserDeps: ParserDeps = {
   parseSync: (source, opts) => require("@swc/core").parseSync(source, opts),
   createHash: (content) =>
-    require("crypto").createHash("sha256").update(content).digest("hex").slice(0, 16) as string,
+    require("node:crypto")
+      .createHash("sha256")
+      .update(content)
+      .digest("hex")
+      .slice(0, 16) as string,
 };
 
 // ─── Extraction ─────────────────────────────────────────────────────────────
@@ -154,11 +218,18 @@ export function extractFunctions(
       name,
       line: toLine(span.start),
       bodyHash: hash,
-      paramSig: params.map((p) =>
-        p.pat.type === "Identifier" && p.pat.typeAnnotation?.typeAnnotation?.type
-          ? p.pat.typeAnnotation.typeAnnotation.type : "",
-      ).join(","),
-      returnType: retType?.typeAnnotation?.type ?? "",
+      paramSig: params
+        .map((p) => {
+          // FunctionDeclaration params: {type: "Parameter", pat: Pattern}
+          // ArrowFunctionExpression params: Pattern directly (no pat wrapper)
+          const pattern = p.pat ?? p;
+          if (pattern.type === "Identifier" && pattern.typeAnnotation?.typeAnnotation) {
+            return serializeType(pattern.typeAnnotation.typeAnnotation);
+          }
+          return "";
+        })
+        .join(","),
+      returnType: retType?.typeAnnotation ? serializeType(retType.typeAnnotation) : "",
       fingerprint: buildFingerprint(nodeTypes),
     });
   }
@@ -176,11 +247,23 @@ export function extractFunctions(
 
   for (const stmt of ast.body) {
     if (stmt.type === "FunctionDeclaration" && stmt.body) {
-      processFunc(stmt.identifier?.value ?? "<anon>", stmt.body, stmt.params ?? [], stmt.returnType, stmt.span);
+      processFunc(
+        stmt.identifier?.value ?? "<anon>",
+        stmt.body,
+        stmt.params ?? [],
+        stmt.returnType,
+        stmt.span,
+      );
     } else if (stmt.type === "ExportDeclaration" && stmt.declaration) {
       const decl = stmt.declaration;
       if (decl.type === "FunctionDeclaration" && decl.body) {
-        processFunc(decl.identifier?.value ?? "<anon>", decl.body, decl.params ?? [], decl.returnType, decl.span);
+        processFunc(
+          decl.identifier?.value ?? "<anon>",
+          decl.body,
+          decl.params ?? [],
+          decl.returnType,
+          decl.span,
+        );
       } else if (decl.type === "VariableDeclaration") {
         processVarDecl(decl);
       }

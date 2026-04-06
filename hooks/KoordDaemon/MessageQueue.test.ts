@@ -2,22 +2,20 @@
  * Tests for MessageQueue hooks: MessageQueueServer and MessageQueueRelay.
  */
 
-import { describe, test, expect } from "bun:test";
-import { ok } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { MessageQueueRelayDeps } from "@hooks/hooks/KoordDaemon/MessageQueueRelay/MessageQueueRelay.contract";
+import { MessageQueueRelay } from "@hooks/hooks/KoordDaemon/MessageQueueRelay/MessageQueueRelay.contract";
+import type { MessageQueueServerDeps } from "@hooks/hooks/KoordDaemon/MessageQueueServer/MessageQueueServer.contract";
+import { MessageQueueServer } from "@hooks/hooks/KoordDaemon/MessageQueueServer/MessageQueueServer.contract";
 import {
-  getQueueDir,
-  getMessagesDir,
-  getPortFile,
-  getPidFile,
   getCursorFile,
+  getMessagesDir,
+  getPidFile,
+  getPortFile,
+  getQueueDir,
   MQ_WATCHER_MARKER,
 } from "@hooks/hooks/KoordDaemon/shared";
-import { MessageQueueServer } from "@hooks/hooks/KoordDaemon/MessageQueueServer/MessageQueueServer.contract";
-import type { MessageQueueServerDeps } from "@hooks/hooks/KoordDaemon/MessageQueueServer/MessageQueueServer.contract";
-import { MessageQueueRelay } from "@hooks/hooks/KoordDaemon/MessageQueueRelay/MessageQueueRelay.contract";
-import type { MessageQueueRelayDeps } from "@hooks/hooks/KoordDaemon/MessageQueueRelay/MessageQueueRelay.contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Shared Path Helpers ────────────────────────────────────────────────────
 
@@ -76,7 +74,7 @@ describe("MessageQueueServer", () => {
 
   test("skips when no session_id", async () => {
     const deps = makeDeps({
-      getEnv: (name) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
+      getEnv: (name) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
     });
     const result = await MessageQueueServer.execute({ session_id: "" }, deps);
     expect(result.ok && result.value.type).toBe("silent");
@@ -84,7 +82,7 @@ describe("MessageQueueServer", () => {
 
   test("skips if server already running (port file exists)", async () => {
     const deps = makeDeps({
-      getEnv: (name) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
+      getEnv: (name) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
       fileExists: () => true,
     });
     const result = await MessageQueueServer.execute(baseInput, deps);
@@ -94,7 +92,7 @@ describe("MessageQueueServer", () => {
   test("spawns server and returns context when daemon URL configured", async () => {
     let spawnedArgs: string[] = [];
     const deps = makeDeps({
-      getEnv: (name) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
+      getEnv: (name) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
       spawnDetached: (_cmd, args) => {
         spawnedArgs = args;
         return { ok: true };
@@ -121,7 +119,10 @@ describe("MessageQueueServer", () => {
     const deps = makeDeps({
       getEnv: () => undefined,
       getKoordConfig: () => ({ url: "http://localhost:7777" }),
-      spawnDetached: () => { spawned = true; return { ok: true }; },
+      spawnDetached: () => {
+        spawned = true;
+        return { ok: true };
+      },
     });
 
     const result = await MessageQueueServer.execute(baseInput, deps);
@@ -131,7 +132,7 @@ describe("MessageQueueServer", () => {
 
   test("returns silent on spawn failure", async () => {
     const deps = makeDeps({
-      getEnv: (name) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
+      getEnv: (name) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
       spawnDetached: () => ({ ok: false }),
     });
 
@@ -143,7 +144,9 @@ describe("MessageQueueServer", () => {
 // ─── MessageQueueRelay ──────────────────────────────────────────────────────
 
 describe("MessageQueueRelay", () => {
-  function makeInput(overrides: Partial<ToolHookInput> & { command?: string; response?: string } = {}): ToolHookInput {
+  function makeInput(
+    overrides: Partial<ToolHookInput> & { command?: string; response?: string } = {},
+  ): ToolHookInput {
     return {
       session_id: "test-session",
       tool_name: overrides.tool_name ?? "Bash",

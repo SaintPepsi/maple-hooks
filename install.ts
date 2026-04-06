@@ -9,8 +9,8 @@
  * - Adds env var export to ~/.zshrc (managed block, idempotent)
  */
 
-import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
-import { join, resolve } from "path";
+import { join, resolve } from "node:path";
+import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { ensureEnvVar } from "@hooks/scripts/ensure-env";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ export function detectConflicts(
   const existingByName = new Map<string, string>();
   for (const matchers of Object.values(existingHooks)) {
     for (const group of matchers) {
-      for (const hook of (group.hooks || [])) {
+      for (const hook of group.hooks || []) {
         if (hook.command.includes(envVarRef)) continue;
         const name = extractHookName(hook.command);
         if (!existingByName.has(name)) {
@@ -77,7 +77,7 @@ export function detectConflicts(
   const conflicts: Conflict[] = [];
   for (const matchers of Object.values(incomingHooks)) {
     for (const group of matchers) {
-      for (const hook of (group.hooks || [])) {
+      for (const hook of group.hooks || []) {
         const name = extractHookName(hook.command);
         if (seen.has(name)) continue;
         const existingCmd = existingByName.get(name);
@@ -170,19 +170,24 @@ export function formatConflictSummary(conflicts: Conflict[]): string {
     lines.push(`    Incoming: ${c.incomingCommand}`);
     lines.push("");
   }
-  lines.push(`${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} found. Non-conflicting hooks will be installed regardless.`);
+  lines.push(
+    `${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} found. Non-conflicting hooks will be installed regardless.`,
+  );
   lines.push("");
   lines.push("[k]eep all existing  [r]eplace all  [b]oth");
   return lines.join("\n");
 }
 
-export function isAlreadyInstalled(settings: { env?: Record<string, string>; hooks?: Record<string, MatcherGroup[]> }, envVar: string): boolean {
+export function isAlreadyInstalled(
+  settings: { env?: Record<string, string>; hooks?: Record<string, MatcherGroup[]> },
+  envVar: string,
+): boolean {
   // Check settings.env (legacy) or hooks containing the env var ref
   if (settings.env?.[envVar] !== undefined) return true;
   const envVarRef = `\${${envVar}}`;
   for (const matchers of Object.values(settings.hooks || {})) {
     for (const group of matchers) {
-      for (const hook of (group.hooks || [])) {
+      for (const hook of group.hooks || []) {
         if (hook.command.includes(envVarRef)) return true;
       }
     }
@@ -196,11 +201,7 @@ const ZSHRC_BEGIN = "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do n
 const ZSHRC_END = "# PAI-HOOKS-END";
 
 export function buildZshrcBlock(envVar: string, relPath: string): string {
-  return [
-    ZSHRC_BEGIN,
-    `export ${envVar}="$PAI_DIR/${relPath}"`,
-    ZSHRC_END,
-  ].join("\n");
+  return [ZSHRC_BEGIN, `export ${envVar}="$PAI_DIR/${relPath}"`, ZSHRC_END].join("\n");
 }
 
 export function addToZshrc(content: string, envVar: string, relPath: string): string {
@@ -219,20 +220,20 @@ export function addToZshrc(content: string, envVar: string, relPath: string): st
     const paiEndInStripped = stripped.indexOf("# PAI-END");
     if (paiEndInStripped !== -1) {
       const afterPaiEnd = paiEndInStripped + "# PAI-END".length;
-      return stripped.slice(0, afterPaiEnd) + "\n\n" + block + stripped.slice(afterPaiEnd);
+      return `${stripped.slice(0, afterPaiEnd)}\n\n${block}${stripped.slice(afterPaiEnd)}`;
     }
 
     // No PAI-END found, append to end
-    return stripped.trimEnd() + "\n\n" + block + "\n";
+    return `${stripped.trimEnd()}\n\n${block}\n`;
   }
 
   // Fresh install: append after PAI-END block if it exists, otherwise append to end
   if (paiEndIdx !== -1) {
     const afterPaiEnd = paiEndIdx + "# PAI-END".length;
-    return content.slice(0, afterPaiEnd) + "\n\n" + block + content.slice(afterPaiEnd);
+    return `${content.slice(0, afterPaiEnd)}\n\n${block}${content.slice(afterPaiEnd)}`;
   }
 
-  return content.trimEnd() + "\n\n" + block + "\n";
+  return `${content.trimEnd()}\n\n${block}\n`;
 }
 
 export function removeFromZshrc(content: string): string {
@@ -316,8 +317,8 @@ const defaultDeps: InstallDeps = {
   readFile,
   writeFile,
   fileExists,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
-  stdout: (msg) => process.stdout.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stdout: (msg) => process.stdout.write(`${msg}\n`),
   paiDir: process.env.PAI_DIR || join(process.env.HOME || process.env.USERPROFILE || "", ".claude"),
   homeDir: process.env.HOME || process.env.USERPROFILE || "",
   argv: process.argv.slice(2),
@@ -334,7 +335,7 @@ const defaultDeps: InstallDeps = {
 
 export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
   const scriptDir = resolve(import.meta.dir);
-  const hooksDir = join(deps.paiDir, "pai-hooks");
+  const _hooksDir = join(deps.paiDir, "pai-hooks");
 
   // Read manifest
   const manifestPath = join(scriptDir, "pai-hooks.json");
@@ -392,17 +393,20 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
     }
 
     // Apply resolution
-    resolvedSettings = mode === "replace"
-      ? removeConflictingExisting(settings, conflicts, manifest.envVar)
-      : settings;
+    resolvedSettings =
+      mode === "replace"
+        ? removeConflictingExisting(settings, conflicts, manifest.envVar)
+        : settings;
     exported = filterExportedByResolution(exported, conflicts, mode);
 
-    deps.stdout(`\nResolved ${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} with: ${mode}`);
+    deps.stdout(
+      `\nResolved ${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} with: ${mode}`,
+    );
   }
 
   // Merge hooks into settings (removes legacy env var if present)
   const merged = mergeHooksIntoSettings(resolvedSettings, exported);
-  deps.writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n");
+  deps.writeFile(settingsPath, `${JSON.stringify(merged, null, 2)}\n`);
 
   // Add env var export to zshrc (delegated to ensure-env)
   ensureEnvVar(manifest.envVar, {

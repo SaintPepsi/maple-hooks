@@ -2,7 +2,7 @@
  * CLI args parser tests.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { parseArgs } from "@hooks/cli/core/args";
 import { PaihErrorCode } from "@hooks/cli/core/error";
 

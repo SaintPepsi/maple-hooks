@@ -1,12 +1,6 @@
 {
   "name": "AgentLifecycle",
   "description": "Agent spawn, stop, and permission management",
-  "hooks": [
-    "AgentExecutionGuard",
-    "AgentLifecycleStart",
-    "AgentLifecycleStop"
-  ],
-  "sharedFiles": [
-    "shared.ts"
-  ]
+  "hooks": ["AgentExecutionGuard", "AgentLifecycleStart", "AgentLifecycleStop"],
+  "sharedFiles": ["shared.ts"]
 }

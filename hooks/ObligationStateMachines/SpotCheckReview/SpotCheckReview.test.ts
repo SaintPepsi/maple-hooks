@@ -1,12 +1,12 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { StopInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   SpotCheckReview,
   type SpotCheckReviewDeps,
 } from "@hooks/hooks/ObligationStateMachines/SpotCheckReview/SpotCheckReview.contract";
-import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,10 +58,10 @@ describe("SpotCheckReview", () => {
   it("returns silent when no unpushed changes", () => {
     const deps = makeDeps({ getChangedFiles: () => [] });
 
-    const result = SpotCheckReview.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -75,10 +75,10 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/daemon/router.ts", "src/shared/types.ts"],
     });
 
-    const result = SpotCheckReview.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -90,10 +90,7 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/daemon/router.ts", "src/shared/types.ts"],
     });
 
-    const result = SpotCheckReview.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -106,10 +103,7 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/index.ts"],
     });
 
-    const result = SpotCheckReview.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -121,10 +115,7 @@ describe("SpotCheckReview", () => {
       getChangedFiles: () => ["src/index.ts"],
     });
 
-    const result = SpotCheckReview.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -135,7 +126,7 @@ describe("SpotCheckReview", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/app.ts"],
     });
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.reason).toContain("CLAUDE.md");
@@ -148,7 +139,9 @@ describe("SpotCheckReview", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/index.ts"],
       readBlockCount: () => 0,
-      writeBlockCount: (_path: string, count: number) => { writtenCount = count; },
+      writeBlockCount: (_path: string, count: number) => {
+        writtenCount = count;
+      },
     });
 
     SpotCheckReview.execute(makeStopInput(), deps);
@@ -164,10 +157,10 @@ describe("SpotCheckReview", () => {
       readBlockCount: () => 1,
     });
 
-    const result = SpotCheckReview.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -179,7 +172,9 @@ describe("SpotCheckReview", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/index.ts"],
       readBlockCount: () => 1,
-      removeFlag: (path: string) => { removedPaths.push(path); },
+      removeFlag: (path: string) => {
+        removedPaths.push(path);
+      },
     });
 
     SpotCheckReview.execute(makeStopInput(), deps);
@@ -194,7 +189,9 @@ describe("SpotCheckReview", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/index.ts"],
       readBlockCount: () => 0,
-      writeBlockCount: (path: string) => { writtenPath = path; },
+      writeBlockCount: (path: string) => {
+        writtenPath = path;
+      },
     });
 
     SpotCheckReview.execute(makeStopInput("my-session-abc"), deps);
@@ -206,10 +203,11 @@ describe("SpotCheckReview", () => {
   it("returns silent when all files already reviewed with same hash", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/index.ts", "src/app.ts"],
-      getFileHashes: () => new Map([
-        ["src/index.ts", "hash-aaa"],
-        ["src/app.ts", "hash-bbb"],
-      ]),
+      getFileHashes: () =>
+        new Map([
+          ["src/index.ts", "hash-aaa"],
+          ["src/app.ts", "hash-bbb"],
+        ]),
       readReviewedHashes: () => ({
         "src/index.ts": "hash-aaa",
         "src/app.ts": "hash-bbb",
@@ -226,18 +224,19 @@ describe("SpotCheckReview", () => {
   it("blocks only unreviewed files when some are already reviewed", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/index.ts", "src/app.ts", "src/new.ts"],
-      getFileHashes: () => new Map([
-        ["src/index.ts", "hash-aaa"],
-        ["src/app.ts", "hash-bbb"],
-        ["src/new.ts", "hash-ccc"],
-      ]),
+      getFileHashes: () =>
+        new Map([
+          ["src/index.ts", "hash-aaa"],
+          ["src/app.ts", "hash-bbb"],
+          ["src/new.ts", "hash-ccc"],
+        ]),
       readReviewedHashes: () => ({
         "src/index.ts": "hash-aaa",
         "src/app.ts": "hash-bbb",
       }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -254,7 +253,7 @@ describe("SpotCheckReview", () => {
       readReviewedHashes: () => ({ "src/index.ts": "hash-old" }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -269,7 +268,7 @@ describe("SpotCheckReview", () => {
       readReviewedHashes: () => ({ "src/index.ts": "hash-aaa" }),
     });
 
-    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, PaiError>;
+    const result = SpotCheckReview.execute(makeStopInput(), deps) as Result<BlockOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -282,10 +281,11 @@ describe("SpotCheckReview", () => {
     let writtenHashes: Record<string, string> = {};
     const deps = makeDeps({
       getChangedFiles: () => ["src/index.ts", "src/app.ts"],
-      getFileHashes: () => new Map([
-        ["src/index.ts", "hash-aaa"],
-        ["src/app.ts", "hash-bbb"],
-      ]),
+      getFileHashes: () =>
+        new Map([
+          ["src/index.ts", "hash-aaa"],
+          ["src/app.ts", "hash-bbb"],
+        ]),
       readBlockCount: () => 1, // at limit
       readReviewedHashes: () => ({}),
       writeReviewedHashes: (_path: string, hashes: Record<string, string>) => {
@@ -321,10 +321,11 @@ describe("SpotCheckReview", () => {
     let writtenHashes: Record<string, string> = {};
     const deps = makeDeps({
       getChangedFiles: () => ["src/kept.ts", "src/new.ts"],
-      getFileHashes: () => new Map([
-        ["src/kept.ts", "hash-kept"],
-        ["src/new.ts", "hash-new"],
-      ]),
+      getFileHashes: () =>
+        new Map([
+          ["src/kept.ts", "hash-kept"],
+          ["src/new.ts", "hash-new"],
+        ]),
       readBlockCount: () => 1,
       readReviewedHashes: () => ({ "src/kept.ts": "hash-kept", "src/gone.ts": "hash-gone" }),
       writeReviewedHashes: (_path: string, hashes: Record<string, string>) => {
@@ -344,7 +345,10 @@ describe("SpotCheckReview", () => {
     const deps = makeDeps({
       getChangedFiles: () => ["src/index.ts"],
       getFileHashes: () => new Map([["src/index.ts", "hash-aaa"]]),
-      readReviewedHashes: (path: string) => { hashPath = path; return {}; },
+      readReviewedHashes: (path: string) => {
+        hashPath = path;
+        return {};
+      },
     });
 
     SpotCheckReview.execute(makeStopInput(), deps);
@@ -367,17 +371,21 @@ describe("SpotCheckReview defaultDeps", () => {
   });
 
   it("defaultDeps.readBlockCount returns 0 for nonexistent file", () => {
-    const result = SpotCheckReview.defaultDeps.readBlockCount("/tmp/nonexistent-pai-scr-bc-12345.txt");
+    const result = SpotCheckReview.defaultDeps.readBlockCount(
+      "/tmp/nonexistent-pai-scr-bc-12345.txt",
+    );
     expect(result).toBe(0);
   });
 
   it("defaultDeps.writeBlockCount writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-scr-bc-" + Date.now() + ".txt";
+    const tmpPath = `/tmp/pai-test-scr-bc-${Date.now()}.txt`;
     expect(() => SpotCheckReview.defaultDeps.writeBlockCount(tmpPath, 1)).not.toThrow();
   });
 
   it("defaultDeps.removeFlag does not throw for nonexistent file", () => {
-    expect(() => SpotCheckReview.defaultDeps.removeFlag("/tmp/nonexistent-pai-scr-12345.txt")).not.toThrow();
+    expect(() =>
+      SpotCheckReview.defaultDeps.removeFlag("/tmp/nonexistent-pai-scr-12345.txt"),
+    ).not.toThrow();
   });
 
   it("defaultDeps.stderr writes without throwing", () => {
@@ -396,12 +404,30 @@ describe("SpotCheckReview defaultDeps", () => {
   });
 
   it("defaultDeps.readReviewedHashes returns object for nonexistent file", () => {
-    const result = SpotCheckReview.defaultDeps.readReviewedHashes("/tmp/nonexistent-pai-rh-12345.json");
+    const result = SpotCheckReview.defaultDeps.readReviewedHashes(
+      "/tmp/nonexistent-pai-rh-12345.json",
+    );
     expect(typeof result).toBe("object");
   });
 
   it("defaultDeps.writeReviewedHashes writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-rh-" + Date.now() + ".json";
-    expect(() => SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, { "test.ts": "abc" })).not.toThrow();
+    const tmpPath = `/tmp/pai-test-rh-${Date.now()}.json`;
+    expect(() =>
+      SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, { "test.ts": "abc" }),
+    ).not.toThrow();
+  });
+
+  it("defaultDeps.getFileHashes returns hashes for existing files", () => {
+    const tmpPath = `/tmp/pai-test-hash-${Date.now()}.ts`;
+    require("fs").writeFileSync(tmpPath, "test content");
+    const hashes = SpotCheckReview.defaultDeps.getFileHashes([tmpPath]);
+    expect(hashes.has(tmpPath)).toBe(true);
+    expect(hashes.get(tmpPath)!.length).toBeGreaterThan(0);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("defaultDeps.getFileHashes skips missing files", () => {
+    const hashes = SpotCheckReview.defaultDeps.getFileHashes(["/tmp/pai-nonexistent-xyz.ts"]);
+    expect(hashes.has("/tmp/pai-nonexistent-xyz.ts")).toBe(false);
   });
 });

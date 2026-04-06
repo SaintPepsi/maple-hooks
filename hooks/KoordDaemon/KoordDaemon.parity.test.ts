@@ -6,13 +6,12 @@
  * JS hook and verifies the contract produces equivalent behavior.
  */
 
-import { describe, test, expect } from "bun:test";
-import { ok, err } from "@hooks/core/result";
-import { fileNotFound } from "@hooks/core/error";
-import type { ToolHookInput, SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { describe, expect, test } from "bun:test";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { ok } from "@hooks/core/result";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── AgentPrepromptInjector Parity ───────────────────────────────────────────
 // Original: /Users/hogers/Projects/koord/.claude/hooks/AgentPrepromptInjector.hook.js
@@ -89,7 +88,7 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
     expect(result.ok).toBe(true);
     if (result.ok && result.value.type === "updatedInput") {
       // Original trims the name field (AgentPrepromptInjector.hook.js:102)
-      expect((result.value.updatedInput.prompt as string)).toContain("my-agent");
+      expect(result.value.updatedInput.prompt as string).toContain("my-agent");
     }
   });
 
@@ -159,7 +158,8 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
 // Original: /Users/hogers/Projects/koord/.claude/hooks/AgentSpawnTracker.hook.js
 
 describe("AgentSpawnTracker parity with original JS hook", () => {
-  const safeFetchOk = async () => ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, PaiError>;
+  const safeFetchOk = async () =>
+    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, ResultError>;
 
   test("POST body matches original: { thread_id, agent_name, task }", async () => {
     // Original JS hook (AgentSpawnTracker.hook.js:97-103):
@@ -181,7 +181,7 @@ describe("AgentSpawnTracker parity with original JS hook", () => {
     };
 
     const deps = {
-      getEnv: (name: string) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
+      getEnv: (name: string) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
       safeFetch: async (_url: string, opts: { body?: string }) => {
         sentBody = opts.body ?? "";
         return safeFetchOk();
@@ -218,7 +218,7 @@ describe("AgentSpawnTracker parity with original JS hook", () => {
     };
 
     const deps = {
-      getEnv: (name: string) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
+      getEnv: (name: string) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
       safeFetch: async (_url: string, opts: { body?: string }) => {
         sentBody = opts.body ?? "";
         return safeFetchOk();
@@ -246,8 +246,11 @@ describe("AgentSpawnTracker parity with original JS hook", () => {
     };
 
     const deps = {
-      getEnv: (name: string) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
-      safeFetch: async () => { fetchCalled = true; return safeFetchOk(); },
+      getEnv: (name: string) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
+      safeFetch: async () => {
+        fetchCalled = true;
+        return safeFetchOk();
+      },
       getKoordConfig: () => ({ url: null }),
       stderr: () => {},
     };
@@ -261,7 +264,8 @@ describe("AgentSpawnTracker parity with original JS hook", () => {
 // Original: /Users/hogers/Projects/koord/.claude/hooks/AgentCompleteTracker.hook.js
 
 describe("AgentCompleteTracker parity with original JS hook", () => {
-  const safeFetchOk = async () => ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, PaiError>;
+  const safeFetchOk = async () =>
+    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, ResultError>;
 
   test("skips spawn events (run_in_background true) like original", async () => {
     // Original JS hook (AgentCompleteTracker.hook.js:62-68):
@@ -279,7 +283,10 @@ describe("AgentCompleteTracker parity with original JS hook", () => {
 
     const deps = {
       getEnv: () => "http://localhost:9999",
-      safeFetch: async () => { fetchCalled = true; return safeFetchOk(); },
+      safeFetch: async () => {
+        fetchCalled = true;
+        return safeFetchOk();
+      },
       getKoordConfig: () => ({ url: null }),
       stderr: () => {},
     };
@@ -307,7 +314,7 @@ describe("AgentCompleteTracker parity with original JS hook", () => {
     };
 
     const deps = {
-      getEnv: (name: string) => name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined,
+      getEnv: (name: string) => (name === "KOORD_DAEMON_URL" ? "http://localhost:9999" : undefined),
       safeFetch: async (_url: string, opts: { body?: string }) => {
         sentBody = opts.body ?? "";
         return safeFetchOk();
@@ -340,7 +347,7 @@ describe("AgentCompleteTracker parity with original JS hook", () => {
     };
 
     const deps = {
-      getEnv: (name: string) => name === "KOORD_DAEMON_URL" ? "http://localhost:8888" : undefined,
+      getEnv: (name: string) => (name === "KOORD_DAEMON_URL" ? "http://localhost:8888" : undefined),
       safeFetch: async (url: string, opts: { body?: string }) => {
         sentUrl = url;
         sentBody = opts.body ?? "";
@@ -364,7 +371,8 @@ describe("AgentCompleteTracker parity with original JS hook", () => {
 // Original: /Users/hogers/Projects/koord/.claude/hooks/SessionIdRegister.hook.js
 
 describe("SessionIdRegister parity with original JS hook", () => {
-  const safeFetchOk = async () => ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, PaiError>;
+  const safeFetchOk = async () =>
+    ok({ status: 200, body: "", headers: {} }) as Result<FetchResult, ResultError>;
 
   test("POST body matches original: { sessionId, threadId }", async () => {
     // Original JS hook (SessionIdRegister.hook.js:79):
@@ -416,7 +424,10 @@ describe("SessionIdRegister parity with original JS hook", () => {
 
     const deps = {
       getEnv: () => undefined, // No env vars set
-      safeFetch: async () => { fetchCalled = true; return safeFetchOk(); },
+      safeFetch: async () => {
+        fetchCalled = true;
+        return safeFetchOk();
+      },
       getKoordConfig: () => ({ url: null }),
       stderr: () => {},
     };
@@ -441,7 +452,10 @@ describe("SessionIdRegister parity with original JS hook", () => {
         if (name === "KOORD_DAEMON_URL") return "http://localhost:9999///";
         return undefined;
       },
-      safeFetch: async (url: string) => { sentUrl = url; return safeFetchOk(); },
+      safeFetch: async (url: string) => {
+        sentUrl = url;
+        return safeFetchOk();
+      },
       getKoordConfig: () => ({ url: null }),
       stderr: () => {},
     };

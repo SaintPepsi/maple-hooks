@@ -5,11 +5,11 @@
  * Manifest types follow cli/types/manifest.ts schema.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { catalog } from "@hooks/cli/commands/catalog";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
-import type { HookManifest, GroupManifest, PresetEntry } from "@hooks/cli/types/manifest";
+import type { GroupManifest, HookManifest, PresetEntry } from "@hooks/cli/types/manifest";
 
 // ─── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -196,6 +196,18 @@ describe("catalog command — malformed manifests", () => {
     if (!result.ok) return;
 
     expect(result.value).toContain("Warning: Skipping malformed group.json");
+  });
+
+  it("skips malformed presets.json with warning", () => {
+    const deps = new InMemoryDeps({
+      "/repo/hooks/TestGroup/TestHook/hook.json": JSON.stringify(HOOK_MANIFEST),
+      "/repo/presets.json": "{ broken json !!!",
+    });
+    const result = catalog(makeArgs({ presets: true }), deps, "/repo");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+
+    expect(result.value).toContain("Warning: Skipping malformed presets.json");
   });
 
   it("shows no warnings in --json mode", () => {

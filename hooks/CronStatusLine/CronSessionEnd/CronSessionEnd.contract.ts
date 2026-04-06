@@ -9,27 +9,28 @@
  * This hook handles the clean-exit path deterministically.
  */
 
+import {
+  appendFile,
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
-  readCronFile,
   appendCronLog,
-  cronFilePath,
   type CronFileDeps,
   type CronPathDeps,
+  cronFilePath,
+  readCronFile,
 } from "@hooks/hooks/CronStatusLine/shared";
-import {
-  readFile,
-  writeFile,
-  fileExists,
-  ensureDir,
-  readDir,
-  removeFile,
-  appendFile,
-} from "@hooks/core/adapters/fs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -45,17 +46,13 @@ const defaultDeps: CronSessionEndDeps = {
   readDir,
   removeFile,
   appendFile,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
   getEnv: (key) => process.env[key],
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronSessionEnd: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  CronSessionEndDeps
-> = {
+export const CronSessionEnd: SyncHookContract<SessionEndInput, SilentOutput, CronSessionEndDeps> = {
   name: "CronSessionEnd",
   event: "SessionEnd",
 
@@ -63,10 +60,7 @@ export const CronSessionEnd: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: SessionEndInput,
-    deps: CronSessionEndDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: SessionEndInput, deps: CronSessionEndDeps): Result<SilentOutput, ResultError> {
     const sessionId = input.session_id;
     const path = cronFilePath(sessionId, deps);
 
@@ -77,9 +71,7 @@ export const CronSessionEnd: SyncHookContract<
 
     // Read file to get cron count for logging
     const readResult = readCronFile(sessionId, deps, deps);
-    const cronCount = readResult.ok && readResult.value
-      ? readResult.value.crons.length
-      : 0;
+    const cronCount = readResult.ok && readResult.value ? readResult.value.crons.length : 0;
 
     // Delete the session's cron file
     const removeResult = deps.removeFile(path);
@@ -89,11 +81,7 @@ export const CronSessionEnd: SyncHookContract<
     }
 
     // Log the cleanup event
-    appendCronLog(
-      { type: "pruned", sessionId, cronCount, reason: "session_ended" },
-      deps,
-      deps,
-    );
+    appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_ended" }, deps, deps);
 
     return ok({ type: "silent" });
   },

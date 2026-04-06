@@ -3,20 +3,20 @@
  * AgentPrepromptInjector, AgentSpawnTracker, AgentCompleteTracker.
  */
 
-import { describe, test, expect } from "bun:test";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { fileNotFound } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { SessionIdRegisterDeps } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
+import { SessionIdRegister } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
 import {
-  readKoordConfig,
-  extractThreadId,
-  extractThreadIdFromOutput,
+  defaultReadFileOrNull,
   extractAgentName,
   extractTask,
+  extractThreadId,
+  extractThreadIdFromOutput,
+  readKoordConfig,
 } from "@hooks/hooks/KoordDaemon/shared";
-import { SessionIdRegister } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
-import type { SessionIdRegisterDeps } from "@hooks/hooks/KoordDaemon/SessionIdRegister/SessionIdRegister.contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Shared Helpers ──────────────────────────────────────────────────────────
 
@@ -61,7 +61,9 @@ describe("KoordDaemon shared", () => {
     });
 
     test("extracts from prompt text", () => {
-      expect(extractThreadId({ prompt: 'thread_id: "12345678901234567"' })).toBe("12345678901234567");
+      expect(extractThreadId({ prompt: 'thread_id: "12345678901234567"' })).toBe(
+        "12345678901234567",
+      );
     });
 
     test("returns null when no thread_id found", () => {
@@ -75,19 +77,25 @@ describe("KoordDaemon shared", () => {
 
   describe("extractThreadIdFromOutput", () => {
     test("extracts from top-level thread_id", () => {
-      expect(extractThreadIdFromOutput({ thread_id: "12345678901234567" })).toBe("12345678901234567");
+      expect(extractThreadIdFromOutput({ thread_id: "12345678901234567" })).toBe(
+        "12345678901234567",
+      );
     });
 
     test("extracts from tool_output text", () => {
-      expect(extractThreadIdFromOutput({
-        tool_output: 'Completed work on thread_id="99887766554433221"',
-      })).toBe("99887766554433221");
+      expect(
+        extractThreadIdFromOutput({
+          tool_output: 'Completed work on thread_id="99887766554433221"',
+        }),
+      ).toBe("99887766554433221");
     });
 
     test("does NOT extract from tool_input", () => {
-      expect(extractThreadIdFromOutput({
-        tool_input: { thread_id: "12345678901234567" },
-      })).toBeNull();
+      expect(
+        extractThreadIdFromOutput({
+          tool_input: { thread_id: "12345678901234567" },
+        }),
+      ).toBeNull();
     });
 
     test("returns null when no thread_id found", () => {
@@ -111,11 +119,15 @@ describe("KoordDaemon shared", () => {
 
   describe("extractTask", () => {
     test("extracts from task_description field", () => {
-      expect(extractTask({ task_description: "Research API patterns" })).toBe("Research API patterns");
+      expect(extractTask({ task_description: "Research API patterns" })).toBe(
+        "Research API patterns",
+      );
     });
 
     test("uses first line of prompt as fallback", () => {
-      expect(extractTask({ prompt: "Build the component\nWith tests" })).toBe("Build the component");
+      expect(extractTask({ prompt: "Build the component\nWith tests" })).toBe(
+        "Build the component",
+      );
     });
 
     test("truncates to 200 chars", () => {
@@ -125,6 +137,21 @@ describe("KoordDaemon shared", () => {
 
     test("returns null when not found", () => {
       expect(extractTask({})).toBeNull();
+    });
+  });
+
+  describe("defaultReadFileOrNull", () => {
+    test("returns file content for an existing file", () => {
+      const tmpPath = `/tmp/pai-test-readornull-${Date.now()}.txt`;
+      require("fs").writeFileSync(tmpPath, "hello");
+      const result = defaultReadFileOrNull(tmpPath);
+      expect(result).toBe("hello");
+      require("fs").unlinkSync(tmpPath);
+    });
+
+    test("returns null for a missing file", () => {
+      const result = defaultReadFileOrNull("/tmp/pai-nonexistent-file-xyz.json");
+      expect(result).toBeNull();
     });
   });
 });
@@ -313,7 +340,10 @@ describe("AgentPrepromptInjector", () => {
     let readPath = "";
     const input = makeToolInput();
     const deps = {
-      fileExists: (p: string) => { readPath = p; return false; },
+      fileExists: (p: string) => {
+        readPath = p;
+        return false;
+      },
       readFile: () => err(fileNotFound("test")),
       getKoordConfig: () => ({ prepromptPath: null }),
       getCwd: () => "/my/project",

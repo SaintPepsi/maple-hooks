@@ -1,7 +1,7 @@
 // Human-readable cluster output formatter for the pattern duplication detector.
 
-import type { Cluster } from "@tools/pattern-detector/types";
 import { getHomeDir } from "@tools/pattern-detector/adapters";
+import type { Cluster } from "@tools/pattern-detector/types";
 
 export interface FormatDeps {
   homeDir: string;
@@ -12,7 +12,7 @@ const defaultFormatDeps: FormatDeps = {
 };
 
 function shortenPath(filePath: string, homeDir: string): string {
-  if (homeDir && filePath.startsWith(homeDir)) return "~" + filePath.slice(homeDir.length);
+  if (homeDir && filePath.startsWith(homeDir)) return `~${filePath.slice(homeDir.length)}`;
   return filePath;
 }
 
@@ -24,7 +24,9 @@ function formatCluster(cluster: Cluster, index: number, homeDir: string): string
   lines.push(`     Members:`);
 
   for (const member of cluster.members) {
-    lines.push(`       - ${member.functionName} (${shortenPath(member.file, homeDir)}:${member.line})`);
+    lines.push(
+      `       - ${member.functionName} (${shortenPath(member.file, homeDir)}:${member.line})`,
+    );
     if (member.evidence.length > 0) {
       lines.push(`         Evidence: ${member.evidence.join("; ")}`);
     }
@@ -35,10 +37,14 @@ function formatCluster(cluster: Cluster, index: number, homeDir: string): string
 
 function detectorLabel(detector: string): string {
   switch (detector) {
-    case "import": return "Detector A: Import + Signature Fingerprinting";
-    case "structural": return "Detector B: Structural Hash Bucketing";
-    case "layered": return "Detector C: Layered (Import + Body Similarity)";
-    default: return `Detector: ${detector}`;
+    case "import":
+      return "Detector A: Import + Signature Fingerprinting";
+    case "structural":
+      return "Detector B: Structural Hash Bucketing";
+    case "layered":
+      return "Detector C: Layered (Import + Body Similarity)";
+    default:
+      return `Detector: ${detector}`;
   }
 }
 

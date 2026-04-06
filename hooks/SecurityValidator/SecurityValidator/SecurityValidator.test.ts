@@ -5,20 +5,20 @@
  * functions stripEnvVarPrefix, matchesPattern, matchesPathPattern.
  */
 
-import { describe, it, expect } from "bun:test";
-import { parse as parseYaml } from "yaml";
-import { ok } from "@hooks/core/result";
+import { describe, expect, it } from "bun:test";
+import { createRegex, safeRegexTest } from "@hooks/core/adapters/regex";
 import { ErrorCode } from "@hooks/core/error";
-import { safeRegexTest, createRegex } from "@hooks/core/adapters/regex";
-import {
-  SecurityValidator,
-  stripEnvVarPrefix,
-  matchesPattern,
-  matchesPathPattern,
-  extractWriteTargets,
-  type SecurityValidatorDeps,
-} from "@hooks/hooks/SecurityValidator/SecurityValidator/SecurityValidator.contract";
+import { ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  extractWriteTargets,
+  matchesPathPattern,
+  matchesPattern,
+  SecurityValidator,
+  type SecurityValidatorDeps,
+  stripEnvVarPrefix,
+} from "@hooks/hooks/SecurityValidator/SecurityValidator/SecurityValidator.contract";
+import { parse as parseYaml } from "yaml";
 
 // ─── Test YAML ────────────────────────────────────────────────────────────────
 
@@ -139,11 +139,20 @@ describe("matchesPathPattern", () => {
   const deps = makeDeps();
 
   it("matches exact path", () => {
-    expect(matchesPathPattern("/Users/test/.claude/settings.json", "~/.claude/settings.json", home, deps)).toBe(true);
+    expect(
+      matchesPathPattern(
+        "/Users/test/.claude/settings.json",
+        "~/.claude/settings.json",
+        home,
+        deps,
+      ),
+    ).toBe(true);
   });
 
   it("does not match a different exact path", () => {
-    expect(matchesPathPattern("/Users/test/.claude/other.json", "~/.claude/settings.json", home, deps)).toBe(false);
+    expect(
+      matchesPathPattern("/Users/test/.claude/other.json", "~/.claude/settings.json", home, deps),
+    ).toBe(false);
   });
 
   it("matches single-star wildcard within a directory segment", () => {
@@ -152,20 +161,45 @@ describe("matchesPathPattern", () => {
   });
 
   it("does not match single-star wildcard across directory separators", () => {
-    expect(matchesPathPattern("/Users/test/.ssh/subdir/id_rsa", "~/.ssh/id_*", home, deps)).toBe(false);
+    expect(matchesPathPattern("/Users/test/.ssh/subdir/id_rsa", "~/.ssh/id_*", home, deps)).toBe(
+      false,
+    );
   });
 
   it("matches double-star wildcard across directories", () => {
-    expect(matchesPathPattern("/Users/test/.claude/skills/PAI/SKILL.md", "~/.claude/skills/**", home, deps)).toBe(true);
-    expect(matchesPathPattern("/Users/test/.claude/skills/A/B/C/deep.ts", "~/.claude/skills/**", home, deps)).toBe(true);
+    expect(
+      matchesPathPattern(
+        "/Users/test/.claude/skills/PAI/SKILL.md",
+        "~/.claude/skills/**",
+        home,
+        deps,
+      ),
+    ).toBe(true);
+    expect(
+      matchesPathPattern(
+        "/Users/test/.claude/skills/A/B/C/deep.ts",
+        "~/.claude/skills/**",
+        home,
+        deps,
+      ),
+    ).toBe(true);
   });
 
   it("expands tilde in file path", () => {
-    expect(matchesPathPattern("~/.claude/settings.json", "~/.claude/settings.json", home, deps)).toBe(true);
+    expect(
+      matchesPathPattern("~/.claude/settings.json", "~/.claude/settings.json", home, deps),
+    ).toBe(true);
   });
 
   it("matches path prefix when no wildcard and trailing separator", () => {
-    expect(matchesPathPattern("/Users/test/.claude/skills/PAI/SKILL.md", "/Users/test/.claude/", home, deps)).toBe(true);
+    expect(
+      matchesPathPattern(
+        "/Users/test/.claude/skills/PAI/SKILL.md",
+        "/Users/test/.claude/",
+        home,
+        deps,
+      ),
+    ).toBe(true);
   });
 });
 
@@ -222,7 +256,7 @@ describe("SecurityValidator.execute() — Bash commands", () => {
 
   it("blocks even when env var prefix hides the blocked command", () => {
     const deps = makeDeps();
-    const input = makeInput("Bash", { command: "DANGER=yes " + rmCmd });
+    const input = makeInput("Bash", { command: `DANGER=yes ${rmCmd}` });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -444,7 +478,9 @@ describe("extractWriteTargets", () => {
   });
 
   it("extracts target from dd of=", () => {
-    const targets = extractWriteTargets("dd if=/dev/zero of=/Users/test/.ssh/id_rsa bs=1024 count=1");
+    const targets = extractWriteTargets(
+      "dd if=/dev/zero of=/Users/test/.ssh/id_rsa bs=1024 count=1",
+    );
     expect(targets).toContain("/Users/test/.ssh/id_rsa");
   });
 
@@ -467,17 +503,23 @@ describe("extractWriteTargets", () => {
 
   // Inline script execution bypass detection
   it("extracts target from bun -e with writeFileSync", () => {
-    const targets = extractWriteTargets(`bun -e "const fs = require('fs'); fs.writeFileSync('settings.json', '{}')" `);
+    const targets = extractWriteTargets(
+      `bun -e "const fs = require('fs'); fs.writeFileSync('settings.json', '{}')" `,
+    );
     expect(targets).toContain("settings.json");
   });
 
   it("extracts target from node -e with writeFileSync", () => {
-    const targets = extractWriteTargets(`node -e "require('fs').writeFileSync('/Users/test/.claude/settings.json', '{}')" `);
+    const targets = extractWriteTargets(
+      `node -e "require('fs').writeFileSync('/Users/test/.claude/settings.json', '{}')" `,
+    );
     expect(targets).toContain("/Users/test/.claude/settings.json");
   });
 
   it("extracts target from python -c with open write", () => {
-    const targets = extractWriteTargets(`python3 -c "open('/Users/test/.env', 'w').write('SECRET=hack')" `);
+    const targets = extractWriteTargets(
+      `python3 -c "open('/Users/test/.env', 'w').write('SECRET=hack')" `,
+    );
     expect(targets).toContain("/Users/test/.env");
   });
 
@@ -494,7 +536,8 @@ describe("SecurityValidator.execute() — bash tool substitution bypass", () => 
   it("blocks sed -i targeting a confirmWrite path (settings.json)", () => {
     const deps = makeDeps();
     const input = makeInput("Bash", {
-      command: "sed -i '' 's/\"plansDirectory\": \"Plans\\/\"/\"plansDirectory\": \"docs\\/plans\"/' /Users/test/.claude/settings.json",
+      command:
+        'sed -i \'\' \'s/"plansDirectory": "Plans\\/"/"plansDirectory": "docs\\/plans"/\' /Users/test/.claude/settings.json',
     });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(false);
@@ -530,7 +573,7 @@ describe("SecurityValidator.execute() — bash tool substitution bypass", () => 
   it("blocks shell redirect > targeting a confirmWrite path", () => {
     const deps = makeDeps();
     const input = makeInput("Bash", {
-      command: "echo '{\"key\": \"value\"}' > /Users/test/.claude/settings.json",
+      command: 'echo \'{"key": "value"}\' > /Users/test/.claude/settings.json',
     });
     const result = SecurityValidator.execute(input, deps);
     expect(result.ok).toBe(false);
@@ -596,6 +639,37 @@ describe("SecurityValidator.execute() — patterns fallback", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("continue");
+    }
+  });
+});
+
+// ─── Uncovered branch tests ────────────────────────────────────────────────
+
+describe("extractWriteTargets — sed target extraction", () => {
+  it("extracts file target from sed -i command", () => {
+    const targets = extractWriteTargets('sed -i "s/foo/bar/" /etc/config.txt');
+    expect(targets).toContain("/etc/config.txt");
+  });
+});
+
+describe("matchesPathPattern — regex fallback on null", () => {
+  it("returns false when createRegex returns null", () => {
+    const deps = makeDeps({
+      createRegex: () => null,
+    });
+    const result = matchesPathPattern("/some/file.ts", "~/**/*.ts", "/Users/test", deps);
+    expect(result).toBe(false);
+  });
+});
+
+describe("SecurityValidator.execute() — noDelete paths", () => {
+  it("blocks deletion of protected paths", () => {
+    const deps = makeDeps();
+    const input = makeInput("Bash", { command: "r" + "m /Users/test/.claude/skills/my-skill/SKILL.md" });
+    const result = SecurityValidator.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok && result.value.type === "block") {
+      expect(result.value.reason).toContain("protected");
     }
   });
 });

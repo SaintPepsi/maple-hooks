@@ -15,17 +15,22 @@
  * Pure functions — no I/O except CSS loading.
  */
 
-import { readFileSync } from "fs";
-import { join } from "path";
+import { join } from "node:path";
+import { readFile } from "@hooks/core/adapters/fs";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface HookMeta {
   name: string;
   group: string;
-  event: string;
+  event: string | string[];
   description: string;
   hasDoc?: boolean;
+}
+
+/** Normalize event to an array for consistent rendering. */
+function eventList(event: string | string[]): string[] {
+  return Array.isArray(event) ? event : [event];
 }
 
 export interface GroupMeta {
@@ -40,13 +45,26 @@ interface DocSection {
   body: string;
 }
 
+// ─── GitHub Links ────────────────────────────────────────────────────────────
+
+const GITHUB_BASE = "https://github.com/SaintPepsi/pai-hooks/tree/main/hooks";
+
+function githubGroupUrl(groupName: string): string {
+  return `${GITHUB_BASE}/${groupName}`;
+}
+
+function githubHookUrl(groupName: string, hookName: string): string {
+  return `${GITHUB_BASE}/${groupName}/${hookName}/${hookName}.contract.ts`;
+}
+
 // ─── CSS Loader ───────────────────────────────────────────────────────────────
 
 let cachedCSS: string | null = null;
 
 function getCSS(): string {
   if (!cachedCSS) {
-    cachedCSS = readFileSync(join(import.meta.dir, "style.css"), "utf-8");
+    const result = readFile(join(import.meta.dir, "style.css"));
+    cachedCSS = result.ok ? result.value : "";
   }
   return cachedCSS;
 }
@@ -115,12 +133,19 @@ function parseSections(md: string): { preamble: string; sections: DocSection[] }
     if (h2Match) {
       // Flush previous section
       if (currentHeading) {
-        sections.push({ heading: currentHeading, id: currentId, body: currentBody.join("\n").trim() });
+        sections.push({
+          heading: currentHeading,
+          id: currentId,
+          body: currentBody.join("\n").trim(),
+        });
       } else if (currentBody.length > 0) {
         preamble = currentBody.join("\n").trim();
       }
       currentHeading = h2Match[1];
-      currentId = currentHeading.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      currentId = currentHeading
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
       currentBody = [];
     } else {
       currentBody.push(line);
@@ -140,7 +165,11 @@ function parseSections(md: string): { preamble: string; sections: DocSection[] }
 // ─── Escape Helpers ───────────────────────────────────────────────────────────
 
 function esc(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /** Escape for code blocks — only escape HTML-meaningful chars, preserve quotes. */
@@ -184,7 +213,10 @@ function parseBlocks(body: string): Block[] {
     const line = lines[i];
 
     // Empty line — skip
-    if (line.trim() === "") { i++; continue; }
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
 
     // Fenced code block
     if (line.startsWith("```")) {
@@ -227,7 +259,12 @@ function parseBlocks(body: string): Block[] {
         i++;
       }
       const parsedRows = tableLines
-        .map((l) => l.split("|").slice(1, -1).map((c) => c.trim()))
+        .map((l) =>
+          l
+            .split("|")
+            .slice(1, -1)
+            .map((c) => c.trim()),
+        )
         .filter((cells) => !cells.every((c) => /^[-:]+$/.test(c)));
       if (parsedRows.length > 0) {
         blocks.push({ type: "table", headers: parsedRows[0], rows: parsedRows.slice(1) });
@@ -288,15 +325,21 @@ function renderBlock(block: Block): string {
 
     case "bullets":
       return block.items
-        .map((item) => `<div class="reason"><span class="ri">&#x2022;</span> ${inlineMd(item)}</div>`)
+        .map(
+          (item) => `<div class="reason"><span class="ri">&#x2022;</span> ${inlineMd(item)}</div>`,
+        )
         .join("\n");
 
     case "ordered": {
-      const steps = block.items.map((item, i) => `
+      const steps = block.items
+        .map(
+          (item, i) => `
         <div class="flow-step">
           <div class="step-dot">${i + 1}</div>
           <div class="step-content"><p>${inlineMd(item)}</p></div>
-        </div>`).join("\n");
+        </div>`,
+        )
+        .join("\n");
       return `<div class="flow-steps">${steps}\n</div>`;
     }
 
@@ -316,7 +359,10 @@ ${escCode(block.code)}</div>
     case "blockquote":
       return `
       <div class="uc-example">
-        ${block.lines.map((l) => l.trim() === "" ? "" : `<div>${inlineMd(l)}</div>`).filter(Boolean).join("\n        ")}
+        ${block.lines
+          .map((l) => (l.trim() === "" ? "" : `<div>${inlineMd(l)}</div>`))
+          .filter(Boolean)
+          .join("\n        ")}
       </div>`;
 
     case "table":
@@ -329,7 +375,10 @@ ${escCode(block.code)}</div>
       </table>`;
 
     case "h3": {
-      const id = block.text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const id = block.text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "");
       return `<h3 id="${id}">${inlineMd(block.text)}</h3>`;
     }
   }
@@ -381,7 +430,9 @@ function renderExamplesSection(blocks: Block[]): string {
         html.push("</div>"); // close previous example wrapper
       }
       html.push(`<div style="margin-top: 20px;">`);
-      html.push(`<h3 style="color: var(--green); margin-bottom: 12px;">${inlineMd(block.text)}</h3>`);
+      html.push(
+        `<h3 style="color: var(--green); margin-bottom: 12px;">${inlineMd(block.text)}</h3>`,
+      );
       inExample = true;
     } else {
       html.push(renderBlock(block));
@@ -396,6 +447,31 @@ function renderExamplesSection(blocks: Block[]): string {
 }
 
 // ─── Wiki Nav Script ──────────────────────────────────────────────────────────
+
+const COPY_IDEA_SCRIPT = `
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>`;
 
 const WIKI_NAV_SCRIPT = `
 <script>
@@ -463,6 +539,7 @@ function pageShell(opts: {
   sidebar?: string;
   body: string;
   hasSidebar?: boolean;
+  hasIdea?: boolean;
 }): string {
   const sidebarClass = opts.hasSidebar ? ' class="has-sidebar"' : "";
   return `<!DOCTYPE html>
@@ -476,6 +553,7 @@ function pageShell(opts: {
 <body${sidebarClass}>
 ${opts.sidebar ?? ""}
 ${opts.body}
+${opts.hasIdea ? COPY_IDEA_SCRIPT : ""}
 ${opts.hasSidebar ? WIKI_NAV_SCRIPT : ""}
 </body>
 </html>`;
@@ -483,7 +561,11 @@ ${opts.hasSidebar ? WIKI_NAV_SCRIPT : ""}
 
 // ─── Sidebar Builder ──────────────────────────────────────────────────────────
 
-function buildSidebar(title: string, subtitle: string, items: { id: string; label: string }[]): string {
+function buildSidebar(
+  title: string,
+  subtitle: string,
+  items: { id: string; label: string }[],
+): string {
   const navItems = items
     .map((s, i) => {
       const num = String(i + 1).padStart(2, "0");
@@ -534,32 +616,53 @@ ${metaItems}
 // ─── Page Templates ───────────────────────────────────────────────────────────
 
 /** Render a single hook documentation page. */
-export function renderHookPage(hook: HookMeta, markdownContent: string, groupName: string): string {
+export function renderHookPage(hook: HookMeta, markdownContent: string, groupName: string, ideaContent?: string): string {
   const { preamble, sections } = parseSections(markdownContent);
 
   // Remove h1 from preamble (redundant with hero)
   const cleanPreamble = preamble.replace(/^# .+$/m, "").trim();
 
-  const sidebar = sections.length > 2
-    ? buildSidebar(hook.name, `${groupName} / ${hook.event}`, sections.map((s) => ({ id: s.id, label: s.heading })))
-    : "";
+  const sidebar =
+    sections.length > 2
+      ? buildSidebar(
+          hook.name,
+          `${groupName} / ${eventList(hook.event).join(", ")}`,
+          sections.map((s) => ({ id: s.id, label: s.heading })),
+        )
+      : "";
 
   const hero = buildHero(
     "Hook Documentation",
     hook.name,
-    hook.description || `${hook.event} hook in the ${groupName} group.`,
-    [groupName, hook.event, "pai-hooks"],
+    hook.description || `${eventList(hook.event).join(" + ")} hook in the ${groupName} group.`,
+    [groupName, ...eventList(hook.event), "pai-hooks"],
   );
 
   const sectionHtml = sections.map(renderSection).join("\n");
+
+  const ideaButton = ideaContent
+    ? `<button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">${ideaContent.replace(/<\/script/gi, "<\\/script")}</script>`
+    : "";
 
   const body = `
 ${hero}
 
 <div class="container">
-  <div class="tags" style="margin-bottom: var(--sp-2xl);">
-    <span class="tag ${eventColor(hook.event)}">${esc(hook.event)}</span>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    ${eventList(hook.event).map((e) => `<span class="tag ${eventColor(e)}">${esc(e)}</span>`).join("\n    ")}
     <span class="tag green">${esc(groupName)}</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="${githubHookUrl(groupName, hook.name)}" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">${esc(hook.name)}.contract.ts</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
+    ${ideaButton}
   </div>
 
   ${cleanPreamble ? `<p style="color: var(--text-dim); font-size: 15px; margin-bottom: var(--sp-2xl); max-width: 680px;">${inlineMd(cleanPreamble)}</p>` : ""}
@@ -576,6 +679,7 @@ ${hero}
     sidebar,
     body,
     hasSidebar: sections.length > 2,
+    hasIdea: !!ideaContent,
   });
 }
 
@@ -583,17 +687,24 @@ ${hero}
 export function renderGroupPage(group: GroupMeta): string {
   const cards = group.hooks
     .map((h) => {
-      const color = eventColor(h.event);
+      const events = eventList(h.event);
+      const primaryColor = eventColor(events[0]);
       const clickable = h.hasDoc !== false;
       const interactiveAttrs = clickable
         ? ` style="cursor:pointer;" onclick="location.href='${esc(h.name)}.html'"`
         : ` style="opacity:0.6;"`;
+      const badges = events.map((e) => {
+        const c = eventColor(e);
+        return `<span class="card-badge" style="background:var(--${c}-dim);color:var(--${c});">${esc(e)}</span>`;
+      }).join("\n            ");
       return `
-      <div class="card ${color}"${interactiveAttrs}>
+      <div class="card ${primaryColor}"${interactiveAttrs}>
         <div class="card-header">
           <div class="card-icon">&#x1F517;</div>
           <h3>${esc(h.name)}</h3>
-          <span class="card-badge" style="background:var(--${color}-dim);color:var(--${color});">${esc(h.event)}</span>
+          <div class="card-badges">
+            ${badges}
+          </div>
         </div>
         <p>${esc(h.description || "No description")}</p>
       </div>`;
@@ -607,16 +718,27 @@ export function renderGroupPage(group: GroupMeta): string {
     [`${group.hooks.length} hooks`, "pai-hooks"],
   );
 
-  const events = [...new Set(group.hooks.map((h) => h.event))];
-  const summaryItems = events.map((event) => {
-    const count = group.hooks.filter((h) => h.event === event).length;
-    return `<div class="summary-item"><div class="num">${count}</div><div class="label">${esc(event)}</div></div>`;
-  }).join("\n    ");
+  const events = [...new Set(group.hooks.flatMap((h) => eventList(h.event)))];
+  const summaryItems = events
+    .map((event) => {
+      const count = group.hooks.filter((h) => eventList(h.event).includes(event)).length;
+      const color = eventColor(event);
+      return `<div class="summary-item"><div class="num" style="color:var(--${color === "accent" ? "accent-bright" : color});">${count}</div><div class="label">${esc(event)}</div></div>`;
+    })
+    .join("\n    ");
 
   const body = `
 ${hero}
 
 <div class="container">
+  <div style="margin-bottom: var(--sp-lg);">
+    <a href="${githubGroupUrl(group.name)}" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C2;</span>
+      <code style="color: var(--cyan); font-size: 12px;">hooks/${esc(group.name)}/</code>
+      <span style="opacity: 0.5;">&#x2197;</span>
+    </a>
+  </div>
+
   <div class="summary-grid">
     ${summaryItems}
   </div>
@@ -637,7 +759,8 @@ export function renderIndexPage(groups: GroupMeta[]): string {
   const totalHooks = groups.reduce((n, g) => n + g.hooks.length, 0);
 
   const groupCards = groups
-    .map((g) => `
+    .map(
+      (g) => `
       <div class="card accent" style="cursor:pointer;" onclick="location.href='groups/${esc(g.name)}/index.html'">
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
@@ -645,7 +768,8 @@ export function renderIndexPage(groups: GroupMeta[]): string {
           <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">${g.hooks.length} hooks</span>
         </div>
         <p>${esc(g.description || `${g.hooks.length} hooks`)}</p>
-      </div>`)
+      </div>`,
+    )
     .join("\n");
 
   const hero = buildHero(

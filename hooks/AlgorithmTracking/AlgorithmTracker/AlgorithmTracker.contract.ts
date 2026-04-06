@@ -8,18 +8,29 @@
  * 4. Agent tracking: Task tool for agent spawns → agentAdd()
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import {
-  readState, writeState, phaseTransition, criteriaAdd, criteriaUpdate, agentAdd, effortLevelUpdate,
-} from "@hooks/lib/algorithm-state";
-import type { AlgorithmCriterion, AlgorithmPhase, AlgorithmState } from "@hooks/lib/algorithm-state";
-import { join } from "path";
+import { join } from "node:path";
 import { fileExists, readJson } from "@hooks/core/adapters/fs";
-import { setPhaseTab } from "@hooks/lib/tab-setter";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type {
+  AlgorithmCriterion,
+  AlgorithmPhase,
+  AlgorithmState,
+} from "@hooks/lib/algorithm-state";
+import {
+  agentAdd,
+  criteriaAdd,
+  criteriaUpdate,
+  effortLevelUpdate,
+  phaseTransition,
+  readState,
+  writeState,
+} from "@hooks/lib/algorithm-state";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,9 +42,8 @@ export interface AlgorithmTrackerDeps {
   criteriaUpdate: typeof criteriaUpdate;
   agentAdd: typeof agentAdd;
   effortLevelUpdate: typeof effortLevelUpdate;
-  setPhaseTab: typeof setPhaseTab;
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
   fetch: typeof globalThis.fetch;
   baseDir: string;
   voiceId: string;
@@ -55,7 +65,10 @@ const PHASE_MAP: Record<string, AlgorithmPhase> = {
 
 const ALGORITHM_ENTRY = "entering the pai algorithm";
 
-export function detectPhaseFromBash(command: string): { phase: AlgorithmPhase | null; isAlgorithmEntry: boolean } {
+export function detectPhaseFromBash(command: string): {
+  phase: AlgorithmPhase | null;
+  isAlgorithmEntry: boolean;
+} {
   if (!command.includes("localhost:8888") || !command.includes("/notify")) {
     return { phase: null, isAlgorithmEntry: false };
   }
@@ -109,7 +122,7 @@ function getSessionName(sid: string, deps: AlgorithmTrackerDeps): string {
 
 function ensureSessionActive(sessionId: string, deps: AlgorithmTrackerDeps): void {
   const existing = deps.readState(sessionId);
-  if (existing && existing.active) return;
+  if (existing?.active) return;
 
   const now = Date.now();
 
@@ -145,13 +158,12 @@ const defaultDeps: AlgorithmTrackerDeps = {
   criteriaUpdate,
   agentAdd,
   effortLevelUpdate,
-  setPhaseTab,
   fileExists,
   readJson,
   fetch: globalThis.fetch,
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
+  baseDir: getPaiDir(),
   voiceId: process.env.PAI_VOICE_ID || "pNInz6obpgDQGcFmaJgB",
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 export const AlgorithmTracker: SyncHookContract<
@@ -166,13 +178,10 @@ export const AlgorithmTracker: SyncHookContract<
     return ["Bash", "TaskCreate", "TaskUpdate", "Task"].includes(input.tool_name);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: AlgorithmTrackerDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: AlgorithmTrackerDeps): Result<ContinueOutput, ResultError> {
     const { tool_name, tool_input, session_id } = input;
     const tool_result = (input as unknown as Record<string, unknown>).tool_result;
-    if (!session_id) return ok({ type: "continue", continue: true });
+    if (!session_id) return ok(continueOk());
 
     // 1. Bash → Phase detection from voice curls
     if (tool_name === "Bash" && tool_input?.command) {
@@ -185,9 +194,11 @@ export const AlgorithmTracker: SyncHookContract<
 
       if (phase) {
         const preState = deps.readState(session_id);
-        const wasCompleteOrLearned = preState && (
-          preState.currentPhase === "COMPLETE" || preState.currentPhase === "LEARN" || preState.currentPhase === "IDLE"
-        );
+        const wasCompleteOrLearned =
+          preState &&
+          (preState.currentPhase === "COMPLETE" ||
+            preState.currentPhase === "LEARN" ||
+            preState.currentPhase === "IDLE");
         const hadWork = preState && (preState.criteria.length > 0 || !!preState.summary);
         const isReworkTransition = phase === "OBSERVE" && wasCompleteOrLearned && hadWork;
 
@@ -197,18 +208,21 @@ export const AlgorithmTracker: SyncHookContract<
         if (isReworkTransition) {
           const postState = deps.readState(session_id);
           const reworkNum = postState?.reworkCount ?? 1;
-          deps.fetch("http://localhost:8888/notify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: `Re-entering algorithm. Rework iteration ${reworkNum}.`,
-              voice_id: deps.voiceId,
-            }),
-          }).catch((e) => deps.stderr("[AlgorithmTracker] rework notification error: " + String(e)));
+          deps
+            .fetch("http://localhost:8888/notify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: `Re-entering algorithm. Rework iteration ${reworkNum}.`,
+                voice_id: deps.voiceId,
+              }),
+            })
+            .catch((e) =>
+              deps.stderr(`[AlgorithmTracker] rework notification error: ${String(e)}`),
+            );
           deps.stderr(`[AlgorithmTracker] REWORK detected — iteration ${reworkNum}`);
         }
 
-        deps.setPhaseTab(phase, session_id);
         deps.stderr(`[AlgorithmTracker] phase: ${phase}`);
       }
     }
@@ -244,13 +258,16 @@ export const AlgorithmTracker: SyncHookContract<
         const updated = deps.readState(session_id);
         if (updated && updated.sla === "Standard") {
           const count = updated.criteria.length;
-          let inferred: "Standard" | "Extended" | "Advanced" | "Deep" | "Comprehensive" | null = null;
+          let inferred: "Standard" | "Extended" | "Advanced" | "Deep" | "Comprehensive" | null =
+            null;
           if (count >= 40) inferred = "Deep";
           else if (count >= 20) inferred = "Advanced";
           else if (count >= 12) inferred = "Extended";
           if (inferred) {
             deps.effortLevelUpdate(session_id, inferred);
-            deps.stderr(`[AlgorithmTracker] effort level inferred: ${inferred} (${count} criteria)`);
+            deps.stderr(
+              `[AlgorithmTracker] effort level inferred: ${inferred} (${count} criteria)`,
+            );
           }
         }
       }
@@ -259,7 +276,10 @@ export const AlgorithmTracker: SyncHookContract<
     // 3. TaskUpdate → Criteria status updates
     else if (tool_name === "TaskUpdate" && tool_input?.taskId && tool_input?.status) {
       const statusMap: Record<string, AlgorithmCriterion["status"]> = {
-        pending: "pending", in_progress: "in_progress", completed: "completed", deleted: "failed",
+        pending: "pending",
+        in_progress: "in_progress",
+        completed: "completed",
+        deleted: "failed",
       };
       const mapped = statusMap[tool_input.status as string];
       if (mapped) deps.criteriaUpdate(session_id, tool_input.taskId as string, mapped);
@@ -269,13 +289,15 @@ export const AlgorithmTracker: SyncHookContract<
     else if (tool_name === "Task" && tool_input) {
       const agentName = (tool_input.name || tool_input.description || "unnamed") as string;
       const agentType = (tool_input.subagent_type || "general-purpose") as string;
-      const task = ((tool_input.description || (tool_input.prompt as string)?.slice(0, 80)) || "") as string;
+      const task = (tool_input.description ||
+        (tool_input.prompt as string)?.slice(0, 80) ||
+        "") as string;
 
       deps.agentAdd(session_id, { name: agentName, agentType, task });
       deps.stderr(`[AlgorithmTracker] agent spawned: ${agentName} (${agentType})`);
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

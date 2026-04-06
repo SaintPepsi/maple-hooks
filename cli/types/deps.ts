@@ -5,10 +5,10 @@
  * Pattern matches core/adapters but scoped to CLI needs.
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import { PaihError, PaihErrorCode, manifestMissing } from "@hooks/cli/core/error";
 import type { ExecResult } from "@hooks/cli/adapters/process";
+import { manifestMissing, PaihError, PaihErrorCode } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 
 // ─── Deps Interface ─────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ export class InMemoryDeps implements CliDeps {
 
   readDir(path: string): Result<string[], PaihError> {
     const entries: string[] = [];
-    const prefix = path.endsWith("/") ? path : path + "/";
+    const prefix = path.endsWith("/") ? path : `${path}/`;
 
     for (const filePath of this.files.keys()) {
       if (filePath.startsWith(prefix)) {
@@ -121,7 +121,7 @@ export class InMemoryDeps implements CliDeps {
   }
 
   removeDir(path: string): Result<void, PaihError> {
-    const prefix = path.endsWith("/") ? path : path + "/";
+    const prefix = path.endsWith("/") ? path : `${path}/`;
     // Remove all files under this directory
     for (const filePath of [...this.files.keys()]) {
       if (filePath.startsWith(prefix)) {
@@ -144,9 +144,7 @@ export class InMemoryDeps implements CliDeps {
     if (this.dirs.has(path)) {
       return ok({ isDirectory: true });
     }
-    return err(
-      new PaihError(PaihErrorCode.ManifestMissing, `Not found: ${path}`, { path }),
-    );
+    return err(new PaihError(PaihErrorCode.ManifestMissing, `Not found: ${path}`, { path }));
   }
 
   chmod(_path: string, _mode: number): Result<void, PaihError> {

@@ -1,9 +1,5 @@
-import { describe, test, expect } from "bun:test";
-import {
-  getLanguageProfile,
-  isScorableFile,
-  getAllProfiles,
-} from "./language-profiles";
+import { describe, expect, test } from "bun:test";
+import { getAllProfiles, getLanguageProfile, isScorableFile } from "./language-profiles";
 
 describe("language-profiles", () => {
   describe("getLanguageProfile", () => {

@@ -13,13 +13,8 @@ type PipeFn<T, U, E> = (value: T) => Result<U, E>;
  * Thread a value through a sequence of Result-returning functions.
  * Short-circuits on the first Err encountered.
  */
-export function pipe<A, E>(
-  initial: Result<A, E>,
-): Result<A, E>;
-export function pipe<A, B, E>(
-  initial: Result<A, E>,
-  fn1: PipeFn<A, B, E>,
-): Result<B, E>;
+export function pipe<A, E>(initial: Result<A, E>): Result<A, E>;
+export function pipe<A, B, E>(initial: Result<A, E>, fn1: PipeFn<A, B, E>): Result<B, E>;
 export function pipe<A, B, C, E>(
   initial: Result<A, E>,
   fn1: PipeFn<A, B, E>,

@@ -1,27 +1,43 @@
 /**
- * DuplicationChecker Contract — PreToolUse advisory for Write/Edit on .ts files.
+ * DuplicationChecker Contract — PreToolUse tiered response for Write/Edit on .ts files.
+ *
+ * Signal thresholds (4 dimensions: hash, name, sig, body):
+ *   - 1/4: ignore
+ *   - 2/4 or 3/4: log to file only
+ *   - 4/4: block
  *
  * Thin contract shell. Logic lives in:
- *   - shared.ts: index loading, checking, formatting
+ *   - shared.ts: index loading, checking, formatting, tool input helpers
  *   - parser.ts: SWC function extraction
- *
- * Design: docs/plans/2026-03-27-duplication-checker-hook-design.md
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readFile as adapterReadFile, fileExists, appendFile as adapterAppendFile, ensureDir as adapterEnsureDir } from "@hooks/core/adapters/fs";
 import {
-  loadIndex,
-  findIndexPath,
-  checkFunctions,
-  formatFindings,
-  STALENESS_SECONDS,
-} from "@hooks/hooks/DuplicationDetection/shared";
+  appendFile as adapterAppendFile,
+  ensureDir as adapterEnsureDir,
+  readFile as adapterReadFile,
+  fileExists,
+} from "@hooks/core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
+import {
+  BLOCK_THRESHOLD,
+  checkFunctions,
+  findIndexPath,
+  getArtifactsDir,
+  getCurrentBranch,
+  loadIndex,
+  type PatternEntry,
+  simulateEdit,
+} from "@hooks/hooks/DuplicationDetection/shared";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { defaultStderr } from "@hooks/lib/paths";
+import { getFilePath, getWriteContent } from "@hooks/lib/tool-input";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,26 +48,15 @@ export interface DuplicationCheckerDeps {
   ensureDir: (path: string) => void;
   stderr: (msg: string) => void;
   now: () => number;
+  /** When true, 4/4 signal matches block the operation. When false, they log only. */
+  blocking: boolean;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Config ─────────────────────────────────────────────────────────────────
 
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
-}
-
-function getWriteContent(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).content as string ?? null;
-}
-
-function simulateEdit(currentContent: string, input: ToolHookInput): string {
-  const toolInput = input.tool_input as Record<string, unknown>;
-  const oldStr = toolInput.old_string as string | undefined;
-  const newStr = toolInput.new_string as string | undefined;
-  if (oldStr && newStr !== undefined) return currentContent.replace(oldStr, newStr);
-  return currentContent;
+function readBlockingConfig(): boolean {
+  const cfg = readHookConfig<{ blocking?: boolean }>("duplicationChecker");
+  return cfg?.blocking !== false;
 }
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -68,13 +73,14 @@ const defaultDeps: DuplicationCheckerDeps = {
   ensureDir: (path: string): void => {
     adapterEnsureDir(path);
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
   now: () => Date.now(),
+  blocking: readBlockingConfig(),
 };
 
 export const DuplicationCheckerContract: SyncHookContract<
   ToolHookInput,
-  ContinueOutput,
+  ContinueOutput | BlockOutput,
   DuplicationCheckerDeps
 > = {
   name: "DuplicationChecker",
@@ -92,37 +98,67 @@ export const DuplicationCheckerContract: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: DuplicationCheckerDeps,
-  ): Result<ContinueOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     const indexPath = findIndexPath(filePath, deps);
     if (!indexPath) {
       deps.stderr("[DuplicationChecker] No index found — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const index = loadIndex(indexPath, deps);
     if (!index) {
       deps.stderr("[DuplicationChecker] Failed to load index — skipping");
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
-
-    const indexAge = (deps.now() - new Date(index.builtAt).getTime()) / 1000;
-    const isStale = indexAge > STALENESS_SECONDS;
 
     // Get content: Write has it directly, Edit needs simulation
     let content: string | null = null;
+    let preEditHashes: Set<string> | null = null;
     if (input.tool_name === "Write") {
       content = getWriteContent(input);
     } else {
       const currentContent = deps.readFile(filePath);
-      if (currentContent) content = simulateEdit(currentContent, input);
+      if (currentContent) {
+        content = simulateEdit(currentContent, input);
+        // Build set of body hashes present before this edit so we only flag new/changed functions
+        const preFunctions = extractFunctions(currentContent, filePath.endsWith(".tsx"));
+        preEditHashes = new Set(preFunctions.map((f) => f.bodyHash));
+      }
     }
 
-    if (!content) return ok({ type: "continue", continue: true });
+    if (!content) return ok(continueOk());
 
-    const functions = extractFunctions(content, filePath.endsWith(".tsx"));
-    if (functions.length === 0) return ok({ type: "continue", continue: true });
+    const allFunctions = extractFunctions(content, filePath.endsWith(".tsx"));
+    // For edits, exclude functions whose body was already present before the edit
+    const functions = preEditHashes
+      ? allFunctions.filter((f) => !preEditHashes!.has(f.bodyHash))
+      : allFunctions;
+    if (functions.length === 0) return ok(continueOk());
+
+    // ─── Pattern advisory ───────────────────────────────────────────────
+    const patternAdvisories: string[] = [];
+    if (index.patterns && index.patterns.length > 0) {
+      const patternMap = new Map<string, PatternEntry>(index.patterns.map((p) => [p.name, p]));
+      for (const fn of functions) {
+        const pattern = patternMap.get(fn.name);
+        if (!pattern) continue;
+        const examples = pattern.files.slice(0, 3).join(", ");
+        patternAdvisories.push(
+          `Pattern detected: "${pattern.name}" (${pattern.fileCount} files)\n` +
+            `  This function matches a recurring pattern. Consider extracting a shared factory.\n` +
+            `  Examples: ${examples}`,
+        );
+      }
+    }
+
+    function continueWithPatterns(extra?: string): ContinueOutput {
+      const parts = [...patternAdvisories];
+      if (extra) parts.push(extra);
+      if (parts.length === 0) return continueOk();
+      return { ...continueOk(), additionalContext: parts.join("\n\n") };
+    }
 
     const relPath = filePath.startsWith(index.root)
       ? filePath.slice(index.root.length + 1)
@@ -130,12 +166,14 @@ export const DuplicationCheckerContract: SyncHookContract<
 
     const matches = checkFunctions(functions, index, relPath);
 
-    // Log all checks (findings or clean) to .claude/.duplication-checker.log
-    const logDir = indexPath.replace(/\/\.duplication-index\.json$/, "");
+    // Log all checks (findings or clean) to /tmp/pai/duplication/{hash}/{branch}/checker.jsonl
+    const branch = getCurrentBranch(index.root) ?? "default";
+    const logDir = getArtifactsDir(index.root, branch);
     deps.ensureDir(logDir);
-    const logPath = logDir + "/.duplication-checker.log";
+    const logPath = `${logDir}/checker.jsonl`;
     const logEntry = {
       ts: new Date(deps.now()).toISOString(),
+      branch,
       file: relPath,
       functions: functions.length,
       matches: matches.map((m) => ({
@@ -144,22 +182,76 @@ export const DuplicationCheckerContract: SyncHookContract<
         signals: m.signals,
         score: Math.round(m.topScore * 100),
       })),
+      patterns:
+        patternAdvisories.length > 0
+          ? functions
+              .filter((fn) => index.patterns?.some((p) => p.name === fn.name))
+              .map((fn) => {
+                const p = index.patterns!.find((pat) => pat.name === fn.name)!;
+                return { fn: fn.name, patternId: p.id, instances: p.fileCount };
+              })
+          : undefined,
     };
-    deps.appendFile(logPath, JSON.stringify(logEntry) + "\n");
+    deps.appendFile(logPath, `${JSON.stringify(logEntry)}\n`);
 
     if (matches.length === 0) {
       deps.stderr(`[DuplicationChecker] ${filePath}: clean`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueWithPatterns());
     }
 
-    const advisory = formatFindings(matches, isStale);
-    deps.stderr(`[DuplicationChecker] ${filePath}: ${matches.length} finding(s)`);
+    // Separate derivation matches (advisory) from real duplicates (blockable)
+    const derivationMatches = matches.filter((m) => m.derivation);
+    const realMatches = matches.filter((m) => !m.derivation);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: advisory,
-    });
+    // Block on exact body hash match (identical code + same sig) OR all 4 signal dimensions
+    const blockMatches = realMatches.filter(
+      (m) => m.signals.includes("hash") || m.signals.length >= BLOCK_THRESHOLD,
+    );
+
+    if (blockMatches.length > 0) {
+      const opener = pickNarrative("DuplicationChecker", blockMatches.length, import.meta.dir);
+      const reason = [
+        opener,
+        "",
+        ...blockMatches.map(
+          (m) =>
+            `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
+        ),
+        "",
+        "Reuse the existing function instead of duplicating it.",
+      ].join("\n");
+
+      if (deps.blocking) {
+        deps.stderr(
+          `[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`,
+        );
+        return ok({ type: "block", decision: "block", reason });
+      }
+
+      deps.stderr(
+        `[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`,
+      );
+    }
+
+    // Derivation matches: same body, different signature — advisory only, never block
+    if (derivationMatches.length > 0) {
+      const advisory = derivationMatches
+        .map(
+          (m) =>
+            `  ${m.functionName} has identical body to ${m.targetFile}:${m.targetName} but different signature — possible derivation issue`,
+        )
+        .join("\n");
+      deps.stderr(
+        `[DuplicationChecker] ${filePath}: ${derivationMatches.length} derivation(s) detected`,
+      );
+      return ok(continueWithPatterns(advisory));
+    }
+
+    // 2-3 signals: log only, no additionalContext, no block
+    deps.stderr(
+      `[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`,
+    );
+    return ok(continueWithPatterns());
   },
 
   defaultDeps,

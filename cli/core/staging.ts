@@ -12,9 +12,9 @@
  *   .claude/hooks/pai-hooks/<module>.ts   (deduped core deps)
  */
 
+import type { PaihError } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import { ok } from "@hooks/cli/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { HookDef } from "@hooks/cli/types/resolved";
 
@@ -41,10 +41,7 @@ export interface StagingContext {
 // ─── Staging Lifecycle ──────────────────────────────────────────────────────
 
 /** Create the staging directory at .claude/hooks/.paih-staging/. */
-export function createStaging(
-  claudeDir: string,
-  deps: CliDeps,
-): Result<StagingContext, PaihError> {
+export function createStaging(claudeDir: string, deps: CliDeps): Result<StagingContext, PaihError> {
   const hooksDir = `${claudeDir}/hooks`;
   const stagingDir = `${hooksDir}/.paih-staging`;
 
@@ -158,10 +155,7 @@ export function stageCoreModules(
  *
  * Copies each file from staging to the final location, then cleans staging.
  */
-export function commitStaging(
-  ctx: StagingContext,
-  deps: CliDeps,
-): Result<void, PaihError> {
+export function commitStaging(ctx: StagingContext, deps: CliDeps): Result<void, PaihError> {
   // Copy all staged files to their final locations
   const copyResult = copyTree(ctx.stagingDir, ctx.hooksDir, "", deps);
   if (!copyResult.ok) return copyResult;
@@ -171,10 +165,7 @@ export function commitStaging(
 }
 
 /** Remove the staging directory (cleanup on failure or after commit). */
-export function cleanStaging(
-  stagingDir: string,
-  deps: CliDeps,
-): Result<void, PaihError> {
+export function cleanStaging(stagingDir: string, deps: CliDeps): Result<void, PaihError> {
   // Remove all files in staging recursively
   return removeTree(stagingDir, deps);
 }
@@ -182,11 +173,7 @@ export function cleanStaging(
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Copy a single file using deps adapters. */
-function copyFile(
-  src: string,
-  dest: string,
-  deps: CliDeps,
-): Result<void, PaihError> {
+function copyFile(src: string, dest: string, deps: CliDeps): Result<void, PaihError> {
   const content = deps.readFile(src);
   if (!content.ok) return content;
 
@@ -231,10 +218,7 @@ function copyTree(
 }
 
 /** Recursively remove a directory tree. */
-function removeTree(
-  dir: string,
-  deps: CliDeps,
-): Result<void, PaihError> {
+function removeTree(dir: string, deps: CliDeps): Result<void, PaihError> {
   if (!deps.fileExists(dir)) return ok(undefined);
 
   const entries = deps.readDir(dir);

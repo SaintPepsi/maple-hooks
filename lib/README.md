@@ -12,6 +12,16 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | `signal-logger.ts` | Appends structured signals to JSONL files |
 | `execution-classification.ts` | Command classification for execution evidence verification (state-changing vs read-only, output substantiveness, evidence reminders) |
 | `time.ts` | Timestamp formatting (timezone via `TZ` env var, defaults to UTC) |
+| `identity.ts` | Settings/identity loading (`getIdentity`, `getPrincipal`, `getVoiceId`, `getVoiceProsody`). Uses `IdentityDeps` for testability. |
+| `notifications.ts` | Session notifications (desktop, voice). Uses `NotificationDeps` for testability. |
+| `tab-setter.ts` | Terminal tab/title management for CronStatusLine. Uses `TabSetterDeps` for testability. |
+| `algorithm-state.ts` | PRD/algorithm state management (active work, stale sweep). Uses `AlgorithmStateDeps` for testability. |
+| `change-detection.ts` | File change tracking via JSONL history. Uses `ChangeDetectionDeps` for testability. |
+| `paths.ts` | Shared path helpers (`getPaiDir()`, `defaultStderr()`). Factory functions for `defaultDeps`. |
+| `tool-input.ts` | Canonical `getFilePath` and `getWriteContent` extractors for `ToolHookInput.tool_input` fields |
+| `test-helpers.ts` | Shared test factories (`makeWriteInput`, `makeEditInput`, `makeToolInput`) for hook test files |
+| `learning-utils.ts` | Learning/feedback utilities for LearningFeedback hooks |
+| `output-validators.ts` | Output format validation for multiple hook groups |
 
 ## coding-standards-checks.ts
 
@@ -66,6 +76,30 @@ Svelte files (`.svelte`) receive special treatment:
 - **Default exports** are exempted — Svelte components use implicit default exports
 - **Script extraction**: Guards use `extractSvelteScript()` from `svelte-utils.ts` to extract only the `<script lang="ts">` block before scanning, avoiding false positives from HTML template and `<style>` sections
 - **Svelte 5 runes** (`$state`, `$derived`, `$effect`, `$props`, `$bindable`) are valid Svelte syntax and do not trigger any-type violations
+
+## Dependency Injection Pattern
+
+Most lib/ modules accept an optional `deps` parameter following the hook contract pattern:
+
+```typescript
+export interface ModuleDeps {
+  readFile: (path: string) => Result<string, E>;
+  fileExists: (path: string) => boolean;
+  // ... only the methods actually used
+}
+
+const defaultDeps: ModuleDeps = { readFile, fileExists };
+
+export function myFunction(input: string, deps = defaultDeps) { ... }
+```
+
+This enables unit testing without filesystem access. Tests provide mock deps, production code uses `defaultDeps` which wire to real adapters from `core/adapters/`.
+
+**Migrated modules:** `identity.ts`, `notifications.ts`, `tab-setter.ts`, `algorithm-state.ts`, `change-detection.ts`
+
+**Shared factories in `paths.ts`:**
+- `getPaiDir()` — resolves `PAI_DIR` env var with `HOME/.claude/pai` fallback
+- `defaultStderr()` — returns a stderr write function for `defaultDeps`
 
 ### Adding new exclusions
 

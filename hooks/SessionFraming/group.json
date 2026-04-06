@@ -5,8 +5,7 @@
     "BranchAwareness",
     "CheckVersion",
     "GitignoreRecommender",
-    "LoadContext",
-    "StartupGreeting"
+    "LoadContext"
   ],
   "sharedFiles": []
 }

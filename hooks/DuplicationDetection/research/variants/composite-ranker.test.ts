@@ -1,34 +1,39 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const REPO_ROOT = "/Users/hogers/.claude";
-const SCRIPT_PATH = `${REPO_ROOT}/Tools/pattern-detector/variants/composite-ranker.ts`;
-const PAI_HOOKS_DIR = "/Users/hogers/Projects/pai-hooks";
+const SCRIPT_PATH = import.meta.dir + "/composite-ranker.ts";
+const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
-async function runCLI(args: string[]): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+async function runCLI(
+  args: string[],
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const id = Math.random().toString(36).slice(2);
   const stdoutPath = `/tmp/composite-ranker-test-${id}.txt`;
   const stderrPath = `/tmp/composite-ranker-test-stderr-${id}.txt`;
 
-  const proc = Bun.spawn(["bun", SCRIPT_PATH, ...args], {
-    cwd: REPO_ROOT,
+  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+    cwd: import.meta.dir,
     stdout: Bun.file(stdoutPath),
     stderr: Bun.file(stderrPath),
   });
   const exitCode = await proc.exited;
 
   const [stdout, stderr] = await Promise.all([
-    Bun.file(stdoutPath).text().catch(() => ""),
-    Bun.file(stderrPath).text().catch(() => ""),
+    Bun.file(stdoutPath)
+      .text()
+      .catch(() => ""),
+    Bun.file(stderrPath)
+      .text()
+      .catch(() => ""),
   ]);
 
   return { stdout, stderr, exitCode };
 }
 
-function extractOpportunityCount(output: string): number {
-  const match = output.match(/Top Refactoring Opportunities \((\d+) total\)/);
-  return match ? parseInt(match[1], 10) : -1;
+function _extractOpportunityCount(output: string): number {
+  const m = output.match(/Top Refactoring Opportunities \((\d+) total\)/);
+  return m ? parseInt(m[1], 10) : 0;
 }
 
 // ─── CLI: missing directory argument ────────────────────────────────────────
@@ -127,9 +132,9 @@ describe("CLI: top refactoring opportunities content", () => {
     expect(stdout).toMatch(/runHook\s*\[●●●●\]/);
   });
 
-  test("getFilePath appears as a top opportunity", async () => {
+  test("makeSourceRepo appears as a top opportunity", async () => {
     const { stdout } = await runCLI([PAI_HOOKS_DIR]);
-    expect(stdout).toContain("getFilePath");
+    expect(stdout).toContain("makeSourceRepo");
   });
 
   test("Est. savings appears in opportunity entries", async () => {

@@ -1,16 +1,19 @@
-import { describe, it, expect } from "bun:test";
-import { TestObligationTracker } from "@hooks/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.contract";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { TestObligationEnforcer } from "@hooks/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract";
 import type { TestObligationDeps } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { StopInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, SilentOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { readTestExcludePatterns } from "@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared";
+import {
+  TestObligationTracker,
+  type TestTrackerDeps,
+} from "@hooks/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.contract";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeTrackerDeps(overrides: Partial<TestObligationDeps> = {}): TestObligationDeps {
+function makeTrackerDeps(overrides: Partial<TestTrackerDeps> = {}): TestTrackerDeps {
   return {
     stateDir: "/tmp/pai-test-obligation",
     fileExists: () => false,
@@ -21,6 +24,7 @@ function makeTrackerDeps(overrides: Partial<TestObligationDeps> = {}): TestOblig
     writeBlockCount: () => {},
     writeReview: () => {},
     stderr: () => {},
+    getExcludePatterns: () => [],
     ...overrides,
   };
 }
@@ -50,15 +54,21 @@ describe("TestObligationTracker", () => {
   // ── accepts ──
 
   it("accepts Edit tool with code file", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/src/app.ts" }))).toBe(true);
+    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/src/app.ts" }))).toBe(
+      true,
+    );
   });
 
   it("accepts Write tool with code file", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Write", { file_path: "/src/app.tsx" }))).toBe(true);
+    expect(
+      TestObligationTracker.accepts(makeToolInput("Write", { file_path: "/src/app.tsx" })),
+    ).toBe(true);
   });
 
   it("accepts Bash tool", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Bash", { command: "bun test" }))).toBe(true);
+    expect(TestObligationTracker.accepts(makeToolInput("Bash", { command: "bun test" }))).toBe(
+      true,
+    );
   });
 
   it("rejects Read tool", () => {
@@ -66,37 +76,65 @@ describe("TestObligationTracker", () => {
   });
 
   it("rejects Edit with non-code file", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/docs/README.md" }))).toBe(false);
+    expect(
+      TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/docs/README.md" })),
+    ).toBe(false);
   });
 
   it("rejects Write with non-code file", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Write", { file_path: "/config.json" }))).toBe(false);
+    expect(
+      TestObligationTracker.accepts(makeToolInput("Write", { file_path: "/config.json" })),
+    ).toBe(false);
   });
 
   it("rejects Edit with test file", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/src/app.test.ts" }))).toBe(false);
+    expect(
+      TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/src/app.test.ts" })),
+    ).toBe(false);
   });
 
   it("rejects Edit with spec file", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/src/app.spec.tsx" }))).toBe(false);
+    expect(
+      TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/src/app.spec.tsx" })),
+    ).toBe(false);
   });
 
   // ── PHP/Laravel test file patterns ──
 
   it("rejects Edit with PHP Test file (FooTest.php)", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/app/Console/Commands/SeedTestIneligibleMatterTest.php" }))).toBe(false);
+    expect(
+      TestObligationTracker.accepts(
+        makeToolInput("Edit", {
+          file_path: "/app/Console/Commands/SeedTestIneligibleMatterTest.php",
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects Write with PHP Test file in tests/Feature/", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Write", { file_path: "/tests/Feature/Console/SeedTestIneligibleMatterTest.php" }))).toBe(false);
+    expect(
+      TestObligationTracker.accepts(
+        makeToolInput("Write", {
+          file_path: "/tests/Feature/Console/SeedTestIneligibleMatterTest.php",
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects Edit with PHP Test file in tests/Unit/", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/tests/Unit/Models/UserTest.php" }))).toBe(false);
+    expect(
+      TestObligationTracker.accepts(
+        makeToolInput("Edit", { file_path: "/tests/Unit/Models/UserTest.php" }),
+      ),
+    ).toBe(false);
   });
 
   it("accepts Edit with PHP production file (not a test)", () => {
-    expect(TestObligationTracker.accepts(makeToolInput("Edit", { file_path: "/app/Console/Commands/SeedTestIneligibleMatter.php" }))).toBe(true);
+    expect(
+      TestObligationTracker.accepts(
+        makeToolInput("Edit", { file_path: "/app/Console/Commands/SeedTestIneligibleMatter.php" }),
+      ),
+    ).toBe(true);
   });
 
   // ── Edit/Write sets pending ──
@@ -105,13 +143,15 @@ describe("TestObligationTracker", () => {
     let writtenFiles: string[] = [];
     const deps = makeTrackerDeps({
       readPending: () => [],
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
     const result = TestObligationTracker.execute(
       makeToolInput("Edit", { file_path: "/src/handler.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/handler.ts");
@@ -121,13 +161,15 @@ describe("TestObligationTracker", () => {
     let writtenFiles: string[] = [];
     const deps = makeTrackerDeps({
       readPending: () => [],
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
     const result = TestObligationTracker.execute(
       makeToolInput("Write", { file_path: "/src/utils.ts" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(writtenFiles).toContain("/src/utils.ts");
@@ -137,13 +179,12 @@ describe("TestObligationTracker", () => {
     let writtenFiles: string[] = [];
     const deps = makeTrackerDeps({
       readPending: () => ["/src/handler.ts"],
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Edit", { file_path: "/src/handler.ts" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Edit", { file_path: "/src/handler.ts" }), deps);
 
     expect(writtenFiles).toEqual(["/src/handler.ts"]);
   });
@@ -154,13 +195,15 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
     const result = TestObligationTracker.execute(
       makeToolInput("Bash", { command: "bun test" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     expect(removed).toBe(true);
@@ -170,13 +213,12 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "npm test" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Bash", { command: "npm test" }), deps);
 
     expect(removed).toBe(true);
   });
@@ -187,13 +229,12 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "phpunit" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Bash", { command: "phpunit" }), deps);
 
     expect(removed).toBe(true);
   });
@@ -202,7 +243,9 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
     TestObligationTracker.execute(
@@ -217,13 +260,12 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "sail test" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Bash", { command: "sail test" }), deps);
 
     expect(removed).toBe(true);
   });
@@ -232,13 +274,12 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "php artisan test" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Bash", { command: "php artisan test" }), deps);
 
     expect(removed).toBe(true);
   });
@@ -247,13 +288,12 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "npx vitest run" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Bash", { command: "npx vitest run" }), deps);
 
     expect(removed).toBe(true);
   });
@@ -265,7 +305,9 @@ describe("TestObligationTracker", () => {
     const deps = makeTrackerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts", "/src/utils.ts"],
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
     TestObligationTracker.execute(
@@ -281,7 +323,9 @@ describe("TestObligationTracker", () => {
     const deps = makeTrackerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts", "/src/utils.ts", "/src/app.ts"],
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
     TestObligationTracker.execute(
@@ -298,7 +342,9 @@ describe("TestObligationTracker", () => {
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       writePending: () => {},
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
     TestObligationTracker.execute(
@@ -314,7 +360,9 @@ describe("TestObligationTracker", () => {
     const deps = makeTrackerDeps({
       fileExists: () => true,
       readPending: () => ["/Users/dev/project/src/handler.ts", "/Users/dev/project/src/utils.ts"],
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
     TestObligationTracker.execute(
@@ -330,7 +378,9 @@ describe("TestObligationTracker", () => {
     const deps = makeTrackerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts", "/src/utils.ts"],
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
     TestObligationTracker.execute(
@@ -348,14 +398,15 @@ describe("TestObligationTracker", () => {
     let writtenFiles: string[] | null = null;
     const deps = makeTrackerDeps({
       fileExists: () => true,
-      removeFlag: () => { removed = true; },
-      writePending: (_path: string, files: string[]) => { writtenFiles = files; },
+      removeFlag: () => {
+        removed = true;
+      },
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "git status" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Bash", { command: "git status" }), deps);
 
     expect(removed).toBe(false);
     expect(writtenFiles).toBeNull();
@@ -367,13 +418,12 @@ describe("TestObligationTracker", () => {
     let writtenPath = "";
     const deps = makeTrackerDeps({
       readPending: () => [],
-      writePending: (path: string) => { writtenPath = path; },
+      writePending: (path: string) => {
+        writtenPath = path;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Edit", { file_path: "/src/handler.ts" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Edit", { file_path: "/src/handler.ts" }), deps);
 
     expect(writtenPath).toContain("test-session");
   });
@@ -382,7 +432,9 @@ describe("TestObligationTracker", () => {
     const paths: string[] = [];
     const deps = makeTrackerDeps({
       readPending: () => [],
-      writePending: (path: string) => { paths.push(path); },
+      writePending: (path: string) => {
+        paths.push(path);
+      },
     });
 
     TestObligationTracker.execute(
@@ -403,13 +455,12 @@ describe("TestObligationTracker", () => {
     let removed = false;
     const deps = makeTrackerDeps({
       fileExists: () => false,
-      removeFlag: () => { removed = true; },
+      removeFlag: () => {
+        removed = true;
+      },
     });
 
-    TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "bun test" }),
-      deps,
-    );
+    TestObligationTracker.execute(makeToolInput("Bash", { command: "bun test" }), deps);
 
     expect(removed).toBe(false);
   });
@@ -430,10 +481,10 @@ describe("TestObligationEnforcer", () => {
   it("returns silent when no pending flag exists", () => {
     const deps = makeTrackerDeps({ fileExists: () => false });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -446,10 +497,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/src/handler.ts", "/src/utils.ts"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -462,10 +513,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/src/handler.ts"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -478,10 +529,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/src/app.ts"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -497,10 +548,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/src/handler.ts"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -519,10 +570,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/src/handler.ts"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -542,10 +593,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/app/Console/Commands/SeedTestIneligibleMatter.php"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -564,10 +615,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/src/handler.ts"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -586,10 +637,10 @@ describe("TestObligationEnforcer", () => {
       readPending: () => ["/src/handler.ts", "/src/utils.ts"],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -613,10 +664,10 @@ describe("TestObligationEnforcer", () => {
       writeReview: () => {},
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -632,10 +683,10 @@ describe("TestObligationEnforcer", () => {
       writeReview: () => {},
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -652,10 +703,10 @@ describe("TestObligationEnforcer", () => {
       writeReview: () => {},
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -668,7 +719,9 @@ describe("TestObligationEnforcer", () => {
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       readBlockCount: () => 0,
-      writeBlockCount: (_path: string, count: number) => { writtenCount = count; },
+      writeBlockCount: (_path: string, count: number) => {
+        writtenCount = count;
+      },
       writeReview: () => {},
     });
 
@@ -700,13 +753,15 @@ describe("TestObligationEnforcer", () => {
   });
 
   it("cleans up state files when block limit reached", () => {
-    let removedPaths: string[] = [];
+    const removedPaths: string[] = [];
     const deps = makeTrackerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
       readBlockCount: () => 2,
       writeBlockCount: () => {},
-      removeFlag: (path: string) => { removedPaths.push(path); },
+      removeFlag: (path: string) => {
+        removedPaths.push(path);
+      },
       writeReview: () => {},
     });
 
@@ -722,14 +777,90 @@ describe("TestObligationEnforcer", () => {
       readPending: () => [],
     });
 
-    const result = TestObligationEnforcer.execute(
-      makeStopInput(),
-      deps,
-    ) as Result<BlockOutput | SilentOutput, PaiError>;
+    const result = TestObligationEnforcer.execute(makeStopInput(), deps) as Result<
+      BlockOutput | SilentOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("silent");
+  });
+});
+
+// ─── TestObligationTracker excludePatterns ────────────────────────────────────
+
+describe("TestObligationTracker excludePatterns", () => {
+  it("does not add file to pending when it matches an exclude pattern", () => {
+    let writtenFiles: string[] | null = null;
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/generated/**"],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/generated/schema.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toBeNull();
+  });
+
+  it("still adds file when pattern does not match", () => {
+    let writtenFiles: string[] = [];
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/generated/**"],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/handlers/user.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toContain("/src/handlers/user.ts");
+  });
+
+  it("adds file normally when excludePatterns is empty (backward compatible)", () => {
+    let writtenFiles: string[] = [];
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => [],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/app.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toContain("/src/app.ts");
+  });
+
+  it("excludes file when any pattern in the list matches", () => {
+    let writtenFiles: string[] | null = null;
+    const deps = makeTrackerDeps({
+      readPending: () => [],
+      writePending: (_path: string, files: string[]) => {
+        writtenFiles = files;
+      },
+      getExcludePatterns: () => ["**/vendor/**", "**/generated/**", "**/*.pb.ts"],
+    });
+
+    TestObligationTracker.execute(
+      makeToolInput("Edit", { file_path: "/src/proto/types.pb.ts" }),
+      deps,
+    );
+
+    expect(writtenFiles).toBeNull();
   });
 });
 
@@ -760,32 +891,40 @@ describe("TestObligationTracker defaultDeps", () => {
   });
 
   it("defaultDeps.readPending returns an array for nonexistent file", () => {
-    const result = TestObligationTracker.defaultDeps.readPending("/tmp/nonexistent-pai-tosm-12345.json");
+    const result = TestObligationTracker.defaultDeps.readPending(
+      "/tmp/nonexistent-pai-tosm-12345.json",
+    );
     expect(Array.isArray(result)).toBe(true);
     expect(result).toEqual([]);
   });
 
   it("defaultDeps.writePending writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-tosm-wp-" + Date.now() + ".json";
-    expect(() => TestObligationTracker.defaultDeps.writePending(tmpPath, ["/src/a.ts"])).not.toThrow();
+    const tmpPath = `/tmp/pai-test-tosm-wp-${Date.now()}.json`;
+    expect(() =>
+      TestObligationTracker.defaultDeps.writePending(tmpPath, ["/src/a.ts"]),
+    ).not.toThrow();
   });
 
   it("defaultDeps.removeFlag does not throw for nonexistent file", () => {
-    expect(() => TestObligationTracker.defaultDeps.removeFlag("/tmp/nonexistent-pai-tosm-12345.json")).not.toThrow();
+    expect(() =>
+      TestObligationTracker.defaultDeps.removeFlag("/tmp/nonexistent-pai-tosm-12345.json"),
+    ).not.toThrow();
   });
 
   it("defaultDeps.readBlockCount returns 0 for nonexistent file", () => {
-    const result = TestObligationTracker.defaultDeps.readBlockCount("/tmp/nonexistent-pai-tosm-bc-12345.txt");
+    const result = TestObligationTracker.defaultDeps.readBlockCount(
+      "/tmp/nonexistent-pai-tosm-bc-12345.txt",
+    );
     expect(result).toBe(0);
   });
 
   it("defaultDeps.writeBlockCount writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-tosm-bc-" + Date.now() + ".txt";
+    const tmpPath = `/tmp/pai-test-tosm-bc-${Date.now()}.txt`;
     expect(() => TestObligationTracker.defaultDeps.writeBlockCount(tmpPath, 1)).not.toThrow();
   });
 
   it("defaultDeps.writeReview writes without throwing", () => {
-    const tmpPath = "/tmp/pai-test-tosm-rv-" + Date.now() + ".md";
+    const tmpPath = `/tmp/pai-test-tosm-rv-${Date.now()}.md`;
     expect(() => TestObligationTracker.defaultDeps.writeReview(tmpPath, "# Review")).not.toThrow();
   });
 
@@ -796,5 +935,80 @@ describe("TestObligationTracker defaultDeps", () => {
   it("defaultDeps.stateDir is a string path", () => {
     expect(typeof TestObligationTracker.defaultDeps.stateDir).toBe("string");
     expect(TestObligationTracker.defaultDeps.stateDir).toContain("test-obligation");
+  });
+
+  it("defaultDeps.readPending handles corrupt state file", () => {
+    const tmpPath = `/tmp/pai-test-tosm-corrupt-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, "{ broken json !!!");
+    const result = TestObligationTracker.defaultDeps.readPending(tmpPath);
+    expect(result).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("defaultDeps.readPending returns parsed array for valid file", () => {
+    const tmpPath = `/tmp/pai-test-tosm-rp-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
+    const result = TestObligationTracker.defaultDeps.readPending(tmpPath);
+    expect(result).toEqual(["/src/a.ts"]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("defaultDeps.readBlockCount parses numeric content", () => {
+    const tmpPath = `/tmp/pai-test-tosm-bc-${Date.now()}.txt`;
+    require("fs").writeFileSync(tmpPath, "42");
+    const result = TestObligationTracker.defaultDeps.readBlockCount(tmpPath);
+    expect(result).toBe(42);
+    require("fs").unlinkSync(tmpPath);
+  });
+});
+
+// ─── readTestExcludePatterns ────────────────────────────────────────────────
+
+describe("readTestExcludePatterns", () => {
+  it("returns empty array for nonexistent settings", () => {
+    expect(readTestExcludePatterns("/tmp/nonexistent-tosm-12345.json")).toEqual([]);
+  });
+
+  it("returns empty array for malformed JSON", () => {
+    const tmpPath = `/tmp/pai-test-tosm-excl-bad-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, "{ broken !!!");
+    expect(readTestExcludePatterns(tmpPath)).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("returns patterns when present", () => {
+    const tmpPath = `/tmp/pai-test-tosm-excl-${Date.now()}.json`;
+    require("fs").writeFileSync(
+      tmpPath,
+      JSON.stringify({
+        hookConfig: { testObligation: { excludePatterns: ["**/vendor/**"] } },
+      }),
+    );
+    expect(readTestExcludePatterns(tmpPath)).toEqual(["**/vendor/**"]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("returns empty array when no testObligation config", () => {
+    const tmpPath = `/tmp/pai-test-tosm-excl-none-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify({ hookConfig: {} }));
+    expect(readTestExcludePatterns(tmpPath)).toEqual([]);
+    require("fs").unlinkSync(tmpPath);
+  });
+});
+
+// ─── defaultDeps write-failure branches ─────────────────────────────────────
+
+describe("TestObligationTracker defaultDeps — write failures", () => {
+  it("defaultDeps.writePending does not throw on write failure", () => {
+    // /proc is read-only on all platforms, triggering the error branch
+    expect(() =>
+      TestObligationTracker.defaultDeps.writePending("/proc/pai-test-write-fail.json", ["/a.ts"]),
+    ).not.toThrow();
+  });
+
+  it("defaultDeps.writeBlockCount does not throw on write failure", () => {
+    expect(() =>
+      TestObligationTracker.defaultDeps.writeBlockCount("/proc/pai-test-bc-fail.txt", 1),
+    ).not.toThrow();
   });
 });

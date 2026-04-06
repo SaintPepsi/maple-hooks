@@ -9,19 +9,15 @@
  * Always returns ContinueOutput — never blocks the tool result.
  */
 
+import { join } from "node:path";
+import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import {
-  readFile,
-  writeFile,
-  fileExists,
-  readJson,
-} from "@hooks/core/adapters/fs";
-import { join } from "path";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -51,10 +47,10 @@ export interface WorkEntry {
 export type WorkJson = Record<string, WorkEntry>;
 
 export interface PRDSyncDeps {
-  readFile: (path: string) => Result<string, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
   stderr: (msg: string) => void;
   baseDir: string;
 }
@@ -85,14 +81,30 @@ export function parseFrontmatter(content: string): PRDFrontmatter | null {
     if (!key || !value) continue;
 
     switch (key) {
-      case "task":     result.task = value;     break;
-      case "slug":     result.slug = value;     break;
-      case "effort":   result.effort = value;   break;
-      case "phase":    result.phase = value;    break;
-      case "progress": result.progress = value; break;
-      case "mode":     result.mode = value;     break;
-      case "started":  result.started = value;  break;
-      case "updated":  result.updated = value;  break;
+      case "task":
+        result.task = value;
+        break;
+      case "slug":
+        result.slug = value;
+        break;
+      case "effort":
+        result.effort = value;
+        break;
+      case "phase":
+        result.phase = value;
+        break;
+      case "progress":
+        result.progress = value;
+        break;
+      case "mode":
+        result.mode = value;
+        break;
+      case "started":
+        result.started = value;
+        break;
+      case "updated":
+        result.updated = value;
+        break;
     }
   }
 
@@ -141,7 +153,7 @@ export function extractSessionDir(filePath: string): string | null {
 function syncSessionState(
   sessionId: string,
   sessionDir: string,
-  prdPath: string,
+  _prdPath: string,
   deps: PRDSyncDeps,
 ): void {
   const stateFilePath = join(deps.baseDir, "MEMORY", "STATE", `current-work-${sessionId}.json`);
@@ -177,7 +189,7 @@ function syncWorkJson(
   entry: WorkEntry,
   workJsonPath: string,
   deps: PRDSyncDeps,
-): Result<void, PaiError> {
+): Result<void, ResultError> {
   let existing: WorkJson = {};
 
   if (deps.fileExists(workJsonPath)) {
@@ -205,11 +217,7 @@ const defaultDeps: PRDSyncDeps = {
   baseDir: getPaiDir(),
 };
 
-export const PRDSync: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  PRDSyncDeps
-> = {
+export const PRDSync: SyncHookContract<ToolHookInput, ContinueOutput, PRDSyncDeps> = {
   name: "PRDSync",
   event: "PostToolUse",
 
@@ -221,21 +229,18 @@ export const PRDSync: SyncHookContract<
     return filePath.includes("MEMORY/WORK/") && filePath.endsWith("PRD.md");
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: PRDSyncDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: PRDSyncDeps): Result<ContinueOutput, ResultError> {
     const filePath = (input.tool_input?.file_path as string) ?? "";
 
     if (!deps.fileExists(filePath)) {
       deps.stderr(`[PRDSync] PRD file not found on disk: ${filePath}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const readResult = deps.readFile(filePath);
     if (!readResult.ok) {
       deps.stderr(`[PRDSync] Failed to read PRD: ${readResult.error.message}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const content = readResult.value;
@@ -243,27 +248,27 @@ export const PRDSync: SyncHookContract<
 
     if (!fm) {
       deps.stderr(`[PRDSync] No frontmatter found in: ${filePath}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const slug = fm.slug;
     if (!slug) {
       deps.stderr(`[PRDSync] Frontmatter missing slug, skipping: ${filePath}`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const { total, done } = parseCriteriaCounts(content);
 
     const entry: WorkEntry = {
-      task:           fm.task     ?? "",
-      phase:          fm.phase    ?? "",
-      progress:       fm.progress ?? `${done}/${total}`,
-      effort:         fm.effort   ?? "",
-      mode:           fm.mode     ?? "",
-      started:        fm.started  ?? "",
-      updated:        fm.updated  ?? new Date().toISOString(),
+      task: fm.task ?? "",
+      phase: fm.phase ?? "",
+      progress: fm.progress ?? `${done}/${total}`,
+      effort: fm.effort ?? "",
+      mode: fm.mode ?? "",
+      started: fm.started ?? "",
+      updated: fm.updated ?? new Date().toISOString(),
       criteria_total: total,
-      criteria_done:  done,
+      criteria_done: done,
     };
 
     const workJsonPath = join(deps.baseDir, "MEMORY", "STATE", "work.json");
@@ -282,7 +287,7 @@ export const PRDSync: SyncHookContract<
       syncSessionState(input.session_id, sessionDir, filePath, deps);
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

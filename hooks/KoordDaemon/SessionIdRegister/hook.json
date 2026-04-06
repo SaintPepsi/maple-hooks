@@ -4,8 +4,6 @@
   "event": "SessionStart",
   "description": "Registers session ID with Koord daemon for thread agents",
   "schemaVersion": 1,
-  "tags": [
-    "koord"
-  ],
+  "tags": ["koord"],
   "presets": []
 }

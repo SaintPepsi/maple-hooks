@@ -5,20 +5,38 @@
  * and the pruned event is logged with reason "session_ended".
  */
 
-import { describe, it, expect } from "bun:test";
-import { CronSessionEnd, type CronSessionEndDeps } from "./CronSessionEnd.contract";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { CronSessionFile } from "@hooks/hooks/CronStatusLine/shared";
-import { ok, err } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
+import { CronSessionEnd, type CronSessionEndDeps } from "./CronSessionEnd.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
 const MOCK_SESSION_FILE: CronSessionFile = {
   sessionId: "test-session-123",
   crons: [
-    { id: "c1", name: "poll", schedule: "*/5 * * * *", recurring: true, prompt: "check status", createdAt: 0, fireCount: 3, lastFired: 1000 },
-    { id: "c2", name: "sync", schedule: "*/10 * * * *", recurring: true, prompt: "sync data", createdAt: 0, fireCount: 1, lastFired: 2000 },
+    {
+      id: "c1",
+      name: "poll",
+      schedule: "*/5 * * * *",
+      recurring: true,
+      prompt: "check status",
+      createdAt: 0,
+      fireCount: 3,
+      lastFired: 1000,
+    },
+    {
+      id: "c2",
+      name: "sync",
+      schedule: "*/10 * * * *",
+      recurring: true,
+      prompt: "sync data",
+      createdAt: 0,
+      fireCount: 1,
+      lastFired: 2000,
+    },
   ],
 };
 
@@ -65,7 +83,10 @@ describe("CronSessionEnd execute", () => {
   it("removes the session's cron file", () => {
     const removed: string[] = [];
     const deps = makeDeps({
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronSessionEnd.execute(makeInput(), deps);
@@ -78,7 +99,10 @@ describe("CronSessionEnd execute", () => {
     const removed: string[] = [];
     const deps = makeDeps({
       fileExists: () => false,
-      removeFile: (path: string) => { removed.push(path); return ok(undefined); },
+      removeFile: (path: string) => {
+        removed.push(path);
+        return ok(undefined);
+      },
     });
 
     const result = CronSessionEnd.execute(makeInput(), deps);
@@ -92,7 +116,10 @@ describe("CronSessionEnd execute", () => {
   it("logs pruned event with reason session_ended and correct cronCount", () => {
     const logged: string[] = [];
     const deps = makeDeps({
-      appendFile: (_path: string, content: string) => { logged.push(content); return ok(undefined); },
+      appendFile: (_path: string, content: string) => {
+        logged.push(content);
+        return ok(undefined);
+      },
     });
 
     const result = CronSessionEnd.execute(makeInput(), deps);
@@ -118,8 +145,10 @@ describe("CronSessionEnd execute", () => {
   it("returns silent when removeFile fails (does not crash hook chain)", () => {
     const stderrOutput: string[] = [];
     const deps = makeDeps({
-      removeFile: () => err(new PaiError(ErrorCode.FileWriteFailed, "permission denied")),
-      stderr: (msg: string) => { stderrOutput.push(msg); },
+      removeFile: () => err(new ResultError(ErrorCode.FileWriteFailed, "permission denied")),
+      stderr: (msg: string) => {
+        stderrOutput.push(msg);
+      },
     });
 
     const result = CronSessionEnd.execute(makeInput(), deps);
@@ -134,8 +163,11 @@ describe("CronSessionEnd execute", () => {
   it("logs cronCount 0 when cron file is unreadable", () => {
     const logged: string[] = [];
     const deps = makeDeps({
-      readFile: () => err(new PaiError(ErrorCode.FileReadFailed, "corrupt")),
-      appendFile: (_path: string, content: string) => { logged.push(content); return ok(undefined); },
+      readFile: () => err(new ResultError(ErrorCode.FileReadFailed, "corrupt")),
+      appendFile: (_path: string, content: string) => {
+        logged.push(content);
+        return ok(undefined);
+      },
     });
 
     const result = CronSessionEnd.execute(makeInput(), deps);

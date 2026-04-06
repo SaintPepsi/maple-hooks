@@ -8,12 +8,14 @@
  * Skips for subagents. Fails silently if git command fails.
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import { execSyncSafe } from "@hooks/core/adapters/process";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
+import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -31,14 +33,8 @@ const defaultDeps: BranchAwarenessDeps = {
     if (!result.ok) return null;
     return result.value.trim() || null;
   },
-  isSubagent: () => {
-    const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return (
-      claudeProjectDir.includes("/.claude/Agents/") ||
-      process.env.CLAUDE_AGENT_TYPE !== undefined
-    );
-  },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  isSubagent: () => isSubagent((k) => process.env[k]),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -58,7 +54,7 @@ export const BranchAwareness: SyncHookContract<
   execute(
     _input: SessionStartInput,
     deps: BranchAwarenessDeps,
-  ): Result<ContextOutput | SilentOutput, PaiError> {
+  ): Result<ContextOutput | SilentOutput, ResultError> {
     if (deps.isSubagent()) {
       return ok({ type: "silent" });
     }

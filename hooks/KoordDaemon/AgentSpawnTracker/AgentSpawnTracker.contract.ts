@@ -19,21 +19,31 @@
  * Source: /Users/hogers/Projects/koord/.claude/hooks/AgentSpawnTracker.hook.js
  */
 
-import type { AsyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import type { FetchResult } from "@hooks/core/adapters/fetch";
 import { safeFetch } from "@hooks/core/adapters/fetch";
-import { extractThreadId, extractAgentName, extractTask, readKoordConfig, defaultReadFileOrNull } from "@hooks/hooks/KoordDaemon/shared";
+import type { AsyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import {
+  defaultReadFileOrNull,
+  extractAgentName,
+  extractTask,
+  extractThreadId,
+  readKoordConfig,
+} from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface AgentSpawnTrackerDeps {
   getEnv: (name: string) => string | undefined;
-  safeFetch: (url: string, opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string }) => Promise<Result<FetchResult, PaiError>>;
+  safeFetch: (
+    url: string,
+    opts: { timeout?: number; method?: string; headers?: Record<string, string>; body?: string },
+  ) => Promise<Result<FetchResult, ResultError>>;
   getKoordConfig: () => { url: string | null };
   stderr: (msg: string) => void;
 }
@@ -44,7 +54,7 @@ const defaultDeps: AgentSpawnTrackerDeps = {
   getEnv: (name) => process.env[name],
   safeFetch,
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -64,7 +74,7 @@ export const AgentSpawnTracker: AsyncHookContract<
   async execute(
     input: ToolHookInput,
     deps: AgentSpawnTrackerDeps,
-  ): Promise<Result<ContinueOutput, PaiError>> {
+  ): Promise<Result<ContinueOutput, ResultError>> {
     const toolInput = input.tool_input;
 
     // Only fire for background agents
@@ -107,7 +117,9 @@ export const AgentSpawnTracker: AsyncHookContract<
     if (result.ok) {
       deps.stderr(`[AgentSpawnTracker] Notified daemon: spawn ${agentName} → ${threadId}`);
     } else {
-      deps.stderr(`[AgentSpawnTracker] Daemon notify failed (non-blocking): ${result.error.message}`);
+      deps.stderr(
+        `[AgentSpawnTracker] Daemon notify failed (non-blocking): ${result.error.message}`,
+      );
     }
 
     return ok(continueOk());

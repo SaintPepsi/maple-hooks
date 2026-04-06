@@ -1,17 +1,17 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  ok,
-  err,
   andThen,
+  collectResults,
+  err,
   map,
   mapError,
   match,
-  unwrapOr,
-  collectResults,
+  ok,
   partitionResults,
+  type Result,
   tryCatch,
   tryCatchAsync,
-  type Result,
+  unwrapOr,
 } from "./result";
 
 // ─── Constructors ────────────────────────────────────────────────────────────
@@ -228,8 +228,10 @@ describe("tryCatchAsync", () => {
 
   it("returns Err for rejected promise", async () => {
     const r = await tryCatchAsync(
-      async () => { throw new Error("async fail"); },
-      (e) => e instanceof Error ? e.message : String(e),
+      async () => {
+        throw new Error("async fail");
+      },
+      (e) => (e instanceof Error ? e.message : String(e)),
     );
     expect(r.ok).toBe(false);
     expect(r.error).toBe("async fail");
@@ -238,7 +240,7 @@ describe("tryCatchAsync", () => {
   it("returns Err for thrown sync error in async fn", async () => {
     const r = await tryCatchAsync(
       async () => JSON.parse("bad"),
-      (e) => "caught",
+      (_e) => "caught",
     );
     expect(r.ok).toBe(false);
     expect(r.error).toBe("caught");

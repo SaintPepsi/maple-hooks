@@ -1,26 +1,27 @@
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import { addPending, clearMatching } from "@hooks/lib/obligation-machine";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import { projectHasHook } from "@hooks/hooks/ObligationStateMachines/DocObligationStateMachine.shared";
 import {
+  allDocFileNames,
   defaultDeps,
-  pendingPath,
-  getFilePath,
-  isHookSourceFile,
-  isHookDocFile,
+  docFileNameFromPath,
   getHookDirFromPath,
+  isAnyDocFile,
+  isHookSourceFile,
+  parseTag,
+  pendingPath,
   readHookDocSettings,
+  tagPending as tag,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
+import { addPending, clearMatching } from "@hooks/lib/obligation-machine";
+import { getFilePath } from "@hooks/lib/tool-input";
 
-export const HookDocTracker: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  ObligationDeps
-> = {
+export const HookDocTracker: SyncHookContract<ToolHookInput, ContinueOutput, ObligationDeps> = {
   name: "HookDocTracker",
   event: "PostToolUse",
 
@@ -30,40 +31,64 @@ export const HookDocTracker: SyncHookContract<
     const filePath = getFilePath(input);
     if (!filePath) return false;
     const settings = readHookDocSettings();
-    return isHookSourceFile(filePath, settings.watchPatterns) || isHookDocFile(filePath, settings.docFileName);
+    return isHookSourceFile(filePath, settings.watchPatterns) || isAnyDocFile(filePath, settings);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: ObligationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: ObligationDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input);
-    if (!filePath) return ok({ type: "continue", continue: true });
+    if (!filePath) return ok(continueOk());
 
     const settings = readHookDocSettings();
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
-    // Doc file written → clear matching pending entries from same hook directory
-    if (isHookDocFile(filePath, settings.docFileName)) {
+    // Doc file written → clear matching pending entries
+    if (isAnyDocFile(filePath, settings)) {
       const docDir = getHookDirFromPath(filePath);
-      const { remaining, cleared } = clearMatching(deps, flagFile, (p) => {
-        return getHookDirFromPath(p) === docDir;
-      });
+      const writtenDoc = docFileNameFromPath(filePath);
 
-      if (cleared) {
-        deps.stderr(
-          remaining === 0
-            ? "[HookDocTracker] All pending hooks documented — clearing flag"
-            : `[HookDocTracker] Cleared documented hook, ${remaining} still pending`,
+      if (settings.mode === "linked") {
+        // Linked mode: clear ALL entries for the directory only when ALL doc files exist
+        const allDocsExist = allDocFileNames(settings).every((name) =>
+          deps.fileExists(`${docDir}/${name}`),
         );
+        if (!allDocsExist) return ok(continueOk());
+
+        const { remaining, cleared } = clearMatching(deps, flagFile, (p) => {
+          const { source } = parseTag(p);
+          return getHookDirFromPath(source) === docDir;
+        });
+
+        if (cleared) {
+          deps.stderr(
+            remaining === 0
+              ? "[HookDocTracker] All pending hooks documented — clearing flag"
+              : `[HookDocTracker] Cleared documented hook, ${remaining} still pending`,
+          );
+        }
+      } else {
+        // Independent mode (default): clear only entries tagged with the written doc name
+        const { remaining, cleared } = clearMatching(deps, flagFile, (p) => {
+          const { source, docFile } = parseTag(p);
+          return getHookDirFromPath(source) === docDir && docFile === writtenDoc;
+        });
+
+        if (cleared) {
+          deps.stderr(
+            remaining === 0
+              ? "[HookDocTracker] All pending hooks documented — clearing flag"
+              : `[HookDocTracker] Cleared documented hook, ${remaining} still pending`,
+          );
+        }
       }
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
-    // Hook source file modified → add to pending
-    addPending(deps, flagFile, filePath);
+    // Hook source file modified → add tagged entries for each doc file
+    for (const docName of allDocFileNames(settings)) {
+      addPending(deps, flagFile, tag(filePath, docName));
+    }
     deps.stderr(`[HookDocTracker] Hook source modified: ${filePath} — docs pending`);
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

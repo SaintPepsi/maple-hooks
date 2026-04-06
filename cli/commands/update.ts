@@ -11,19 +11,15 @@
  * File hashes from cli/core/lockfile.ts.
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { invalidArgs, lockMissing, fileModified } from "@hooks/cli/core/error";
 import type { ParsedArgs } from "@hooks/cli/core/args";
+import type { PaihError } from "@hooks/cli/core/error";
+import { fileModified, lockMissing } from "@hooks/cli/core/error";
+import { computeFileHash, readLockfile, writeLockfile } from "@hooks/cli/core/lockfile";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
+import { resolveTarget } from "@hooks/cli/core/target";
 import type { CliDeps } from "@hooks/cli/types/deps";
 import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
-import { resolveTarget } from "@hooks/cli/core/target";
-import {
-  readLockfile,
-  writeLockfile,
-  computeFileHash,
-} from "@hooks/cli/core/lockfile";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -92,10 +88,7 @@ export function update(
   if (!reinstallResult.ok) return reinstallResult;
 
   // Step 6: Update lockfile with new hashes and timestamp
-  const updatedLockfile = updateLockfileEntries(
-    lockfile,
-    reinstallResult.value,
-  );
+  const updatedLockfile = updateLockfileEntries(lockfile, reinstallResult.value);
 
   const writeLockResult = writeLockfile(claudeDir, updatedLockfile, deps);
   if (!writeLockResult.ok) return writeLockResult;
@@ -111,7 +104,7 @@ export function update(
 function buildUpdatePlan(
   lockfile: Lockfile,
   source: string,
-  claudeDir: string,
+  _claudeDir: string,
   deps: CliDeps,
 ): UpdatePlan {
   const changed: LockfileHookEntry[] = [];
@@ -247,10 +240,7 @@ function reinstallHooks(
  * Update lockfile entries with new hashes and timestamp.
  * Preserves outputMode from the original lockfile.
  */
-function updateLockfileEntries(
-  lockfile: Lockfile,
-  reinstalled: ReinstalledHook[],
-): Lockfile {
+function updateLockfileEntries(lockfile: Lockfile, reinstalled: ReinstalledHook[]): Lockfile {
   const updatedHooks = lockfile.hooks.map((hook) => {
     const match = reinstalled.find((r) => r.entry.name === hook.name);
     if (match) {
@@ -326,7 +316,9 @@ function formatDryRun(plan: UpdatePlan): string {
   }
 
   if (plan.unchanged.length > 0) {
-    lines.push(`  Unchanged: ${plan.unchanged.length} hook${plan.unchanged.length === 1 ? "" : "s"}`);
+    lines.push(
+      `  Unchanged: ${plan.unchanged.length} hook${plan.unchanged.length === 1 ? "" : "s"}`,
+    );
   }
 
   return lines.join("\n");

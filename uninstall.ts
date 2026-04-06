@@ -8,8 +8,8 @@
  * the managed block from ~/.zshrc.
  */
 
-import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
-import { join, resolve } from "path";
+import { join, resolve } from "node:path";
+import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { removeFromZshrc } from "@hooks/install";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -79,8 +79,8 @@ const defaultDeps: UninstallDeps = {
   readFile,
   writeFile,
   fileExists,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
-  stdout: (msg) => process.stdout.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
+  stdout: (msg) => process.stdout.write(`${msg}\n`),
   paiDir: process.env.PAI_DIR || join(process.env.HOME || process.env.USERPROFILE || "", ".claude"),
   homeDir: process.env.HOME || process.env.USERPROFILE || "",
 };
@@ -115,9 +115,7 @@ export function run(deps: UninstallDeps = defaultDeps): void {
   const envVarRef = `\${${envVar}}`;
   const hasEnvVar = !!settings.env?.[envVar];
   const hasHooks = Object.values(settings.hooks || {}).some((matchers) =>
-    (matchers as MatcherGroup[]).some((g) =>
-      g.hooks.some((h) => h.command.includes(envVarRef)),
-    ),
+    (matchers as MatcherGroup[]).some((g) => g.hooks.some((h) => h.command.includes(envVarRef))),
   );
 
   if (!hasEnvVar && !hasHooks) {
@@ -127,7 +125,7 @@ export function run(deps: UninstallDeps = defaultDeps): void {
 
   // Remove hooks and legacy env var from settings
   const cleaned = removeHooksFromSettings(settings, envVar);
-  deps.writeFile(settingsPath, JSON.stringify(cleaned, null, 2) + "\n");
+  deps.writeFile(settingsPath, `${JSON.stringify(cleaned, null, 2)}\n`);
 
   // Remove managed block from zshrc
   const zshrcPath = join(deps.homeDir, ".zshrc");

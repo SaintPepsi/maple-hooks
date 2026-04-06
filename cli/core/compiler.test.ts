@@ -10,14 +10,14 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/deps.ts).
  */
 
-import { describe, it, expect } from "bun:test";
-import { compileHook, compiledCommandString } from "@hooks/cli/core/compiler";
-import type { CompilerDeps, CompileHookOpts } from "@hooks/cli/core/compiler";
+import { describe, expect, it } from "bun:test";
 import type { ExecResult } from "@hooks/cli/adapters/process";
-import type { Result } from "@hooks/cli/core/result";
-import { ok } from "@hooks/cli/core/result";
+import type { CompileHookOpts, CompilerDeps } from "@hooks/cli/core/compiler";
+import { compiledCommandString, compileHook } from "@hooks/cli/core/compiler";
 import type { PaihError } from "@hooks/cli/core/error";
 import { PaihErrorCode } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
@@ -151,9 +151,12 @@ describe("compileHook", () => {
   });
 
   it("returns BUILD_FAILED when bun build exits non-zero", () => {
-    const memDeps = new InMemoryDeps({
-      "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
-    }, "/source");
+    const memDeps = new InMemoryDeps(
+      {
+        "/source/hooks/GitSafety/DestructiveDeleteGuard/DestructiveDeleteGuard.hook.ts": "// hook",
+      },
+      "/source",
+    );
 
     const deps: CompilerDeps = {
       readFile: (p) => memDeps.readFile(p),
@@ -228,5 +231,72 @@ describe("compiledCommandString", () => {
   it("source mode — returns direct path", () => {
     const result = compiledCommandString("./hooks/Group/Hook.hook.ts", "source");
     expect(result).toBe("./hooks/Group/Hook.hook.ts");
+  });
+});
+
+// ─── Error branches ────────────────────────────────────────────────────────
+
+describe("compileHook error paths", () => {
+  const hookFile = "/source/hooks/G/H/H.hook.ts";
+  const baseTree = { [hookFile]: "// hook" };
+  const opts = makeOpts({ hookPath: hookFile, outputName: "H" });
+
+  it("returns error when reading build output fails", () => {
+    const { deps } = makeCompilerDeps(baseTree);
+    // Override readFile to fail on the .tmp output
+    const origReadFile = deps.readFile;
+    deps.readFile = (p: string) => {
+      if (p.endsWith(".tmp")) {
+        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("read fail"); } })() as unknown as PaihError);
+      }
+      return origReadFile(p);
+    };
+    const result = compileHook(opts, deps);
+    expect(result.ok).toBe(false);
+  });
+
+  it("returns error when writing final output fails", () => {
+    const { deps } = makeCompilerDeps(baseTree);
+    const origWriteFile = deps.writeFile;
+    deps.writeFile = (p: string, c: string) => {
+      // Let tsconfig and temp bundle writes succeed, fail on final .js write
+      if (p.endsWith(".js") && !p.endsWith(".tmp")) {
+        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("write fail"); } })() as unknown as PaihError);
+      }
+      return origWriteFile(p, c);
+    };
+    const result = compileHook(opts, deps);
+    expect(result.ok).toBe(false);
+  });
+
+  it("returns error when tsconfig write fails in compiled mode", () => {
+    const { deps } = makeCompilerDeps(baseTree);
+    const origWriteFile = deps.writeFile;
+    deps.writeFile = (p: string, c: string) => {
+      if (p.endsWith(".tsconfig.json")) {
+        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("tsconfig write fail"); } })() as unknown as PaihError);
+      }
+      return origWriteFile(p, c);
+    };
+    const result = compileHook(opts, deps);
+    expect(result.ok).toBe(false);
+  });
+
+  it("returns error when chmod fails", () => {
+    const { deps } = makeCompilerDeps(baseTree);
+    deps.exec = (cmd: string): Result<ExecResult, PaihError> => {
+      // Let bun build succeed but chmod fail
+      const outfileMatch = cmd.match(/--outfile[= ](\S+)/);
+      if (outfileMatch) {
+        deps.writeFile(outfileMatch[1], "// compiled\n");
+        return ok({ stdout: "", stderr: "", exitCode: 0 });
+      }
+      if (cmd.includes("chmod")) {
+        return err(new (class extends Error { code = PaihErrorCode.BuildFailed; constructor() { super("chmod fail"); } })() as unknown as PaihError);
+      }
+      return ok({ stdout: "", stderr: "", exitCode: 0 });
+    };
+    const result = compileHook(opts, deps);
+    expect(result.ok).toBe(false);
   });
 });

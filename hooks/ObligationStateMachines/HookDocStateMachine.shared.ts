@@ -13,15 +13,14 @@
  *   hookConfig.hookDocEnforcer.watchPatterns  — regex strings for watched files
  */
 
-import type { ObligationConfig } from "@hooks/lib/obligation-machine";
-import { createDefaultDeps, pendingPath as genericPendingPath, blockCountPath as genericBlockCountPath } from "@hooks/lib/obligation-machine";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { readFile } from "@hooks/core/adapters/fs";
-import { tryCatch } from "@hooks/core/result";
-import { jsonParseFailed } from "@hooks/core/error";
-import { getSettingsPath } from "@hooks/lib/paths";
-import { dirname } from "path";
+import { dirname } from "node:path";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import type { ObligationConfig, ObligationDeps } from "@hooks/lib/obligation-machine";
+import {
+  createDefaultDeps,
+  blockCountPath as genericBlockCountPath,
+  pendingPath as genericPendingPath,
+} from "@hooks/lib/obligation-machine";
 
 // ─── Re-export generic deps type for contracts ───────────────────────────────
 
@@ -39,24 +38,19 @@ export const HOOK_DOC_CONFIG: ObligationConfig = {
 
 // ─── Settings Types ───────────────────────────────────────────────────────────
 
+export interface AdditionalDoc {
+  fileName: string;
+  requiredSections: string[];
+}
+
 export interface HookDocEnforcerSettings {
   enabled: boolean;
   blocking: boolean;
   requiredSections: string[];
   docFileName: string;
   watchPatterns: RegExp[];
-}
-
-interface SettingsJson {
-  hookConfig?: {
-    hookDocEnforcer?: {
-      enabled?: boolean;
-      blocking?: boolean;
-      requiredSections?: string[];
-      docFileName?: string;
-      watchPatterns?: string[];
-    };
-  };
+  additionalDocs: AdditionalDoc[];
+  mode: "independent" | "linked";
 }
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
@@ -74,6 +68,8 @@ const DEFAULT_WATCH_PATTERNS = [
   /\.contract\.ts$/,
   /hook\.json$/,
   /group\.json$/,
+  /shared\.ts$/,
+  /README\.md$/,
 ];
 
 function defaults(): HookDocEnforcerSettings {
@@ -83,6 +79,8 @@ function defaults(): HookDocEnforcerSettings {
     requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
     docFileName: "doc.md",
     watchPatterns: [...DEFAULT_WATCH_PATTERNS],
+    additionalDocs: [],
+    mode: "independent",
   };
 }
 
@@ -92,31 +90,34 @@ export function readHookDocSettings(
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
 ): HookDocEnforcerSettings {
-  const path = settingsPath ?? getSettingsPath();
-  const reader = readFileFn ?? ((p: string) => {
-    const r = readFile(p);
-    return r.ok ? r.value : null;
-  });
-  const raw = reader(path);
-  if (!raw) return defaults();
-
-  const parseResult = tryCatch(
-    () => JSON.parse(raw) as SettingsJson,
-    (cause) => jsonParseFailed(raw.slice(0, 100), cause),
+  const cfg = readHookConfig<Record<string, unknown>>(
+    "hookDocEnforcer",
+    readFileFn ?? undefined,
+    settingsPath,
   );
-  if (!parseResult.ok) return defaults();
-
-  const cfg = parseResult.value?.hookConfig?.hookDocEnforcer;
-  if (!cfg || typeof cfg !== "object") return defaults();
+  if (!cfg) return defaults();
 
   return {
     enabled: cfg.enabled !== false,
     blocking: cfg.blocking !== false,
-    requiredSections: Array.isArray(cfg.requiredSections) ? cfg.requiredSections : [...DEFAULT_REQUIRED_SECTIONS],
+    requiredSections: Array.isArray(cfg.requiredSections)
+      ? cfg.requiredSections
+      : [...DEFAULT_REQUIRED_SECTIONS],
     docFileName: typeof cfg.docFileName === "string" ? cfg.docFileName : "doc.md",
     watchPatterns: Array.isArray(cfg.watchPatterns)
       ? cfg.watchPatterns.map((p: string) => new RegExp(p))
       : [...DEFAULT_WATCH_PATTERNS],
+    additionalDocs: Array.isArray(cfg.additionalDocs)
+      ? (cfg.additionalDocs as Array<{ fileName?: unknown; requiredSections?: unknown }>)
+          .filter((d) => typeof d.fileName === "string")
+          .map((d) => ({
+            fileName: d.fileName as string,
+            requiredSections: Array.isArray(d.requiredSections)
+              ? (d.requiredSections as string[])
+              : [],
+          }))
+      : [],
+    mode: cfg.mode === "linked" ? ("linked" as const) : ("independent" as const),
   };
 }
 
@@ -137,10 +138,40 @@ export function getHookDirFromPath(filePath: string): string {
   return dirname(filePath);
 }
 
-/** Extract file_path from a tool hook input. */
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return ((input.tool_input as Record<string, unknown>).file_path as string) ?? null;
+/** Get all doc file names (primary + additional). */
+export function allDocFileNames(settings: HookDocEnforcerSettings): string[] {
+  return [settings.docFileName, ...settings.additionalDocs.map((d) => d.fileName)];
+}
+
+/** Tag a source path with the doc file it owes. */
+export function tagPending(sourcePath: string, docFileName: string): string {
+  return `${sourcePath}:${docFileName}`;
+}
+
+/** Parse a tagged pending entry back to source path and doc file name. */
+export function parseTag(entry: string): { source: string; docFile: string } {
+  const lastColon = entry.lastIndexOf(":");
+  if (lastColon <= 0) {
+    return { source: entry, docFile: "doc.md" };
+  }
+  const suffix = entry.slice(lastColon + 1);
+  if (suffix.includes("/") || suffix.includes("\\") || !suffix.includes(".")) {
+    return { source: entry, docFile: "doc.md" };
+  }
+  return { source: entry.slice(0, lastColon), docFile: suffix };
+}
+
+/** Check if a file path matches any doc file name (primary or additional). */
+export function isAnyDocFile(filePath: string, settings: HookDocEnforcerSettings): boolean {
+  return allDocFileNames(settings).some(
+    (name) => filePath.endsWith(`/${name}`) || filePath === name,
+  );
+}
+
+/** Extract the doc file name from a file path (e.g., "/hooks/G/H/IDEA.md" → "IDEA.md"). */
+export function docFileNameFromPath(filePath: string): string {
+  const lastSlash = filePath.lastIndexOf("/");
+  return lastSlash === -1 ? filePath : filePath.slice(lastSlash + 1);
 }
 
 // ─── Section Validation ───────────────────────────────────────────────────────
@@ -159,22 +190,42 @@ export function buildDocSuggestions(
   pendingFiles: string[],
   settings: HookDocEnforcerSettings,
 ): string {
-  const hookDirs = [...new Set(pendingFiles.map(getHookDirFromPath))];
   const lines: string[] = [];
 
-  for (const dir of hookDirs) {
-    lines.push(`Create or update \`${dir}/${settings.docFileName}\``);
+  // Group by directory → doc files owed
+  const byDir = new Map<string, Set<string>>();
+  for (const entry of pendingFiles) {
+    const { source, docFile } = parseTag(entry);
+    const dir = getHookDirFromPath(source);
+    if (!byDir.has(dir)) byDir.set(dir, new Set());
+    byDir.get(dir)!.add(docFile);
   }
 
-  if (settings.requiredSections.length > 0) {
+  for (const [dir, docFiles] of byDir) {
+    for (const docFile of docFiles) {
+      lines.push(`Update \`${dir}/${docFile}\``);
+    }
+  }
+
+  // Show required sections per doc type that appears in pending
+  const allDocs = [
+    { fileName: settings.docFileName, requiredSections: settings.requiredSections },
+    ...settings.additionalDocs,
+  ];
+
+  const mentionedDocs = new Set(pendingFiles.map((e) => parseTag(e).docFile));
+
+  for (const doc of allDocs) {
+    if (!mentionedDocs.has(doc.fileName)) continue;
+    if (doc.requiredSections.length === 0) continue;
     lines.push("");
-    lines.push(`Required sections in \`${settings.docFileName}\`:`);
-    for (const section of settings.requiredSections) {
+    lines.push(`Required sections in \`${doc.fileName}\`:`);
+    for (const section of doc.requiredSections) {
       lines.push(`  - ${section}`);
     }
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 // ─── Path Helpers (convenience wrappers) ──────────────────────────────────────

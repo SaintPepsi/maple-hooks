@@ -12,14 +12,16 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
+  buildReminder,
   classifyCommand,
   hasSubstantiveOutput,
-  buildReminder,
 } from "@hooks/lib/execution-classification";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -31,7 +33,7 @@ export interface ExecutionEvidenceVerifierDeps {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: ExecutionEvidenceVerifierDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -51,17 +53,17 @@ export const ExecutionEvidenceVerifier: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: ExecutionEvidenceVerifierDeps,
-  ): Result<ContinueOutput, PaiError> {
+  ): Result<ContinueOutput, ResultError> {
     const command = (input.tool_input?.command as string) || "";
 
     const classification = classifyCommand(command);
 
     if (!classification.isStateChanging) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     if (hasSubstantiveOutput(input.tool_response)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const reminder = buildReminder(command, classification);
@@ -69,11 +71,7 @@ export const ExecutionEvidenceVerifier: SyncHookContract<
       `[ExecutionEvidenceVerifier] Injecting evidence reminder for: ${command.slice(0, 60)}`,
     );
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: reminder,
-    });
+    return ok(continueOk(reminder));
   },
 
   defaultDeps,

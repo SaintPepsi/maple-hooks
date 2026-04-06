@@ -6,11 +6,12 @@
  * then deterministically cleans up lock/cooldown files regardless of exit status.
  */
 
-import { join } from "path";
+import { join } from "node:path";
+import { appendFile, ensureDir, fileExists, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
-import { fileExists, writeFile, removeFile, appendFile, ensureDir } from "@hooks/core/adapters/fs";
 import { buildArticlePrompt } from "@hooks/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract";
-import { getDAName, getPrincipalName, getSettings } from "@hooks/lib/identity";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -41,11 +42,11 @@ const defaultDeps: RunnerDeps = {
   appendFile,
   buildPrompt: buildArticlePrompt,
   env: process.env as Record<string, string | undefined>,
-  websiteRepo: ((getSettings() as Record<string, unknown>).articleWriter as Record<string, string> | undefined)?.repo || "",
+  websiteRepo: readHookConfig<{ repo?: string }>("articleWriter")?.repo || "",
   cacheDir: join(BASE_DIR, "cache/repos"),
   principalName: getPrincipalName(),
   daName: getDAName(),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
 };
 
 // ─── Logging ────────────────────────────────────────────────────────────────
@@ -62,7 +63,10 @@ function resolveRepoDir(repoSlug: string, deps: RunnerDeps): string | null {
 
   if (deps.fileExists(localPath)) {
     // Cached — fetch latest
-    const fetchResult = deps.spawnSyncSafe("git", ["fetch", "origin"], { cwd: localPath, timeout: 30000 });
+    const fetchResult = deps.spawnSyncSafe("git", ["fetch", "origin"], {
+      cwd: localPath,
+      timeout: 30000,
+    });
     if (!fetchResult.ok) {
       deps.stderr(`[article-writer-runner] git fetch failed: ${fetchResult.error.message}`);
     }
@@ -71,10 +75,9 @@ function resolveRepoDir(repoSlug: string, deps: RunnerDeps): string | null {
 
   // Clone fresh
   deps.ensureDir(deps.cacheDir);
-  const cloneResult = deps.spawnSyncSafe(
-    "gh", ["repo", "clone", repoSlug, localPath],
-    { timeout: 60000 },
-  );
+  const cloneResult = deps.spawnSyncSafe("gh", ["repo", "clone", repoSlug, localPath], {
+    timeout: 60000,
+  });
 
   if (!cloneResult.ok) {
     deps.stderr(`[article-writer-runner] clone failed: ${cloneResult.error.message}`);
@@ -105,12 +108,15 @@ export function run(
     return;
   }
 
-  const prompt = deps.buildPrompt({
-    baseDir,
-    websiteRepo: repoDir,
-    principalName: deps.principalName,
-    daName: deps.daName,
-  }, sessionId);
+  const prompt = deps.buildPrompt(
+    {
+      baseDir,
+      websiteRepo: repoDir,
+      principalName: deps.principalName,
+      daName: deps.daName,
+    },
+    sessionId,
+  );
 
   logEntry(logPath, "START article-writer-runner", deps);
 

@@ -1,10 +1,13 @@
-import { describe, test, expect } from "bun:test";
-import { CodeQualityBaseline, type CodeQualityBaselineDeps } from "./CodeQualityBaseline.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { describe, expect, test } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
-import { scoreFile, formatAdvisory, type QualityScore } from "@hooks/core/quality-scorer";
+import { formatAdvisory, type QualityScore, scoreFile } from "@hooks/core/quality-scorer";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  CodeQualityBaseline,
+  type CodeQualityBaselineDeps,
+} from "@hooks/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -49,7 +52,7 @@ function makeDeps(overrides: Partial<CodeQualityBaselineDeps> = {}): CodeQuality
   return {
     fileExists: () => false,
     readFile: () => ok(LONG_CLEAN),
-    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
+    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
     writeJson: (path, data) => {
       lastWrittenPath = path;
       lastWrittenJson = data;
@@ -142,7 +145,9 @@ describe("CodeQualityBaseline", () => {
     });
 
     test("merges with existing baselines", () => {
-      const existing = { "/other/file.ts": { score: 8, violations: 0, checkResults: [], timestamp: "old" } };
+      const existing = {
+        "/other/file.ts": { score: 8, violations: 0, checkResults: [], timestamp: "old" },
+      };
       const deps = makeDeps({
         readFile: () => ok(LONG_CLEAN),
         readJson: (() => ok(existing)) as unknown as CodeQualityBaselineDeps["readJson"],
@@ -185,8 +190,22 @@ describe("CodeQualityBaseline", () => {
       const lowScore: QualityScore = {
         score: 3.0,
         violations: [
-          { check: "SRP", category: "SRP", severity: "moderate", message: "Too many functions", value: 24, threshold: 15 },
-          { check: "DIP", category: "DIP", severity: "moderate", message: "Missing DI", value: 0, threshold: 1 },
+          {
+            check: "SRP",
+            category: "SRP",
+            severity: "moderate",
+            message: "Too many functions",
+            value: 24,
+            threshold: 15,
+          },
+          {
+            check: "DIP",
+            category: "DIP",
+            severity: "moderate",
+            message: "Missing DI",
+            value: 0,
+            threshold: 1,
+          },
         ],
         checkResults: [
           { check: "SRP", passed: false, value: 24, threshold: 15 },
@@ -240,7 +259,7 @@ describe("CodeQualityBaseline", () => {
   describe("execute — file read failure", () => {
     test("returns continue without storing when file unreadable", () => {
       const deps = makeDeps({
-        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as PaiError),
+        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as ResultError),
       });
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -252,6 +271,41 @@ describe("CodeQualityBaseline", () => {
     test("always returns ContinueOutput", () => {
       const deps = makeDeps({ readFile: () => ok(LONG_DIRTY) });
       const result = CodeQualityBaseline.execute(makeInput(), deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.value.type).toBe("continue");
+        expect(result.value.continue).toBe(true);
+      }
+    });
+  });
+
+  describe("Svelte file handling", () => {
+    const svelteInput = makeInput({
+      tool_input: { file_path: "/src/Component.svelte" },
+    });
+
+    test("extracts and scores script block from .svelte file", () => {
+      const scriptLines: string[] = [];
+      for (let i = 0; i < 60; i++) {
+        scriptLines.push(`  function fn${i}() { return ${i}; }`);
+      }
+      const svelteContent = [
+        '<script lang="ts">',
+        ...scriptLines,
+        "</script>",
+        "<div>hello</div>",
+      ].join("\n");
+
+      const deps = makeDeps({ readFile: () => ok(svelteContent) });
+      const result = CodeQualityBaseline.execute(svelteInput, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.type).toBe("continue");
+    });
+
+    test("continues when .svelte file has no script block", () => {
+      const svelteNoScript = "<div>Just HTML</div>\n<style>p { color: red; }</style>";
+      const deps = makeDeps({ readFile: () => ok(svelteNoScript) });
+      const result = CodeQualityBaseline.execute(svelteInput, deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
         expect(result.value.type).toBe("continue");

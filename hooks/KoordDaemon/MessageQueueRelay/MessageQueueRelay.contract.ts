@@ -17,11 +17,12 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import { continueOk } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
 import { MQ_WATCHER_MARKER } from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ export interface MessageQueueRelayDeps {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: MessageQueueRelayDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -51,15 +52,13 @@ function extractSessionFromCommand(command: string): string | null {
 
 /** Parse message JSON from watcher stdout, with fallback to raw text. */
 function parseWatcherOutput(raw: string): { from?: string; body: string; [key: string]: unknown } {
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    return {
-      ...parsed,
-      body: typeof parsed.body === "string" ? parsed.body : raw,
-    };
-  } catch {
-    return { body: raw.trim() };
-  }
+  const result = tryCatch(() => JSON.parse(raw) as Record<string, unknown>, () => null);
+  if (!result.ok) return { body: raw.trim() };
+  const parsed = result.value;
+  return {
+    ...parsed,
+    body: typeof parsed.body === "string" ? parsed.body : raw,
+  };
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -76,10 +75,7 @@ export const MessageQueueRelay: SyncHookContract<
     return input.tool_name === "Bash";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: MessageQueueRelayDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: MessageQueueRelayDeps): Result<ContinueOutput, ResultError> {
     const command = input.tool_input.command;
 
     // Only intercept mq-watcher completions
@@ -97,17 +93,19 @@ export const MessageQueueRelay: SyncHookContract<
       const respawnCmd = sessionId
         ? `bun scripts/mq-watcher.ts --session ${sessionId}`
         : "bun scripts/mq-watcher.ts --session <session_id>";
-      return ok(continueOk(
-        [
-          "## Message Queue: Watcher Timeout",
-          "",
-          "The message queue watcher timed out with no new messages.",
-          "**Respawn the watcher to continue listening:**",
-          "```",
-          respawnCmd,
-          "```",
-        ].join("\n"),
-      ));
+      return ok(
+        continueOk(
+          [
+            "## Message Queue: Watcher Timeout",
+            "",
+            "The message queue watcher timed out with no new messages.",
+            "**Respawn the watcher to continue listening:**",
+            "```",
+            respawnCmd,
+            "```",
+          ].join("\n"),
+        ),
+      );
     }
 
     // Parse the message
@@ -121,21 +119,23 @@ export const MessageQueueRelay: SyncHookContract<
       ? `bun scripts/mq-watcher.ts --session ${sessionId}`
       : "bun scripts/mq-watcher.ts --session <session_id>";
 
-    return ok(continueOk(
-      [
-        "## Message Queue: New Message Received",
-        "",
-        `**Message${from}:**`,
-        message.body,
-        "",
-        "---",
-        "",
-        "**IMPORTANT: After processing this message, immediately respawn the watcher to continue listening:**",
-        "```",
-        respawnCmd,
-        "```",
-      ].join("\n"),
-    ));
+    return ok(
+      continueOk(
+        [
+          "## Message Queue: New Message Received",
+          "",
+          `**Message${from}:**`,
+          message.body,
+          "",
+          "---",
+          "",
+          "**IMPORTANT: After processing this message, immediately respawn the watcher to continue listening:**",
+          "```",
+          respawnCmd,
+          "```",
+        ].join("\n"),
+      ),
+    );
   },
 
   defaultDeps,

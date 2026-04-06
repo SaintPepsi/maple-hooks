@@ -9,36 +9,60 @@
  * quality delta and reports directional change (Phase 7d: QualityDelta).
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { join } from "node:path";
 import { fileExists, readFile, readJson } from "@hooks/core/adapters/fs";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
-import { scoreFile, formatAdvisory, formatDelta, type QualityScore } from "@hooks/core/quality-scorer";
-import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
-import { isSvelteFile, extractSvelteScript } from "@hooks/lib/svelte-utils";
-import { join } from "path";
+import {
+  formatAdvisory,
+  formatDelta,
+  type QualityScore,
+  scoreFile,
+} from "@hooks/core/quality-scorer";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { getFilePath } from "@hooks/lib/tool-input";
+import {
+  defaultSignalLoggerDeps,
+  logSignal,
+  type SignalLoggerDeps,
+} from "@hooks/lib/signal-logger";
+import { extractSvelteScript, isSvelteFile } from "@hooks/lib/svelte-utils";
 
 // ─── Violation Dedup Cache ────────────────────────────────────────────────────
 
 const reportedViolations = new Map<string, string>();
 
+/** Test-only: reset the violation dedup cache so tests start with clean state. */
+export function _resetViolationCache(): void {
+  reportedViolations.clear();
+}
+
 function violationHash(violations: Array<{ check: string }>): string {
-  return violations.map(v => v.check).sort().join(",");
+  return violations
+    .map((v) => v.check)
+    .sort()
+    .join(",");
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface BaselineStore {
-  [filePath: string]: { score: number; violations: number; checkResults: QualityScore["checkResults"] };
+  [filePath: string]: {
+    score: number;
+    violations: number;
+    checkResults: QualityScore["checkResults"];
+  };
 }
 
 export interface CodeQualityGuardDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
   getLanguageProfile: typeof getLanguageProfile;
   isScorableFile: typeof isScorableFile;
   scoreFile: typeof scoreFile;
@@ -49,13 +73,6 @@ export interface CodeQualityGuardDeps {
 }
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input === "object" && input.tool_input !== null) {
-    return (input.tool_input.file_path as string) ?? null;
-  }
-  return null;
-}
 
 const TEST_FILE_PATTERN = /\.(test|spec)\.(ts|tsx|js|jsx)$/;
 const TEST_SUPPRESSED_CHECKS = new Set(["type-import-ratio", "options-object-width"]);
@@ -69,7 +86,12 @@ function getBaselineScore(
   sessionId: string,
   deps: CodeQualityGuardDeps,
 ): QualityScore | null {
-  const baselinePath = join(deps.signal.baseDir, "MEMORY", "STATE", `quality-baselines-${sessionId}.json`);
+  const baselinePath = join(
+    deps.signal.baseDir,
+    "MEMORY",
+    "STATE",
+    `quality-baselines-${sessionId}.json`,
+  );
   const result = deps.readJson<BaselineStore>(baselinePath);
   if (!result.ok) return null;
 
@@ -95,7 +117,7 @@ const defaultDeps: CodeQualityGuardDeps = {
   formatAdvisory,
   formatDelta,
   signal: defaultSignalLoggerDeps,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 export const CodeQualityGuard: SyncHookContract<
@@ -113,22 +135,19 @@ export const CodeQualityGuard: SyncHookContract<
     return isScorableFile(filePath);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: CodeQualityGuardDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CodeQualityGuardDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Read the file content after the edit
     const contentResult = deps.readFile(filePath);
     if (!contentResult.ok) {
       deps.stderr(`[CodeQualityGuard] Could not read ${filePath}, skipping`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const profile = deps.getLanguageProfile(filePath);
     if (!profile) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // For Svelte files, only score the <script lang="ts"> block
@@ -136,7 +155,7 @@ export const CodeQualityGuard: SyncHookContract<
     if (isSvelteFile(filePath)) {
       const scriptContent = extractSvelteScript(contentToScore);
       if (!scriptContent) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
       contentToScore = scriptContent;
     }
@@ -145,9 +164,7 @@ export const CodeQualityGuard: SyncHookContract<
 
     // Suppress false-positive checks for test files (type-import-ratio, options-object-width)
     if (isTestFile(filePath)) {
-      result.violations = result.violations.filter(
-        (v) => !TEST_SUPPRESSED_CHECKS.has(v.check),
-      );
+      result.violations = result.violations.filter((v) => !TEST_SUPPRESSED_CHECKS.has(v.check));
     }
 
     // Phase 7d: QualityDelta — check for baseline and compute delta
@@ -172,7 +189,7 @@ export const CodeQualityGuard: SyncHookContract<
         score: result.score,
         deduplicated: true,
       });
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
     reportedViolations.set(filePath, hash);
 
@@ -183,7 +200,9 @@ export const CodeQualityGuard: SyncHookContract<
     const hasAdvisory = !!advisory || !!deltaMessage;
 
     if (hasAdvisory) {
-      deps.stderr(`[CodeQualityGuard] ${filePath}: ${result.score}/10 (${result.violations.length} violations)`);
+      deps.stderr(
+        `[CodeQualityGuard] ${filePath}: ${result.score}/10 (${result.violations.length} violations)`,
+      );
     } else {
       deps.stderr(`[CodeQualityGuard] ${filePath}: ${result.score}/10 (clean)`);
     }
@@ -198,7 +217,7 @@ export const CodeQualityGuard: SyncHookContract<
       outcome: "continue",
       score: result.score,
       ...(hasViolations && {
-        violations: result.violations.map(v => ({
+        violations: result.violations.map((v) => ({
           check: v.check,
           category: v.category,
           severity: v.severity,
@@ -208,18 +227,14 @@ export const CodeQualityGuard: SyncHookContract<
     });
 
     if (!hasAdvisory) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const parts: string[] = [];
     if (deltaMessage) parts.push(deltaMessage);
     if (advisory) parts.push(advisory);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: parts.join("\n"),
-    });
+    return ok(continueOk(parts.join("\n")));
   },
 
   defaultDeps,

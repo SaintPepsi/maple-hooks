@@ -10,10 +10,13 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -25,12 +28,6 @@ export interface BashWriteGuardDeps {
 // ─── Pure Functions ──────────────────────────────────────────────────────────
 
 const TS_FILE_PATTERN = /\.tsx?\b/;
-
-/** Extract the command string from tool input. */
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
 
 /** Check if command contains a write pattern targeting a .ts/.tsx file. */
 function detectsWriteToTypeScript(command: string): boolean {
@@ -60,7 +57,7 @@ function detectsWriteToTypeScript(command: string): boolean {
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: BashWriteGuardDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 export const BashWriteGuard: SyncHookContract<
@@ -80,14 +77,14 @@ export const BashWriteGuard: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: BashWriteGuardDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const command = getCommand(input);
 
     if (!detectsWriteToTypeScript(command)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
-    const opener = pickNarrative("BashWriteGuard", 1);
+    const opener = pickNarrative("BashWriteGuard", 1, import.meta.dir);
     const reason = [
       opener,
       "",

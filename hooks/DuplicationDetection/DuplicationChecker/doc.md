@@ -2,69 +2,133 @@
 
 ## Overview
 
-DuplicationChecker is a **PreToolUse** advisory hook that warns before writing or editing TypeScript files when the new code contains functions that duplicate existing functions in the codebase. It uses a pre-built duplication index (created by DuplicationIndexBuilder) to compare function signatures and names against the known codebase.
+DuplicationChecker is a **PreToolUse** hook with tiered response that fires before writing or editing TypeScript files. It compares functions in the new code against a pre-built duplication index (created by DuplicationIndexBuilder) using 4 signal dimensions: body hash, name frequency, type signature, and fingerprint similarity.
 
-This hook never blocks -- it injects advisory context via `additionalContext` so the model can consider reusing existing code instead of creating duplicates. It works in tandem with DuplicationIndexBuilder, which builds and maintains the `.duplication-index.json` file that this hook reads.
+Response tiers:
+- **Body hash match**: Block the operation — identical code regardless of function name (configurable)
+- **4/4 signals**: Block the operation (configurable)
+- **2/4 or 3/4 signals** (no hash match): Log to `checker.jsonl` only (no block, no advisory)
+- **1/4 signals**: Ignore (no log, no action)
+
+Blocking can be disabled via `settings.json`:
+```json
+{
+  "hookConfig": {
+    "duplicationChecker": {
+      "blocking": false
+    }
+  }
+}
+```
+
+The hook is branch-aware: each branch gets its own artifact directory (`/tmp/pai/duplication/{hash}/{branch}/`), so switching branches automatically uses a separate index and log. No rebuild needed when switching back.
 
 ## Event
 
-`PreToolUse` — fires before Write or Edit operations on `.ts` files and warns if the new code duplicates existing functions.
+`PreToolUse` — fires before Write or Edit operations on `.ts` files.
 
 ## When It Fires
 
 - A Write or Edit tool targets a `.ts` file (not `.d.ts`)
-- A duplication index (`.duplication-index.json`) exists in the project
+- A duplication index (`index.json`) exists in the artifacts directory
 - The new content contains extractable functions
-- At least one function matches an existing function in the index
+- At least 2 signal dimensions match an existing function in the index
 
 It does **not** fire when:
 
 - The tool is not Write or Edit
 - The target file is not a `.ts` file (or is a `.d.ts` definition file)
-- No duplication index exists in the project hierarchy
-- The index cannot be loaded or parsed
+- No duplication index exists in the artifacts directory
 - No functions are found in the new content
-- No matches are found against the index
+- Fewer than 2 signal dimensions match
 
 ## What It Does
 
-1. Extracts the file path from the tool input
-2. Searches up the directory tree for a `.duplication-index.json` file
-3. Loads and parses the index; skips silently if unavailable
-4. Checks the index age against the staleness threshold
-5. For Write operations, uses the content directly; for Edit operations, reads the current file and simulates the edit
-6. Extracts function signatures from the content using SWC parser
-7. Compares extracted functions against the index, excluding the current file
-8. If matches are found, formats an advisory with match details (including a staleness warning if the index is old)
-9. Returns `continue` with `additionalContext` containing the advisory
+1. Extracts the file path from the tool input (via shared `getFilePath`)
+2. Searches for `index.json` in `/tmp/pai/duplication/{hash}/{branch}/` (with legacy fallback to project `.claude/`)
+3. Loads and parses the index
+4. For Write operations, uses the content directly; for Edit operations, simulates the edit via shared `simulateEdit`
+5. Extracts function signatures from the content using SWC parser
+6. Compares extracted functions against the index using `checkFunctions`
+7. Logs all checks to `checker.jsonl` with branch metadata
+8. At 4/4 signals and blocking enabled: returns block with reason listing duplicate targets
+9. At 2-3/4 signals: logs finding, returns continue
 
 ```typescript
-// Core duplication check flow
-const index = loadIndex(indexPath, deps);
-const functions = extractFunctions(content, filePath.endsWith(".tsx"));
-const matches = checkFunctions(functions, index, relPath);
+// Tiered response logic
+const blockMatches = matches.filter((m) => m.signals.length >= BLOCK_THRESHOLD);
 
-if (matches.length > 0) {
-  const advisory = formatFindings(matches, isStale);
-  return ok({ type: "continue", continue: true, additionalContext: advisory });
+if (blockMatches.length > 0 && deps.blocking) {
+  return ok({ type: "block", decision: "block", reason });
+}
+// 2-3 signals: log only
+return ok({ type: "continue", continue: true });
+```
+
+## Pattern Detection
+
+Alongside pair-wise duplicate checking, DuplicationChecker detects **recurring codebase patterns** — functions whose name and signature appear across many files. When a new function matches such a pattern, the hook injects an advisory via `additionalContext` on a continue response. It never blocks.
+
+### Two-tier signature matching
+
+- **Tier 1 — full normalized signature**: the function's full normalized parameter + return signature is compared against the index. This catches patterns like `makeDeps` that share a complete signature shape across dozens of files.
+- **Tier 2 — return-only fallback for domain types**: if Tier 1 misses and the return type is a non-primitive domain type, the return type alone is matched. This catches patterns like `makeInput` where parameter lists vary but the return shape is consistent.
+
+### Advisory format
+
+When a pattern is detected, the continue response includes `additionalContext` like:
+
+```
+Pattern detected: "makeDeps" (65 files)
+  This function matches a recurring pattern. Consider extracting a shared factory.
+  Examples: hooks/CanaryHook/CanaryHook.test.ts, hooks/GitSafety/GitAutoSync.test.ts, ...
+```
+
+### Configuration
+
+Pattern detection thresholds are set in `hookConfig.duplicationChecker` in `settings.json` and applied at index build time:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `patternThreshold` | `5` | Minimum number of files a signature must appear in to be flagged as a pattern |
+| `requireSigMatch` | `true` | When true, the function name alone is not enough — the signature must also match |
+| `sigMatchPercent` | `60` | Minimum percentage of a pattern's instances that must share the signature for a match |
+
+```json
+{
+  "hookConfig": {
+    "duplicationChecker": {
+      "patternThreshold": 5,
+      "requireSigMatch": true,
+      "sigMatchPercent": 60
+    }
+  }
 }
 ```
 
 ## Examples
 
-### Example 1: Duplicate function detected
+### Example 1: Exact duplicate blocked (4/4 signals)
 
-> The model writes a new `formatDate(date: Date): string` function. The duplication index already contains a `formatDate` in `lib/utils.ts`. DuplicationChecker injects an advisory: "Possible duplication: formatDate already exists in lib/utils.ts. Consider reusing the existing function."
+> The model writes a `getFilePath` function identical to one in `shared.ts`. All 4 dimensions match (hash, name, sig, body). DuplicationChecker blocks: "Exact duplicate function(s) detected: getFilePath duplicates shared.ts:getFilePath. Reuse the existing function."
 
-### Example 2: No index available
+### Example 2: Partial match logged (2-3 signals)
 
-> The model writes to a `.ts` file in a project where DuplicationIndexBuilder has not yet run. No `.duplication-index.json` exists, so DuplicationChecker logs "No index found" to stderr and returns `continue` silently.
+> The model writes a `makeDeps` function with a different body but matching name and signature. 2/4 dimensions match. DuplicationChecker logs the finding to `checker.jsonl` and returns continue silently.
+
+### Example 3: Blocking disabled via config
+
+> `settings.json` has `hookConfig.duplicationChecker.blocking: false`. A 4/4 match is logged but not blocked.
 
 ## Dependencies
 
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `result` | core | `ok()` for Result-based returns |
-| `fs` | adapter | `readFile` and `fileExists` for file access |
-| `DuplicationDetection/shared` | shared | `loadIndex`, `findIndexPath`, `checkFunctions`, `formatFindings`, `STALENESS_SECONDS` |
+| `fs` | adapter | `readFile`, `fileExists`, `readJson`, `appendFile`, `ensureDir` |
+| `lib/paths` | lib | `getSettingsPath` for reading hookConfig |
+| `lib/tool-input` | lib | `getFilePath`, `getWriteContent` for extracting tool input fields |
+| `DuplicationDetection/shared` | shared | `simulateEdit`, `loadIndex`, `findIndexPath`, `checkFunctions`, `getArtifactsDir`, `getCurrentBranch(cwd?)`, `BLOCK_THRESHOLD` |
 | `DuplicationDetection/parser` | shared | `extractFunctions` for SWC-based function extraction |
+| `lib/narrative-reader` | lib | `pickNarrative` for severity-tiered block message openers |
+| `DuplicationChecker.narrative.jsonl` | data | 9 agent narratives (3 per severity tier) with DRY/WET theming |

@@ -18,11 +18,16 @@
  */
 
 import type { AsyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, tryCatch, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { readKoordConfig, defaultReadFileOrNull, getQueueDir } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
+import {
+  defaultReadFileOrNull,
+  getQueueDir,
+  readKoordConfig,
+} from "@hooks/hooks/KoordDaemon/shared";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,26 +46,25 @@ const defaultDeps: MessageQueueServerDeps = {
   getEnv: (name) => process.env[name],
   getKoordConfig: () => readKoordConfig(defaultReadFileOrNull),
   spawnDetached: (cmd, args) => {
-    try {
-      const child = Bun.spawn([cmd, ...args], {
-        stdout: "ignore",
-        stderr: "pipe",
-        stdin: "ignore",
-      });
-      child.unref();
-      return { ok: true };
-    } catch {
-      return { ok: false };
-    }
+    const result = tryCatch(
+      () => {
+        const child = Bun.spawn([cmd, ...args], {
+          stdout: "ignore",
+          stderr: "pipe",
+          stdin: "ignore",
+        });
+        child.unref();
+        return true;
+      },
+      () => null,
+    );
+    return { ok: result.ok };
   },
   fileExists: (path) => {
-    try {
-      return Bun.file(path).size > 0;
-    } catch {
-      return false;
-    }
+    const result = tryCatch(() => Bun.file(path).size > 0, () => null);
+    return result.ok ? result.value : false;
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
   getScriptPath: () => {
     // Resolve relative to this file's location → ../../scripts/mq-server.ts
     const hookDir = import.meta.dir;
@@ -85,7 +89,7 @@ export const MessageQueueServer: AsyncHookContract<
   async execute(
     input: SessionStartInput,
     deps: MessageQueueServerDeps,
-  ): Promise<Result<ContextOutput | SilentOutput, PaiError>> {
+  ): Promise<Result<ContextOutput | SilentOutput, ResultError>> {
     const sessionId = input.session_id;
     if (!sessionId) {
       deps.stderr("[MessageQueueServer] No session_id in hook input");

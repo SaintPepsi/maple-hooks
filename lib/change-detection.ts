@@ -5,11 +5,11 @@
  * changes to determine if background integrity maintenance is needed.
  */
 
-import { readFile, fileExists, readJson, writeFile } from "@hooks/core/adapters/fs";
-import { tryCatch } from "@hooks/core/result";
-import { jsonParseFailed, type PaiError } from "@hooks/core/error";
+import { basename, join, relative } from "node:path";
+import { fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
+import { jsonParseFailed, type ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import { join, relative, basename } from "path";
+import { tryCatch } from "@hooks/core/result";
 import { getPaiDir } from "@hooks/lib/paths";
 
 // ============================================================================
@@ -17,7 +17,7 @@ import { getPaiDir } from "@hooks/lib/paths";
 // ============================================================================
 
 export interface FileChange {
-  tool: 'Write' | 'Edit' | 'MultiEdit';
+  tool: "Write" | "Edit" | "MultiEdit";
   path: string;
   category: ChangeCategory | null;
   isPhilosophical: boolean;
@@ -25,25 +25,25 @@ export interface FileChange {
 }
 
 export type ChangeCategory =
-  | 'skill'
-  | 'hook'
-  | 'workflow'
-  | 'config'
-  | 'core-system'
-  | 'memory-system'
-  | 'documentation';
+  | "skill"
+  | "hook"
+  | "workflow"
+  | "config"
+  | "core-system"
+  | "memory-system"
+  | "documentation";
 
-export type SignificanceLabel = 'trivial' | 'minor' | 'moderate' | 'major' | 'critical';
+export type SignificanceLabel = "trivial" | "minor" | "moderate" | "major" | "critical";
 
 export type ChangeType =
-  | 'skill_update'
-  | 'structure_change'
-  | 'doc_update'
-  | 'hook_update'
-  | 'workflow_update'
-  | 'config_update'
-  | 'tool_update'
-  | 'multi_area';
+  | "skill_update"
+  | "structure_change"
+  | "doc_update"
+  | "hook_update"
+  | "workflow_update"
+  | "config_update"
+  | "tool_update"
+  | "multi_area";
 
 export interface IntegrityState {
   last_run: string;
@@ -56,11 +56,11 @@ export interface IntegrityState {
 // ============================================================================
 
 export interface ChangeDetectionDeps {
-  readFile: (path: string) => Result<string, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  parseJsonLine: <T>(raw: string) => Result<T, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  parseJsonLine: <T>(raw: string) => Result<T, ResultError>;
   paiDir: string;
 }
 
@@ -69,8 +69,11 @@ export const defaultChangeDetectionDeps: ChangeDetectionDeps = {
   fileExists,
   readJson,
   writeFile,
-  parseJsonLine: <T>(raw: string): Result<T, PaiError> =>
-    tryCatch(() => JSON.parse(raw) as T, (e) => jsonParseFailed(raw.slice(0, 80), e)),
+  parseJsonLine: <T>(raw: string): Result<T, ResultError> =>
+    tryCatch(
+      () => JSON.parse(raw) as T,
+      (e) => jsonParseFailed(raw.slice(0, 80), e),
+    ),
   paiDir: getPaiDir(),
 };
 
@@ -80,28 +83,28 @@ export const defaultChangeDetectionDeps: ChangeDetectionDeps = {
 
 // Paths that are excluded from integrity checks
 const EXCLUDED_PATHS = [
-  'MEMORY/WORK/',
-  'MEMORY/LEARNING/',
-  'MEMORY/STATE/',
-  'scratch/',
-  'Plans/',
-  'projects/',
-  '.git/',
-  'node_modules/',
-  'ShellSnapshots/',
+  "MEMORY/WORK/",
+  "MEMORY/LEARNING/",
+  "MEMORY/STATE/",
+  "scratch/",
+  "Plans/",
+  "projects/",
+  ".git/",
+  "node_modules/",
+  "ShellSnapshots/",
 ];
 
 // High-priority paths that always warrant documentation
 const HIGH_PRIORITY_PATHS = [
-  'PAI/',
-  'PAI/USER/',
-  'PAISYSTEMARCHITECTURE.md',
-  'SKILLSYSTEM.md',
-  'MEMORYSYSTEM.md',
-  'THEHOOKSYSTEM.md',
-  'THEDELEGATIONSYSTEM.md',
-  'THENOTIFICATIONSYSTEM.md',
-  'settings.json',
+  "PAI/",
+  "PAI/USER/",
+  "PAISYSTEMARCHITECTURE.md",
+  "SKILLSYSTEM.md",
+  "MEMORYSYSTEM.md",
+  "THEHOOKSYSTEM.md",
+  "THEDELEGATIONSYSTEM.md",
+  "THENOTIFICATIONSYSTEM.md",
+  "settings.json",
 ];
 
 // Philosophical/architectural patterns in paths
@@ -116,10 +119,10 @@ const PHILOSOPHICAL_PATTERNS = [
 
 // Structural change patterns
 const STRUCTURAL_PATTERNS = [
-  /\/SKILL\.md$/i,           // Skill definitions
-  /\/Workflows\//i,          // Workflow routing
-  /settings\.json$/i,        // Configuration
-  /frontmatter/i,            // Metadata changes
+  /\/SKILL\.md$/i, // Skill definitions
+  /\/Workflows\//i, // Workflow routing
+  /settings\.json$/i, // Configuration
+  /frontmatter/i, // Metadata changes
 ];
 
 // ============================================================================
@@ -144,20 +147,23 @@ interface TranscriptEntry {
  * Parse tool_use blocks from a transcript that modify files.
  * Extracts Write, Edit, and MultiEdit operations.
  */
-export function parseToolUseBlocks(transcriptPath: string, deps: ChangeDetectionDeps = defaultChangeDetectionDeps): FileChange[] {
+export function parseToolUseBlocks(
+  transcriptPath: string,
+  deps: ChangeDetectionDeps = defaultChangeDetectionDeps,
+): FileChange[] {
   if (!deps.fileExists(transcriptPath)) {
-    console.error('[ChangeDetection] Transcript not found:', transcriptPath);
+    console.error("[ChangeDetection] Transcript not found:", transcriptPath);
     return [];
   }
 
   const result = deps.readFile(transcriptPath);
   if (!result.ok) {
-    console.error('[ChangeDetection] Error reading transcript:', result.error);
+    console.error("[ChangeDetection] Error reading transcript:", result.error);
     return [];
   }
 
   const content = result.value;
-  const lines = content.trim().split('\n');
+  const lines = content.trim().split("\n");
   const changes: FileChange[] = [];
   const seenPaths = new Set<string>();
 
@@ -170,37 +176,35 @@ export function parseToolUseBlocks(transcriptPath: string, deps: ChangeDetection
     const entry = parseResult.value;
 
     // Look for assistant messages with tool_use
-    if (entry.type === 'assistant' && entry.message?.content) {
-      const contentArray = Array.isArray(entry.message.content)
-        ? entry.message.content
-        : [];
+    if (entry.type === "assistant" && entry.message?.content) {
+      const contentArray = Array.isArray(entry.message.content) ? entry.message.content : [];
 
       for (const block of contentArray) {
-        if (block.type !== 'tool_use') continue;
+        if (block.type !== "tool_use") continue;
 
         const toolName = block.name;
         const input = block.input || {};
 
         // Handle Write, Edit, MultiEdit tools
-        if (toolName === 'Write' && input.file_path) {
+        if (toolName === "Write" && input.file_path) {
           const path = normalizeToRelativePath(input.file_path, deps.paiDir);
           if (!seenPaths.has(path)) {
             seenPaths.add(path);
-            changes.push(createFileChange('Write', path, deps.paiDir));
+            changes.push(createFileChange("Write", path, deps.paiDir));
           }
-        } else if (toolName === 'Edit' && input.file_path) {
+        } else if (toolName === "Edit" && input.file_path) {
           const path = normalizeToRelativePath(input.file_path, deps.paiDir);
           if (!seenPaths.has(path)) {
             seenPaths.add(path);
-            changes.push(createFileChange('Edit', path, deps.paiDir));
+            changes.push(createFileChange("Edit", path, deps.paiDir));
           }
-        } else if (toolName === 'MultiEdit' && input.edits) {
+        } else if (toolName === "MultiEdit" && input.edits) {
           for (const edit of input.edits) {
             if (edit.file_path) {
               const path = normalizeToRelativePath(edit.file_path, deps.paiDir);
               if (!seenPaths.has(path)) {
                 seenPaths.add(path);
-                changes.push(createFileChange('Edit', path, deps.paiDir));
+                changes.push(createFileChange("Edit", path, deps.paiDir));
               }
             }
           }
@@ -225,7 +229,7 @@ function normalizeToRelativePath(absolutePath: string, paiDir: string): string {
 /**
  * Create a FileChange object with categorization.
  */
-function createFileChange(tool: 'Write' | 'Edit', path: string, paiDir: string): FileChange {
+function createFileChange(tool: "Write" | "Edit", path: string, paiDir: string): FileChange {
   return {
     tool,
     path,
@@ -253,26 +257,26 @@ export function categorizeChange(path: string, paiDir?: string): ChangeCategory 
   }
 
   // Check if path is within PAI directory
-  const absolutePath = path.startsWith('/') ? path : join(resolvedPaiDir, path);
+  const absolutePath = path.startsWith("/") ? path : join(resolvedPaiDir, path);
   if (!absolutePath.startsWith(resolvedPaiDir)) {
     return null;
   }
 
   // Categorize by path pattern
-  if (path.includes('skills/')) {
+  if (path.includes("skills/")) {
     // Exclude personal/private skills (prefixed with _ by convention)
     const skillMatch = path.match(/skills\/(_[^/]+)/);
     if (skillMatch) return null;
-    if (path.includes('/Workflows/')) return 'workflow';
-    if (path.includes('PAI/')) return 'core-system';
-    return 'skill';
+    if (path.includes("/Workflows/")) return "workflow";
+    if (path.includes("PAI/")) return "core-system";
+    return "skill";
   }
 
-  if (path.includes('hooks/')) return 'hook';
-  if (path.includes('MEMORY/PAISYSTEMUPDATES/')) return 'documentation';
-  if (path.includes('MEMORY/')) return 'memory-system';
-  if (path.endsWith('settings.json')) return 'config';
-  if (path.endsWith('.md') && !path.includes('WORK/')) return 'documentation';
+  if (path.includes("hooks/")) return "hook";
+  if (path.includes("MEMORY/PAISYSTEMUPDATES/")) return "documentation";
+  if (path.includes("MEMORY/")) return "memory-system";
+  if (path.endsWith("settings.json")) return "config";
+  if (path.endsWith(".md") && !path.includes("WORK/")) return "documentation";
 
   return null;
 }
@@ -309,24 +313,24 @@ function isStructuralPath(path: string): boolean {
  */
 export function isSignificantChange(changes: FileChange[]): boolean {
   // Filter to only PAI system changes
-  const systemChanges = changes.filter(c => c.category !== null);
+  const systemChanges = changes.filter((c) => c.category !== null);
 
   if (systemChanges.length === 0) return false;
 
   // Always significant if philosophical or structural changes
-  if (systemChanges.some(c => c.isPhilosophical || c.isStructural)) {
+  if (systemChanges.some((c) => c.isPhilosophical || c.isStructural)) {
     return true;
   }
 
   // Significant if multiple files in same domain
-  const categories = new Set(systemChanges.map(c => c.category));
+  const categories = new Set(systemChanges.map((c) => c.category));
   if (categories.size >= 1 && systemChanges.length >= 2) {
     return true;
   }
 
   // Significant if any skill, hook, or core-system change
-  const importantCategories: ChangeCategory[] = ['skill', 'hook', 'core-system', 'workflow'];
-  if (systemChanges.some(c => importantCategories.includes(c.category!))) {
+  const importantCategories: ChangeCategory[] = ["skill", "hook", "core-system", "workflow"];
+  if (systemChanges.some((c) => importantCategories.includes(c.category!))) {
     return true;
   }
 
@@ -339,19 +343,25 @@ export function isSignificantChange(changes: FileChange[]): boolean {
  * Philosophy: File system is cheap, more signal is valuable.
  */
 export function shouldDocumentChanges(changes: FileChange[]): boolean {
-  const systemChanges = changes.filter(c => c.category !== null);
+  const systemChanges = changes.filter((c) => c.category !== null);
 
   // No changes to document
   if (systemChanges.length === 0) return false;
 
   // Always document philosophical or structural changes
-  if (systemChanges.some(c => c.isPhilosophical || c.isStructural)) {
+  if (systemChanges.some((c) => c.isPhilosophical || c.isStructural)) {
     return true;
   }
 
   // Document ANY skill, hook, workflow, core-system, or config change
-  const importantCategories: ChangeCategory[] = ['skill', 'hook', 'workflow', 'core-system', 'config'];
-  if (systemChanges.some(c => c.category && importantCategories.includes(c.category))) {
+  const importantCategories: ChangeCategory[] = [
+    "skill",
+    "hook",
+    "workflow",
+    "core-system",
+    "config",
+  ];
+  if (systemChanges.some((c) => c.category && importantCategories.includes(c.category))) {
     return true;
   }
 
@@ -361,11 +371,11 @@ export function shouldDocumentChanges(changes: FileChange[]): boolean {
   }
 
   // Document new file creation in system areas
-  const newFiles = systemChanges.filter(c => c.tool === 'Write');
+  const newFiles = systemChanges.filter((c) => c.tool === "Write");
   if (newFiles.length > 0) return true;
 
   // Document any tool file changes (.ts in Tools/)
-  if (systemChanges.some(c => c.path.includes('/Tools/') && c.path.endsWith('.ts'))) {
+  if (systemChanges.some((c) => c.path.includes("/Tools/") && c.path.endsWith(".ts"))) {
     return true;
   }
 
@@ -382,8 +392,10 @@ const COOLDOWN_MINUTES = 2;
 /**
  * Read the current integrity state.
  */
-export function readIntegrityState(deps: ChangeDetectionDeps = defaultChangeDetectionDeps): IntegrityState | null {
-  const stateFile = join(deps.paiDir, 'MEMORY', 'STATE', 'integrity-state.json');
+export function readIntegrityState(
+  deps: ChangeDetectionDeps = defaultChangeDetectionDeps,
+): IntegrityState | null {
+  const stateFile = join(deps.paiDir, "MEMORY", "STATE", "integrity-state.json");
   if (!deps.fileExists(stateFile)) return null;
   const result = deps.readJson<IntegrityState>(stateFile);
   if (!result.ok) return null;
@@ -406,15 +418,15 @@ export function isInCooldown(deps: ChangeDetectionDeps = defaultChangeDetectionD
  */
 export function hashChanges(changes: FileChange[]): string {
   const sorted = changes
-    .map(c => `${c.tool}:${c.path}`)
+    .map((c) => `${c.tool}:${c.path}`)
     .sort()
-    .join('|');
+    .join("|");
 
   // Simple hash
   let hash = 0;
   for (let i = 0; i < sorted.length; i++) {
     const char = sorted.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash;
   }
   return hash.toString(16);
@@ -423,7 +435,10 @@ export function hashChanges(changes: FileChange[]): string {
 /**
  * Check if changes are duplicates of the last run.
  */
-export function isDuplicateRun(changes: FileChange[], deps: ChangeDetectionDeps = defaultChangeDetectionDeps): boolean {
+export function isDuplicateRun(
+  changes: FileChange[],
+  deps: ChangeDetectionDeps = defaultChangeDetectionDeps,
+): boolean {
   const state = readIntegrityState(deps);
   if (!state?.last_changes_hash) return false;
 
@@ -449,110 +464,117 @@ export function getCooldownEndTime(): string {
  */
 export function determineSignificance(changes: FileChange[]): SignificanceLabel {
   const count = changes.length;
-  const hasStructural = changes.some(c => c.isStructural);
-  const hasPhilosophical = changes.some(c => c.isPhilosophical);
-  const hasNewFiles = changes.some(c => c.tool === 'Write');
+  const hasStructural = changes.some((c) => c.isStructural);
+  const hasPhilosophical = changes.some((c) => c.isPhilosophical);
+  const hasNewFiles = changes.some((c) => c.tool === "Write");
 
-  const categories = new Set(changes.map(c => c.category).filter(Boolean));
-  const hasCoreSystem = changes.some(c => c.category === 'core-system');
-  const hasHooks = changes.some(c => c.category === 'hook');
-  const hasSkills = changes.some(c => c.category === 'skill');
+  const categories = new Set(changes.map((c) => c.category).filter(Boolean));
+  const hasCoreSystem = changes.some((c) => c.category === "core-system");
+  const hasHooks = changes.some((c) => c.category === "hook");
+  const hasSkills = changes.some((c) => c.category === "skill");
 
   // Critical: breaking changes, major restructuring
   if (hasStructural && hasPhilosophical && count >= 5) {
-    return 'critical';
+    return "critical";
   }
 
   // Major: new skills/workflows, architectural decisions
   if (hasNewFiles && (hasStructural || hasPhilosophical)) {
-    return 'major';
+    return "major";
   }
-  if (hasCoreSystem || (categories.size >= 3)) {
-    return 'major';
+  if (hasCoreSystem || categories.size >= 3) {
+    return "major";
   }
   if (hasHooks && count >= 3) {
-    return 'major';
+    return "major";
   }
 
   // Moderate: multi-file updates, small features
   if (count >= 3 || categories.size >= 2) {
-    return 'moderate';
+    return "moderate";
   }
   if (hasSkills && count >= 2) {
-    return 'moderate';
+    return "moderate";
   }
 
   // Minor: single file doc updates
   if (count === 1 && !hasStructural && !hasPhilosophical) {
-    return 'minor';
+    return "minor";
   }
 
   // Trivial: only if very small doc changes
-  if (count === 1 && changes[0].category === 'documentation') {
-    return 'trivial';
+  if (count === 1 && changes[0].category === "documentation") {
+    return "trivial";
   }
 
-  return 'minor';
+  return "minor";
 }
 
 /**
  * Determine the change type based on affected files.
  */
 export function inferChangeType(changes: FileChange[]): ChangeType {
-  const categories = changes.map(c => c.category).filter(Boolean);
+  const categories = changes.map((c) => c.category).filter(Boolean);
   const uniqueCategories = new Set(categories);
 
   // Multi-area if touching 3+ categories
   if (uniqueCategories.size >= 3) {
-    return 'multi_area';
+    return "multi_area";
   }
 
   // Single category cases
   if (uniqueCategories.size === 1) {
     const cat = [...uniqueCategories][0];
     switch (cat) {
-      case 'skill': return changes.some(c => c.isStructural) ? 'structure_change' : 'skill_update';
-      case 'hook': return 'hook_update';
-      case 'workflow': return 'workflow_update';
-      case 'config': return 'config_update';
-      case 'core-system': return 'structure_change';
-      case 'documentation': return 'doc_update';
-      default: return 'skill_update';
+      case "skill":
+        return changes.some((c) => c.isStructural) ? "structure_change" : "skill_update";
+      case "hook":
+        return "hook_update";
+      case "workflow":
+        return "workflow_update";
+      case "config":
+        return "config_update";
+      case "core-system":
+        return "structure_change";
+      case "documentation":
+        return "doc_update";
+      default:
+        return "skill_update";
     }
   }
 
   // Two categories - pick the more significant one
-  if (uniqueCategories.has('hook')) return 'hook_update';
-  if (uniqueCategories.has('skill')) return 'skill_update';
-  if (uniqueCategories.has('workflow')) return 'workflow_update';
-  if (uniqueCategories.has('config')) return 'config_update';
+  if (uniqueCategories.has("hook")) return "hook_update";
+  if (uniqueCategories.has("skill")) return "skill_update";
+  if (uniqueCategories.has("workflow")) return "workflow_update";
+  if (uniqueCategories.has("config")) return "config_update";
 
-  return 'multi_area';
+  return "multi_area";
 }
 
 /**
  * Generate a descriptive 4-8 word title based on the changes.
  */
 export function generateDescriptiveTitle(changes: FileChange[]): string {
-  const paths = changes.map(c => c.path);
+  const paths = changes.map((c) => c.path);
 
   // Extract skill names
   const skillNames = new Set<string>();
   for (const p of paths) {
     const match = p.match(/skills\/([^/]+)\//);
-    if (match && match[1] !== 'PAI') skillNames.add(match[1]);
+    if (match && match[1] !== "PAI") skillNames.add(match[1]);
   }
 
   // Detect file types
-  const hasSkillMd = paths.some(p => p.endsWith('SKILL.md'));
-  const hasWorkflows = paths.some(p => p.includes('/Workflows/'));
-  const hasTools = paths.some(p => p.includes('/Tools/') && p.endsWith('.ts'));
-  const hasHooks = paths.some(p => p.includes('hooks/'));
-  const hasConfig = paths.some(p => p.endsWith('settings.json'));
-  const hasCoreSystem = paths.some(p => p.includes('PAI/'));
-  const hasCoreUser = paths.some(p => p.includes('PAI/USER/'));
+  const hasSkillMd = paths.some((p) => p.endsWith("SKILL.md"));
+  const hasWorkflows = paths.some((p) => p.includes("/Workflows/"));
+  const hasTools = paths.some((p) => p.includes("/Tools/") && p.endsWith(".ts"));
+  const hasHooks = paths.some((p) => p.includes("hooks/"));
+  const hasConfig = paths.some((p) => p.endsWith("settings.json"));
+  const hasCoreSystem = paths.some((p) => p.includes("PAI/"));
+  const hasCoreUser = paths.some((p) => p.includes("PAI/USER/"));
 
-  let title = '';
+  let title = "";
 
   // Single skill update
   if (skillNames.size === 1) {
@@ -561,17 +583,15 @@ export function generateDescriptiveTitle(changes: FileChange[]): string {
       title = `${skill} Skill Definition Update`;
     } else if (hasWorkflows) {
       const workflowNames = paths
-        .filter(p => p.includes('/Workflows/'))
-        .map(p => basename(p, '.md'));
+        .filter((p) => p.includes("/Workflows/"))
+        .map((p) => basename(p, ".md"));
       if (workflowNames.length === 1) {
         title = `${skill} ${workflowNames[0]} Workflow Update`;
       } else {
         title = `${skill} Workflows Updated`;
       }
     } else if (hasTools) {
-      const toolNames = paths
-        .filter(p => p.includes('/Tools/'))
-        .map(p => basename(p, '.ts'));
+      const toolNames = paths.filter((p) => p.includes("/Tools/")).map((p) => basename(p, ".ts"));
       if (toolNames.length === 1) {
         title = `${skill} ${toolNames[0]} Tool Update`;
       } else {
@@ -583,56 +603,52 @@ export function generateDescriptiveTitle(changes: FileChange[]): string {
   }
   // Multiple skills
   else if (skillNames.size > 1 && skillNames.size <= 3) {
-    const skills = [...skillNames].slice(0, 3).join(' and ');
+    const skills = [...skillNames].slice(0, 3).join(" and ");
     title = `${skills} Skills Updated`;
   }
   // Hook changes
   else if (hasHooks) {
     const hookNames = paths
-      .filter(p => p.includes('hooks/'))
-      .map(p => basename(p, '.ts').replace('.hook', ''));
+      .filter((p) => p.includes("hooks/"))
+      .map((p) => basename(p, ".ts").replace(".hook", ""));
     if (hookNames.length === 1) {
       title = `${hookNames[0]} Hook Updated`;
     } else if (hookNames.length <= 3) {
-      title = `${hookNames.slice(0, 3).join(', ')} Hooks Updated`;
+      title = `${hookNames.slice(0, 3).join(", ")} Hooks Updated`;
     } else {
       title = `Hook System Updates`;
     }
   }
   // Config changes
   else if (hasConfig) {
-    title = 'System Configuration Updated';
+    title = "System Configuration Updated";
   }
   // Core system changes
   else if (hasCoreSystem) {
-    const docNames = paths
-      .filter(p => p.includes('PAI/'))
-      .map(p => basename(p, '.md'));
+    const docNames = paths.filter((p) => p.includes("PAI/")).map((p) => basename(p, ".md"));
     if (docNames.length === 1) {
       title = `${docNames[0]} Documentation Updated`;
     } else {
-      title = 'PAI System Documentation Updated';
+      title = "PAI System Documentation Updated";
     }
   }
   // Core user changes
   else if (hasCoreUser) {
-    const docNames = paths
-      .filter(p => p.includes('PAI/USER/'))
-      .map(p => basename(p, '.md'));
+    const docNames = paths.filter((p) => p.includes("PAI/USER/")).map((p) => basename(p, ".md"));
     if (docNames.length === 1) {
       title = `${docNames[0]} User Config Updated`;
     } else {
-      title = 'User Configuration Updated';
+      title = "User Configuration Updated";
     }
   }
   // Fallback
   else {
-    const categoriesSet = new Set(changes.map(c => c.category).filter(Boolean));
+    const categoriesSet = new Set(changes.map((c) => c.category).filter(Boolean));
     if (categoriesSet.size === 1) {
       const cat = [...categoriesSet][0];
-      title = `${capitalize(cat || 'System')} Updates Applied`;
+      title = `${capitalize(cat || "System")} Updates Applied`;
     } else {
-      title = 'Multi-Area System Updates Applied';
+      title = "Multi-Area System Updates Applied";
     }
   }
 
@@ -641,7 +657,7 @@ export function generateDescriptiveTitle(changes: FileChange[]): string {
   if (words.length < 4) {
     title = `PAI ${title}`;
   } else if (words.length > 8) {
-    title = words.slice(0, 8).join(' ');
+    title = words.slice(0, 8).join(" ");
   }
 
   return title;

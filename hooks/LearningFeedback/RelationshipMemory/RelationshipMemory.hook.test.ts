@@ -1,9 +1,16 @@
-import { describe, it, expect } from "bun:test";
-import { join } from "path";
+import { describe, expect, it } from "bun:test";
+import { join } from "node:path";
 
 const HOOK_PATH = join(import.meta.dir, "RelationshipMemory.hook.ts");
 
-async function runHook(input: Record<string, unknown>): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+let runId = 0;
+function uniqueSessionId(base: string): string {
+  return `${base}-${Date.now()}-${++runId}`;
+}
+
+async function runHook(
+  input: Record<string, unknown>,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const proc = Bun.spawn(["bun", HOOK_PATH], {
     stdin: "pipe",
     stdout: "pipe",
@@ -23,7 +30,7 @@ async function runHook(input: Record<string, unknown>): Promise<{ stdout: string
 describe("RelationshipMemory hook shell", () => {
   it("exits 0 for Stop event with nonexistent transcript", async () => {
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("rm"),
       transcript_path: "/tmp/nonexistent",
     });
     expect(result.exitCode).toBe(0);
@@ -35,7 +42,7 @@ describe("RelationshipMemory hook shell", () => {
 
   it("exits 0 when transcript_path is missing (rejected by accepts)", async () => {
     const result = await runHook({
-      session_id: "test",
+      session_id: uniqueSessionId("rm"),
     });
     expect(result.exitCode).toBe(0);
     // accepts() returns false when no transcript_path — safeExit produces no stdout for Stop events

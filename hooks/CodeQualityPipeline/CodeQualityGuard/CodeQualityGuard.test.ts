@@ -1,10 +1,14 @@
-import { describe, test, expect } from "bun:test";
-import { CodeQualityGuard, type CodeQualityGuardDeps } from "./CodeQualityGuard.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { ok, err, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { beforeEach, describe, expect, test } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
 import { getLanguageProfile, isScorableFile } from "@hooks/core/language-profiles";
-import { scoreFile, formatAdvisory, formatDelta } from "@hooks/core/quality-scorer";
+import { formatAdvisory, formatDelta, scoreFile } from "@hooks/core/quality-scorer";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import {
+  _resetViolationCache,
+  CodeQualityGuard,
+  type CodeQualityGuardDeps,
+} from "@hooks/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -77,15 +81,15 @@ function makeDeps(overrides: Partial<CodeQualityGuardDeps> = {}): CodeQualityGua
   return {
     fileExists: () => false,
     readFile: () => ok(CLEAN_TS),
-    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
+    readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
     getLanguageProfile,
     isScorableFile,
     scoreFile,
     formatAdvisory,
     formatDelta,
     signal: {
-      appendFile: () => ok(undefined as void),
-      ensureDir: () => ok(undefined as void),
+      appendFile: () => ok(undefined as undefined),
+      ensureDir: () => ok(undefined as undefined),
       baseDir: "/tmp/test",
     },
     stderr: (msg) => logs.push(msg),
@@ -105,6 +109,10 @@ function makeInput(overrides: Partial<ToolHookInput> = {}): ToolHookInput {
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("CodeQualityGuard", () => {
+  beforeEach(() => {
+    _resetViolationCache();
+  });
+
   describe("accepts", () => {
     test("accepts Edit on source files", () => {
       expect(CodeQualityGuard.accepts(makeInput({ tool_name: "Edit" }))).toBe(true);
@@ -177,7 +185,7 @@ describe("CodeQualityGuard", () => {
   describe("execute — file read failure", () => {
     test("returns continue without context when file unreadable", () => {
       const deps = makeDeps({
-        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as PaiError),
+        readFile: () => err({ code: "FILE_READ_FAILED", message: "gone" } as ResultError),
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -225,7 +233,7 @@ describe("CodeQualityGuard", () => {
     test("no delta when no baseline exists", () => {
       const deps = makeDeps({
         readFile: () => ok(BLOATED_TS),
-        readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as PaiError),
+        readJson: () => err({ code: "FILE_NOT_FOUND", message: "not found" } as ResultError),
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
@@ -285,6 +293,53 @@ describe("CodeQualityGuard", () => {
       expect(result.ok).toBe(true);
       if (result.ok && result.value.additionalContext) {
         expect(result.value.additionalContext).toBeDefined();
+      }
+    });
+  });
+
+  describe("Svelte file handling", () => {
+    test("continues when .svelte file has no script block", () => {
+      const deps = makeDeps({ readFile: () => ok("<div>Just HTML</div>") });
+      const input = makeInput({
+        tool_input: { file_path: "/src/Component.svelte" },
+      });
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(result.value.type).toBe("continue");
+    });
+
+    test("scores script block from .svelte file", () => {
+      const svelteContent = [
+        '<script lang="ts">',
+        ...Array.from({ length: 16 }, (_, i) => `function fn${i}() { return ${i}; }`),
+        "</script>",
+      ].join("\n");
+      const deps = makeDeps({ readFile: () => ok(svelteContent) });
+      const input = makeInput({
+        tool_input: { file_path: "/src/Component.svelte" },
+      });
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+    });
+  });
+
+  describe("violation dedup", () => {
+    test("suppresses duplicate violation report for same file", () => {
+      _resetViolationCache();
+      const deps = makeDeps({ readFile: () => ok(BLOATED_TS) });
+      const input = makeInput({
+        tool_input: { file_path: "/src/bloated-dedup.ts" },
+      });
+
+      // First call — reports violations
+      const result1 = CodeQualityGuard.execute(input, deps);
+      expect(result1.ok).toBe(true);
+
+      // Second call same file, same violations — should be deduplicated (no advisory)
+      const result2 = CodeQualityGuard.execute(input, deps);
+      expect(result2.ok).toBe(true);
+      if (result2.ok) {
+        expect(result2.value.type).toBe("continue");
       }
     });
   });

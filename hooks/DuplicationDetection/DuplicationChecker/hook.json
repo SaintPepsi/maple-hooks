@@ -2,11 +2,8 @@
   "name": "DuplicationChecker",
   "group": "DuplicationDetection",
   "event": "PreToolUse",
-  "description": "Advisory: warns before writing functions that duplicate existing code (3+ signal dimensions)",
+  "description": "Tiered duplication guard: 1/4 ignore, 2-3/4 log, 4/4 block (configurable via hookConfig.duplicationChecker.blocking)",
   "schemaVersion": 1,
-  "tags": [
-    "quality",
-    "duplication"
-  ],
+  "tags": ["quality", "duplication"],
   "presets": []
 }

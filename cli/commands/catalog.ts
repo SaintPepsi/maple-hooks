@@ -8,14 +8,14 @@
  * Malformed manifests are skipped with a warning to stderr (non-fatal).
  */
 
+import type { ParsedArgs } from "@hooks/cli/core/args";
+import type { PaihError } from "@hooks/cli/core/error";
+import { PaihError as PaihErrorClass, PaihErrorCode } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import { ok } from "@hooks/cli/core/result";
-import { tryCatch } from "@hooks/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { PaihErrorCode, PaihError as PaihErrorClass } from "@hooks/cli/core/error";
-import type { ParsedArgs } from "@hooks/cli/core/args";
 import type { CliDeps } from "@hooks/cli/types/deps";
-import type { HookManifest, GroupManifest, PresetEntry } from "@hooks/cli/types/manifest";
+import type { GroupManifest, HookManifest, PresetEntry } from "@hooks/cli/types/manifest";
+import { tryCatch } from "@hooks/core/result";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -228,47 +228,32 @@ function safeParseJson<T>(path: string, deps: CliDeps): Result<T, PaihError> {
 
   return tryCatch(
     () => JSON.parse(content.value) as T,
-    () => new PaihErrorClass(
-      PaihErrorCode.ManifestParseError,
-      `Failed to parse JSON at ${path}`,
-      { path },
-    ),
+    () =>
+      new PaihErrorClass(PaihErrorCode.ManifestParseError, `Failed to parse JSON at ${path}`, {
+        path,
+      }),
   );
 }
 
 function truncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str;
-  return str.slice(0, maxLen - 3) + "...";
+  return `${str.slice(0, maxLen - 3)}...`;
 }
 
 function hookRow(name: string, group: string, event: string, tags: string, desc: string): string {
-  return [
-    name.padEnd(24),
-    group.padEnd(20),
-    event.padEnd(16),
-    tags.padEnd(20),
-    desc,
-  ].join("  ");
+  return [name.padEnd(24), group.padEnd(20), event.padEnd(16), tags.padEnd(20), desc].join("  ");
 }
 
 function groupRow(group: string, hookCount: string, desc: string): string {
-  return [
-    group.padEnd(24),
-    hookCount.padEnd(12),
-    desc,
-  ].join("  ");
+  return [group.padEnd(24), hookCount.padEnd(12), desc].join("  ");
 }
 
 function presetRow(preset: string, desc: string, items: string): string {
-  return [
-    preset.padEnd(20),
-    desc.padEnd(44),
-    items,
-  ].join("  ");
+  return [preset.padEnd(20), desc.padEnd(44), items].join("  ");
 }
 
 /** Prepend warnings to output for non-JSON modes. */
 function prependWarnings(output: string, warnings: string[], json: boolean): string {
   if (json || warnings.length === 0) return output;
-  return warnings.join("\n") + "\n\n" + output;
+  return `${warnings.join("\n")}\n\n${output}`;
 }

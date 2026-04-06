@@ -5,19 +5,21 @@
  * Writes state file for Banner.ts to read. Skips for subagents.
  */
 
+import { join } from "node:path";
+import { ensureDir, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { err, ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { isSubagent } from "@hooks/lib/environment";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, err, type Result } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
-import { join } from "path";
-import { fileExists, readFile, writeFile, ensureDir } from "@hooks/core/adapters/fs";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface CheckAlgorithmVersionDeps {
   getLocalVersion: () => string;
-  getUpstreamVersion: () => Promise<Result<string, PaiError>>;
+  getUpstreamVersion: () => Promise<Result<string, ResultError>>;
   writeStateFile: (data: Record<string, unknown>) => void;
   isSubagent: () => boolean;
   stderr: (msg: string) => void;
@@ -51,7 +53,7 @@ function defaultGetLocalVersion(homeDir: string): string {
   return result.ok ? result.value.trim() : "unknown";
 }
 
-async function defaultGetUpstreamVersion(): Promise<Result<string, PaiError>> {
+async function defaultGetUpstreamVersion(): Promise<Result<string, ResultError>> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
 
@@ -66,7 +68,7 @@ async function defaultGetUpstreamVersion(): Promise<Result<string, PaiError>> {
   const trimmed = output.trim();
   const isValidBase64 = trimmed.length > 0 && /^[A-Za-z0-9+/\n=]+$/.test(trimmed);
   if (!isValidBase64) {
-    return err(new PaiError(ErrorCode.FetchFailed, "GitHub API returned non-base64 response"));
+    return err(new ResultError(ErrorCode.FetchFailed, "GitHub API returned non-base64 response"));
   }
 
   const decoded = atob(trimmed);
@@ -79,22 +81,14 @@ function defaultWriteStateFile(homeDir: string, data: Record<string, unknown>): 
   writeFile(join(stateDir, "algorithm-update.json"), JSON.stringify(data));
 }
 
-function defaultIsSubagent(envGet: (key: string) => string | undefined): boolean {
-  const claudeProjectDir = envGet("CLAUDE_PROJECT_DIR") || "";
-  return (
-    claudeProjectDir.includes("/.claude/Agents/") ||
-    envGet("CLAUDE_AGENT_TYPE") !== undefined
-  );
-}
-
 // ─── Contract ────────────────────────────────────────────────────────────────
 
 const defaultDeps: CheckAlgorithmVersionDeps = {
   getLocalVersion: () => defaultGetLocalVersion(process.env.HOME!),
   getUpstreamVersion: defaultGetUpstreamVersion,
   writeStateFile: (data) => defaultWriteStateFile(process.env.HOME!, data),
-  isSubagent: () => defaultIsSubagent((key) => process.env[key]),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  isSubagent: () => isSubagent((k) => process.env[k]),
+  stderr: defaultStderr,
   homeDir: process.env.HOME!,
 };
 
@@ -113,7 +107,7 @@ export const CheckAlgorithmVersion: AsyncHookContract<
   async execute(
     _input: SessionStartInput,
     deps: CheckAlgorithmVersionDeps,
-  ): Promise<Result<SilentOutput, PaiError>> {
+  ): Promise<Result<SilentOutput, ResultError>> {
     if (deps.isSubagent()) {
       return ok({ type: "silent" });
     }

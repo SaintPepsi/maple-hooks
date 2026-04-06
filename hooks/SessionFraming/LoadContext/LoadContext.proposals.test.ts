@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, writeFileSync, rmSync, existsSync, readdirSync } from "fs";
-import { join } from "path";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 
 const TEST_DIR = join(import.meta.dir, "__test-load-context-proposals__");
 
@@ -46,41 +46,60 @@ describe("Proposal format parsing", () => {
     for (let i = 0; i < 8; i++) {
       writeFileSync(
         join(TEST_DIR, `MEMORY/LEARNING/PROPOSALS/pending/20260227-17000${i}-proposal-${i}.md`),
-        `---\ncategory: memory\n---\n\n# Proposal: Proposal number ${i}\n`
+        `---\ncategory: memory\n---\n\n# Proposal: Proposal number ${i}\n`,
       );
     }
-    const files = readdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"))
-      .filter((f: string) => f.endsWith(".md") && f !== ".gitkeep");
+    const files = readdirSync(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending")).filter(
+      (f: string) => f.endsWith(".md") && f !== ".gitkeep",
+    );
     expect(files.length).toBe(8);
   });
 });
 
 // ─── Section 2: Integration tests (red until Task 3 modifies LoadContext) ────
 
-import { loadPendingProposals } from "./LoadContext.contract";
-import type { LoadContextDeps } from "./LoadContext.contract";
 import { ok } from "@hooks/core/result";
+import type { LoadContextDeps } from "./LoadContext.contract";
+import { loadPendingProposals } from "./LoadContext.contract";
 
 const INT_TEST_DIR = join(import.meta.dir, "__test-lc-proposals-integration__");
 
-function makeProposalDeps(overrides: Partial<LoadContextDeps> = {}): Pick<LoadContextDeps, "fileExists" | "readFile" | "readDir" | "stat" | "getDAName"> {
+function makeProposalDeps(
+  overrides: Partial<LoadContextDeps> = {},
+): Pick<LoadContextDeps, "fileExists" | "readFile" | "readDir" | "stat" | "getDAName"> {
   return {
     fileExists: (path: string) => existsSync(path),
     readFile: (path: string) => {
-      try { return ok(require("fs").readFileSync(path, "utf-8")); }
-      catch { return { ok: false, error: { code: "READ_FAILED", message: "not found", context: {} } } as any; }
+      try {
+        return ok(require("node:fs").readFileSync(path, "utf-8"));
+      } catch {
+        return {
+          ok: false,
+          error: { code: "READ_FAILED", message: "not found", context: {} },
+        } as any;
+      }
     },
     readDir: (path: string, opts?: any) => {
       try {
         const entries = readdirSync(path, opts);
         return ok(entries);
-      } catch { return { ok: false, error: { code: "READ_DIR_FAILED", message: "not found", context: {} } } as any; }
+      } catch {
+        return {
+          ok: false,
+          error: { code: "READ_DIR_FAILED", message: "not found", context: {} },
+        } as any;
+      }
     },
     stat: (path: string) => {
       try {
-        const s = require("fs").statSync(path);
+        const s = require("node:fs").statSync(path);
         return ok({ mtimeMs: s.mtimeMs });
-      } catch { return { ok: false, error: { code: "STAT_FAILED", message: "not found", context: {} } } as any; }
+      } catch {
+        return {
+          ok: false,
+          error: { code: "STAT_FAILED", message: "not found", context: {} },
+        } as any;
+      }
     },
     getDAName: () => "Maple",
     ...overrides,
@@ -99,7 +118,7 @@ describe("LoadContext proposals integration", () => {
   it("returns string with 'Pending Improvement Proposals' when proposals exist", () => {
     writeFileSync(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test-proposal.md"),
-      "---\ncategory: steering-rule\npriority: medium\n---\n\n# Proposal: Add retry limit to agent loops\n\n## What was learned\nAgents retry indefinitely.\n"
+      "---\ncategory: steering-rule\npriority: medium\n---\n\n# Proposal: Add retry limit to agent loops\n\n## What was learned\nAgents retry indefinitely.\n",
     );
 
     const deps = makeProposalDeps();
@@ -114,11 +133,11 @@ describe("LoadContext proposals integration", () => {
   it("returns null when .analyzing lock file is fresh", () => {
     writeFileSync(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test.md"),
-      "---\ncategory: memory\n---\n\n# Proposal: Test\n"
+      "---\ncategory: memory\n---\n\n# Proposal: Test\n",
     );
     writeFileSync(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
-      new Date().toISOString()
+      new Date().toISOString(),
     );
 
     const deps = makeProposalDeps();
@@ -130,15 +149,19 @@ describe("LoadContext proposals integration", () => {
   it("returns proposals when .analyzing lock file is stale (>10min)", () => {
     writeFileSync(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test.md"),
-      "---\ncategory: memory\n---\n\n# Proposal: Stale lock test\n"
+      "---\ncategory: memory\n---\n\n# Proposal: Stale lock test\n",
     );
     writeFileSync(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
-      new Date(Date.now() - 11 * 60 * 1000).toISOString()
+      new Date(Date.now() - 11 * 60 * 1000).toISOString(),
     );
     // Backdate the lock file mtime
     const lockPath = join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing");
-    require("fs").utimesSync(lockPath, new Date(Date.now() - 11 * 60 * 1000), new Date(Date.now() - 11 * 60 * 1000));
+    require("node:fs").utimesSync(
+      lockPath,
+      new Date(Date.now() - 11 * 60 * 1000),
+      new Date(Date.now() - 11 * 60 * 1000),
+    );
 
     const deps = makeProposalDeps();
     const result = loadPendingProposals(INT_TEST_DIR, deps as any);
@@ -151,7 +174,7 @@ describe("LoadContext proposals integration", () => {
     for (let i = 0; i < 7; i++) {
       writeFileSync(
         join(INT_TEST_DIR, `MEMORY/LEARNING/PROPOSALS/pending/20260227-12000${i}-proposal-${i}.md`),
-        `---\ncategory: hook\n---\n\n# Proposal: Improvement number ${i}\n`
+        `---\ncategory: hook\n---\n\n# Proposal: Improvement number ${i}\n`,
       );
     }
 

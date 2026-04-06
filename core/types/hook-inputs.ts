@@ -20,6 +20,7 @@ export type HookEventType =
 
 export interface HookInputBase {
   session_id: string;
+  hook_type?: string;
 }
 
 // ─── Tool Inputs (Pre/PostToolUse) ───────────────────────────────────────────
@@ -44,7 +45,7 @@ export interface SessionEndInput extends HookInputBase {
 
 export interface UserPromptSubmitInput extends HookInputBase {
   prompt?: string;
-  user_prompt?: string;       // Legacy field name
+  user_prompt?: string; // Legacy field name
   transcript_path?: string;
 }
 

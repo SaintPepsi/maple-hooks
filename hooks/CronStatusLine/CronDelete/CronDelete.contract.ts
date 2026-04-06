@@ -9,28 +9,29 @@
  * Runner: @hooks/core/runner.ts
  */
 
+import {
+  appendFile,
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
-  readCronFile,
-  writeCronFile,
   appendCronLog,
-  cronFilePath,
   type CronFileDeps,
   type CronPathDeps,
+  cronFilePath,
+  readCronFile,
+  writeCronFile,
 } from "@hooks/hooks/CronStatusLine/shared";
-import {
-  readFile,
-  writeFile,
-  fileExists,
-  ensureDir,
-  readDir,
-  removeFile,
-  appendFile,
-} from "@hooks/core/adapters/fs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -46,17 +47,13 @@ const defaultDeps: CronDeleteDeps = {
   readDir,
   removeFile,
   appendFile,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
   getEnv: (key) => process.env[key],
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-export const CronDeleteContract: SyncHookContract<
-  ToolHookInput,
-  SilentOutput,
-  CronDeleteDeps
-> = {
+export const CronDeleteContract: SyncHookContract<ToolHookInput, SilentOutput, CronDeleteDeps> = {
   name: "CronDelete",
   event: "PostToolUse",
 
@@ -64,10 +61,7 @@ export const CronDeleteContract: SyncHookContract<
     return input.tool_name === "CronDelete";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: CronDeleteDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CronDeleteDeps): Result<SilentOutput, ResultError> {
     const sessionId = input.session_id;
     const cronId = String(input.tool_input.id ?? "");
 
@@ -97,11 +91,7 @@ export const CronDeleteContract: SyncHookContract<
     }
 
     // Append "deleted" event to JSONL log
-    appendCronLog(
-      { type: "deleted", cronId, name: removedCron.name, sessionId },
-      deps,
-      deps,
-    );
+    appendCronLog({ type: "deleted", cronId, name: removedCron.name, sessionId }, deps, deps);
 
     return ok({ type: "silent" });
   },

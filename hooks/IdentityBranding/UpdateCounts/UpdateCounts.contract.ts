@@ -6,18 +6,19 @@
  * writes to MEMORY/STATE/counts.json (gitignored), not settings.json.
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { join } from "node:path";
 import { spawnBackground } from "@hooks/core/adapters/process";
-import { join } from "path";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface UpdateCountsDeps {
-  spawnBackground: (cmd: string, args: string[]) => Result<void, PaiError>;
+  spawnBackground: (cmd: string, args: string[]) => Result<void, ResultError>;
   hooksDir: string;
   stderr: (msg: string) => void;
 }
@@ -26,15 +27,11 @@ export interface UpdateCountsDeps {
 
 const defaultDeps: UpdateCountsDeps = {
   spawnBackground,
-  hooksDir: join(process.env.PAI_DIR || join(process.env.HOME!, ".claude"), "pai-hooks"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  hooksDir: join(getPaiDir(), "pai-hooks"),
+  stderr: defaultStderr,
 };
 
-export const UpdateCounts: SyncHookContract<
-  SessionEndInput,
-  SilentOutput,
-  UpdateCountsDeps
-> = {
+export const UpdateCounts: SyncHookContract<SessionEndInput, SilentOutput, UpdateCountsDeps> = {
   name: "UpdateCounts",
   event: "SessionEnd",
 
@@ -42,10 +39,7 @@ export const UpdateCounts: SyncHookContract<
     return true;
   },
 
-  execute(
-    _input: SessionEndInput,
-    deps: UpdateCountsDeps,
-  ): Result<SilentOutput, PaiError> {
+  execute(_input: SessionEndInput, deps: UpdateCountsDeps): Result<SilentOutput, ResultError> {
     const handlerPath = join(deps.hooksDir, "handlers", "UpdateCounts.ts");
     const result = deps.spawnBackground("bun", [handlerPath]);
 

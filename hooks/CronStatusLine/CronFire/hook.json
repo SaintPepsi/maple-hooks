@@ -4,10 +4,6 @@
   "event": "UserPromptSubmit",
   "description": "Detect and record cron fires by matching user prompts against session crons",
   "schemaVersion": 1,
-  "tags": [
-    "cron"
-  ],
-  "presets": [
-    "full"
-  ]
+  "tags": ["cron"],
+  "presets": ["full"]
 }

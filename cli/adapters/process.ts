@@ -4,10 +4,9 @@
  * Mirrors the pattern from core/adapters/process.ts but uses PaihError codes.
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok } from "@hooks/cli/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
 import { PaihError as PaihErrorClass, PaihErrorCode } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
 import { tryCatch } from "@hooks/core/result";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -20,7 +19,10 @@ export interface ExecResult {
 
 // ─── Adapter Functions ──────────────────────────────────────────────────────
 
-export function exec(cmd: string, opts: { cwd?: string; timeout?: number } = {}): Result<ExecResult, PaihError> {
+export function exec(
+  cmd: string,
+  opts: { cwd?: string; timeout?: number } = {},
+): Result<ExecResult, PaihError> {
   return tryCatch(
     () => {
       const result = Bun.spawnSync(["sh", "-c", cmd], {
@@ -34,11 +36,11 @@ export function exec(cmd: string, opts: { cwd?: string; timeout?: number } = {})
         exitCode: result.exitCode,
       };
     },
-    (e) => new PaihErrorClass(
-      PaihErrorCode.BuildFailed,
-      `Command failed: ${cmd}`,
-      { cmd, cause: e instanceof Error ? e.message : String(e) },
-    ),
+    (e) =>
+      new PaihErrorClass(PaihErrorCode.BuildFailed, `Command failed: ${cmd}`, {
+        cmd,
+        cause: e instanceof Error ? e.message : String(e),
+      }),
   );
 }
 

@@ -1,5 +1,16 @@
-import { describe, it, expect } from "bun:test";
-import { run, extractHookName, detectConflicts, parseConflictFlag, filterExportedByResolution, removeConflictingExisting, formatConflictSummary, type InstallDeps, type Conflict, type ConflictMode, type MatcherGroup, type ExportedHooks } from "@hooks/install";
+import { describe, expect, it } from "bun:test";
+import {
+  type Conflict,
+  detectConflicts,
+  type ExportedHooks,
+  extractHookName,
+  filterExportedByResolution,
+  formatConflictSummary,
+  type InstallDeps,
+  type MatcherGroup,
+  parseConflictFlag,
+  run,
+} from "@hooks/install";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -23,8 +34,12 @@ function makeDeps(overrides: Partial<InstallDeps> = {}): InstallDeps & Captured 
       return { ok: true };
     },
     fileExists: () => true,
-    stderr: (msg: string) => { captured.stderrLines.push(msg); },
-    stdout: (msg: string) => { captured.stdoutLines.push(msg); },
+    stderr: (msg: string) => {
+      captured.stderrLines.push(msg);
+    },
+    stdout: (msg: string) => {
+      captured.stdoutLines.push(msg);
+    },
     paiDir: "/tmp/test-pai",
     homeDir: "/tmp/test-home",
     argv: [],
@@ -44,7 +59,9 @@ const validExported = JSON.stringify({
     PreToolUse: [
       {
         matcher: "Edit",
-        hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" }],
+        hooks: [
+          { type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/CodingStandards.hook.ts" },
+        ],
       },
     ],
     PostToolUse: [
@@ -65,33 +82,31 @@ const emptySettings = JSON.stringify({ env: {}, hooks: {} });
 
 describe("extractHookName", () => {
   it("extracts name from env var path with .hook.ts", () => {
-    expect(extractHookName("${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts"))
-      .toBe("SecurityValidator");
+    expect(extractHookName("${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts")).toBe(
+      "SecurityValidator",
+    );
   });
 
   it("extracts name from absolute path with .hook.ts", () => {
-    expect(extractHookName("/home/user/.claude/hooks/SecurityValidator.hook.ts"))
-      .toBe("SecurityValidator");
+    expect(extractHookName("/home/user/.claude/hooks/SecurityValidator.hook.ts")).toBe(
+      "SecurityValidator",
+    );
   });
 
   it("extracts name from .sh extension", () => {
-    expect(extractHookName("/usr/local/bin/my-guard.sh"))
-      .toBe("my-guard");
+    expect(extractHookName("/usr/local/bin/my-guard.sh")).toBe("my-guard");
   });
 
   it("extracts name from .py extension", () => {
-    expect(extractHookName("${SOME_DIR}/hooks/Validator.py"))
-      .toBe("Validator");
+    expect(extractHookName("${SOME_DIR}/hooks/Validator.py")).toBe("Validator");
   });
 
   it("handles bare filename", () => {
-    expect(extractHookName("SecurityValidator.hook.ts"))
-      .toBe("SecurityValidator");
+    expect(extractHookName("SecurityValidator.hook.ts")).toBe("SecurityValidator");
   });
 
   it("handles filename with no extension", () => {
-    expect(extractHookName("my-hook"))
-      .toBe("my-hook");
+    expect(extractHookName("my-hook")).toBe("my-hook");
   });
 });
 
@@ -124,7 +139,7 @@ describe("install run() — early returns", () => {
         }
         return true;
       },
-      readFile: (path: string) => {
+      readFile: (_path: string) => {
         callCount++;
         if (callCount === 1) return { ok: true, value: validManifest };
         if (callCount === 2) return { ok: true, value: validExported };
@@ -132,7 +147,9 @@ describe("install run() — early returns", () => {
       },
     });
     await run(deps);
-    expect(deps.stderrLines.some((l) => l.includes("not found") && l.includes("settings.json"))).toBe(true);
+    expect(
+      deps.stderrLines.some((l) => l.includes("not found") && l.includes("settings.json")),
+    ).toBe(true);
     expect(deps.writtenFiles.size).toBe(0);
   });
 
@@ -190,7 +207,9 @@ describe("install run() — successful install", () => {
     await run(deps);
 
     // The exported hooks have 3 hooks across 2 matcher groups
-    expect(deps.stdoutLines.some((l) => l.includes("3 hooks") && l.includes("2 matcher groups"))).toBe(true);
+    expect(
+      deps.stdoutLines.some((l) => l.includes("3 hooks") && l.includes("2 matcher groups")),
+    ).toBe(true);
   });
 
   it("shows re-install message when already installed", async () => {
@@ -210,7 +229,9 @@ describe("install run() — successful install", () => {
     });
     await run(deps);
 
-    expect(deps.stdoutLines.some((l) => l.includes("already installed") && l.includes("Re-installing"))).toBe(true);
+    expect(
+      deps.stdoutLines.some((l) => l.includes("already installed") && l.includes("Re-installing")),
+    ).toBe(true);
   });
 
   it("removes legacy env var from settings on re-install", async () => {
@@ -241,12 +262,23 @@ describe("detectConflicts", () => {
   it("returns empty array when no conflicts", () => {
     const existing = {
       PreToolUse: [
-        { matcher: "Bash", hooks: [{ type: "command", command: "${PAI_DIR}/hooks/MyCustomHook.hook.ts" }] },
+        {
+          matcher: "Bash",
+          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/MyCustomHook.hook.ts" }],
+        },
       ],
     };
     const incoming = {
       PreToolUse: [
-        { matcher: "Edit", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards.hook.ts" }] },
+        {
+          matcher: "Edit",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards.hook.ts",
+            },
+          ],
+        },
       ],
     };
     expect(detectConflicts(existing, incoming, "SAINTPEPSI_PAI_HOOKS_DIR")).toEqual([]);
@@ -255,12 +287,23 @@ describe("detectConflicts", () => {
   it("detects conflict when same hook name exists from different source", () => {
     const existing = {
       PreToolUse: [
-        { matcher: "Edit", hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Edit",
+          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
+        },
       ],
     };
     const incoming = {
       PreToolUse: [
-        { matcher: "Bash", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Bash",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
+        },
       ],
     };
     const conflicts = detectConflicts(existing, incoming, "SAINTPEPSI_PAI_HOOKS_DIR");
@@ -273,12 +316,28 @@ describe("detectConflicts", () => {
   it("ignores hooks already owned by the same env var", () => {
     const existing = {
       PreToolUse: [
-        { matcher: "Edit", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Edit",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
+        },
       ],
     };
     const incoming = {
       PreToolUse: [
-        { matcher: "Edit", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Edit",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
+        },
       ],
     };
     expect(detectConflicts(existing, incoming, "SAINTPEPSI_PAI_HOOKS_DIR")).toEqual([]);
@@ -287,12 +346,23 @@ describe("detectConflicts", () => {
   it("detects conflicts across different events", () => {
     const existing = {
       PostToolUse: [
-        { matcher: "Write", hooks: [{ type: "command", command: "/custom/path/BashWriteGuard.sh" }] },
+        {
+          matcher: "Write",
+          hooks: [{ type: "command", command: "/custom/path/BashWriteGuard.sh" }],
+        },
       ],
     };
     const incoming = {
       PreToolUse: [
-        { matcher: "Bash", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/BashWriteGuard.hook.ts" }] },
+        {
+          matcher: "Bash",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/BashWriteGuard.hook.ts",
+            },
+          ],
+        },
       ],
     };
     const conflicts = detectConflicts(existing, incoming, "SAINTPEPSI_PAI_HOOKS_DIR");
@@ -303,15 +373,29 @@ describe("detectConflicts", () => {
   it("deduplicates conflicts when same name appears in multiple events", () => {
     const existing = {
       PreToolUse: [
-        { matcher: "Bash", hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Bash",
+          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
+        },
       ],
       PostToolUse: [
-        { matcher: "Bash", hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Bash",
+          hooks: [{ type: "command", command: "${PAI_DIR}/hooks/SecurityValidator.hook.ts" }],
+        },
       ],
     };
     const incoming = {
       PreToolUse: [
-        { matcher: "Bash", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Bash",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
+        },
       ],
     };
     const conflicts = detectConflicts(existing, incoming, "SAINTPEPSI_PAI_HOOKS_DIR");
@@ -326,7 +410,14 @@ describe("detectConflicts", () => {
     };
     const incoming = {
       SessionEnd: [
-        { hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionSummary.hook.ts" }] },
+        {
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SessionSummary.hook.ts",
+            },
+          ],
+        },
       ],
     };
     const conflicts = detectConflicts(existing, incoming, "SAINTPEPSI_PAI_HOOKS_DIR");
@@ -381,7 +472,10 @@ describe("install run() — conflict resolution", () => {
         if (callCount === 3) return { ok: true, value: emptySettings };
         return { ok: true, value: "# zshrc\n" };
       },
-      prompt: async () => { promptCalled = true; return "r"; },
+      prompt: async () => {
+        promptCalled = true;
+        return "r";
+      },
     });
     await run(deps);
     expect(promptCalled).toBe(false);
@@ -399,7 +493,10 @@ describe("install run() — conflict resolution", () => {
         if (callCount === 3) return { ok: true, value: settingsWithExistingHook };
         return { ok: true, value: "# zshrc\n" };
       },
-      prompt: async () => { promptCalled = true; return "r"; },
+      prompt: async () => {
+        promptCalled = true;
+        return "r";
+      },
     });
     await run(deps);
     expect(promptCalled).toBe(true);
@@ -510,7 +607,9 @@ describe("install run() — conflict resolution", () => {
     });
     await run(deps);
 
-    expect(deps.stdoutLines.some((l) => l.includes("conflict") || l.includes("Conflict"))).toBe(true);
+    expect(deps.stdoutLines.some((l) => l.includes("conflict") || l.includes("Conflict"))).toBe(
+      true,
+    );
     expect(deps.stdoutLines.some((l) => l.includes("CodingStandards"))).toBe(true);
   });
 
@@ -551,13 +650,33 @@ describe("filterExportedByResolution", () => {
     envVar: "SAINTPEPSI_PAI_HOOKS_DIR",
     hooks: {
       PreToolUse: [
-        { matcher: "Edit", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards.hook.ts" }] },
-        { matcher: "Bash", hooks: [{ type: "command", command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts" }] },
+        {
+          matcher: "Edit",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards.hook.ts",
+            },
+          ],
+        },
+        {
+          matcher: "Bash",
+          hooks: [
+            {
+              type: "command",
+              command: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts",
+            },
+          ],
+        },
       ],
     },
   };
   const conflicts: Conflict[] = [
-    { name: "CodingStandards", existingCommand: "${PAI_DIR}/hooks/CodingStandards.hook.ts", incomingCommand: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards.hook.ts" },
+    {
+      name: "CodingStandards",
+      existingCommand: "${PAI_DIR}/hooks/CodingStandards.hook.ts",
+      incomingCommand: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodingStandards.hook.ts",
+    },
   ];
 
   it("returns exported unchanged for 'both' mode", () => {
@@ -589,7 +708,11 @@ describe("filterExportedByResolution", () => {
 describe("formatConflictSummary", () => {
   it("formats single conflict", () => {
     const conflicts: Conflict[] = [
-      { name: "SecurityValidator", existingCommand: "${PAI_DIR}/hooks/SecurityValidator.hook.ts", incomingCommand: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts" },
+      {
+        name: "SecurityValidator",
+        existingCommand: "${PAI_DIR}/hooks/SecurityValidator.hook.ts",
+        incomingCommand: "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator.hook.ts",
+      },
     ];
     const result = formatConflictSummary(conflicts);
     expect(result).toContain("SecurityValidator");

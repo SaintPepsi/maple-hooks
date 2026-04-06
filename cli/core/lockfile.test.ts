@@ -5,10 +5,10 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/types/deps.ts).
  */
 
-import { describe, it, expect } from "bun:test";
-import { readLockfile, writeLockfile, addHookEntry } from "@hooks/cli/core/lockfile";
-import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
+import { describe, expect, it } from "bun:test";
+import { addHookEntry, readLockfile, writeLockfile } from "@hooks/cli/core/lockfile";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
+import type { Lockfile, LockfileHookEntry } from "@hooks/cli/types/lockfile";
 
 const SAMPLE_LOCKFILE: Lockfile = {
   lockfileVersion: 1,
@@ -105,7 +105,10 @@ describe("addHookEntry", () => {
       group: "TestGroup",
       event: "PreToolUse",
       commandString: ".claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
-      files: ["hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts", "hooks/pai-hooks/TestGroup/TestHook/TestHook.contract.ts"],
+      files: [
+        "hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
+        "hooks/pai-hooks/TestGroup/TestHook/TestHook.contract.ts",
+      ],
       fileHashes: {},
     };
     const updated = addHookEntry(SAMPLE_LOCKFILE, entry);

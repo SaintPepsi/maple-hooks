@@ -3,9 +3,11 @@
  * Used by both CitationTracker and CitationEnforcement.
  */
 
-import { writeFile, readFile, fileExists as fsFileExists } from "@hooks/core/adapters/fs";
+import { join } from "node:path";
+import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { join } from "path";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,11 +31,6 @@ export function isResearchSkill(input: ToolHookInput): boolean {
   return (toolInput as Record<string, unknown>).skill === "Research";
 }
 
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
-}
-
 export function flagPath(stateDir: string): string {
   return join(stateDir, "research-active");
 }
@@ -49,7 +46,7 @@ function getStateDir(baseDir: string): string {
 }
 
 export const defaultDeps: CitationEnforcementDeps = {
-  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
+  stateDir: getStateDir(getPaiDir()),
   fileExists: (path: string) => fsFileExists(path),
   writeFlag: (path: string) => {
     writeFile(path, new Date().toISOString());
@@ -63,5 +60,5 @@ export const defaultDeps: CitationEnforcementDeps = {
   writeReminded: (path: string, files: string[]) => {
     writeFile(path, JSON.stringify(files));
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };

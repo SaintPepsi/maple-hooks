@@ -8,9 +8,17 @@
  * to keep the checker's import surface minimal.
  */
 
-import type { DuplicationIndex, IndexEntry } from "@hooks/hooks/DuplicationDetection/shared";
-import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import type { ParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
+import {
+  type DuplicationIndex,
+  getCurrentBranch,
+  type IndexEntry,
+  isPrimitiveReturn,
+  normalizeParam,
+  normalizeReturn,
+  type PatternEntry,
+} from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
 
@@ -35,7 +43,13 @@ export function findTsFiles(dir: string, deps: IndexBuilderDeps): string[] {
     const entries = deps.readDir(d);
     if (!entries) return;
     for (const entry of entries) {
-      if (entry === "node_modules" || entry === ".git" || entry === "coverage") continue;
+      if (
+        entry === "node_modules" ||
+        entry === ".git" ||
+        entry === "coverage" ||
+        entry === ".worktrees"
+      )
+        continue;
       const full = deps.join(d, entry);
       if (deps.isDirectory(full)) {
         walk(full);
@@ -51,7 +65,10 @@ export function findTsFiles(dir: string, deps: IndexBuilderDeps): string[] {
 
 // ─── Index Building ─────────────────────────────────────────────────────────
 
-function groupByField(entries: IndexEntry[], keyFn: (e: IndexEntry) => string): [string, number[]][] {
+function groupByField(
+  entries: IndexEntry[],
+  keyFn: (e: IndexEntry) => string,
+): [string, number[]][] {
   const groups = new Map<string, number[]>();
   for (let i = 0; i < entries.length; i++) {
     const key = keyFn(entries[i]);
@@ -89,15 +106,161 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
     }
   }
 
+  const branch = getCurrentBranch(root);
+
+  return buildResult(root, entries, files.length, branch);
+}
+
+// ─── Pattern Detection ─────────────────────────────────────────────────────
+
+const DEFAULT_PATTERN_THRESHOLD = 5;
+const DEFAULT_SIG_MATCH_PERCENT = 60;
+
+function detectPatterns(
+  entries: IndexEntry[],
+  nameGroups: [string, number[]][],
+  threshold: number = DEFAULT_PATTERN_THRESHOLD,
+  sigMatchPercent: number = DEFAULT_SIG_MATCH_PERCENT,
+): PatternEntry[] {
+  const patterns: PatternEntry[] = [];
+  const minRatio = sigMatchPercent / 100;
+
+  for (const [name, indices] of nameGroups) {
+    if (indices.length < threshold) continue;
+
+    // Tier 1: full normalized sig match (params + return)
+    const fullSigCounts = new Map<string, number>();
+    const filesByFullSig = new Map<string, string[]>();
+    for (const idx of indices) {
+      const e = entries[idx];
+      const normSig = `(${normalizeParam(e.p)})→${normalizeReturn(e.r)}`;
+      fullSigCounts.set(normSig, (fullSigCounts.get(normSig) ?? 0) + 1);
+      const files = filesByFullSig.get(normSig) ?? [];
+      files.push(e.f);
+      filesByFullSig.set(normSig, files);
+    }
+
+    let topFullSig = "";
+    let topFullCount = 0;
+    for (const [sig, count] of fullSigCounts) {
+      if (count > topFullCount) {
+        topFullSig = sig;
+        topFullCount = count;
+      }
+    }
+
+    if (topFullCount / indices.length >= minRatio) {
+      // Extract return type from sig format "(params)→return"
+      const retPart = topFullSig.slice(topFullSig.indexOf("→") + 1);
+      if (isPrimitiveReturn(retPart)) continue;
+
+      const files = filesByFullSig.get(topFullSig) ?? [];
+      const uniqueFiles = [...new Set(files)];
+      patterns.push({
+        id: `${name}:${topFullSig}`,
+        name,
+        sig: topFullSig,
+        tier: 1,
+        fileCount: uniqueFiles.length,
+        files: uniqueFiles.slice(0, 5),
+      });
+      continue;
+    }
+
+    // Tier 2: return-only fallback (domain types only)
+    const retCounts = new Map<string, number>();
+    const filesByRet = new Map<string, string[]>();
+    for (const idx of indices) {
+      const e = entries[idx];
+      const normRet = normalizeReturn(e.r);
+      retCounts.set(normRet, (retCounts.get(normRet) ?? 0) + 1);
+      const files = filesByRet.get(normRet) ?? [];
+      files.push(e.f);
+      filesByRet.set(normRet, files);
+    }
+
+    let topRet = "";
+    let topRetCount = 0;
+    for (const [ret, count] of retCounts) {
+      if (count > topRetCount) {
+        topRet = ret;
+        topRetCount = count;
+      }
+    }
+
+    if (topRetCount / indices.length >= minRatio && !isPrimitiveReturn(topRet)) {
+      const files = filesByRet.get(topRet) ?? [];
+      const uniqueFiles = [...new Set(files)];
+      patterns.push({
+        id: `${name}:()→${topRet}`,
+        name,
+        sig: `()→${topRet}`,
+        tier: 2,
+        fileCount: uniqueFiles.length,
+        files: uniqueFiles.slice(0, 5),
+      });
+    }
+  }
+
+  return patterns;
+}
+
+function buildResult(
+  root: string,
+  entries: IndexEntry[],
+  fileCount: number,
+  branch: string | null,
+): DuplicationIndex {
+  const nameGroups = groupByField(entries, (e) => e.n).filter(([_, idxs]) => idxs.length >= 2);
+
   return {
     version: 1,
     root,
+    branch: branch ?? undefined,
     builtAt: new Date().toISOString(),
-    fileCount: files.length,
+    fileCount,
     functionCount: entries.length,
     entries,
     hashGroups: groupByField(entries, (e) => e.h).filter(([_, idxs]) => idxs.length >= 2),
-    nameGroups: groupByField(entries, (e) => e.n).filter(([_, idxs]) => idxs.length >= 2),
-    sigGroups: groupByField(entries, (e) => `(${e.p})→${e.r}`).filter(([_, idxs]) => idxs.length >= 3),
+    nameGroups,
+    sigGroups: groupByField(entries, (e) => `(${e.p})→${e.r}`).filter(
+      ([_, idxs]) => idxs.length >= 3,
+    ),
+    patterns: detectPatterns(entries, nameGroups),
   };
+}
+
+/** Surgical update: re-index a single file within an existing index. */
+export function updateIndexForFile(
+  existingIndex: DuplicationIndex,
+  filePath: string,
+  content: string,
+  deps: IndexBuilderDeps,
+): DuplicationIndex {
+  const root = existingIndex.root;
+  const relPath = filePath.startsWith(root) ? filePath.slice(root.length + 1) : filePath;
+
+  // Remove old entries for this file
+  const keptEntries = existingIndex.entries.filter((e) => e.f !== relPath);
+
+  // Extract new functions from the updated content
+  const isTsx = filePath.endsWith(".tsx");
+  const functions = extractFunctions(content, isTsx, deps.parserDeps);
+
+  for (const fn of functions) {
+    keptEntries.push({
+      f: relPath,
+      n: fn.name,
+      l: fn.line,
+      h: fn.bodyHash,
+      p: fn.paramSig,
+      r: fn.returnType,
+      fp: fn.fingerprint,
+      s: 0,
+    });
+  }
+
+  const branch = getCurrentBranch(root);
+  const actualFileCount = new Set(keptEntries.map((e) => e.f)).size;
+  return buildResult(root, keptEntries, actualFileCount, branch);
 }

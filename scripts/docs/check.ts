@@ -11,8 +11,27 @@
  * Usage: bun run scripts/docs/check.ts [--doc-name <filename>]
  */
 
-import { readdirSync, readFileSync, existsSync } from "fs";
-import { join, resolve } from "path";
+import {
+  fileExists,
+  readDir,
+  readFile,
+  readJson,
+} from "@hooks/core/adapters/fs";
+import { tryCatch } from "@hooks/core/result";
+import { join, resolve } from "node:path";
+import { getArg } from "@hooks/scripts/docs/cli-utils";
+
+// ─── Deps ────────────────────────────────────────────────────────────────────
+
+interface CheckDeps {
+  home: string;
+  paiDir: string;
+}
+
+const defaultDeps: CheckDeps = {
+  home: process.env.HOME ?? "",
+  paiDir: process.env.PAI_DIR ?? join(process.env.HOME ?? "", ".claude"),
+};
 
 // ─── CLI Args ─────────────────────────────────────────────────────────────────
 
@@ -20,12 +39,7 @@ const args = process.argv.slice(2);
 const rootDir = resolve(import.meta.dir, "../..");
 const hooksDir = join(rootDir, "hooks");
 
-function getArg(flag: string, fallback: string): string {
-  const idx = args.indexOf(flag);
-  return idx !== -1 && args[idx + 1] ? args[idx + 1] : fallback;
-}
-
-const docFileName = getArg("--doc-name", "doc.md");
+const docFileName = getArg(args, "--doc-name", "doc.md");
 
 // ─── Default Required Sections ────────────────────────────────────────────────
 
@@ -38,21 +52,16 @@ const REQUIRED_SECTIONS = [
   "## Dependencies",
 ];
 
-// Try to read from settings.json
-function loadRequiredSections(): string[] {
-  const home = process.env.HOME ?? "";
-  const paiDir = process.env.PAI_DIR ?? join(home, ".claude");
-  const settingsPath = join(paiDir, "settings.json");
+function loadRequiredSections(deps: CheckDeps = defaultDeps): string[] {
+  const settingsPath = join(deps.paiDir, "settings.json");
 
-  if (!existsSync(settingsPath)) return REQUIRED_SECTIONS;
+  if (!fileExists(settingsPath)) return REQUIRED_SECTIONS;
 
-  try {
-    const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
-    const sections = settings?.hookConfig?.hookDocEnforcer?.requiredSections;
-    if (Array.isArray(sections)) return sections;
-  } catch { /* use defaults */ }
+  const result = readJson<{ hookConfig?: { hookDocEnforcer?: { requiredSections?: string[] } } }>(settingsPath);
+  if (!result.ok) return REQUIRED_SECTIONS;
 
-  return REQUIRED_SECTIONS;
+  const sections = result.value?.hookConfig?.hookDocEnforcer?.requiredSections;
+  return Array.isArray(sections) ? sections : REQUIRED_SECTIONS;
 }
 
 // ─── Scan ─────────────────────────────────────────────────────────────────────
@@ -73,32 +82,38 @@ const requiredSections = loadRequiredSections();
 const issues: Issue[] = [];
 let total = 0;
 
-const groupDirs = readdirSync(hooksDir, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => d.name)
-  .sort();
+const groupDirsResult = readDir(hooksDir);
+const groupDirs = groupDirsResult.ok ? groupDirsResult.value.sort() : [];
 
 for (const groupName of groupDirs) {
   const groupDir = join(hooksDir, groupName);
   const groupJsonPath = join(groupDir, "group.json");
-  if (!existsSync(groupJsonPath)) continue;
+  if (!fileExists(groupJsonPath)) continue;
 
-  const groupJson = JSON.parse(readFileSync(groupJsonPath, "utf-8")) as RawGroupJson;
+  const groupResult = readJson<RawGroupJson>(groupJsonPath);
+  if (!groupResult.ok) continue;
+  const groupJson = groupResult.value;
 
   for (const hookName of groupJson.hooks) {
     total++;
     const docPath = join(groupDir, hookName, docFileName);
 
-    if (!existsSync(docPath)) {
+    if (!fileExists(docPath)) {
       issues.push({ hook: hookName, group: groupName, type: "missing" });
       continue;
     }
 
-    const content = readFileSync(docPath, "utf-8");
-    const missing = requiredSections.filter((s) => !content.includes(s));
+    const contentResult = readFile(docPath);
+    if (!contentResult.ok) continue;
+    const missing = requiredSections.filter((s) => !contentResult.value.includes(s));
 
     if (missing.length > 0) {
-      issues.push({ hook: hookName, group: groupName, type: "incomplete", missingSections: missing });
+      issues.push({
+        hook: hookName,
+        group: groupName,
+        type: "incomplete",
+        missingSections: missing,
+      });
     }
   }
 }
@@ -128,9 +143,6 @@ if (incompleteDocs.length > 0) {
   process.stdout.write(`Incomplete ${docFileName}:\n`);
   for (const i of incompleteDocs) {
     process.stdout.write(`  - ${i.group}/${i.hook}\n`);
-    for (const s of i.missingSections!) {
-      process.stdout.write(`      missing: ${s}\n`);
-    }
   }
 }
 

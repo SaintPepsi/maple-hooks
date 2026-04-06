@@ -1,9 +1,9 @@
-import { describe, it, expect } from "bun:test";
-import { BashWriteGuard } from "./BashWriteGuard.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { BashWriteGuard } from "./BashWriteGuard.contract";
 
 function makeInput(command: string): ToolHookInput {
   return {
@@ -13,8 +13,11 @@ function makeInput(command: string): ToolHookInput {
   };
 }
 
-function result(input: ToolHookInput): Result<ContinueOutput | BlockOutput, PaiError> {
-  return BashWriteGuard.execute(input, BashWriteGuard.defaultDeps) as Result<ContinueOutput | BlockOutput, PaiError>;
+function result(input: ToolHookInput): Result<ContinueOutput | BlockOutput, ResultError> {
+  return BashWriteGuard.execute(input, BashWriteGuard.defaultDeps) as Result<
+    ContinueOutput | BlockOutput,
+    ResultError
+  >;
 }
 
 describe("BashWriteGuard", () => {

@@ -7,31 +7,29 @@
  * Usage: bun run scripts/docs/render.ts [--out <dir>] [--doc-name <filename>]
  */
 
-import { readdirSync, readFileSync, existsSync, mkdirSync, writeFileSync } from "fs";
-import { join, resolve } from "path";
-import { renderHookPage, renderGroupPage, renderIndexPage } from "./template";
-import type { HookMeta, GroupMeta } from "./template";
+import {
+  ensureDir,
+  fileExists,
+  readDir,
+  readFile,
+  readJson,
+  writeFile,
+} from "@hooks/core/adapters/fs";
+import { join, resolve } from "node:path";
+import type { GroupMeta, HookMeta } from "@hooks/scripts/docs/template";
+import { renderGroupPage, renderHookPage, renderIndexPage } from "@hooks/scripts/docs/template";
+import { getArg } from "@hooks/scripts/docs/cli-utils";
 
 // ─── CLI Args ─────────────────────────────────────────────────────────────────
 
 const args = process.argv.slice(2);
 const rootDir = resolve(import.meta.dir, "../..");
-const hooksDir = join(rootDir, "hooks");
 
-function getArg(flag: string, fallback: string): string {
-  const idx = args.indexOf(flag);
-  return idx !== -1 && args[idx + 1] ? args[idx + 1] : fallback;
-}
-
-const outDir = resolve(getArg("--out", join(rootDir, "docs")));
-const docFileName = getArg("--doc-name", "doc.md");
+const hooksDir = resolve(getArg(args, "--hooks-dir", join(rootDir, "hooks")));
+const outDir = resolve(getArg(args, "--out", join(rootDir, "docs")));
+const docFileName = getArg(args, "--doc-name", "doc.md");
 
 // ─── Scan ─────────────────────────────────────────────────────────────────────
-
-function readJsonFile<T>(path: string): T | null {
-  if (!existsSync(path)) return null;
-  return JSON.parse(readFileSync(path, "utf-8")) as T;
-}
 
 interface RawGroupJson {
   name: string;
@@ -42,7 +40,7 @@ interface RawGroupJson {
 interface RawHookJson {
   name: string;
   group: string;
-  event: string;
+  event: string | string[];
   description?: string;
 }
 
@@ -50,36 +48,34 @@ const groups: GroupMeta[] = [];
 let generated = 0;
 let skipped = 0;
 
-const groupDirs = readdirSync(hooksDir, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => d.name)
-  .sort();
+const groupDirsResult = readDir(hooksDir);
+const groupDirs = groupDirsResult.ok ? groupDirsResult.value.sort() : [];
 
 for (const groupName of groupDirs) {
   const groupDir = join(hooksDir, groupName);
-  const groupJson = readJsonFile<RawGroupJson>(join(groupDir, "group.json"));
-  if (!groupJson) continue;
+  const groupJson = readJson<RawGroupJson>(join(groupDir, "group.json"));
+  if (!groupJson.ok) continue;
 
   const hookMetas: HookMeta[] = [];
 
-  for (const hookName of groupJson.hooks) {
+  for (const hookName of groupJson.value.hooks) {
     const hookDir = join(groupDir, hookName);
-    const hookJson = readJsonFile<RawHookJson>(join(hookDir, "hook.json"));
-    if (!hookJson) continue;
+    const hookJson = readJson<RawHookJson>(join(hookDir, "hook.json"));
+    if (!hookJson.ok) continue;
 
     const docPath = join(hookDir, docFileName);
     hookMetas.push({
-      name: hookJson.name,
+      name: hookJson.value.name,
       group: groupName,
-      event: hookJson.event,
-      description: hookJson.description ?? "",
-      hasDoc: existsSync(docPath),
+      event: hookJson.value.event,
+      description: hookJson.value.description ?? "",
+      hasDoc: fileExists(docPath),
     });
   }
 
   groups.push({
-    name: groupJson.name,
-    description: groupJson.description ?? "",
+    name: groupJson.value.name,
+    description: groupJson.value.description ?? "",
     hooks: hookMetas,
   });
 }
@@ -87,28 +83,37 @@ for (const groupName of groupDirs) {
 // ─── Generate ─────────────────────────────────────────────────────────────────
 
 // Top-level index
-mkdirSync(outDir, { recursive: true });
-writeFileSync(join(outDir, "index.html"), renderIndexPage(groups));
+ensureDir(outDir);
+writeFile(join(outDir, "index.html"), renderIndexPage(groups));
 
 for (const group of groups) {
   const groupOutDir = join(outDir, "groups", group.name);
-  mkdirSync(groupOutDir, { recursive: true });
+  ensureDir(groupOutDir);
 
   // Group index
-  writeFileSync(join(groupOutDir, "index.html"), renderGroupPage(group));
+  writeFile(join(groupOutDir, "index.html"), renderGroupPage(group));
 
   // Individual hook pages
   for (const hook of group.hooks) {
     const docPath = join(hooksDir, group.name, hook.name, docFileName);
 
-    if (!existsSync(docPath)) {
+    if (!fileExists(docPath)) {
       skipped++;
       continue;
     }
 
-    const markdown = readFileSync(docPath, "utf-8");
-    const html = renderHookPage(hook, markdown, group.name);
-    writeFileSync(join(groupOutDir, `${hook.name}.html`), html);
+    const mdResult = readFile(docPath);
+    if (!mdResult.ok) {
+      skipped++;
+      continue;
+    }
+
+    const ideaPath = join(hooksDir, group.name, hook.name, "IDEA.md");
+    const ideaResult = readFile(ideaPath);
+    const ideaContent = ideaResult.ok ? ideaResult.value : undefined;
+
+    const html = renderHookPage(hook, mdResult.value, group.name, ideaContent);
+    writeFile(join(groupOutDir, `${hook.name}.html`), html);
     generated++;
   }
 }

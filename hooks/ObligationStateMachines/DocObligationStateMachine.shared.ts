@@ -3,12 +3,22 @@
  * Used by DocObligationTracker, DocObligationEnforcer, and SpotCheckReview.
  */
 
-import { writeFile, readFile, fileExists as fsFileExists, removeFile, readDir as fsReadDir } from "@hooks/core/adapters/fs";
+import { dirname, join } from "node:path";
+import {
+  fileExists as fsFileExists,
+  readDir as fsReadDir,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
+import { type ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
+import { type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { join, dirname } from "path";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
+import { getFilePath } from "@hooks/lib/tool-input";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { readHookConfig } from "@hooks/lib/hook-config";
 
 // ─── Project Hook Deduplication ───────────────────────────────────────────────
 
@@ -16,7 +26,7 @@ export function projectHasHook(
   name: string,
   cwd: string = process.cwd(),
   dirExists: (path: string) => boolean = fsFileExists,
-  listDir: (path: string) => Result<string[], PaiError> = fsReadDir,
+  listDir: (path: string) => Result<string[], ResultError> = fsReadDir,
 ): boolean {
   const hookDir = join(cwd, ".claude", "hooks");
   if (!dirExists(hookDir)) return false;
@@ -27,16 +37,12 @@ export function projectHasHook(
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface DocObligationDeps {
-  stateDir: string;
-  fileExists: (path: string) => boolean;
-  readPending: (path: string) => string[];
-  writePending: (path: string, files: string[]) => void;
-  removeFlag: (path: string) => void;
-  readBlockCount: (path: string) => number;
-  writeBlockCount: (path: string, count: number) => void;
-  writeReview: (path: string, content: string) => void;
-  stderr: (msg: string) => void;
+// DocObligationDeps is ObligationDeps from lib/obligation-machine.ts
+export type DocObligationDeps = ObligationDeps;
+
+/** Narrow extension used only by DocObligationTracker (not the enforcer). */
+export interface DocTrackerExcludeDeps {
+  getExcludePatterns: () => string[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -57,11 +63,6 @@ export function isRelatedDoc(docPath: string, codePath: string): boolean {
   const docDir = dirname(docPath);
   const codeDir = dirname(codePath);
   return codeDir.startsWith(docDir) || docDir.startsWith(codeDir);
-}
-
-export function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
 }
 
 export function pendingPath(stateDir: string, sessionId: string): string {
@@ -128,7 +129,20 @@ export function buildDocSuggestions(pending: string[], deps: DocObligationDeps):
     }
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
+}
+
+// ─── Exclude Pattern Helpers ──────────────────────────────────────────────────
+
+/** Read excludePatterns from settings.json hookConfig.docObligation.excludePatterns. */
+export function readDocExcludePatterns(settingsPath?: string): string[] {
+  const cfg = readHookConfig<{ excludePatterns?: string[] }>("docObligation", undefined, settingsPath);
+  return Array.isArray(cfg?.excludePatterns) ? cfg.excludePatterns : [];
+}
+
+/** Returns true if filePath matches any of the given glob patterns. */
+export function matchesDocExcludePattern(filePath: string, patterns: string[]): boolean {
+  return patterns.some((pattern) => new Bun.Glob(pattern).match(filePath));
 }
 
 // ─── Default Deps ─────────────────────────────────────────────────────────────
@@ -137,8 +151,12 @@ function getStateDir(baseDir: string): string {
   return join(baseDir, "MEMORY", "STATE", "doc-obligation");
 }
 
+export const defaultDocTrackerExcludeDeps: DocTrackerExcludeDeps = {
+  getExcludePatterns: () => readDocExcludePatterns(),
+};
+
 export const defaultDeps: DocObligationDeps = {
-  stateDir: getStateDir(process.env.PAI_DIR || join(process.env.HOME!, ".claude")),
+  stateDir: getStateDir(getPaiDir()),
   fileExists: (path: string) => fsFileExists(path),
   readPending: (path: string) => {
     const result = readFile(path);
@@ -156,7 +174,7 @@ export const defaultDeps: DocObligationDeps = {
     const result = readFile(path);
     if (!result.ok) return 0;
     const n = parseInt(result.value.trim(), 10);
-    return isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
     writeFile(path, String(count));
@@ -164,5 +182,5 @@ export const defaultDeps: DocObligationDeps = {
   writeReview: (path: string, content: string) => {
     writeFile(path, content);
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };

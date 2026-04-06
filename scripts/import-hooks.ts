@@ -7,8 +7,8 @@
  * Reuses mergeHooksIntoSettings from install.ts for the actual merge logic.
  */
 
-import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
-import { join, resolve } from "path";
+import { join, resolve } from "node:path";
+import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { mergeHooksIntoSettings } from "@hooks/install";
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
@@ -25,7 +25,7 @@ const defaultDeps: ImportHooksDeps = {
   readFile,
   writeFile,
   fileExists,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   homeDir: process.env.HOME || process.env.USERPROFILE || "",
 };
 
@@ -41,7 +41,7 @@ export function run(deps: ImportHooksDeps = defaultDeps): void {
   }
   const manifestResult = deps.readFile(manifestPath);
   if (!manifestResult.ok) return;
-  const manifest = JSON.parse(manifestResult.value!);
+  const _manifest = JSON.parse(manifestResult.value!);
 
   const exportedPath = join(repoRoot, "settings.hooks.json");
   if (!deps.fileExists(exportedPath)) {
@@ -62,7 +62,7 @@ export function run(deps: ImportHooksDeps = defaultDeps): void {
   const settings = JSON.parse(settingsResult.value!);
 
   const merged = mergeHooksIntoSettings(settings, exported);
-  deps.writeFile(settingsPath, JSON.stringify(merged, null, 2) + "\n");
+  deps.writeFile(settingsPath, `${JSON.stringify(merged, null, 2)}\n`);
 
   deps.stderr("Imported settings.hooks.json into settings.json");
 }

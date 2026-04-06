@@ -2,24 +2,24 @@
  * Tests for PaihError class and factory functions.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  PaihError,
-  PaihErrorCode,
-  targetNotFound,
+  buildFailed,
+  depCycle,
+  fileModified,
+  hashError,
   hookNotFound,
+  invalidArgs,
+  lockCorrupt,
+  lockMissing,
   manifestMissing,
   manifestParseError,
   manifestSchemaInvalid,
-  depCycle,
-  invalidArgs,
-  buildFailed,
+  PaihError,
+  PaihErrorCode,
   settingsConflict,
+  targetNotFound,
   writeFailed,
-  lockCorrupt,
-  lockMissing,
-  fileModified,
-  hashError,
 } from "@hooks/cli/core/error";
 
 // ─── PaihError Class ───────────────────────────────────────────────────────

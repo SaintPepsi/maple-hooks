@@ -11,22 +11,31 @@
  * update related documentation.
  */
 
+import { dirname, join } from "node:path";
+import {
+  fileExists as fsFileExists,
+  readDir as fsReadDir,
+  readFile,
+  removeFile,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput, StopInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { writeFile, readFile, fileExists as fsFileExists, removeFile, readDir as fsReadDir } from "@hooks/core/adapters/fs";
+import type { ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
+import { ok, type Result } from "@hooks/core/result";
+import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { join, dirname } from "path";
 
 // ─── Project Hook Deduplication ──────────────────────────────────────────────
 
 export function projectHasHook(
   name: string,
   dirExists: (path: string) => boolean = fsFileExists,
-  listDir: (path: string) => Result<string[], PaiError> = fsReadDir,
+  listDir: (path: string) => Result<string[], ResultError> = fsReadDir,
 ): boolean {
   const hookDir = join(process.cwd(), ".claude", "hooks");
   if (!dirExists(hookDir)) return false;
@@ -70,11 +79,6 @@ function isRelatedDoc(docPath: string, codePath: string): boolean {
   return codeDir.startsWith(docDir) || docDir.startsWith(codeDir);
 }
 
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
-}
-
 function pendingPath(stateDir: string, sessionId: string): string {
   return join(stateDir, `docs-pending-${sessionId}.json`);
 }
@@ -114,7 +118,7 @@ are already documented elsewhere or the obligation was a false positive).
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+  const paiDir = getPaiDir();
   return join(paiDir, "MEMORY", "STATE", "doc-obligation");
 }
 
@@ -137,7 +141,7 @@ const defaultDeps: DocObligationDeps = {
     const result = readFile(path);
     if (!result.ok) return 0;
     const n = parseInt(result.value.trim(), 10);
-    return isNaN(n) ? 0 : n;
+    return Number.isNaN(n) ? 0 : n;
   },
   writeBlockCount: (path: string, count: number) => {
     writeFile(path, String(count));
@@ -145,7 +149,7 @@ const defaultDeps: DocObligationDeps = {
   writeReview: (path: string, content: string) => {
     writeFile(path, content);
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Contract 1: DocObligationTracker ────────────────────────────────────────
@@ -167,13 +171,10 @@ export const DocObligationTracker: SyncHookContract<
     return isDocFile(filePath) || isNonTestCodeFile(filePath);
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: DocObligationDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: DocObligationDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const flagFile = pendingPath(deps.stateDir, input.session_id);
@@ -181,7 +182,7 @@ export const DocObligationTracker: SyncHookContract<
     // .md file edit: clear related pending code files
     if (isDocFile(filePath)) {
       if (!deps.fileExists(flagFile)) {
-        return ok({ type: "continue", continue: true });
+        return ok(continueOk());
       }
 
       const pending = deps.readPending(flagFile);
@@ -192,10 +193,12 @@ export const DocObligationTracker: SyncHookContract<
         deps.stderr("[DocObligationTracker] All pending files documented — clearing flag");
       } else {
         deps.writePending(flagFile, remaining);
-        deps.stderr(`[DocObligationTracker] Cleared documented files, ${remaining.length} still pending`);
+        deps.stderr(
+          `[DocObligationTracker] Cleared documented files, ${remaining.length} still pending`,
+        );
       }
 
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Code file edit: add to pending list
@@ -206,7 +209,7 @@ export const DocObligationTracker: SyncHookContract<
     deps.writePending(flagFile, pending);
     deps.stderr(`[DocObligationTracker] Code modified: ${filePath} — docs pending`);
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,
@@ -242,7 +245,7 @@ function buildDocSuggestions(pending: string[], deps: DocObligationDeps): string
     }
   }
 
-  return lines.join("\n") + "\n";
+  return `${lines.join("\n")}\n`;
 }
 
 // ─── Contract 2: DocObligationEnforcer ───────────────────────────────────────
@@ -260,10 +263,7 @@ export const DocObligationEnforcer: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: StopInput,
-    deps: DocObligationDeps,
-  ): Result<BlockOutput | SilentOutput, PaiError> {
+  execute(input: StopInput, deps: DocObligationDeps): Result<BlockOutput | SilentOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (!deps.fileExists(flagFile)) {
@@ -284,17 +284,21 @@ export const DocObligationEnforcer: SyncHookContract<
       deps.writeReview(reviewPath, buildBlockLimitReview(pending, blockCount));
       deps.removeFlag(flagFile);
       deps.removeFlag(countFile);
-      deps.stderr(`[DocObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`);
+      deps.stderr(
+        `[DocObligationEnforcer] Block limit (${MAX_BLOCKS}) reached for ${pending.length} file(s). Review written. Releasing session.`,
+      );
       return ok({ type: "silent" });
     }
 
-    const opener = pickNarrative("DocObligationEnforcer", pending.length);
+    const opener = pickNarrative("DocObligationEnforcer", pending.length, join(import.meta.dir, "../DocObligationEnforcer"));
     const fileList = pending.map((f) => `  - ${f}`).join("\n");
     const suggestions = buildDocSuggestions(pending, deps);
     const reason = `${opener}\n\nModified files without documentation updates:\n${fileList}\n\n${suggestions}`;
 
     deps.writeBlockCount(countFile, blockCount + 1);
-    deps.stderr(`[DocObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without documentation updates`);
+    deps.stderr(
+      `[DocObligationEnforcer] Block ${blockCount + 1}/${MAX_BLOCKS}: ${pending.length} file(s) modified without documentation updates`,
+    );
 
     return ok({ type: "block", decision: "block", reason });
   },

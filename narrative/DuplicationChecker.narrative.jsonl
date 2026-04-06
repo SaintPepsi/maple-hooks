@@ -1,0 +1,9 @@
+{"message": "Hold on — this function already exists elsewhere. Let me import it instead of duplicating.", "score": 1}
+{"message": "I almost wrote a duplicate. The same function lives in another file. Importing it.", "score": 1}
+{"message": "This code is getting WET. I'll reuse the existing function instead of rewriting it.", "score": 1}
+{"message": "I'm about to duplicate code that already exists. Let me DRY this up and import it.", "score": 2}
+{"message": "The codebase already has this function. Duplicating it would fracture the logic and risk regressions.", "score": 2}
+{"message": "Multiple exact copies detected. I need to consolidate these into a shared import to keep things robust.", "score": 2}
+{"message": "This is an exact duplicate. Repeated code means repeated bugs. I'll extract and reuse.", "score": 3}
+{"message": "I'm seeing identical functions across files. Time to DRY this up before the codebase fractures further.", "score": 3}
+{"message": "Duplicate code is a regression multiplier. I need to refactor this into a shared module now.", "score": 3}

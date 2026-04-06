@@ -5,16 +5,24 @@
  * On subsequent prompts: classifies as continuation or new topic.
  */
 
+import { join } from "node:path";
+import {
+  ensureDir,
+  fileExists,
+  lstat,
+  readJson,
+  removeFile,
+  symlink,
+  writeFile,
+} from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { join } from "path";
-import { fileExists, readJson, writeFile, ensureDir, removeFile, symlink, lstat } from "@hooks/core/adapters/fs";
-import { getLocalComponents, getISOTimestamp } from "@hooks/lib/time";
-import { generatePRDTemplate, generatePRDFilename } from "@hooks/lib/prd-template";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { generatePRDFilename, generatePRDTemplate } from "@hooks/lib/prd-template";
+import { getISOTimestamp, getLocalComponents } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -37,12 +45,12 @@ interface PromptClassification {
 
 export interface AutoWorkCreationDeps {
   fileExists: (path: string) => boolean;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
-  symlink: (target: string, path: string) => Result<void, PaiError>;
-  removeFile: (path: string) => Result<void, PaiError>;
-  lstat: (path: string) => Result<{ isSymbolicLink(): boolean }, PaiError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
+  symlink: (target: string, path: string) => Result<void, ResultError>;
+  removeFile: (path: string) => Result<void, ResultError>;
+  lstat: (path: string) => Result<{ isSymbolicLink(): boolean }, ResultError>;
   getTimestamp: () => string;
   getLocalComponents: typeof getLocalComponents;
   generatePRDTemplate: typeof generatePRDTemplate;
@@ -78,13 +86,19 @@ export function classifyPrompt(prompt: string, hasExistingSession: boolean): Pro
   }
 
   if (!hasExistingSession) {
-    const title = trimmed.substring(0, 60).replace(/[^a-zA-Z0-9\s]/g, "").trim();
+    const title = trimmed
+      .substring(0, 60)
+      .replace(/[^a-zA-Z0-9\s]/g, "")
+      .trim();
     return { type: "work", title, effort: "STANDARD", is_new_topic: true };
   }
 
   return {
     type: "work",
-    title: trimmed.substring(0, 60).replace(/[^a-zA-Z0-9\s]/g, "").trim(),
+    title: trimmed
+      .substring(0, 60)
+      .replace(/[^a-zA-Z0-9\s]/g, "")
+      .trim(),
     effort: "STANDARD",
     is_new_topic: false,
   };
@@ -124,7 +138,7 @@ export const AutoWorkCreation: SyncHookContract<
   execute(
     input: UserPromptSubmitInput,
     deps: AutoWorkCreationDeps,
-  ): Result<SilentOutput, PaiError> {
+  ): Result<SilentOutput, ResultError> {
     const prompt = input.prompt || input.user_prompt || "";
     const sessionId = input.session_id || "unknown";
     const workDir = join(deps.baseDir, "MEMORY", "WORK");
@@ -170,7 +184,12 @@ export const AutoWorkCreation: SyncHookContract<
 
       const prdSlug = slugify(title).substring(0, 40);
       const prdFilename = deps.generatePRDFilename(prdSlug);
-      const prdContent = deps.generatePRDTemplate({ title, slug: prdSlug, effortLevel: classification.effort, prompt });
+      const prdContent = deps.generatePRDTemplate({
+        title,
+        slug: prdSlug,
+        effortLevel: classification.effort,
+        prompt,
+      });
       deps.writeFile(join(taskPath, prdFilename), prdContent);
 
       const isc = {
@@ -195,15 +214,19 @@ export const AutoWorkCreation: SyncHookContract<
       deps.ensureDir(stateDir);
       deps.writeFile(
         join(stateDir, `current-work-${sessionId}.json`),
-        JSON.stringify({
-          session_id: sessionId,
-          session_dir: sessionDirName,
-          current_task: taskDirName,
-          task_title: title,
-          task_count: 1,
-          created_at: deps.getTimestamp(),
-          prd_path: join(taskPath, prdFilename),
-        }, null, 2),
+        JSON.stringify(
+          {
+            session_id: sessionId,
+            session_dir: sessionDirName,
+            current_task: taskDirName,
+            task_title: title,
+            task_count: 1,
+            created_at: deps.getTimestamp(),
+            prd_path: join(taskPath, prdFilename),
+          },
+          null,
+          2,
+        ),
       );
 
       deps.stderr(`[AutoWork] New session with task: ${taskDirName}`);

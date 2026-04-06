@@ -10,14 +10,17 @@
  * Zero context cost when no research has occurred.
  */
 
+import { join } from "node:path";
+import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { writeFile, readFile, fileExists as fsFileExists } from "@hooks/core/adapters/fs";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { join } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -41,11 +44,6 @@ function isResearchSkill(input: ToolHookInput): boolean {
   return (toolInput as Record<string, unknown>).skill === "Research";
 }
 
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input !== "object" || input.tool_input === null) return null;
-  return (input.tool_input as Record<string, unknown>).file_path as string ?? null;
-}
-
 function flagPath(stateDir: string): string {
   return join(stateDir, "research-active");
 }
@@ -57,7 +55,7 @@ function remindedPath(stateDir: string): string {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 function getStateDir(): string {
-  const paiDir = process.env.PAI_DIR || join(process.env.HOME!, ".claude");
+  const paiDir = getPaiDir();
   return join(paiDir, "MEMORY", "STATE", "citation");
 }
 
@@ -76,7 +74,7 @@ const defaultDeps: CitationEnforcementDeps = {
   writeReminded: (path: string, files: string[]) => {
     writeFile(path, JSON.stringify(files));
   },
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Contract 1: CitationTracker ─────────────────────────────────────────────
@@ -95,14 +93,11 @@ export const CitationTracker: SyncHookContract<
     return false;
   },
 
-  execute(
-    _input: ToolHookInput,
-    deps: CitationEnforcementDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(_input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, ResultError> {
     const flag = flagPath(deps.stateDir);
     deps.writeFlag(flag);
     deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,
@@ -111,7 +106,7 @@ export const CitationTracker: SyncHookContract<
 // ─── Contract 2: CitationEnforcement ─────────────────────────────────────────
 
 function buildCitationReminder(): string {
-  const opener = pickNarrative("CitationEnforcement", 1);
+  const opener = pickNarrative("CitationEnforcement", 1, join(import.meta.dir, "../CitationEnforcement"));
   return [
     opener,
     "Ensure every factual claim in your written content includes a citation:",
@@ -134,34 +129,27 @@ export const CitationEnforcement: SyncHookContract<
     return input.tool_name === "Write" || input.tool_name === "Edit";
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: CitationEnforcementDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, ResultError> {
     const flag = flagPath(deps.stateDir);
     if (!deps.fileExists(flag)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     const reminded = deps.readReminded(remindedPath(deps.stateDir));
     if (reminded.includes(filePath)) {
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     reminded.push(filePath);
     deps.writeReminded(remindedPath(deps.stateDir), reminded);
     deps.stderr(`[CitationEnforcement] Injecting citation reminder for ${filePath}`);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: buildCitationReminder(),
-    });
+    return ok(continueOk(buildCitationReminder()));
   },
 
   defaultDeps,

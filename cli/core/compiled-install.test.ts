@@ -12,17 +12,17 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/lockfile.ts).
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import type { ExecResult } from "@hooks/cli/adapters/process";
 import { install } from "@hooks/cli/commands/install";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import type { CompilerDeps } from "@hooks/cli/core/compiler";
-import type { ExecResult } from "@hooks/cli/adapters/process";
-import type { Result } from "@hooks/cli/core/result";
-import { ok } from "@hooks/cli/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
 import { PaihErrorCode } from "@hooks/cli/core/error";
-import { InMemoryDeps } from "@hooks/cli/types/deps";
+import type { Result } from "@hooks/cli/core/result";
+import { ok } from "@hooks/cli/core/result";
 import type { SettingsJson } from "@hooks/cli/core/settings";
+import { InMemoryDeps } from "@hooks/cli/types/deps";
 import type { Lockfile } from "@hooks/cli/types/lockfile";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
@@ -46,11 +46,10 @@ function makeSourceRepo(): Record<string, string> {
       presets: ["quality"],
     }),
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts":
-      '// TypeStrictness hook\nexport default {};\n',
+      "// TypeStrictness hook\nexport default {};\n",
     "/source/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts":
-      '// TypeStrictness contract\nexport default {};\n',
-    "/source/core/result.ts":
-      '// core result module\nexport const ok = true;\n',
+      "// TypeStrictness contract\nexport default {};\n",
+    "/source/core/result.ts": "// core result module\nexport const ok = true;\n",
     "/source/presets.json": JSON.stringify({
       quality: { description: "Code quality", groups: ["CodingStandards"] },
     }),
@@ -88,10 +87,7 @@ function makeCompilerDeps(fileTree: Record<string, string>): CompilerDeps {
   } as CompilerDeps & { getFiles: () => Map<string, string> };
 }
 
-function makeArgs(
-  names: string[],
-  flags: Record<string, boolean | string> = {},
-): ParsedArgs {
+function makeArgs(names: string[], flags: Record<string, boolean | string> = {}): ParsedArgs {
   return { command: "install", names, flags: { to: "/project", ...flags } };
 }
 
@@ -115,7 +111,8 @@ describe("install --compiled", () => {
     // Settings uses direct path format (relies on shebang)
     const settingsContent = files.get("/project/.claude/settings.json")!;
     const settings: SettingsJson = JSON.parse(settingsContent);
-    const commands = settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
+    const commands =
+      settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
     expect(commands.some((c) => c.endsWith(".js"))).toBe(true);
     expect(commands.some((c) => c.startsWith("bun "))).toBe(false);
   });
@@ -137,7 +134,8 @@ describe("install --compiled-ts", () => {
 
     const settingsContent = files.get("/project/.claude/settings.json")!;
     const settings: SettingsJson = JSON.parse(settingsContent);
-    const commands = settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
+    const commands =
+      settings.hooks?.PreToolUse?.flatMap((g) => g.hooks.map((h) => h.command)) ?? [];
     expect(commands.some((c) => c.startsWith("bun "))).toBe(true);
   });
 });
@@ -156,11 +154,7 @@ describe("mode change detection", () => {
       }),
     });
 
-    const result = install(
-      makeArgs(["TypeStrictness"], { compiled: true }),
-      deps,
-      "/source",
-    );
+    const result = install(makeArgs(["TypeStrictness"], { compiled: true }), deps, "/source");
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -204,11 +198,7 @@ describe("mode change detection", () => {
       }),
     });
 
-    const result = install(
-      makeArgs(["TypeStrictness"], { compiled: true }),
-      deps,
-      "/source",
-    );
+    const result = install(makeArgs(["TypeStrictness"], { compiled: true }), deps, "/source");
 
     expect(result.ok).toBe(true);
   });
@@ -228,11 +218,7 @@ describe("lockfile mode change detection", () => {
       }),
     });
 
-    const result = install(
-      makeArgs(["TypeStrictness"]),
-      deps,
-      "/source",
-    );
+    const result = install(makeArgs(["TypeStrictness"]), deps, "/source");
 
     expect(result.ok).toBe(true);
   });
@@ -250,11 +236,7 @@ describe("lockfile mode change detection", () => {
       }),
     });
 
-    const result = install(
-      makeArgs(["TypeStrictness"], { compiled: true }),
-      deps,
-      "/source",
-    );
+    const result = install(makeArgs(["TypeStrictness"], { compiled: true }), deps, "/source");
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
@@ -272,7 +254,11 @@ describe("install source mode unchanged", () => {
     if (!result.ok) return;
 
     const files = memDeps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts")).toBe(true);
+    expect(
+      files.has(
+        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      ),
+    ).toBe(true);
 
     const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);

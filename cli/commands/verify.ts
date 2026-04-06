@@ -4,7 +4,7 @@
  * Source mode (default): Run in source repo, validate manifests match imports.
  *   - Globs all hook.json under hooks/
  *   - Compares declared deps vs actual imports (reuses validator logic from cli/core/validator.ts)
- *   - --fix rewrites hook.json to match actual imports
+ *   - --fix accepted but is a no-op (auto-rewrite not yet implemented)
  *
  * Installed mode (--installed): Run in target project, check files match lockfile.
  *   - Reads lockfile, checks all files exist + match fileHashes (cli/core/lockfile.ts)
@@ -14,16 +14,21 @@
  * Uses CliDeps for DI (cli/types/deps.ts).
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok, err } from "@hooks/cli/core/result";
-import { tryCatch } from "@hooks/core/result";
-import type { PaihError } from "@hooks/cli/core/error";
-import { invalidArgs, lockMissing, PaihErrorCode, PaihError as PaihErrorClass } from "@hooks/cli/core/error";
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import type { CliDeps } from "@hooks/cli/types/deps";
-import { resolveTarget } from "@hooks/cli/core/target";
-import { readLockfile, computeFileHash } from "@hooks/cli/core/lockfile";
+import type { PaihError } from "@hooks/cli/core/error";
+import {
+  invalidArgs,
+  lockMissing,
+  PaihError as PaihErrorClass,
+  PaihErrorCode,
+} from "@hooks/cli/core/error";
+import { computeFileHash, readLockfile } from "@hooks/cli/core/lockfile";
+import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 import { readSettings } from "@hooks/cli/core/settings";
+import { resolveTarget } from "@hooks/cli/core/target";
+import type { CliDeps } from "@hooks/cli/types/deps";
+import { tryCatch } from "@hooks/core/result";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -52,7 +57,9 @@ export function verify(
 
   if (installed) {
     if (fix) {
-      return err(invalidArgs("--fix is not available in installed mode. Use \"paih update\" instead."));
+      return err(
+        invalidArgs('--fix is not available in installed mode. Use "paih update" instead.'),
+      );
     }
     return verifyInstalled(args, deps);
   }
@@ -64,6 +71,9 @@ export function verify(
 
 /**
  * Source-mode verify: validate hook.json manifests match actual imports.
+ *
+ * Note: --fix is accepted but is a no-op. Auto-rewrite of hook.json is not yet
+ * implemented. The flag only suppresses the diagnostic hint below.
  */
 function verifySource(
   _args: ParsedArgs,
@@ -79,7 +89,6 @@ function verifySource(
   }
 
   const diagnostics: VerifyDiagnostic[] = [];
-  const fixedHooks: string[] = [];
 
   // Scan group directories
   const groupDirs = deps.readDir(hooksDir);
@@ -102,30 +111,16 @@ function verifySource(
       const manifestPath = `${hookDir}/hook.json`;
       if (!deps.fileExists(manifestPath)) continue;
 
-      const result = validateHookManifest(
-        hookName,
-        hookDir,
-        manifestPath,
-        groupDir,
-        deps,
-        fix,
-      );
+      const result = validateHookManifest(hookName, hookDir, manifestPath, groupDir, deps);
 
       if (result.diagnostics.length > 0) {
         diagnostics.push(...result.diagnostics);
       }
-      if (result.fixed) {
-        fixedHooks.push(hookName);
-      }
     }
   }
 
-  if (diagnostics.length === 0 && fixedHooks.length === 0) {
+  if (diagnostics.length === 0) {
     return ok("All hook manifests are valid.");
-  }
-
-  if (fix && fixedHooks.length > 0) {
-    return ok(`Fixed ${fixedHooks.length} hook manifest${fixedHooks.length === 1 ? "" : "s"}: ${fixedHooks.join(", ")}`);
   }
 
   // Report diagnostics
@@ -134,7 +129,7 @@ function verifySource(
     lines.push(`  [${d.code}] ${d.hookName}: ${d.message}`);
   }
   if (!fix) {
-    lines.push("Run with --fix to auto-correct derivable fields.");
+    lines.push("Note: --fix is accepted but not yet implemented for source mode.");
   }
   return ok(lines.join("\n"));
 }
@@ -143,7 +138,6 @@ function verifySource(
 
 interface ManifestValidationResult {
   diagnostics: VerifyDiagnostic[];
-  fixed: boolean;
 }
 
 /**
@@ -157,21 +151,21 @@ function validateHookManifest(
   manifestPath: string,
   _groupDir: string,
   deps: CliDeps,
-  _fix: boolean,
 ): ManifestValidationResult {
   const diagnostics: VerifyDiagnostic[] = [];
 
   // Read manifest
   const manifestContent = deps.readFile(manifestPath);
-  if (!manifestContent.ok) return { diagnostics, fixed: false };
+  if (!manifestContent.ok) return { diagnostics };
 
   const parsed = tryCatch(
     () => JSON.parse(manifestContent.value) as Record<string, unknown>,
-    () => new PaihErrorClass(
-      PaihErrorCode.ManifestParseError,
-      `Failed to parse hook.json at ${manifestPath}`,
-      { path: manifestPath },
-    ),
+    () =>
+      new PaihErrorClass(
+        PaihErrorCode.ManifestParseError,
+        `Failed to parse hook.json at ${manifestPath}`,
+        { path: manifestPath },
+      ),
   );
 
   if (!parsed.ok) {
@@ -180,7 +174,7 @@ function validateHookManifest(
       code: "MANIFEST_PARSE_ERROR",
       message: "Failed to parse hook.json",
     });
-    return { diagnostics, fixed: false };
+    return { diagnostics };
   }
 
   // Verify contract file exists
@@ -193,7 +187,7 @@ function validateHookManifest(
     });
   }
 
-  return { diagnostics, fixed: false };
+  return { diagnostics };
 }
 
 // ─── Installed Mode ─────────────────────────────────────────────────────────
@@ -201,10 +195,7 @@ function validateHookManifest(
 /**
  * Installed-mode verify: check files match lockfile hashes and settings entries exist.
  */
-function verifyInstalled(
-  args: ParsedArgs,
-  deps: CliDeps,
-): Result<string, PaihError> {
+function verifyInstalled(args: ParsedArgs, deps: CliDeps): Result<string, PaihError> {
   const inFlag = typeof args.flags.in === "string" ? args.flags.in : undefined;
   const fromFlag = typeof args.flags.from === "string" ? args.flags.from : undefined;
   const targetFlag = inFlag ?? fromFlag;
@@ -251,7 +242,13 @@ function verifyInstalled(
       const expectedHash = hook.fileHashes[file];
       if (expectedHash) {
         const currentHash = computeFileHash(absPath, deps);
-        if (currentHash.ok && currentHash.value !== expectedHash) {
+        if (!currentHash.ok) {
+          diagnostics.push({
+            hookName: hook.name,
+            code: "FILE_UNREADABLE",
+            message: `Cannot read file for hash verification: ${file}`,
+          });
+        } else if (currentHash.value !== expectedHash) {
           diagnostics.push({
             hookName: hook.name,
             code: "FILE_MODIFIED",

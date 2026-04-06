@@ -5,16 +5,16 @@
  * creates a learning file with metadata and ISC for future reference.
  */
 
+import { join } from "node:path";
+import { ensureDir, fileExists, readFile, readJson, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { join } from "path";
-import { getISOTimestamp, getLocalDate } from "@hooks/lib/time";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
-import { fileExists, readFile, readJson, writeFile, ensureDir } from "@hooks/core/adapters/fs";
-import { getPaiDir, defaultStderr } from "@hooks/lib/paths";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getISOTimestamp, getLocalDate } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -42,10 +42,10 @@ interface WorkMeta {
 
 export interface WorkCompletionLearningDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  writeFile: (path: string, content: string) => Result<void, PaiError>;
-  ensureDir: (path: string) => Result<void, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  writeFile: (path: string, content: string) => Result<void, ResultError>;
+  ensureDir: (path: string) => Result<void, ResultError>;
   getTimestamp: () => string;
   getLocalDate: () => string;
   getLearningCategory: (title: string, context?: string) => "SYSTEM" | "ALGORITHM";
@@ -160,7 +160,7 @@ export const WorkCompletionLearning: SyncHookContract<
   execute(
     input: SessionEndInput,
     deps: WorkCompletionLearningDeps,
-  ): Result<SilentOutput, PaiError> {
+  ): Result<SilentOutput, ResultError> {
     const stateDir = join(deps.baseDir, "MEMORY", "STATE");
     const workDir = join(deps.baseDir, "MEMORY", "WORK");
     const learningDir = join(deps.baseDir, "MEMORY", "LEARNING");
@@ -216,11 +216,11 @@ export const WorkCompletionLearning: SyncHookContract<
       const iscData = iscResult.value;
       const criteria = iscData.current?.criteria;
       if (criteria && criteria.length > 0) {
-        idealContent = "**Criteria:**\n" + criteria.map((c: string) => `- ${c}`).join("\n");
+        idealContent = `**Criteria:**\n${criteria.map((c: string) => `- ${c}`).join("\n")}`;
       }
       const antiCriteria = iscData.current?.antiCriteria;
       if (antiCriteria && antiCriteria.length > 0) {
-        idealContent += "\n\n**Anti-Criteria:**\n" + antiCriteria.map((c: string) => `- ${c}`).join("\n");
+        idealContent += `\n\n**Anti-Criteria:**\n${antiCriteria.map((c: string) => `- ${c}`).join("\n")}`;
       }
       if (iscData.satisfaction) {
         const s = iscData.satisfaction;
@@ -242,12 +242,19 @@ export const WorkCompletionLearning: SyncHookContract<
     // Write learning file
     const category = deps.getLearningCategory(workMeta.title);
     const now = new Date();
-    const monthDir = join(learningDir, category, `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+    const monthDir = join(
+      learningDir,
+      category,
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+    );
     deps.ensureDir(monthDir);
 
     const dateStr = deps.getLocalDate();
     const timeStr = now.toISOString().split("T")[1].slice(0, 5).replace(":", "");
-    const titleSlug = workMeta.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 30);
+    const titleSlug = workMeta.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 30);
     const filename = `${dateStr}_${timeStr}_work_${titleSlug}.md`;
     const filepath = join(monthDir, filename);
 
@@ -259,9 +266,11 @@ export const WorkCompletionLearning: SyncHookContract<
     let duration = "Unknown";
     if (workMeta.created_at && workMeta.completed_at) {
       const minutes = Math.round(
-        (new Date(workMeta.completed_at).getTime() - new Date(workMeta.created_at).getTime()) / 60000,
+        (new Date(workMeta.completed_at).getTime() - new Date(workMeta.created_at).getTime()) /
+          60000,
       );
-      duration = minutes < 60 ? `${minutes} minutes` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+      duration =
+        minutes < 60 ? `${minutes} minutes` : `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
     }
 
     const content = `# Work Completion Learning

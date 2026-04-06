@@ -76,3 +76,4 @@ if (sentiment.rating !== null && sentiment.confidence >= MIN_CONFIDENCE) {
 | `lib/learning-utils` | lib | Categorizes learning files (SYSTEM/ALGORITHM) |
 | `lib/time` | lib | Timestamps and date components for file naming |
 | `core/adapters/fs` | adapter | File read/write/append for ratings and learning files |
+

@@ -9,8 +9,8 @@
  * Used by: pre-commit Husky hook (author workflow)
  */
 
-import { readFile, writeFile, fileExists } from "@hooks/core/adapters/fs";
-import { join, resolve } from "path";
+import { join, resolve } from "node:path";
+import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -124,7 +124,11 @@ function safeJsonParse(content: string): Record<string, MatcherGroup[]> | null {
  */
 export function discoverGroupHooks(
   repoRoot: string,
-  deps: { readFile: ExportHooksDeps["readFile"]; fileExists: ExportHooksDeps["fileExists"]; stderr: ExportHooksDeps["stderr"] },
+  deps: {
+    readFile: ExportHooksDeps["readFile"];
+    fileExists: ExportHooksDeps["fileExists"];
+    stderr: ExportHooksDeps["stderr"];
+  },
 ): Record<string, MatcherGroup[]> {
   const hooksDir = join(repoRoot, "hooks");
   const discovered: Record<string, MatcherGroup[]> = {};
@@ -170,7 +174,7 @@ const defaultDeps: ExportHooksDeps = {
   readFile,
   writeFile,
   fileExists,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: (msg) => process.stderr.write(`${msg}\n`),
   homeDir: process.env.HOME || process.env.USERPROFILE || "~",
 };
 
@@ -207,9 +211,9 @@ export function run(deps: ExportHooksDeps = defaultDeps): void {
     // Avoid duplicates: skip matchers whose commands already exist
     for (const matcher of matchers) {
       const existingCommands = new Set(
-        exported.hooks[event].flatMap(m => m.hooks.map(h => h.command)),
+        exported.hooks[event].flatMap((m) => m.hooks.map((h) => h.command)),
       );
-      const newHooks = matcher.hooks.filter(h => !existingCommands.has(h.command));
+      const newHooks = matcher.hooks.filter((h) => !existingCommands.has(h.command));
       if (newHooks.length > 0) {
         exported.hooks[event].push({ ...matcher, hooks: newHooks });
       }
@@ -227,7 +231,9 @@ export function run(deps: ExportHooksDeps = defaultDeps): void {
         const parsed = JSON.parse(existing.value!);
         const existingCount = Object.values(parsed.hooks || {}).flat().length;
         if (existingCount > 0) {
-          deps.stderr(`[export-hooks] ABORT: Would overwrite ${existingCount} matcher groups with 0. Source prefix "${sourcePrefix}" matched nothing in settings.json. Keeping existing file.`);
+          deps.stderr(
+            `[export-hooks] ABORT: Would overwrite ${existingCount} matcher groups with 0. Source prefix "${sourcePrefix}" matched nothing in settings.json. Keeping existing file.`,
+          );
           return;
         }
       }
@@ -235,7 +241,7 @@ export function run(deps: ExportHooksDeps = defaultDeps): void {
   }
 
   const outputPath = join(repoRoot, "settings.hooks.json");
-  deps.writeFile(outputPath, JSON.stringify(exported, null, 2) + "\n");
+  deps.writeFile(outputPath, `${JSON.stringify(exported, null, 2)}\n`);
 
   const skipped = Object.values(extracted.hooks).flat().length - matcherCount;
   const skippedMsg = skipped > 0 ? ` (${skipped} skipped — no matching file in repo)` : "";

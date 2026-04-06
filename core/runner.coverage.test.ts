@@ -1,10 +1,10 @@
-import { describe, it, expect } from "bun:test";
-import { runHook, runHookWith, type RunHookOptions } from "@hooks/core/runner";
+import { describe, expect, it } from "bun:test";
 import type { HookContract } from "@hooks/core/contract";
-import type { ToolHookInput, SessionStartInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput, AskOutput } from "@hooks/core/types/hook-outputs";
-import { ok, err } from "@hooks/core/result";
-import { ErrorCode, PaiError, invalidInput } from "@hooks/core/error";
+import { ErrorCode, invalidInput, ResultError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import { type RunHookOptions, runHook, runHookWith } from "@hooks/core/runner";
+import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -18,12 +18,25 @@ function createMockIO(): MockIO & RunHookOptions {
   const io: MockIO = { stdoutLines: [], stderrLines: [], exitCode: null };
   return {
     ...io,
-    stdout: (msg: string) => { io.stdoutLines.push(msg); },
-    stderr: (msg: string) => { io.stderrLines.push(msg); },
-    exit: (code: number) => { io.exitCode = code; },
-    get stdoutLines() { return io.stdoutLines; },
-    get stderrLines() { return io.stderrLines; },
-    get exitCode() { return io.exitCode; },
+    stdout: (msg: string) => {
+      io.stdoutLines.push(msg);
+    },
+    stderr: (msg: string) => {
+      io.stderrLines.push(msg);
+    },
+    exit: (code: number) => {
+      io.exitCode = code;
+    },
+    isDuplicate: () => false,
+    get stdoutLines() {
+      return io.stdoutLines;
+    },
+    get stderrLines() {
+      return io.stderrLines;
+    },
+    get exitCode() {
+      return io.exitCode;
+    },
   };
 }
 
@@ -86,7 +99,9 @@ describe("runHookWith — pre-built input pipeline", () => {
       name: "TestThrow",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => { throw new Error("unexpected boom"); },
+      execute: () => {
+        throw new Error("unexpected boom");
+      },
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -100,7 +115,9 @@ describe("runHookWith — pre-built input pipeline", () => {
       name: "TestThrowString",
       event: "PostToolUse",
       accepts: () => true,
-      execute: () => { throw "string error"; },
+      execute: () => {
+        throw "string error";
+      },
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -118,7 +135,7 @@ describe("runHook — SecurityBlock exit code 2", () => {
       name: "TestSecurity",
       event: "PreToolUse",
       accepts: () => true,
-      execute: () => err(new PaiError(ErrorCode.SecurityBlock, "blocked for security")),
+      execute: () => err(new ResultError(ErrorCode.SecurityBlock, "blocked for security")),
       defaultDeps: {},
     };
     const io = createMockIO();
@@ -242,5 +259,74 @@ describe("runHookWith — output edge cases", () => {
     await runHookWith(silentContract, validToolInput, io);
     expect(io.stdoutLines.length).toBe(0);
     expect(io.exitCode).toBe(0);
+  });
+
+  it("formats updatedInput output type", async () => {
+    const contract: HookContract<ToolHookInput, { type: "updatedInput"; updatedInput: Record<string, unknown> }, {}> = {
+      name: "TestUpdatedInput",
+      event: "PreToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "updatedInput" as const, updatedInput: { command: "ls -la" } }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, validToolInput, io);
+    expect(io.exitCode).toBe(0);
+    const parsed = JSON.parse(io.stdoutLines[0]);
+    expect(parsed.hookSpecificOutput.updatedInput.command).toBe("ls -la");
+  });
+
+  it("skips duplicate in runHookWith", async () => {
+    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+      name: "TestDedupWith",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "continue", continue: true as const }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    (io as RunHookOptions).isDuplicate = () => true;
+    await runHookWith(contract, validToolInput, io);
+    expect(io.exitCode).toBe(0);
+    expect(io.stdoutLines.length).toBe(0);
+  });
+});
+
+// ─── runHook — additional branches ──────────────────────────────────────────
+
+describe("runHook — stdin and dedup branches", () => {
+  it("handles stdin read error gracefully", async () => {
+    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+      name: "TestStdinErr",
+      event: "PreToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "continue", continue: true as const }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    // Provide invalid stdin that will fail parsing
+    (io as RunHookOptions).stdinOverride = undefined;
+    (io as RunHookOptions).stdinTimeout = 1; // 1ms timeout to force stdin error
+    await runHook(contract, io as RunHookOptions);
+    expect(io.exitCode).toBe(0);
+    // Should output continue:true from safeExit for tool events
+    expect(io.stdoutLines.some((s) => s.includes("continue"))).toBe(true);
+  });
+
+  it("skips duplicate in runHook", async () => {
+    const contract: HookContract<ToolHookInput, ContinueOutput, {}> = {
+      name: "TestDedupMain",
+      event: "PreToolUse",
+      accepts: () => true,
+      execute: () => ok({ type: "continue", continue: true as const }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    (io as RunHookOptions).isDuplicate = () => true;
+    (io as RunHookOptions).stdinOverride = validToolInputJson;
+    await runHook(contract, io as RunHookOptions);
+    expect(io.exitCode).toBe(0);
+    // Dedup skip for tool events emits continue:true via safeExit
+    expect(io.stdoutLines.some((s) => s.includes("continue"))).toBe(true);
   });
 });

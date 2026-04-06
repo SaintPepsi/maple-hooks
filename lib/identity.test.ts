@@ -5,25 +5,29 @@
  * and verifies the Deps injection pattern works correctly.
  */
 
-import { describe, it, expect, beforeEach } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { fileNotFound } from "@hooks/core/error";
 import {
-  getIdentity,
-  getPrincipal,
+  clearCache,
   getDAName,
-  getPrincipalName,
-  getVoiceId,
-  getVoiceProsody,
-  getVoicePersonality,
   getDefaultIdentity,
   getDefaultPrincipal,
-  clearCache,
+  getIdentity,
+  getPrincipal,
+  getPrincipalName,
+  getVoiceId,
+  getVoicePersonality,
+  getVoiceProsody,
   type IdentityDeps,
-  type Identity,
+  type Settings,
   type VoicePersonality,
   type VoiceProsody,
-  type Settings,
 } from "@hooks/lib/identity";
-import { fileNotFound } from "@hooks/core/error";
+
+// Global cache cleanup — ensures no cache leaks between describe blocks
+// regardless of test execution order (bun 1.3+ may interleave describe blocks)
+beforeEach(() => clearCache());
+afterEach(() => clearCache());
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
 
@@ -54,8 +58,6 @@ function missingFileDeps(): IdentityDeps {
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe("getIdentity", () => {
-  beforeEach(() => clearCache());
-
   it("returns defaults when settings file is missing", () => {
     const identity = getIdentity(missingFileDeps());
     expect(identity.name).toBe("PAI");
@@ -69,6 +71,17 @@ describe("getIdentity", () => {
 
   it("returns defaults when settings has no daidentity", () => {
     const identity = getIdentity(emptyDeps());
+    expect(identity.name).toBe("PAI");
+    expect(identity.fullName).toBe("Personal AI");
+  });
+
+  it("returns defaults when settings file exists but cannot be parsed", () => {
+    const corruptDeps: IdentityDeps = {
+      settingsPath: "/tmp/corrupt-settings.json",
+      readJson: () => ({ ok: false as const, error: fileNotFound("/tmp/corrupt-settings.json") }),
+      fileExists: () => true,
+    };
+    const identity = getIdentity(corruptDeps);
     expect(identity.name).toBe("PAI");
     expect(identity.fullName).toBe("Personal AI");
   });
@@ -194,8 +207,6 @@ describe("getIdentity", () => {
 });
 
 describe("getPrincipal", () => {
-  beforeEach(() => clearCache());
-
   it("returns defaults when no principal in settings", () => {
     const principal = getPrincipal(emptyDeps());
     expect(principal.name).toBe("User");
@@ -219,8 +230,6 @@ describe("getPrincipal", () => {
 });
 
 describe("convenience functions", () => {
-  beforeEach(() => clearCache());
-
   it("getDAName returns the DA name", () => {
     const deps = makeDeps({ daidentity: { name: "TestDA" } });
     expect(getDAName(deps)).toBe("TestDA");

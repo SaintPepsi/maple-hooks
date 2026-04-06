@@ -6,18 +6,18 @@
  * everything as a <system-reminder> ContextOutput.
  */
 
+import { join } from "node:path";
+import { fileExists, readDir, readFile, readJson, stat } from "@hooks/core/adapters/fs";
+import { exec, execSyncSafe } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result, tryCatch } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
-import { unknownError } from "@hooks/core/error";
-import { fileExists, readFile, readJson, readDir, stat } from "@hooks/core/adapters/fs";
-import { exec, execSyncSafe } from "@hooks/core/adapters/process";
-import { join } from "path";
-import { setTabState, readTabState } from "@hooks/lib/tab-setter";
+import { isSubagent } from "@hooks/lib/environment";
 import { getDAName } from "@hooks/lib/identity";
 import { recordSessionStart } from "@hooks/lib/notifications";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,13 +43,17 @@ interface WorkSession {
 
 export interface LoadContextDeps {
   fileExists: (path: string) => boolean;
-  readFile: (path: string) => Result<string, PaiError>;
-  readJson: <T = unknown>(path: string) => Result<T, PaiError>;
-  readDir: (path: string, opts?: { withFileTypes: true }) => Result<{ name: string; isDirectory(): boolean }[], PaiError>;
-  stat: (path: string) => Result<{ mtimeMs: number }, PaiError>;
-  execSyncSafe: (cmd: string, opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined }) => Result<string, PaiError>;
-  setTabState: (opts: { title: string; state: string; sessionId: string }) => Result<void, PaiError>;
-  readTabState: (sessionId: string) => Result<{ state: string } | null, PaiError>;
+  readFile: (path: string) => Result<string, ResultError>;
+  readJson: <T = unknown>(path: string) => Result<T, ResultError>;
+  readDir: (
+    path: string,
+    opts?: { withFileTypes: true },
+  ) => Result<{ name: string; isDirectory(): boolean }[], ResultError>;
+  stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
+  execSyncSafe: (
+    cmd: string,
+    opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined },
+  ) => Result<string, ResultError>;
   getDAName: typeof getDAName;
   recordSessionStart: typeof recordSessionStart;
   getCurrentDate: () => Promise<string>;
@@ -71,11 +75,7 @@ function loadSettings(baseDir: string, deps: LoadContextDeps): Settings {
 }
 
 function loadContextFiles(baseDir: string, settings: Settings, deps: LoadContextDeps): string {
-  const defaultFiles = [
-    "PAI/SKILL.md",
-    "PAI/AISTEERINGRULES.md",
-    "PAI/USER/AISTEERINGRULES.md",
-  ];
+  const defaultFiles = ["PAI/SKILL.md", "PAI/AISTEERINGRULES.md", "PAI/USER/AISTEERINGRULES.md"];
 
   const contextFiles = settings.contextFiles || defaultFiles;
   let combined = "";
@@ -95,31 +95,6 @@ function loadContextFiles(baseDir: string, settings: Settings, deps: LoadContext
   }
 
   return combined;
-}
-
-function loadCodingStandards(baseDir: string, deps: LoadContextDeps): string | null {
-  const standardsDir = join(baseDir, "PAI/SYSTEM/CODINGSTANDARDS");
-  if (!deps.fileExists(standardsDir)) return null;
-
-  const parts: string[] = [];
-
-  // Always load general.md
-  const generalPath = join(standardsDir, "general.md");
-  if (deps.fileExists(generalPath)) {
-    const r = deps.readFile(generalPath);
-    if (r.ok) parts.push(r.value);
-  }
-
-  // Load domain files
-  for (const domain of ["hooks.md", "skills.md"]) {
-    const p = join(standardsDir, domain);
-    if (deps.fileExists(p)) {
-      const r = deps.readFile(p);
-      if (r.ok) parts.push(r.value);
-    }
-  }
-
-  return parts.length > 0 ? parts.join("\n\n---\n\n") : null;
 }
 
 function needsSkillRebuild(baseDir: string, deps: LoadContextDeps): boolean {
@@ -198,11 +173,19 @@ function loadRelationshipContext(baseDir: string, deps: LoadContextDeps): string
 
   const recentNotes: string[] = [];
   for (const date of [today, yesterday]) {
-    const notePath = join(baseDir, "MEMORY/RELATIONSHIP", formatMonth(date), `${formatDate(date)}.md`);
+    const notePath = join(
+      baseDir,
+      "MEMORY/RELATIONSHIP",
+      formatMonth(date),
+      `${formatDate(date)}.md`,
+    );
     if (deps.fileExists(notePath)) {
       const result = deps.readFile(notePath);
       if (result.ok) {
-        const notes = result.value.split("\n").filter((line: string) => line.trim().startsWith("- ")).slice(0, 5);
+        const notes = result.value
+          .split("\n")
+          .filter((line: string) => line.trim().startsWith("- "))
+          .slice(0, 5);
         if (notes.length > 0) {
           recentNotes.push(`*${formatDate(date)}:*`);
           recentNotes.push(...notes);
@@ -308,7 +291,7 @@ function getRecentWorkSessions(baseDir: string, deps: LoadContextDeps): WorkSess
     sessions.push({
       type: "recent",
       name: dirName,
-      title: title.length > 60 ? title.substring(0, 57) + "..." : title,
+      title: title.length > 60 ? `${title.substring(0, 57)}...` : title,
       status,
       timestamp: `${y}-${mo}-${d} ${h}:${mi}`,
       stale: false,
@@ -323,9 +306,9 @@ function buildActiveWorkSummary(baseDir: string, deps: LoadContextDeps): string 
   const recentSessions = getRecentWorkSessions(baseDir, deps);
   if (recentSessions.length === 0) return null;
 
-  let summary = "\n\u{1F4CB} ACTIVE WORK:\n\n  \u{2500}\u{2500} Recent Sessions (last 48h) \u{2500}\u{2500}\n";
+  let summary = "\n📋 ACTIVE WORK:\n\n  ── Recent Sessions (last 48h) ──\n";
   for (const s of recentSessions) {
-    summary += `\n  \u{26A1} ${s.title}\n`;
+    summary += `\n  ⚡ ${s.title}\n`;
     summary += `     ${s.timestamp} | Status: ${s.status}\n`;
     if (s.prd) {
       summary += `     PRD: ${s.prd.id} (${s.prd.status}, ${s.prd.progress})\n`;
@@ -342,7 +325,7 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   // Don't surface proposals while agent is still analyzing
   if (deps.fileExists(lockPath)) {
     const s = deps.stat(lockPath);
-    if (s.ok && (Date.now() - s.value.mtimeMs) < 10 * 60 * 1000) {
+    if (s.ok && Date.now() - s.value.mtimeMs < 10 * 60 * 1000) {
       return null; // Agent still working
     }
   }
@@ -353,7 +336,7 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
   if (!filesResult.ok) return null;
 
   const proposals = filesResult.value.filter(
-    (f) => !f.isDirectory() && f.name.endsWith(".md") && f.name !== ".gitkeep"
+    (f) => !f.isDirectory() && f.name.endsWith(".md") && f.name !== ".gitkeep",
   );
   if (proposals.length === 0) return null;
 
@@ -369,7 +352,9 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
     const confidenceMatch = frontmatter?.[1]?.match(/^\s*agent_score:\s*(\d+)/m);
     const confidence = confidenceMatch ? ` | confidence: ${confidenceMatch[1]}` : "";
     if (titleMatch) {
-      summaries.push(`  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"}${confidence})`);
+      summaries.push(
+        `  - ${titleMatch[1]} (${categoryMatch?.[1]?.trim() || "general"}${confidence})`,
+      );
     }
   }
 
@@ -377,14 +362,39 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
 
   const more = proposals.length > 5 ? `\n  ...and ${proposals.length - 5} more` : "";
 
-  return `\n## Pending Improvement Proposals\n\n` +
+  return (
+    `\n## Pending Improvement Proposals\n\n` +
     `You have **${proposals.length}** pending improvement proposal${proposals.length === 1 ? "" : "s"} from recent learnings:\n` +
-    summaries.join("\n") + more + "\n\n" +
+    summaries.join("\n") +
+    more +
+    "\n\n" +
     `Present these to Ian for review using /review-proposals for structured batch review.\n` +
     `Path: MEMORY/LEARNING/PROPOSALS/pending/\n` +
     `To approve: apply the change, annotate with rationale, move to PROPOSALS/applied/\n` +
     `To reject: annotate with rationale, move to PROPOSALS/rejected/\n` +
-    `To defer: annotate with rationale, move to PROPOSALS/deferred/\n`;
+    `To defer: annotate with rationale, move to PROPOSALS/deferred/\n`
+  );
+}
+
+export function loadWikiPointer(baseDir: string, deps: LoadContextDeps): string | null {
+  const wikiDir = join(baseDir, "MEMORY/WIKI");
+  const indexPath = join(wikiDir, "index.md");
+
+  if (!deps.fileExists(indexPath)) return null;
+
+  // Count page files across entity/concept/source dirs
+  let pageCount = 0;
+  for (const subdir of ["entities", "concepts", "sources"]) {
+    const dirPath = join(wikiDir, subdir);
+    const entries = deps.readDir(dirPath, { withFileTypes: true });
+    if (entries.ok) {
+      pageCount += entries.value.filter((e) => e.name.endsWith(".md")).length;
+    }
+  }
+
+  if (pageCount === 0) return null;
+
+  return `📚 Wiki: ${pageCount} knowledge pages available. Read MEMORY/WIKI/index.md for the catalog.`;
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -394,25 +404,23 @@ const defaultDeps: LoadContextDeps = {
   readFile,
   readJson,
   readDir: (path: string, _opts?: { withFileTypes: true }) =>
-    readDir(path, { withFileTypes: true }) as Result<{ name: string; isDirectory(): boolean }[], PaiError>,
+    readDir(path, { withFileTypes: true }) as Result<
+      { name: string; isDirectory(): boolean }[],
+      ResultError
+    >,
   stat,
   execSyncSafe,
-  setTabState: (opts) => tryCatch(() => setTabState(opts as Parameters<typeof setTabState>[0]), (e) => unknownError(e)),
-  readTabState: (id) => tryCatch(() => readTabState(id), (e) => unknownError(e)),
   getDAName,
   recordSessionStart,
   getCurrentDate: async () => {
-    const r = await exec("date +\"%Y-%m-%d %H:%M:%S %Z\"", {
+    const r = await exec('date +"%Y-%m-%d %H:%M:%S %Z"', {
       timeout: 3000,
     });
     return r.ok ? r.value.stdout.trim() : new Date().toISOString();
   },
-  isSubagent: () => {
-    const claudeProjectDir = process.env.CLAUDE_PROJECT_DIR || "";
-    return claudeProjectDir.includes("/.claude/Agents/") || process.env.CLAUDE_AGENT_TYPE !== undefined;
-  },
-  baseDir: process.env.PAI_DIR || join(process.env.HOME!, ".claude"),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  isSubagent: () => isSubagent((k) => process.env[k]),
+  baseDir: getPaiDir(),
+  stderr: defaultStderr,
 };
 
 export const LoadContext: AsyncHookContract<
@@ -430,19 +438,11 @@ export const LoadContext: AsyncHookContract<
   async execute(
     input: SessionStartInput,
     deps: LoadContextDeps,
-  ): Promise<Result<ContextOutput | SilentOutput, PaiError>> {
+  ): Promise<Result<ContextOutput | SilentOutput, ResultError>> {
     // Skip for subagents
     if (deps.isSubagent()) {
       deps.stderr("Subagent session - skipping PAI context loading");
       return ok({ type: "silent" });
-    }
-
-    // Reset tab title (preserve working state through compaction)
-    const tabResult = deps.readTabState(input.session_id);
-    if (tabResult.ok && tabResult.value && (tabResult.value.state === "working" || tabResult.value.state === "thinking")) {
-      deps.stderr(`Tab in ${tabResult.value.state} state - preserving title through compaction`);
-    } else {
-      deps.setTabState({ title: `${deps.getDAName()} ready\u{2026}`, state: "idle", sessionId: input.session_id });
     }
 
     deps.recordSessionStart();
@@ -474,19 +474,17 @@ export const LoadContext: AsyncHookContract<
     const principalName = settings.principal?.name || "User";
     const daName = settings.daidentity?.name || "PAI";
     const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
-    const codingStandards = loadCodingStandards(deps.baseDir, deps);
-
     const message = `<system-reminder>
 PAI CONTEXT (Auto-loaded at Session Start)
 
-\u{1F4C5} CURRENT DATE/TIME: ${currentDate}
-\u{1F511} SESSION ID: ${input.session_id}
-\u{1F4C1} SESSION STATE: MEMORY/STATE/current-work-${input.session_id}.json
-\u{1F427} CANARY: The penguin rides a unicycle through the spaghetti factory at midnight.
+📅 CURRENT DATE/TIME: ${currentDate}
+🔑 SESSION ID: ${input.session_id}
+📁 SESSION STATE: MEMORY/STATE/current-work-${input.session_id}.json
+🐧 CANARY: The penguin rides a unicycle through the spaghetti factory at midnight.
 
 ## ACTIVE IDENTITY (from settings.json) - CRITICAL
 
-**\u{26A0}\u{FE0F} MANDATORY IDENTITY RULES - OVERRIDE ALL OTHER CONTEXT \u{26A0}\u{FE0F}**
+**⚠️ MANDATORY IDENTITY RULES - OVERRIDE ALL OTHER CONTEXT ⚠️**
 
 The user's name is: **${principalName}**
 The assistant's name is: **${daName}**
@@ -499,8 +497,7 @@ The assistant's name is: **${daName}**
 ---
 
 ${contextContent}
-${codingStandards ? "\n---\n\n## Coding Standards\n\n" + codingStandards + "\n" : ""}
-${relationshipContext ? "\n---\n" + relationshipContext : ""}
+${relationshipContext ? `\n---\n${relationshipContext}` : ""}
 ---
 
 This context is now active. Additional context loads dynamically as needed.
@@ -509,7 +506,8 @@ This context is now active. Additional context loads dynamically as needed.
     // Build active work summary
     const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
     const proposals = loadPendingProposals(deps.baseDir, deps);
-    const parts = [message, activeWork, proposals].filter(Boolean);
+    const wikiPointer = loadWikiPointer(deps.baseDir, deps);
+    const parts = [message, activeWork, proposals, wikiPointer].filter(Boolean);
     const fullContent = parts.join("\n\n");
 
     deps.stderr("PAI context injected into session");

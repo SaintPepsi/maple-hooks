@@ -2,7 +2,7 @@
  * InMemoryDeps test double tests.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
 
 describe("InMemoryDeps", () => {

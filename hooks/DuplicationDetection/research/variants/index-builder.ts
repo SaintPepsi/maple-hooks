@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+
 // Cycle 7: Persistent Index Builder + Single-File Checker
 //
 // PROBLEM: Every variant parses all 214 files from scratch (200ms). The council
@@ -16,8 +17,6 @@
 //   Stats:        bun Tools/pattern-detector/variants/index-builder.ts stats [--index .duplication-index.json]
 
 import { parseDirectory, parseFile } from "@tools/pattern-detector/parse";
-import { sha256Short } from "@tools/pattern-detector/adapters";
-import type { ParsedFunction, ParsedFile } from "@tools/pattern-detector/types";
 
 // ─── Condensed Body Fingerprint ─────────────────────────────────────────────
 // Instead of storing the full bodyNodeTypes array (avg 69 items), we store a
@@ -25,10 +24,22 @@ import type { ParsedFunction, ParsedFile } from "@tools/pattern-detector/types";
 // This enables approximate cosine similarity in O(1) without the full list.
 
 const TOP_NODE_TYPES = [
-  "Identifier", "CallExpression", "MemberExpression", "StringLiteral",
-  "VariableDeclarator", "VariableDeclaration", "BlockStatement", "ReturnStatement",
-  "IfStatement", "BinaryExpression", "ObjectExpression", "KeyValueProperty",
-  "ExpressionStatement", "TemplateLiteral", "TemplateElement", "ArrayExpression",
+  "Identifier",
+  "CallExpression",
+  "MemberExpression",
+  "StringLiteral",
+  "VariableDeclarator",
+  "VariableDeclaration",
+  "BlockStatement",
+  "ReturnStatement",
+  "IfStatement",
+  "BinaryExpression",
+  "ObjectExpression",
+  "KeyValueProperty",
+  "ExpressionStatement",
+  "TemplateLiteral",
+  "TemplateElement",
+  "ArrayExpression",
 ] as const;
 
 const NODE_TYPE_INDEX = new Map(TOP_NODE_TYPES.map((t, i) => [t, i]));
@@ -37,11 +48,13 @@ function buildBodyFingerprint(nodeTypes: string[]): string {
   // Count occurrences of top-16 node types, clamp to 0-255, encode as hex
   const counts = new Uint8Array(16);
   for (const t of nodeTypes) {
-    const idx = NODE_TYPE_INDEX.get(t as typeof TOP_NODE_TYPES[number]);
+    const idx = NODE_TYPE_INDEX.get(t as (typeof TOP_NODE_TYPES)[number]);
     if (idx !== undefined && counts[idx] < 255) counts[idx]++;
   }
   // Encode as 32-char hex string
-  return Array.from(counts).map((c) => c.toString(16).padStart(2, "0")).join("");
+  return Array.from(counts)
+    .map((c) => c.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function fingerprintSimilarity(a: string, b: string): number {
@@ -67,14 +80,14 @@ function fingerprintSimilarity(a: string, b: string): number {
 // ─── Index Types ────────────────────────────────────────────────────────────
 
 interface IndexEntry {
-  f: string;    // file path (relative to index root)
-  n: string;    // function name
-  l: number;    // line number
-  h: string;    // body hash (16-char hex)
-  p: string;    // param types comma-joined
-  r: string;    // return type
-  fp: string;   // body fingerprint (32-char hex)
-  s: number;    // body size (node count)
+  f: string; // file path (relative to index root)
+  n: string; // function name
+  l: number; // line number
+  h: string; // body hash (16-char hex)
+  p: string; // param types comma-joined
+  r: string; // return type
+  fp: string; // body fingerprint (32-char hex)
+  s: number; // body size (node count)
 }
 
 interface DuplicationIndex {
@@ -93,7 +106,7 @@ interface DuplicationIndex {
 // ─── Index Building ─────────────────────────────────────────────────────────
 
 function buildIndex(directory: string): DuplicationIndex {
-  const { resolve } = require("path");
+  const { resolve } = require("node:path");
   const root = resolve(directory) as string;
   const files = parseDirectory(directory);
   const entries: IndexEntry[] = [];
@@ -132,7 +145,10 @@ function buildIndex(directory: string): DuplicationIndex {
   };
 }
 
-function groupByField(entries: IndexEntry[], keyFn: (e: IndexEntry) => string): Map<string, number[]> {
+function groupByField(
+  entries: IndexEntry[],
+  keyFn: (e: IndexEntry) => string,
+): Map<string, number[]> {
   const groups = new Map<string, number[]>();
   for (let i = 0; i < entries.length; i++) {
     const key = keyFn(entries[i]);
@@ -153,15 +169,11 @@ interface CheckResult {
 
 interface MatchDetail {
   signal: "hash" | "name" | "signature" | "fingerprint";
-  target: string;    // file:name:line of the match
-  score: number;     // 0-1
+  target: string; // file:name:line of the match
+  score: number; // 0-1
 }
 
-function checkFile(
-  filePath: string,
-  index: DuplicationIndex,
-  threshold: number,
-): CheckResult[] {
+function checkFile(filePath: string, index: DuplicationIndex, threshold: number): CheckResult[] {
   const parsed = parseFile(filePath);
   if (!parsed) return [];
 
@@ -246,7 +258,7 @@ function checkFile(
 
 // ─── Output Formatting ──────────────────────────────────────────────────────
 
-function formatCheckResults(results: CheckResult[], filePath: string, indexAge: string): string {
+function formatCheckResults(results: CheckResult[], _filePath: string, indexAge: string): string {
   if (results.length === 0) return "";
 
   const lines: string[] = [];
@@ -254,7 +266,9 @@ function formatCheckResults(results: CheckResult[], filePath: string, indexAge: 
     const topMatch = r.matches[0];
     const signalCount = new Set(r.matches.map((m) => m.signal)).size;
     const dimBar = "●".repeat(signalCount) + "○".repeat(4 - signalCount);
-    lines.push(`[${dimBar}] ${r.function}:${r.line} → ${topMatch.target} (${topMatch.signal}:${(topMatch.score * 100).toFixed(0)}%)`);
+    lines.push(
+      `[${dimBar}] ${r.function}:${r.line} → ${topMatch.target} (${topMatch.signal}:${(topMatch.score * 100).toFixed(0)}%)`,
+    );
   }
 
   return `Duplication check (index: ${indexAge}):\n${lines.join("\n")}`;
@@ -286,9 +300,15 @@ const command = args[0];
 
 if (!command || !["build", "check", "stats"].includes(command)) {
   process.stderr.write("Usage:\n");
-  process.stderr.write("  bun Tools/pattern-detector/variants/index-builder.ts build <directory> [--output .duplication-index.json]\n");
-  process.stderr.write("  bun Tools/pattern-detector/variants/index-builder.ts check <file> [--index .duplication-index.json] [--threshold 0.5]\n");
-  process.stderr.write("  bun Tools/pattern-detector/variants/index-builder.ts stats [--index .duplication-index.json]\n");
+  process.stderr.write(
+    "  bun Tools/pattern-detector/variants/index-builder.ts build <directory> [--output .duplication-index.json]\n",
+  );
+  process.stderr.write(
+    "  bun Tools/pattern-detector/variants/index-builder.ts check <file> [--index .duplication-index.json] [--threshold 0.5]\n",
+  );
+  process.stderr.write(
+    "  bun Tools/pattern-detector/variants/index-builder.ts stats [--index .duplication-index.json]\n",
+  );
   process.exit(1);
 }
 
@@ -308,7 +328,10 @@ const defaultIndexPath = ".duplication-index.json";
 
 if (command === "build") {
   const directory = args[1];
-  if (!directory) { process.stderr.write("Error: directory required\n"); process.exit(1); }
+  if (!directory) {
+    process.stderr.write("Error: directory required\n");
+    process.exit(1);
+  }
   const outputPath = getStringFlag("output", defaultIndexPath);
 
   const start = performance.now();
@@ -316,20 +339,25 @@ if (command === "build") {
   const buildTimeMs = performance.now() - start;
 
   const json = JSON.stringify(index);
-  require("fs").writeFileSync(outputPath, json);
+  require("node:fs").writeFileSync(outputPath, json);
 
-  process.stderr.write(`Built index: ${index.functionCount} functions from ${index.fileCount} files in ${buildTimeMs.toFixed(0)}ms\n`);
+  process.stderr.write(
+    `Built index: ${index.functionCount} functions from ${index.fileCount} files in ${buildTimeMs.toFixed(0)}ms\n`,
+  );
   process.stderr.write(`Written to: ${outputPath} (${(json.length / 1024).toFixed(1)}KB)\n`);
-  process.stdout.write(formatStats(index) + "\n");
+  process.stdout.write(`${formatStats(index)}\n`);
 }
 
 if (command === "check") {
   const filePath = args[1];
-  if (!filePath) { process.stderr.write("Error: file path required\n"); process.exit(1); }
+  if (!filePath) {
+    process.stderr.write("Error: file path required\n");
+    process.exit(1);
+  }
   const indexPath = getStringFlag("index", defaultIndexPath);
   const threshold = getNumFlag("threshold", 0.5);
 
-  const fs = require("fs");
+  const fs = require("node:fs");
   if (!fs.existsSync(indexPath)) {
     process.stderr.write(`Error: index not found at ${indexPath}. Run 'build' first.\n`);
     process.exit(1);
@@ -349,7 +377,9 @@ if (command === "check") {
   const ageStr = ageSec < 60 ? `${ageSec}s` : `${Math.round(ageSec / 60)}m`;
   const stalePrefix = ageSec > 300 ? "stale:" : "";
 
-  process.stderr.write(`Loaded index in ${loadTimeMs.toFixed(0)}ms, checked in ${checkTimeMs.toFixed(1)}ms\n`);
+  process.stderr.write(
+    `Loaded index in ${loadTimeMs.toFixed(0)}ms, checked in ${checkTimeMs.toFixed(1)}ms\n`,
+  );
 
   if (results.length > 0) {
     process.stdout.write(`${stalePrefix}${formatCheckResults(results, filePath, ageStr)}\n`);
@@ -360,11 +390,11 @@ if (command === "check") {
 
 if (command === "stats") {
   const indexPath = getStringFlag("index", defaultIndexPath);
-  const fs = require("fs");
+  const fs = require("node:fs");
   if (!fs.existsSync(indexPath)) {
     process.stderr.write(`Error: index not found at ${indexPath}. Run 'build' first.\n`);
     process.exit(1);
   }
   const index: DuplicationIndex = JSON.parse(fs.readFileSync(indexPath, "utf-8"));
-  process.stdout.write(formatStats(index) + "\n");
+  process.stdout.write(`${formatStats(index)}\n`);
 }

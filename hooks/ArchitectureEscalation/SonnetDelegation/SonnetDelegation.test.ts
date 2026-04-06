@@ -1,12 +1,9 @@
-import { describe, it, expect } from "bun:test";
-import {
-  SonnetDelegation,
-  type SonnetDelegationDeps,
-} from "./SonnetDelegation.contract";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { SonnetDelegation, type SonnetDelegationDeps } from "./SonnetDelegation.contract";
 
 function makeDeps(overrides: Partial<SonnetDelegationDeps> = {}): SonnetDelegationDeps {
   return {
@@ -30,16 +27,22 @@ describe("SonnetDelegation", () => {
   });
 
   it("accepts Skill tool when skill is superpowers:executing-plans", () => {
-    expect(SonnetDelegation.accepts(makeToolInput("Skill", { skill: "superpowers:executing-plans" }))).toBe(true);
+    expect(
+      SonnetDelegation.accepts(makeToolInput("Skill", { skill: "superpowers:executing-plans" })),
+    ).toBe(true);
   });
 
   it("accepts Skill tool when skill is executing-plans (without prefix)", () => {
-    expect(SonnetDelegation.accepts(makeToolInput("Skill", { skill: "executing-plans" }))).toBe(true);
+    expect(SonnetDelegation.accepts(makeToolInput("Skill", { skill: "executing-plans" }))).toBe(
+      true,
+    );
   });
 
   it("rejects Skill tool for other skills", () => {
     expect(SonnetDelegation.accepts(makeToolInput("Skill", { skill: "Research" }))).toBe(false);
-    expect(SonnetDelegation.accepts(makeToolInput("Skill", { skill: "superpowers:brainstorming" }))).toBe(false);
+    expect(
+      SonnetDelegation.accepts(makeToolInput("Skill", { skill: "superpowers:brainstorming" })),
+    ).toBe(false);
   });
 
   it("rejects non-Skill tools", () => {
@@ -71,7 +74,7 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -85,7 +88,7 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     if (!result.ok) return;
     const ctx = result.value.additionalContext!;
@@ -98,7 +101,7 @@ describe("SonnetDelegation", () => {
     const result = SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     if (!result.ok) return;
     const ctx = result.value.additionalContext!;
@@ -110,7 +113,11 @@ describe("SonnetDelegation", () => {
 
   it("logs to stderr on execute", () => {
     let logged = "";
-    const deps = makeDeps({ stderr: (msg: string) => { logged = msg; } });
+    const deps = makeDeps({
+      stderr: (msg: string) => {
+        logged = msg;
+      },
+    });
     SonnetDelegation.execute(
       makeToolInput("Skill", { skill: "superpowers:executing-plans" }),
       deps,

@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from "bun:test";
-import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
-import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract";
-import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.contract";
+import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
 
 const TEST_STATE_DIR = "/tmp/pai-citation-test";
 
@@ -77,9 +77,14 @@ describe("CitationTracker", () => {
   it("writes flag file on execute", () => {
     let writtenPath = "";
     const deps = makeDeps({
-      writeFlag: (path: string) => { writtenPath = path; },
+      writeFlag: (path: string) => {
+        writtenPath = path;
+      },
     });
-    const result = CitationTracker.execute(makeToolInput("WebSearch"), deps) as Result<ContinueOutput, PaiError>;
+    const result = CitationTracker.execute(makeToolInput("WebSearch"), deps) as Result<
+      ContinueOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     expect(writtenPath).toContain("research-active");
@@ -93,11 +98,15 @@ describe("CitationEnforcement", () => {
   });
 
   it("accepts Write tool", () => {
-    expect(CitationEnforcement.accepts(makeToolInput("Write", { file_path: "/tmp/test.md" }))).toBe(true);
+    expect(CitationEnforcement.accepts(makeToolInput("Write", { file_path: "/tmp/test.md" }))).toBe(
+      true,
+    );
   });
 
   it("accepts Edit tool", () => {
-    expect(CitationEnforcement.accepts(makeToolInput("Edit", { file_path: "/tmp/test.md" }))).toBe(true);
+    expect(CitationEnforcement.accepts(makeToolInput("Edit", { file_path: "/tmp/test.md" }))).toBe(
+      true,
+    );
   });
 
   it("rejects non-write tools", () => {
@@ -110,7 +119,7 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/test.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -125,7 +134,7 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -141,7 +150,7 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -153,12 +162,11 @@ describe("CitationEnforcement", () => {
     const deps = makeDeps({
       fileExists: () => true,
       readReminded: () => [],
-      writeReminded: (_path: string, files: string[]) => { writtenPaths = files; },
+      writeReminded: (_path: string, files: string[]) => {
+        writtenPaths = files;
+      },
     });
-    CitationEnforcement.execute(
-      makeToolInput("Write", { file_path: "/tmp/new-article.md" }),
-      deps,
-    );
+    CitationEnforcement.execute(makeToolInput("Write", { file_path: "/tmp/new-article.md" }), deps);
 
     expect(writtenPaths).toContain("/tmp/new-article.md");
   });
@@ -167,10 +175,10 @@ describe("CitationEnforcement", () => {
     const deps = makeDeps({
       fileExists: () => true,
     });
-    const result = CitationEnforcement.execute(
-      makeToolInput("Write", {}),
-      deps,
-    ) as Result<ContinueOutput, PaiError>;
+    const result = CitationEnforcement.execute(makeToolInput("Write", {}), deps) as Result<
+      ContinueOutput,
+      ResultError
+    >;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -186,7 +194,7 @@ describe("CitationEnforcement", () => {
       tool_name: "Write",
       tool_input: "/tmp/test.md" as unknown as Record<string, unknown>,
     };
-    const result = CitationEnforcement.execute(input, deps) as Result<ContinueOutput, PaiError>;
+    const result = CitationEnforcement.execute(input, deps) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -201,10 +209,43 @@ describe("CitationEnforcement", () => {
     const result = CitationEnforcement.execute(
       makeToolInput("Write", { file_path: "/tmp/article2.md" }),
       deps,
-    ) as Result<ContinueOutput, PaiError>;
+    ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.additionalContext).toBeDefined();
+  });
+});
+
+// ─── Shared defaultDeps ─────────────────────────────────────────────────────
+
+import { defaultDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
+
+describe("CitationEnforcement shared defaultDeps", () => {
+  it("writeFlag writes without throwing", () => {
+    const tmpPath = `/tmp/pai-test-cite-flag-${Date.now()}.txt`;
+    expect(() => defaultDeps.writeFlag(tmpPath)).not.toThrow();
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("readReminded returns empty array for missing file", () => {
+    expect(defaultDeps.readReminded("/tmp/pai-nonexistent-cite-12345.json")).toEqual([]);
+  });
+
+  it("readReminded parses valid JSON array", () => {
+    const tmpPath = `/tmp/pai-test-cite-rem-${Date.now()}.json`;
+    require("fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
+    expect(defaultDeps.readReminded(tmpPath)).toEqual(["/src/a.ts"]);
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("writeReminded writes without throwing", () => {
+    const tmpPath = `/tmp/pai-test-cite-wr-${Date.now()}.json`;
+    expect(() => defaultDeps.writeReminded(tmpPath, ["/src/b.ts"])).not.toThrow();
+    require("fs").unlinkSync(tmpPath);
+  });
+
+  it("stderr writes without throwing", () => {
+    expect(() => defaultDeps.stderr("test")).not.toThrow();
   });
 });

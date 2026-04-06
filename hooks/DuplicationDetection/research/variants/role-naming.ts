@@ -12,7 +12,7 @@
 
 import { parseDirectory } from "@tools/pattern-detector/parse";
 import { bodySimilarity } from "@tools/pattern-detector/similarity";
-import type { ParsedFunction, ParsedFile } from "@tools/pattern-detector/types";
+import type { ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
 // ─── Name Normalization ─────────────────────────────────────────────────────
 
@@ -23,9 +23,35 @@ function extractRole(name: string): string {
   let role = name;
 
   // Strip common prefixes
-  const prefixes = ["make", "create", "build", "get", "set", "is", "has", "format", "parse", "handle", "process", "validate", "check", "compute", "calculate", "extract", "generate", "render", "setup", "init", "default"];
+  const prefixes = [
+    "make",
+    "create",
+    "build",
+    "get",
+    "set",
+    "is",
+    "has",
+    "format",
+    "parse",
+    "handle",
+    "process",
+    "validate",
+    "check",
+    "compute",
+    "calculate",
+    "extract",
+    "generate",
+    "render",
+    "setup",
+    "init",
+    "default",
+  ];
   for (const p of prefixes) {
-    if (role.startsWith(p) && role.length > p.length && role[p.length] === role[p.length].toUpperCase()) {
+    if (
+      role.startsWith(p) &&
+      role.length > p.length &&
+      role[p.length] === role[p.length].toUpperCase()
+    ) {
       role = role.slice(p.length);
       break;
     }
@@ -44,7 +70,15 @@ function extractRole(name: string): string {
 }
 
 // Classify the "verb" (what architectural action this function performs)
-type RoleVerb = "factory" | "accessor" | "predicate" | "formatter" | "parser" | "handler" | "validator" | "other";
+type RoleVerb =
+  | "factory"
+  | "accessor"
+  | "predicate"
+  | "formatter"
+  | "parser"
+  | "handler"
+  | "validator"
+  | "other";
 
 function classifyVerb(name: string): RoleVerb {
   if (/^(make|create|build|setup|init|default)/.test(name)) return "factory";
@@ -109,11 +143,7 @@ function clusterByExactName(
   return clusters;
 }
 
-function clusterByRole(
-  files: ParsedFile[],
-  minInstances: number,
-  minFiles: number,
-): RoleCluster[] {
+function clusterByRole(files: ParsedFile[], minInstances: number, minFiles: number): RoleCluster[] {
   // Group by extracted role (normalized name)
   const groups = new Map<string, ParsedFunction[]>();
   for (const file of files) {
@@ -144,7 +174,10 @@ function clusterByRole(
     let dominantVerb: RoleVerb = "other";
     let maxCount = 0;
     for (const [v, c] of verbCounts) {
-      if (c > maxCount) { dominantVerb = v; maxCount = c; }
+      if (c > maxCount) {
+        dominantVerb = v;
+        maxCount = c;
+      }
     }
 
     clusters.push({
@@ -196,10 +229,7 @@ interface VerbStats {
   topRoles: string[];
 }
 
-function analyzeVerbDistribution(
-  files: ParsedFile[],
-  clusters: RoleCluster[],
-): VerbStats[] {
+function analyzeVerbDistribution(files: ParsedFile[], clusters: RoleCluster[]): VerbStats[] {
   // Count all functions by verb
   const verbTotals = new Map<RoleVerb, number>();
   for (const file of files) {
@@ -239,8 +269,8 @@ function analyzeVerbDistribution(
 // ─── Output ─────────────────────────────────────────────────────────────────
 
 function shortenPath(filePath: string): string {
-  const home = require("os").homedir() as string;
-  if (filePath.startsWith(home)) return "~" + filePath.slice(home.length);
+  const home = require("node:os").homedir() as string;
+  if (filePath.startsWith(home)) return `~${filePath.slice(home.length)}`;
   return filePath;
 }
 
@@ -257,13 +287,18 @@ function formatResults(
 
   lines.push("\nRole-Based Name Clustering (Cycle 3)");
   lines.push("═".repeat(42));
-  lines.push(`Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`);
+  lines.push(
+    `Scanned: ${fileCount} files, ${functionCount} functions | Parse: ${parseTimeMs.toFixed(0)}ms`,
+  );
 
   // Verb distribution
   lines.push(`\n--- Architectural Verb Distribution ---\n`);
   for (const v of verbStats) {
-    const pct = v.totalFunctions > 0 ? ((v.clusteredFunctions / v.totalFunctions) * 100).toFixed(0) : "0";
-    lines.push(`  ${v.verb.padEnd(12)} ${v.totalFunctions} total, ${v.clusteredFunctions} clustered (${pct}%), ${v.clusterCount} clusters`);
+    const pct =
+      v.totalFunctions > 0 ? ((v.clusteredFunctions / v.totalFunctions) * 100).toFixed(0) : "0";
+    lines.push(
+      `  ${v.verb.padEnd(12)} ${v.totalFunctions} total, ${v.clusteredFunctions} clustered (${pct}%), ${v.clusterCount} clusters`,
+    );
     if (v.topRoles.length > 0) {
       lines.push(`    Top roles: ${v.topRoles.join(", ")}`);
     }
@@ -275,7 +310,9 @@ function formatResults(
 
   for (const c of exactClusters.slice(0, top)) {
     const validated = c.structurallyValidated ? "validated" : "name-only";
-    lines.push(`  ${c.exactName} [${c.verb}] — ${c.members.length} instances across ${c.fileCount} files (body sim: ${(c.avgBodySimilarity * 100).toFixed(0)}%, ${validated})`);
+    lines.push(
+      `  ${c.exactName} [${c.verb}] — ${c.members.length} instances across ${c.fileCount} files (body sim: ${(c.avgBodySimilarity * 100).toFixed(0)}%, ${validated})`,
+    );
 
     for (const m of c.members.slice(0, 6)) {
       lines.push(`    - ${shortenPath(m.file)}:${m.line}`);
@@ -293,8 +330,12 @@ function formatResults(
   for (const c of roleClusters.slice(0, top)) {
     const validated = c.structurallyValidated ? "validated" : "name-only";
     const memberNames = [...new Set(c.members.map((m) => m.name))].slice(0, 5).join(", ");
-    lines.push(`  ${c.exactName} [${c.verb}] — ${c.members.length} instances across ${c.fileCount} files (body sim: ${(c.avgBodySimilarity * 100).toFixed(0)}%, ${validated})`);
-    lines.push(`    Names: ${memberNames}${[...new Set(c.members.map((m) => m.name))].length > 5 ? "..." : ""}`);
+    lines.push(
+      `  ${c.exactName} [${c.verb}] — ${c.members.length} instances across ${c.fileCount} files (body sim: ${(c.avgBodySimilarity * 100).toFixed(0)}%, ${validated})`,
+    );
+    lines.push(
+      `    Names: ${memberNames}${[...new Set(c.members.map((m) => m.name))].length > 5 ? "..." : ""}`,
+    );
 
     for (const m of c.members.slice(0, 4)) {
       lines.push(`    - ${m.name} (${shortenPath(m.file)}:${m.line})`);
@@ -314,7 +355,9 @@ const args = process.argv.slice(2);
 const directory = args.find((a) => !a.startsWith("--"));
 
 if (!directory) {
-  process.stderr.write("Usage: bun Tools/pattern-detector/variants/role-naming.ts <directory> [--min-instances 3] [--min-files 2] [--top 30]\n");
+  process.stderr.write(
+    "Usage: bun Tools/pattern-detector/variants/role-naming.ts <directory> [--min-instances 3] [--min-files 2] [--top 30]\n",
+  );
   process.exit(1);
 }
 
@@ -333,7 +376,9 @@ const files = parseDirectory(directory);
 const parseTimeMs = performance.now() - parseStart;
 const functionCount = files.reduce((s, f) => s + f.functions.length, 0);
 
-process.stderr.write(`Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Parsed ${files.length} files (${functionCount} functions) in ${parseTimeMs.toFixed(0)}ms\n`,
+);
 
 const detectStart = performance.now();
 const exactClusters = clusterByExactName(files, minInstances, minFiles);
@@ -341,6 +386,18 @@ const roleClusters = clusterByRole(files, minInstances, minFiles);
 const verbStats = analyzeVerbDistribution(files, exactClusters);
 const detectTimeMs = performance.now() - detectStart;
 
-process.stderr.write(`Found ${exactClusters.length} exact-name clusters, ${roleClusters.length} role clusters in ${detectTimeMs.toFixed(0)}ms\n`);
+process.stderr.write(
+  `Found ${exactClusters.length} exact-name clusters, ${roleClusters.length} role clusters in ${detectTimeMs.toFixed(0)}ms\n`,
+);
 
-process.stdout.write(formatResults(exactClusters, roleClusters, verbStats, files.length, functionCount, parseTimeMs, top) + "\n");
+process.stdout.write(
+  `${formatResults(
+    exactClusters,
+    roleClusters,
+    verbStats,
+    files.length,
+    functionCount,
+    parseTimeMs,
+    top,
+  )}\n`,
+);

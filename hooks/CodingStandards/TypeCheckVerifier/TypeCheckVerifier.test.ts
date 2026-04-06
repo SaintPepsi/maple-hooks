@@ -1,15 +1,20 @@
-import { describe, test, expect } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { TypeCheckVerifierDeps } from "@hooks/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract";
 import {
-  TypeCheckVerifier,
+  _resetDebounceCache,
   discoverTypeCheck,
   parseTypeErrors,
-} from "./TypeCheckVerifier.contract";
-import type { TypeCheckVerifierDeps } from "./TypeCheckVerifier.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+  TypeCheckVerifier,
+} from "@hooks/hooks/CodingStandards/TypeCheckVerifier/TypeCheckVerifier.contract";
 
 // ─── Discovery Tests ────────────────────────────────────────────────────────
 
 describe("discoverTypeCheck", () => {
+  beforeEach(() => {
+    _resetDebounceCache();
+  });
+
   test("discovers svelte-check from package.json check script", () => {
     const deps = {
       fileExists: (p: string) => p === "/project/package.json",
@@ -29,9 +34,7 @@ describe("discoverTypeCheck", () => {
     const deps = {
       fileExists: (p: string) => p === "/project/package.json",
       readFile: (p: string) =>
-        p === "/project/package.json"
-          ? '{"scripts":{"typecheck":"vue-tsc --noEmit"}}'
-          : null,
+        p === "/project/package.json" ? '{"scripts":{"typecheck":"vue-tsc --noEmit"}}' : null,
     };
 
     const result = discoverTypeCheck("/project/src/file.ts", deps);
@@ -41,8 +44,7 @@ describe("discoverTypeCheck", () => {
 
   test("falls back to tsc --noEmit with tsconfig.json", () => {
     const deps = {
-      fileExists: (p: string) =>
-        p === "/project/package.json" || p === "/project/tsconfig.json",
+      fileExists: (p: string) => p === "/project/package.json" || p === "/project/tsconfig.json",
       readFile: (p: string) =>
         p === "/project/package.json" ? '{"scripts":{"dev":"vite"}}' : null,
     };
@@ -68,9 +70,7 @@ describe("discoverTypeCheck", () => {
     const deps = {
       fileExists: (p: string) => p === "/project/package.json",
       readFile: (p: string) =>
-        p === "/project/package.json"
-          ? '{"scripts":{"check":"tsc --noEmit"}}'
-          : null,
+        p === "/project/package.json" ? '{"scripts":{"check":"tsc --noEmit"}}' : null,
     };
 
     const result = discoverTypeCheck("/project/src/deep/nested/file.ts", deps);
@@ -130,6 +130,10 @@ src/a.ts(3,3): error TS2304: err a2`;
 // ─── Contract Tests ─────────────────────────────────────────────────────────
 
 describe("TypeCheckVerifier contract", () => {
+  beforeEach(() => {
+    _resetDebounceCache();
+  });
+
   function makeInput(toolName: string, filePath: string): ToolHookInput {
     return {
       tool_name: toolName,
@@ -143,7 +147,9 @@ describe("TypeCheckVerifier contract", () => {
   });
 
   test("accepts Write on .svelte files", () => {
-    expect(TypeCheckVerifier.accepts(makeInput("Write", "/project/src/Component.svelte"))).toBe(true);
+    expect(TypeCheckVerifier.accepts(makeInput("Write", "/project/src/Component.svelte"))).toBe(
+      true,
+    );
   });
 
   test("rejects non-Edit/Write tools", () => {
@@ -174,12 +180,12 @@ describe("TypeCheckVerifier contract", () => {
 
   test("returns advisory context when type errors found", () => {
     const deps: TypeCheckVerifierDeps = {
-      fileExists: (p: string) =>
-        p === "/project/package.json" || p === "/project/tsconfig.json",
+      fileExists: (p: string) => p === "/project/package.json" || p === "/project/tsconfig.json",
       readFile: (p: string) =>
         p === "/project/package.json" ? '{"scripts":{"dev":"vite"}}' : null,
       execWithTimeout: () => ({
-        stdout: "/project/src/file.ts(5,3): error TS2322: Type 'string' is not assignable to type 'number'.",
+        stdout:
+          "/project/src/file.ts(5,3): error TS2322: Type 'string' is not assignable to type 'number'.",
         stderr: "",
         exitCode: 1,
         timedOut: false,
@@ -192,22 +198,22 @@ describe("TypeCheckVerifier contract", () => {
       stderr: () => {},
     };
 
-    const result = TypeCheckVerifier.execute(
-      makeInput("Edit", "/project/src/file.ts"),
-      deps,
-    );
+    const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("continue");
-      expect((result.value as { additionalContext?: string }).additionalContext).toContain("TYPE ERRORS");
-      expect((result.value as { additionalContext?: string }).additionalContext).toContain("not assignable");
+      expect((result.value as { additionalContext?: string }).additionalContext).toContain(
+        "TYPE ERRORS",
+      );
+      expect((result.value as { additionalContext?: string }).additionalContext).toContain(
+        "not assignable",
+      );
     }
   });
 
   test("returns clean continue when no errors for target file", () => {
     const deps: TypeCheckVerifierDeps = {
-      fileExists: (p: string) =>
-        p === "/project/package.json" || p === "/project/tsconfig.json",
+      fileExists: (p: string) => p === "/project/package.json" || p === "/project/tsconfig.json",
       readFile: (p: string) =>
         p === "/project/package.json" ? '{"scripts":{"dev":"vite"}}' : null,
       execWithTimeout: () => ({
@@ -224,10 +230,7 @@ describe("TypeCheckVerifier contract", () => {
       stderr: () => {},
     };
 
-    const result = TypeCheckVerifier.execute(
-      makeInput("Edit", "/project/src/file.ts"),
-      deps,
-    );
+    const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("continue");
@@ -237,8 +240,7 @@ describe("TypeCheckVerifier contract", () => {
 
   test("handles timeout gracefully", () => {
     const deps: TypeCheckVerifierDeps = {
-      fileExists: (p: string) =>
-        p === "/project/package.json" || p === "/project/tsconfig.json",
+      fileExists: (p: string) => p === "/project/package.json" || p === "/project/tsconfig.json",
       readFile: (p: string) =>
         p === "/project/package.json" ? '{"scripts":{"dev":"vite"}}' : null,
       execWithTimeout: () => ({
@@ -255,11 +257,76 @@ describe("TypeCheckVerifier contract", () => {
       stderr: () => {},
     };
 
-    const result = TypeCheckVerifier.execute(
-      makeInput("Edit", "/project/src/file.ts"),
-      deps,
-    );
+    const result = TypeCheckVerifier.execute(makeInput("Edit", "/project/src/file.ts"), deps);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("continue");
+  });
+});
+
+// ─── Additional coverage ────────────────────────────────────────────────────
+
+describe("discoverTypeCheck — standalone tsconfig", () => {
+  beforeEach(() => _resetDebounceCache());
+
+  test("discovers tsc --noEmit from standalone tsconfig.json", () => {
+    const deps = {
+      fileExists: (p: string) => p === "/project/tsconfig.json",
+      readFile: () => null,
+    };
+    const result = discoverTypeCheck("/project/src/file.ts", deps);
+    expect(result).not.toBeNull();
+    expect(result!.cmd).toBe("npx");
+    expect(result!.args).toContain("tsc");
+    expect(result!.cwd).toBe("/project");
+  });
+
+});
+
+describe("TypeCheckVerifier — debounce", () => {
+  beforeEach(() => _resetDebounceCache());
+
+  test("second execute for same file is debounced (continues immediately)", () => {
+    const deps: TypeCheckVerifierDeps = {
+      fileExists: (p: string) => p === "/project/tsconfig.json",
+      readFile: () => null,
+      execWithTimeout: () => ({ stdout: "", stderr: "", exitCode: 0, timedOut: false }),
+      signal: {
+        baseDir: "/tmp/test",
+        ensureDir: () => ({ ok: true, value: undefined }) as const,
+        appendFile: () => ({ ok: true, value: undefined }) as const,
+      },
+      stderr: () => {},
+    };
+    const input: ToolHookInput = {
+      session_id: "test-debounce",
+      tool_name: "Edit",
+      tool_input: { file_path: "/project/src/debounce-test.ts" },
+    };
+
+    // First call — runs check
+    const result1 = TypeCheckVerifier.execute(input, deps);
+    expect(result1.ok).toBe(true);
+
+    // Second call within debounce — skips check, returns continue
+    const result2 = TypeCheckVerifier.execute(input, deps);
+    expect(result2.ok).toBe(true);
+    if (result2.ok) expect(result2.value.type).toBe("continue");
+  });
+});
+
+describe("TypeCheckVerifier defaultDeps", () => {
+  test("defaultDeps.readFile returns null for missing file", () => {
+    expect(TypeCheckVerifier.defaultDeps.readFile("/tmp/pai-nonexistent-tcv.ts")).toBeNull();
+  });
+
+  test("defaultDeps.execWithTimeout returns exitCode 1 on failure", () => {
+    const result = TypeCheckVerifier.defaultDeps.execWithTimeout(
+      "false", [], "/tmp", 5000,
+    );
+    expect(result.exitCode).not.toBe(0);
+  });
+
+  test("defaultDeps.stderr writes without throwing", () => {
+    expect(() => TypeCheckVerifier.defaultDeps.stderr("test")).not.toThrow();
   });
 });

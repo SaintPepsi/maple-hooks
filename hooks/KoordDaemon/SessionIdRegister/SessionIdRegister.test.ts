@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
-import { SessionIdRegister, type SessionIdRegisterDeps } from "./SessionIdRegister.contract";
-import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
+import { describe, expect, test } from "bun:test";
 import { invalidInput } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
+import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
+import { SessionIdRegister, type SessionIdRegisterDeps } from "./SessionIdRegister.contract";
 
 const mockInput: SessionStartInput = {
   hook_type: "SessionStart",
@@ -34,7 +34,7 @@ describe("SessionIdRegister", () => {
   });
 
   test("returns silent when no session_id", async () => {
-    const input: SessionStartInput = { hook_type: "SessionStart" };
+    const input: SessionStartInput = { session_id: "", hook_type: "SessionStart" };
     const result = await SessionIdRegister.execute(input, makeDeps());
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.value.type).toBe("silent");

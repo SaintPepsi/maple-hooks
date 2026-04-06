@@ -7,10 +7,12 @@
  */
 
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -22,7 +24,7 @@ export interface MapleBrandingDeps {
 // ─── Default Deps ────────────────────────────────────────────────────────────
 
 const defaultDeps: MapleBrandingDeps = {
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
@@ -67,11 +69,11 @@ export const MapleBranding: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: MapleBrandingDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const command = String(input.tool_input?.command ?? "");
 
     if (containsClaudeCodeFooter(command)) {
-      const opener = pickNarrative("MapleBranding", 1);
+      const opener = pickNarrative("MapleBranding", 1, import.meta.dir);
       deps.stderr("[MapleBranding] Blocked: Claude Code footer detected in gh command");
       return ok({
         type: "block",
@@ -81,7 +83,7 @@ export const MapleBranding: SyncHookContract<
     }
 
     if (containsEmojiSignoff(command)) {
-      const opener = pickNarrative("MapleBranding", 1);
+      const opener = pickNarrative("MapleBranding", 1, import.meta.dir);
       deps.stderr("[MapleBranding] Blocked: emoji sign-off used instead of HTML image");
       return ok({
         type: "block",
@@ -90,7 +92,7 @@ export const MapleBranding: SyncHookContract<
       });
     }
 
-    return ok({ type: "continue", continue: true });
+    return ok(continueOk());
   },
 
   defaultDeps,

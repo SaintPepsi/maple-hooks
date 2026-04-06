@@ -10,20 +10,22 @@
 
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import {
-  continueOk,
+  type BlockOutput,
   block,
   type ContinueOutput,
-  type BlockOutput,
+  continueOk,
 } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
-  extractPrNumber,
-  resolvePrFromBranch,
   checkCiStatus,
   checkReviewStatus,
+  extractPrNumber,
+  resolvePrFromBranch,
   type SharedDeps,
 } from "@hooks/hooks/GitSafety/shared";
 
@@ -37,12 +39,10 @@ const MERGE_PATTERN = /\bgh\s+pr\s+merge\b/;
 
 // ─── Pure Functions ──────────────────────────────────────────────────────────
 
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
-
-function formatCiBlockMessage(prNumber: number, checks: Array<{ name: string; state: string }>): string {
+function formatCiBlockMessage(
+  prNumber: number,
+  checks: Array<{ name: string; state: string }>,
+): string {
   const checkLines = checks.map((c) => `  ${c.name}: ${c.state}`).join("\n");
   return [
     `MERGE BLOCKED: CI checks are not passing on PR #${prNumber}.`,
@@ -54,10 +54,12 @@ function formatCiBlockMessage(prNumber: number, checks: Array<{ name: string; st
   ].join("\n");
 }
 
-function formatReviewBlockMessage(prNumber: number, reviews: Array<{ author: string; state: string }>): string {
-  const reviewLines = reviews.length > 0
-    ? reviews.map((r) => `  ${r.author}: ${r.state}`).join("\n")
-    : "  (none)";
+function formatReviewBlockMessage(
+  prNumber: number,
+  reviews: Array<{ author: string; state: string }>,
+): string {
+  const reviewLines =
+    reviews.length > 0 ? reviews.map((r) => `  ${r.author}: ${r.state}`).join("\n") : "  (none)";
   return [
     `MERGE BLOCKED: No approving review found on PR #${prNumber}.`,
     "",
@@ -73,7 +75,7 @@ function formatReviewBlockMessage(prNumber: number, reviews: Array<{ author: str
 
 const defaultDeps: MergeGateDeps = {
   exec: (cmd: string) => execSyncSafe(cmd, { timeout: 15_000 }),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -93,7 +95,7 @@ export const MergeGate: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: MergeGateDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const command = getCommand(input);
 
     // Only intercept gh pr merge commands

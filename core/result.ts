@@ -9,13 +9,13 @@
 
 export type Result<T, E> = Ok<T, E> | Err<T, E>;
 
-export interface Ok<T, E> {
+export interface Ok<T, _E> {
   readonly ok: true;
   readonly value: T;
   readonly error?: never;
 }
 
-export interface Err<T, E> {
+export interface Err<_T, E> {
   readonly ok: false;
   readonly value?: never;
   readonly error: E;
@@ -42,18 +42,12 @@ export function andThen<T, E, U>(
 }
 
 /** Transform the success value, preserving Err. */
-export function map<T, E, U>(
-  result: Result<T, E>,
-  fn: (value: T) => U,
-): Result<U, E> {
+export function map<T, E, U>(result: Result<T, E>, fn: (value: T) => U): Result<U, E> {
   return result.ok ? ok(fn(result.value)) : result;
 }
 
 /** Transform the error value, preserving Ok. */
-export function mapError<T, E, F>(
-  result: Result<T, E>,
-  fn: (error: E) => F,
-): Result<T, F> {
+export function mapError<T, E, F>(result: Result<T, E>, fn: (error: E) => F): Result<T, F> {
   return result.ok ? result : err(fn(result.error));
 }
 
@@ -83,9 +77,7 @@ export function collectResults<T, E>(results: Result<T, E>[]): Result<T[], E> {
 }
 
 /** Partition results into separate ok/err arrays. Never short-circuits. */
-export function partitionResults<T, E>(
-  results: Result<T, E>[],
-): { oks: T[]; errs: E[] } {
+export function partitionResults<T, E>(results: Result<T, E>[]): { oks: T[]; errs: E[] } {
   const oks: T[] = [];
   const errs: E[] = [];
   for (const r of results) {
@@ -98,10 +90,7 @@ export function partitionResults<T, E>(
 // ─── Try/Catch Bridges ───────────────────────────────────────────────────────
 
 /** Wrap a throwing function into Result. Used ONLY in adapters. */
-export function tryCatch<T, E>(
-  fn: () => T,
-  onError: (error: unknown) => E,
-): Result<T, E> {
+export function tryCatch<T, E>(fn: () => T, onError: (error: unknown) => E): Result<T, E> {
   try {
     return ok(fn());
   } catch (e) {

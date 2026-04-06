@@ -8,9 +8,8 @@
  * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/tsconfig.json).
  */
 
-import type { Result } from "@hooks/cli/core/result";
-import { ok } from "@hooks/cli/core/result";
 import type { PaihError } from "@hooks/cli/core/error";
+import type { Result } from "@hooks/cli/core/result";
 import type { CliDeps } from "@hooks/cli/types/deps";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -37,10 +36,7 @@ interface TsConfigJson {
  * Generate tsconfig.json at .claude/hooks/ with path aliases pointing
  * to pai-hooks/ for shared dependencies.
  */
-export function generateTsconfig(
-  claudeDir: string,
-  deps: CliDeps,
-): Result<void, PaihError> {
+export function generateTsconfig(claudeDir: string, deps: CliDeps): Result<void, PaihError> {
   const paiHooksDir = `${claudeDir}/hooks/pai-hooks`;
   const tsconfigPath = `${paiHooksDir}/tsconfig.json`;
 
@@ -63,7 +59,7 @@ export function generateTsconfig(
     exclude: ["node_modules", ".paih-staging"],
   };
 
-  const content = JSON.stringify(config, null, 2) + "\n";
+  const content = `${JSON.stringify(config, null, 2)}\n`;
 
   const ensureResult = deps.ensureDir(paiHooksDir);
   if (!ensureResult.ok) return ensureResult;

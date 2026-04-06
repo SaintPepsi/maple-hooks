@@ -2081,7 +2081,7 @@
 </footer>
 
 <script>
-(function() {
+(() => {
   var nav = document.getElementById('wikiNav');
   var toggle = document.getElementById('navToggle');
   var overlay = document.getElementById('navOverlay');
@@ -2092,18 +2092,18 @@
   var sections = document.querySelectorAll('section[id]');
 
   // Mobile toggle
-  toggle.addEventListener('click', function() {
+  toggle.addEventListener('click', () => {
     nav.classList.toggle('open');
     overlay.classList.toggle('open');
   });
-  overlay.addEventListener('click', function() {
+  overlay.addEventListener('click', () => {
     nav.classList.remove('open');
     overlay.classList.remove('open');
   });
 
   // Close sidebar on link click (mobile)
-  nav.querySelectorAll('a').forEach(function(link) {
-    link.addEventListener('click', function() {
+  nav.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
       if (window.innerWidth <= 1200) {
         nav.classList.remove('open');
         overlay.classList.remove('open');
@@ -2113,14 +2113,14 @@
 
   // Scroll spy, progress, back-to-top
   var ticking = false;
-  window.addEventListener('scroll', function() {
+  window.addEventListener('scroll', () => {
     if (!ticking) {
-      requestAnimationFrame(function() {
+      requestAnimationFrame(() => {
         var scrollTop = window.scrollY;
         var docHeight = document.documentElement.scrollHeight - window.innerHeight;
         var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
-        progressFill.style.width = progress + '%';
-        progressText.textContent = progress + '% read';
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${progress}% read`;
 
         backToTop.classList.toggle('visible', scrollTop > 400);
 
@@ -2132,9 +2132,9 @@
           }
         }
 
-        navItems.forEach(function(item) {
+        navItems.forEach((item) => {
           var link = item.querySelector('a');
-          var isActive = link && link.getAttribute('href') === '#' + current;
+          var isActive = link && link.getAttribute('href') === `#${current}`;
           item.classList.toggle('active', isActive);
           // Auto-scroll sidebar to keep active item visible
           if (isActive && nav.scrollHeight > nav.clientHeight) {
@@ -2152,7 +2152,7 @@
     }
   });
 
-  backToTop.addEventListener('click', function() {
+  backToTop.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 })();

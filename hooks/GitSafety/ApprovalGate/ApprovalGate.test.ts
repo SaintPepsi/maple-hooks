@@ -1,11 +1,11 @@
-import { describe, it, expect } from "bun:test";
-import { ApprovalGate, type ApprovalGateDeps } from "./ApprovalGate.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput, BlockOutput } from "@hooks/core/types/hook-outputs";
-import type { Result } from "@hooks/core/result";
-import { ok, err } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { describe, expect, it } from "bun:test";
+import type { ResultError } from "@hooks/core/error";
 import { processExecFailed } from "@hooks/core/error";
+import type { Result } from "@hooks/core/result";
+import { err, ok } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { ApprovalGate, type ApprovalGateDeps } from "./ApprovalGate.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -26,12 +26,10 @@ const CI_ONE_FAILURE = JSON.stringify([{ name: "tests", state: "FAILURE" }]);
 /** CI checks response: one pending */
 const CI_ONE_PENDING = JSON.stringify([{ name: "build", state: "PENDING" }]);
 
-function makeDeps(opts: {
-  ciResponse?: string | "error";
-} = {}): ApprovalGateDeps {
+function makeDeps(opts: { ciResponse?: string | "error" } = {}): ApprovalGateDeps {
   const { ciResponse = CI_ALL_PASSING } = opts;
   return {
-    exec: (cmd: string): Result<string, PaiError> => {
+    exec: (cmd: string): Result<string, ResultError> => {
       if (cmd.includes("gh pr checks")) {
         if (ciResponse === "error") return err(processExecFailed(cmd, new Error("network error")));
         return ok(ciResponse);
@@ -42,7 +40,7 @@ function makeDeps(opts: {
   };
 }
 
-type GateResult = Result<ContinueOutput | BlockOutput, PaiError>;
+type GateResult = Result<ContinueOutput | BlockOutput, ResultError>;
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
@@ -69,7 +67,10 @@ describe("ApprovalGate", () => {
 
   it("continues on non-approve commands", () => {
     const deps = makeDeps();
-    const result = ApprovalGate.execute(makeInput("gh pr review 441 --comment -b 'lgtm'"), deps) as GateResult;
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review 441 --comment -b 'lgtm'"),
+      deps,
+    ) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
@@ -95,7 +96,10 @@ describe("ApprovalGate", () => {
 
   it("continues with verification reminder when CI passing", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
-    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps) as GateResult;
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review 441 --approve"),
+      deps,
+    ) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
@@ -109,7 +113,10 @@ describe("ApprovalGate", () => {
 
   it("blocks when CI has FAILURE checks", () => {
     const deps = makeDeps({ ciResponse: CI_ONE_FAILURE });
-    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps) as GateResult;
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review 441 --approve"),
+      deps,
+    ) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("block");
@@ -122,7 +129,10 @@ describe("ApprovalGate", () => {
 
   it("continues with CI-pending warning when checks are PENDING", () => {
     const deps = makeDeps({ ciResponse: CI_ONE_PENDING });
-    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps) as GateResult;
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review 441 --approve"),
+      deps,
+    ) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
@@ -136,9 +146,14 @@ describe("ApprovalGate", () => {
     const stderrMessages: string[] = [];
     const deps: ApprovalGateDeps = {
       exec: () => err(processExecFailed("gh", new Error("network"))),
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
-    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps) as GateResult;
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review 441 --approve"),
+      deps,
+    ) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
@@ -149,7 +164,10 @@ describe("ApprovalGate", () => {
 
   it("extracts PR number from `gh pr review 441 --approve`", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
-    const result = ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps) as GateResult;
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review 441 --approve"),
+      deps,
+    ) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
@@ -159,7 +177,10 @@ describe("ApprovalGate", () => {
 
   it("extracts PR number from `gh pr review --approve 441`", () => {
     const deps = makeDeps({ ciResponse: CI_ALL_PASSING });
-    const result = ApprovalGate.execute(makeInput("gh pr review --approve 441"), deps) as GateResult;
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review --approve 441"),
+      deps,
+    ) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
@@ -190,10 +211,30 @@ describe("ApprovalGate", () => {
     const stderrMessages: string[] = [];
     const deps: ApprovalGateDeps = {
       ...makeDeps({ ciResponse: CI_ONE_FAILURE }),
-      stderr: (msg) => { stderrMessages.push(msg); },
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
     };
     ApprovalGate.execute(makeInput("gh pr review 441 --approve"), deps);
     expect(stderrMessages.some((m) => m.includes("ApprovalGate"))).toBe(true);
+  });
+
+  it("allows approval with warning when PR number cannot be determined", () => {
+    const stderrMessages: string[] = [];
+    const deps: ApprovalGateDeps = {
+      exec: () => err(processExecFailed("gh pr view", new Error("not a git repo"))),
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
+    };
+    const result = ApprovalGate.execute(
+      makeInput("gh pr review --approve"),
+      deps,
+    ) as GateResult;
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    expect(stderrMessages.some((m) => m.includes("Could not determine PR number"))).toBe(true);
   });
 });
 

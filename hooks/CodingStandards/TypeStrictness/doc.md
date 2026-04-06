@@ -73,3 +73,4 @@ if (unknownWarnings.length > 0) {
 | `signal-logger` | lib | Logs violations and outcomes to JSONL for analysis |
 | `narrative-reader` | lib | `pickNarrative` for escalating block message tone |
 | `svelte-utils` | lib | `isSvelteFile`, `extractSvelteScript` for Svelte support |
+

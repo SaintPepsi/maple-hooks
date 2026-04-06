@@ -1,13 +1,16 @@
-import { describe, it, expect, mock } from "bun:test";
-import { RatingCapture, parseExplicitRating } from "./RatingCapture.contract";
-import type { RatingCaptureDeps } from "./RatingCapture.contract";
+import { describe, expect, it, mock } from "bun:test";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
+import type { RatingCaptureDeps } from "./RatingCapture.contract";
+import { parseExplicitRating, RatingCapture } from "./RatingCapture.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function makeInput(prompt: string, overrides: Partial<UserPromptSubmitInput> = {}): UserPromptSubmitInput {
+function makeInput(
+  prompt: string,
+  overrides: Partial<UserPromptSubmitInput> = {},
+): UserPromptSubmitInput {
   return {
     session_id: "test-session",
     prompt,
@@ -33,7 +36,13 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
     captureFailure: mock(async () => null),
     getPrincipalName: mock(() => "TestUser"),
     getPrincipal: mock(() => ({ name: "TestUser", pronunciation: "", timezone: "UTC" })),
-    getIdentity: mock(() => ({ name: "TestBot", fullName: "TestBot", displayName: "TestBot", mainDAVoiceID: "", color: "#000000" })),
+    getIdentity: mock(() => ({
+      name: "TestBot",
+      fullName: "TestBot",
+      displayName: "TestBot",
+      mainDAVoiceID: "",
+      color: "#000000",
+    })),
     getLearningCategory: mock((_content: string, _comment?: string) => "SYSTEM" as const),
     getISOTimestamp: mock(() => "2026-02-27T10:00:00Z"),
     getLocalComponents: mock(() => ({
@@ -45,7 +54,7 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
       seconds: "00",
     })),
     fileExists: mock(() => false),
-    readFile: mock(() => err(new PaiError(ErrorCode.FileNotFound, "not found"))),
+    readFile: mock(() => err(new ResultError(ErrorCode.FileNotFound, "not found"))),
     writeFile: mock(() => ok(undefined)),
     appendFile: mock(() => ok(undefined)),
     ensureDir: mock(() => ok(undefined)),
@@ -216,7 +225,10 @@ describe("RatingCapture algorithm reminder", () => {
 
   it("wraps content in user-prompt-submit-hook tags", async () => {
     const deps = makeDeps();
-    const result = await RatingCapture.execute(makeInput("hello world this is a long enough prompt"), deps);
+    const result = await RatingCapture.execute(
+      makeInput("hello world this is a long enough prompt"),
+      deps,
+    );
 
     expect(result.value?.content).toContain("<user-prompt-submit-hook>");
     expect(result.value?.content).toContain("</user-prompt-submit-hook>");
@@ -276,11 +288,343 @@ describe("RatingCapture.execute — implicit sentiment", () => {
 
   it("returns ContextOutput even when inference fails", async () => {
     const deps = makeDeps({
-      inference: mock(async () => { throw new Error("inference error"); }),
+      inference: mock(async () => {
+        throw new Error("inference error");
+      }),
     });
     const result = await RatingCapture.execute(makeInput("something happened"), deps);
 
     expect(result.ok).toBe(true);
     expect(result.value?.type).toBe("context");
+  });
+});
+
+// ─── execute: explicit low rating learning capture ────────────────────────────
+
+describe("RatingCapture.execute — explicit low rating learning capture", () => {
+  const transcriptContent = [
+    JSON.stringify({ type: "user", message: { content: "What is this?" } }),
+    JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Explained the feature" } }),
+  ].join("\n");
+
+  it("calls writeFile with LEARNING path when explicit rating < 5 and transcript context present", async () => {
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+    await RatingCapture.execute(
+      makeInput("3", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    const writeCalls = (deps.writeFile as ReturnType<typeof mock>).mock.calls;
+    expect(writeCalls.length).toBeGreaterThan(0);
+    const [writePath, writeContent] = writeCalls[0];
+    expect(writePath).toContain("LEARNING");
+    expect(writeContent).toContain("3");
+  });
+
+  it("calls ensureDir for the learning directory on low explicit rating", async () => {
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+    await RatingCapture.execute(
+      makeInput("3", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    const ensureCalls = (deps.ensureDir as ReturnType<typeof mock>).mock.calls;
+    // ensureDir is called for both signalsDir and learningsDir
+    expect(ensureCalls.length).toBeGreaterThanOrEqual(2);
+    const calledPaths = ensureCalls.map((args: unknown[]) => args[0] as string);
+    expect(calledPaths.some((p: string) => p.includes("LEARNING"))).toBe(true);
+  });
+
+  it("does NOT call writeFile when transcript_path is absent (no detailedContext)", async () => {
+    const deps = makeDeps();
+    // No transcript_path — getLastAssistantContext returns "" — captureLowRatingLearning bails
+    await RatingCapture.execute(makeInput("3"), deps);
+
+    const writeCalls = (deps.writeFile as ReturnType<typeof mock>).mock.calls;
+    expect(writeCalls.length).toBe(0);
+  });
+});
+
+// ─── execute: explicit rating <= 3 calls captureFailure ──────────────────────
+
+describe("RatingCapture.execute — explicit rating <= 3 calls captureFailure", () => {
+  const transcriptContent = [
+    JSON.stringify({ type: "user", message: { content: "What is this?" } }),
+    JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Explained the feature" } }),
+  ].join("\n");
+
+  it("calls captureFailure for rating <= 3", async () => {
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+    await RatingCapture.execute(
+      makeInput("2 - terrible", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    const captureCalls = (deps.captureFailure as ReturnType<typeof mock>).mock.calls;
+    expect(captureCalls.length).toBe(1);
+    const [args] = captureCalls[0];
+    expect(args.rating).toBe(2);
+    expect(args.sessionId).toBe("test-session");
+  });
+
+  it("passes sentimentSummary (comment) to captureFailure", async () => {
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+    await RatingCapture.execute(
+      makeInput("2 - terrible", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    const [args] = (deps.captureFailure as ReturnType<typeof mock>).mock.calls[0];
+    expect(args.sentimentSummary).toBe("terrible");
+  });
+
+  it("does NOT call captureFailure for rating 4 (only <= 3 triggers it)", async () => {
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+    await RatingCapture.execute(
+      makeInput("4", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    expect((deps.captureFailure as ReturnType<typeof mock>).mock.calls.length).toBe(0);
+  });
+
+  it("calls writeFile (learning capture) for rating 4 but not captureFailure", async () => {
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+    await RatingCapture.execute(
+      makeInput("4", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    const writeCalls = (deps.writeFile as ReturnType<typeof mock>).mock.calls;
+    expect(writeCalls.length).toBeGreaterThan(0);
+    expect((deps.captureFailure as ReturnType<typeof mock>).mock.calls.length).toBe(0);
+  });
+});
+
+// ─── execute: implicit sentiment null rating ──────────────────────────────────
+
+describe("RatingCapture.execute — implicit sentiment null rating", () => {
+  it("skips appendFile when inferred rating is null", async () => {
+    const deps = makeDeps({
+      inference: mock(async () => ({
+        success: true,
+        output: "",
+        parsed: {
+          rating: null,
+          sentiment: "neutral",
+          confidence: 0.8,
+          summary: "neutral",
+          detailed_context: "",
+        },
+        latencyMs: 0,
+        level: "fast" as const,
+      })),
+    });
+    await RatingCapture.execute(makeInput("looks fine"), deps);
+
+    expect((deps.appendFile as ReturnType<typeof mock>).mock.calls.length).toBe(0);
+  });
+
+  it("logs null rating to stderr", async () => {
+    const deps = makeDeps({
+      inference: mock(async () => ({
+        success: true,
+        output: "",
+        parsed: {
+          rating: null,
+          sentiment: "neutral",
+          confidence: 0.8,
+          summary: "neutral",
+          detailed_context: "",
+        },
+        latencyMs: 0,
+        level: "fast" as const,
+      })),
+    });
+    await RatingCapture.execute(makeInput("looks fine"), deps);
+
+    const stderrCalls = (deps.stderr as ReturnType<typeof mock>).mock.calls.flat() as string[];
+    expect(stderrCalls.some((msg: string) => msg.includes("null rating"))).toBe(true);
+  });
+});
+
+// ─── execute: implicit sentiment low rating learning capture ──────────────────
+
+describe("RatingCapture.execute — implicit sentiment low rating learning capture", () => {
+  it("calls writeFile with LEARNING content when implicit rating < 5", async () => {
+    const deps = makeDeps({
+      inference: mock(async () => ({
+        success: true,
+        output: "",
+        parsed: {
+          rating: 3,
+          sentiment: "negative",
+          confidence: 0.7,
+          summary: "frustrated",
+          detailed_context: "user seemed frustrated with the response quality",
+        },
+        latencyMs: 0,
+        level: "fast" as const,
+      })),
+    });
+    await RatingCapture.execute(makeInput("that was pretty bad honestly"), deps);
+
+    const writeCalls = (deps.writeFile as ReturnType<typeof mock>).mock.calls;
+    expect(writeCalls.length).toBeGreaterThan(0);
+    const [writePath, writeContent] = writeCalls[0];
+    expect(writePath).toContain("LEARNING");
+    expect(writeContent).toContain("3");
+  });
+
+  it("calls captureFailure when implicit rating <= 3", async () => {
+    const deps = makeDeps({
+      inference: mock(async () => ({
+        success: true,
+        output: "",
+        parsed: {
+          rating: 3,
+          sentiment: "negative",
+          confidence: 0.7,
+          summary: "frustrated",
+          detailed_context: "user seemed frustrated with the response quality",
+        },
+        latencyMs: 0,
+        level: "fast" as const,
+      })),
+    });
+    await RatingCapture.execute(makeInput("that was pretty bad honestly"), deps);
+
+    const captureCalls = (deps.captureFailure as ReturnType<typeof mock>).mock.calls;
+    expect(captureCalls.length).toBe(1);
+    const [args] = captureCalls[0];
+    expect(args.rating).toBe(3);
+    expect(args.sessionId).toBe("test-session");
+  });
+
+  it("captures learning but NOT captureFailure for implicit rating 4", async () => {
+    const deps = makeDeps({
+      inference: mock(async () => ({
+        success: true,
+        output: "",
+        parsed: {
+          rating: 4,
+          sentiment: "negative",
+          confidence: 0.6,
+          summary: "meh",
+          detailed_context: "mild dissatisfaction with the overall approach taken",
+        },
+        latencyMs: 0,
+        level: "fast" as const,
+      })),
+    });
+    await RatingCapture.execute(makeInput("could have been better"), deps);
+
+    const writeCalls = (deps.writeFile as ReturnType<typeof mock>).mock.calls;
+    expect(writeCalls.length).toBeGreaterThan(0);
+    expect((deps.captureFailure as ReturnType<typeof mock>).mock.calls.length).toBe(0);
+  });
+});
+
+// ─── execute: transcript context passed to inference ─────────────────────────
+
+describe("RatingCapture.execute — transcript context passed to inference", () => {
+  it("calls inference with a prompt containing 'CONTEXT:' when transcript is available", async () => {
+    const transcriptContent = [
+      JSON.stringify({ type: "user", message: { content: "previous question" } }),
+      JSON.stringify({
+        type: "assistant",
+        message: { content: "SUMMARY: did the thing" },
+      }),
+    ].join("\n");
+
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+
+    await RatingCapture.execute(
+      makeInput("great job on that", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    const inferenceCalls = (deps.inference as ReturnType<typeof mock>).mock.calls;
+    expect(inferenceCalls.length).toBe(1);
+    const [inferenceArgs] = inferenceCalls[0];
+    expect(inferenceArgs.prompt).toContain("CONTEXT:");
+  });
+
+  it("calls inference WITHOUT 'CONTEXT:' prefix when no transcript is available", async () => {
+    const deps = makeDeps({
+      fileExists: mock(() => false),
+    });
+
+    await RatingCapture.execute(makeInput("great job on that"), deps);
+
+    const inferenceCalls = (deps.inference as ReturnType<typeof mock>).mock.calls;
+    expect(inferenceCalls.length).toBe(1);
+    const [inferenceArgs] = inferenceCalls[0];
+    expect(inferenceArgs.prompt).not.toContain("CONTEXT:");
+  });
+});
+
+// ─── execute: array ContentBlock transcript entries ───────────────────────────
+
+describe("RatingCapture.execute — array ContentBlock transcript entries", () => {
+  it("extracts text from array content blocks in transcript for context", async () => {
+    // Covers lines 165-171: extractTextFromEntry array branch
+    const transcriptContent = [
+      JSON.stringify({
+        type: "user",
+        message: {
+          content: [
+            { type: "text", text: "What is the status?" },
+            { type: "tool_use", id: "abc" },
+          ],
+        },
+      }),
+      JSON.stringify({
+        type: "assistant",
+        message: {
+          content: [
+            { type: "text", text: "SUMMARY: All systems nominal" },
+          ],
+        },
+      }),
+    ].join("\n");
+
+    const deps = makeDeps({
+      fileExists: mock(() => true),
+      readFile: mock(() => ok(transcriptContent)),
+    });
+
+    await RatingCapture.execute(
+      makeInput("good response thanks", { transcript_path: "/tmp/transcript.jsonl" }),
+      deps,
+    );
+
+    const inferenceCalls = (deps.inference as ReturnType<typeof mock>).mock.calls;
+    expect(inferenceCalls.length).toBe(1);
+    const [inferenceArgs] = inferenceCalls[0];
+    // Context should contain the extracted text from block-array entries
+    expect(inferenceArgs.prompt).toContain("CONTEXT:");
+    expect(inferenceArgs.prompt).toContain("All systems nominal");
   });
 });

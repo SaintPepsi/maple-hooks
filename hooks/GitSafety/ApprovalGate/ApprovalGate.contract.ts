@@ -10,19 +10,21 @@
 
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { PaiError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getCommand } from "@hooks/lib/tool-input";
 import {
-  continueOk,
+  type BlockOutput,
   block,
   type ContinueOutput,
-  type BlockOutput,
+  continueOk,
 } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
 import {
+  checkCiStatus,
   extractPrNumber,
   resolvePrFromBranch,
-  checkCiStatus,
   type SharedDeps,
 } from "@hooks/hooks/GitSafety/shared";
 
@@ -36,12 +38,10 @@ const APPROVE_PATTERN = /\bgh\s+pr\s+review\b.*--approve/;
 
 // ─── Pure Functions ──────────────────────────────────────────────────────────
 
-function getCommand(input: ToolHookInput): string {
-  if (typeof input.tool_input === "string") return input.tool_input;
-  return (input.tool_input?.command as string) || "";
-}
-
-function formatCiBlockMessage(prNumber: number, checks: Array<{ name: string; state: string }>): string {
+function formatCiBlockMessage(
+  prNumber: number,
+  checks: Array<{ name: string; state: string }>,
+): string {
   const checkLines = checks.map((c) => `  ${c.name}: ${c.state}`).join("\n");
   return [
     `APPROVAL BLOCKED: CI checks are failing on PR #${prNumber}.`,
@@ -70,7 +70,7 @@ function formatVerificationReminder(prNumber: number): string {
 
 const defaultDeps: ApprovalGateDeps = {
   exec: (cmd: string) => execSyncSafe(cmd, { timeout: 15_000 }),
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 // ─── Contract ────────────────────────────────────────────────────────────────
@@ -90,7 +90,7 @@ export const ApprovalGate: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: ApprovalGateDeps,
-  ): Result<ContinueOutput | BlockOutput, PaiError> {
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const command = getCommand(input);
 
     // Only intercept gh pr review --approve commands

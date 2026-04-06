@@ -2,10 +2,10 @@
  * pipe() tests — success chain, early-exit on first error, error passthrough.
  */
 
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { pipe } from "@hooks/cli/core/pipe";
-import { ok, err } from "@hooks/cli/core/result";
 import type { Result } from "@hooks/cli/core/result";
+import { err, ok } from "@hooks/cli/core/result";
 
 describe("pipe()", () => {
   it("returns initial value when no functions provided", () => {

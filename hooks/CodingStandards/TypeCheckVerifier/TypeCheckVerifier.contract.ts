@@ -9,16 +9,23 @@
  * Never blocks. Debounced per file (60s). Times out after 10s.
  */
 
-import type { SyncHookContract } from "@hooks/core/contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { ok, type Result } from "@hooks/core/result";
-import type { PaiError } from "@hooks/core/error";
+import { dirname, join } from "node:path";
 import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import { spawnSyncSafe } from "@hooks/core/adapters/process";
-import { logSignal, defaultSignalLoggerDeps, type SignalLoggerDeps } from "@hooks/lib/signal-logger";
+import type { SyncHookContract } from "@hooks/core/contract";
+import type { ResultError } from "@hooks/core/error";
+import { ok, type Result } from "@hooks/core/result";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getFilePath } from "@hooks/lib/tool-input";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { defaultStderr } from "@hooks/lib/paths";
+import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import {
+  defaultSignalLoggerDeps,
+  logSignal,
+  type SignalLoggerDeps,
+} from "@hooks/lib/signal-logger";
 import { isSvelteFile } from "@hooks/lib/svelte-utils";
-import { join, dirname } from "path";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -55,6 +62,11 @@ interface ExecResult {
 const lastCheckTime = new Map<string, number>();
 const DEBOUNCE_MS = 60_000;
 
+/** Test-only: reset the debounce cache so tests start with clean state. */
+export function _resetDebounceCache(): void {
+  lastCheckTime.clear();
+}
+
 function isDebounced(filePath: string): boolean {
   const last = lastCheckTime.get(filePath);
   if (!last) return false;
@@ -66,6 +78,9 @@ function markChecked(filePath: string): void {
 }
 
 // ─── Project Discovery ──────────────────────────────────────────────────────
+
+/** Max directory levels to traverse upward when searching for project root. */
+const MAX_DIR_DEPTH = 50;
 
 /**
  * Walk up from file path to find the project root and type-check command.
@@ -81,10 +96,9 @@ export function discoverTypeCheck(
 ): TypeCheckCommand | null {
   let dir = dirname(filePath);
   const root = "/";
-  const visited = new Set<string>();
 
-  while (dir !== root && !visited.has(dir)) {
-    visited.add(dir);
+  for (let depth = 0; depth < MAX_DIR_DEPTH; depth++) {
+    if (dir === root) break;
 
     const pkgPath = join(dir, "package.json");
     if (deps.fileExists(pkgPath)) {
@@ -119,7 +133,9 @@ export function discoverTypeCheck(
       return { cmd: "npx", args: ["tsc", "--noEmit"], cwd: dir };
     }
 
-    dir = dirname(dir);
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
   }
 
   return null;
@@ -142,7 +158,7 @@ function parseCheckScript(script: string, cwd: string): TypeCheckCommand {
   // "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
   // "tsc --noEmit"
   // "vue-tsc --noEmit"
-  const parts = script.split("&&").map(s => s.trim());
+  const parts = script.split("&&").map((s) => s.trim());
   // Use the last command (the actual check, after any sync/prep steps)
   const checkCmd = parts[parts.length - 1];
   const tokens = checkCmd.split(/\s+/);
@@ -191,7 +207,6 @@ export function parseTypeErrors(output: string, targetFile: string): TypeCheckEr
           message: svelteMatch[4].replace(/\\n/g, " ").trim(),
         });
       }
-      continue;
     }
   }
 
@@ -206,9 +221,7 @@ function normalizePath(p: string): string {
 // ─── Advisory Formatting ────────────────────────────────────────────────────
 
 function formatAdvisory(errors: TypeCheckError[], filePath: string): string {
-  const lines = errors.map(
-    (e) => `  Line ${e.line}:${e.col}: ${e.message}`
-  );
+  const lines = errors.map((e) => `  Line ${e.line}:${e.col}: ${e.message}`);
 
   return [
     `⚠️ TYPE ERRORS — ${errors.length} type error${errors.length === 1 ? "" : "s"} in ${filePath}:`,
@@ -224,13 +237,6 @@ function formatAdvisory(errors: TypeCheckError[], filePath: string): string {
 
 function isTypeCheckableFile(filePath: string): boolean {
   return /\.tsx?$/.test(filePath) || isSvelteFile(filePath);
-}
-
-function getFilePath(input: ToolHookInput): string | null {
-  if (typeof input.tool_input === "object" && input.tool_input !== null) {
-    return (input.tool_input.file_path as string) ?? null;
-  }
-  return null;
 }
 
 const defaultDeps: TypeCheckVerifierDeps = {
@@ -257,7 +263,7 @@ const defaultDeps: TypeCheckVerifierDeps = {
     };
   },
   signal: defaultSignalLoggerDeps,
-  stderr: (msg) => process.stderr.write(msg + "\n"),
+  stderr: defaultStderr,
 };
 
 export const TypeCheckVerifier: SyncHookContract<
@@ -277,20 +283,19 @@ export const TypeCheckVerifier: SyncHookContract<
     return true;
   },
 
-  execute(
-    input: ToolHookInput,
-    deps: TypeCheckVerifierDeps,
-  ): Result<ContinueOutput, PaiError> {
+  execute(input: ToolHookInput, deps: TypeCheckVerifierDeps): Result<ContinueOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     // Discover project type-check command
     const typeCheck = discoverTypeCheck(filePath, deps);
     if (!typeCheck) {
       deps.stderr(`[TypeCheckVerifier] ${filePath}: no type checker found, skipping`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
-    deps.stderr(`[TypeCheckVerifier] Running: ${typeCheck.cmd} ${typeCheck.args.join(" ")} in ${typeCheck.cwd}`);
+    deps.stderr(
+      `[TypeCheckVerifier] Running: ${typeCheck.cmd} ${typeCheck.args.join(" ")} in ${typeCheck.cwd}`,
+    );
 
     // Run type checker with timeout
     const result = deps.execWithTimeout(typeCheck.cmd, typeCheck.args, typeCheck.cwd, 10_000);
@@ -308,11 +313,11 @@ export const TypeCheckVerifier: SyncHookContract<
         file: filePath,
         outcome: "timeout",
       });
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     // Parse output for errors in the edited file
-    const combinedOutput = result.stdout + "\n" + result.stderr;
+    const combinedOutput = `${result.stdout}\n${result.stderr}`;
     const errors = parseTypeErrors(combinedOutput, filePath);
 
     logSignal(deps.signal, "type-check-verifier.jsonl", {
@@ -327,17 +332,13 @@ export const TypeCheckVerifier: SyncHookContract<
 
     if (errors.length === 0) {
       deps.stderr(`[TypeCheckVerifier] ${filePath}: no type errors`);
-      return ok({ type: "continue", continue: true });
+      return ok(continueOk());
     }
 
     deps.stderr(`[TypeCheckVerifier] ${filePath}: ${errors.length} type error(s)`);
     const advisory = formatAdvisory(errors, filePath);
 
-    return ok({
-      type: "continue",
-      continue: true,
-      additionalContext: advisory,
-    });
+    return ok(continueOk(advisory));
   },
 
   defaultDeps,

@@ -1,12 +1,14 @@
-import { describe, test, expect } from "bun:test";
-import {
-  ArticleWriter,
-  buildArticlePrompt,
-  type ArticleWriterDeps,
-  type ArticlePromptContext,
-} from "./ArticleWriter.contract";
+import { describe, expect, test } from "bun:test";
 import { ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
+import { fileWriteFailed } from "@hooks/core/error";
+import { err } from "@hooks/core/result";
+import {
+  type ArticlePromptContext,
+  ArticleWriter,
+  type ArticleWriterDeps,
+  buildArticlePrompt,
+} from "@hooks/hooks/WorkLifecycle/ArticleWriter/ArticleWriter.contract";
 
 const baseInput: SessionEndInput = {
   session_id: "test-session-123",
@@ -88,7 +90,10 @@ describe("ArticleWriter", () => {
         return false;
       },
       stat: () => ok({ mtimeMs: Date.now() - 60 * 60 * 1000 }),
-      removeFile: (p: string) => { removed.push(p); return ok(undefined); },
+      removeFile: (p: string) => {
+        removed.push(p);
+        return ok(undefined);
+      },
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
@@ -130,10 +135,14 @@ describe("ArticleWriter", () => {
         return false;
       },
       readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
-      readFile: () => ok(
-        "- [x] ISC-1: one\n- [x] ISC-2: two\n- [x] ISC-3: three\n- [x] ISC-4: four\n- [ ] ISC-5: five\n",
-      ),
-      spawnBackground: () => { spawned = true; return ok(undefined); },
+      readFile: () =>
+        ok(
+          "- [x] ISC-1: one\n- [x] ISC-2: two\n- [x] ISC-3: three\n- [x] ISC-4: four\n- [ ] ISC-5: five\n",
+        ),
+      spawnBackground: () => {
+        spawned = true;
+        return ok(undefined);
+      },
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
@@ -152,10 +161,11 @@ describe("ArticleWriter", () => {
         return false;
       },
       readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
-      readFile: () => ok(
-        "- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n- [x] ISC-5\n",
-      ),
-      spawnBackground: () => { spawned = true; return ok(undefined); },
+      readFile: () => ok("- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n- [x] ISC-5\n"),
+      spawnBackground: () => {
+        spawned = true;
+        return ok(undefined);
+      },
     });
     const result = ArticleWriter.execute(baseInput, deps);
     expect(result.ok).toBe(true);
@@ -172,10 +182,11 @@ describe("ArticleWriter", () => {
         return false;
       },
       readJson: <T>(_path: string) => ok({ session_dir: "20260314-120000_some-task" } as T),
-      readFile: () => ok(
-        "- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n",
-      ),
-      writeFile: (p: string, c: string) => { written.push({ path: p, content: c }); return ok(undefined); },
+      readFile: () => ok("- [x] ISC-1\n- [x] ISC-2\n- [x] ISC-3\n- [x] ISC-4\n"),
+      writeFile: (p: string, c: string) => {
+        written.push({ path: p, content: c });
+        return ok(undefined);
+      },
     });
     ArticleWriter.execute(baseInput, deps);
     expect(written.some((w) => w.path.endsWith(".writing"))).toBe(true);
@@ -273,5 +284,65 @@ describe("buildArticlePrompt", () => {
     const ctx: ArticlePromptContext = { ...defaultCtx, websiteRepo: "/custom/repo" };
     const prompt = buildArticlePrompt(ctx, "test-1");
     expect(prompt).toContain("WORKING DIRECTORY: /custom/repo");
+  });
+});
+
+// ─── Error branches past all gates ──────────────────────────────────────────
+
+describe("ArticleWriter error paths after gates pass", () => {
+  const prdContent = [
+    "- [x] ISC-1: first",
+    "- [x] ISC-2: second",
+    "- [x] ISC-3: third",
+    "- [x] ISC-4: fourth",
+  ].join("\n");
+
+  const stateJson = JSON.stringify({ session_dir: "work-dir" });
+
+  function gatePassingDeps(overrides: Partial<ArticleWriterDeps> = {}): ArticleWriterDeps {
+    return {
+      ...makeDeps(),
+      websiteRepo: "/mock/website",
+      fileExists: (path: string) => {
+        if (path.includes("current-work-")) return true;
+        if (path.includes("PRD.md")) return true;
+        if (path.includes(".writing")) return false;
+        return false;
+      },
+      readFile: (path: string) => {
+        if (path.includes("PRD.md")) return ok(prdContent);
+        return ok("");
+      },
+      readJson: <T>(_path: string) => ok(JSON.parse(stateJson) as T),
+      ...overrides,
+    };
+  }
+
+  test("returns silent when ensureDir fails", () => {
+    const stderrMessages: string[] = [];
+    const deps = gatePassingDeps({
+      ensureDir: () => err(fileWriteFailed("/articles", new Error("permission denied"))),
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
+    });
+    const result = ArticleWriter.execute(baseInput, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("silent");
+    expect(stderrMessages.some((m) => m.includes("Failed to create articles dir"))).toBe(true);
+  });
+
+  test("returns silent when lock writeFile fails", () => {
+    const stderrMessages: string[] = [];
+    const deps = gatePassingDeps({
+      writeFile: () => err(fileWriteFailed(".writing", new Error("disk full"))),
+      stderr: (msg) => {
+        stderrMessages.push(msg);
+      },
+    });
+    const result = ArticleWriter.execute(baseInput, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("silent");
+    expect(stderrMessages.some((m) => m.includes("Failed to write lock"))).toBe(true);
   });
 });

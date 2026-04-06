@@ -1,8 +1,8 @@
-import { describe, it, expect } from "bun:test";
-import { GitAutoSync, STALE_LOCK_MINUTES, type GitAutoSyncDeps } from "./GitAutoSync.contract";
+import { describe, expect, it } from "bun:test";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
-import { ErrorCode, PaiError } from "@hooks/core/error";
+import { GitAutoSync, type GitAutoSyncDeps, STALE_LOCK_MINUTES } from "./GitAutoSync.contract";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ describe("GitAutoSync contract", () => {
     if (result.ok) {
       expect(result.value.type).toBe("silent");
     }
-    expect(stderrMessages.some(m => m.includes("index.lock exists"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("index.lock exists"))).toBe(true);
   });
 
   it("removes stale index.lock and proceeds with sync", () => {
@@ -68,7 +68,10 @@ describe("GitAutoSync contract", () => {
       fileExists: (path: string) => path.endsWith("index.lock"),
       stat: () => ok({ mtimeMs: now - (STALE_LOCK_MINUTES + 1) * 60_000 }), // older than threshold
       dateNow: () => now,
-      removeFile: () => { lockRemoved = true; return ok(undefined); },
+      removeFile: () => {
+        lockRemoved = true;
+        return ok(undefined);
+      },
       stderr: (msg: string) => stderrMessages.push(msg),
       execSync: (cmd: string) => {
         if (cmd === "git status --porcelain") return ok("M settings.json");
@@ -80,12 +83,12 @@ describe("GitAutoSync contract", () => {
     const result = GitAutoSync.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
     expect(lockRemoved).toBe(true);
-    expect(stderrMessages.some(m => m.includes("Removing stale index.lock"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("Removing stale index.lock"))).toBe(true);
   });
 
   it("skips when stat fails on index.lock (assumes active)", () => {
     const stderrMessages: string[] = [];
-    const statError: PaiError = new PaiError(ErrorCode.FileReadFailed, "stat failed");
+    const statError: ResultError = new ResultError(ErrorCode.FileReadFailed, "stat failed");
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("index.lock"),
       stat: () => err(statError),
@@ -97,7 +100,7 @@ describe("GitAutoSync contract", () => {
     if (result.ok) {
       expect(result.value.type).toBe("silent");
     }
-    expect(stderrMessages.some(m => m.includes("index.lock exists"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("index.lock exists"))).toBe(true);
   });
 
   it("proceeds when index.lock does not exist", () => {

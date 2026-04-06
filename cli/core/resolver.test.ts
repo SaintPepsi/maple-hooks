@@ -6,10 +6,10 @@
  * missing hook, missing group in preset, cycle detection, multi-name union + dedup.
  */
 
-import { describe, it, expect } from "bun:test";
-import { resolve, type ManifestIndex } from "@hooks/cli/core/resolver";
+import { describe, expect, it } from "bun:test";
 import { PaihErrorCode } from "@hooks/cli/core/error";
-import type { HookManifest, GroupManifest, PresetEntry } from "@hooks/cli/types/manifest";
+import { type ManifestIndex, resolve } from "@hooks/cli/core/resolver";
+import type { GroupManifest, HookManifest, PresetEntry } from "@hooks/cli/types/manifest";
 import type { HookDef } from "@hooks/cli/types/resolved";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
@@ -125,11 +125,9 @@ describe("resolver", () => {
     const safetyGroup = makeGroup("Safety", ["HookA"]);
     const qualityGroup = makeGroup("Quality", ["HookB"]);
     const brandingGroup = makeGroup("Branding", ["HookC"]);
-    const index = makeIndex(
-      [hookA, hookB, hookC],
-      [safetyGroup, qualityGroup, brandingGroup],
-      { full: { description: "Everything", groups: ["*"] } },
-    );
+    const index = makeIndex([hookA, hookB, hookC], [safetyGroup, qualityGroup, brandingGroup], {
+      full: { description: "Everything", groups: ["*"] },
+    });
 
     const result = resolve(["full"], index);
     expect(result.ok).toBe(true);

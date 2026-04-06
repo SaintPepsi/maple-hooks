@@ -1,10 +1,8 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { detectStructuralHash } from "@tools/pattern-detector/detectors/structural-hash";
 import type { ParsedFile, ParsedFunction } from "@tools/pattern-detector/types";
 
-function makeFunction(
-  overrides: Partial<ParsedFunction> = {}
-): ParsedFunction {
+function makeFunction(overrides: Partial<ParsedFunction> = {}): ParsedFunction {
   return {
     name: "fn",
     file: "/src/a.ts",
@@ -18,10 +16,7 @@ function makeFunction(
   };
 }
 
-function makeFile(
-  path: string,
-  functions: ParsedFunction[]
-): ParsedFile {
+function makeFile(path: string, functions: ParsedFunction[]): ParsedFile {
   return { path, functions, imports: [] };
 }
 
@@ -39,9 +34,7 @@ describe("detectStructuralHash", () => {
   });
 
   test("returns empty array for a single function (no duplicate possible)", () => {
-    const files = [
-      makeFile("/a.ts", [makeFunction({ name: "lone", bodyHash: "unique" })]),
-    ];
+    const files = [makeFile("/a.ts", [makeFunction({ name: "lone", bodyHash: "unique" })])];
     expect(detectStructuralHash(files)).toEqual([]);
   });
 
@@ -51,9 +44,7 @@ describe("detectStructuralHash", () => {
         makeFunction({ name: "onlyOne", bodyHash: "solo-hash" }),
         makeFunction({ name: "dup1", bodyHash: "shared-hash" }),
       ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "dup2", bodyHash: "shared-hash" }),
-      ]),
+      makeFile("/b.ts", [makeFunction({ name: "dup2", bodyHash: "shared-hash" })]),
     ];
     const clusters = detectStructuralHash(files);
     // Only the shared-hash group becomes a cluster
@@ -119,12 +110,8 @@ describe("detectStructuralHash", () => {
 
   test("cluster members include correct file and line info", () => {
     const files = [
-      makeFile("/a.ts", [
-        makeFunction({ name: "fn1", file: "/a.ts", line: 10, bodyHash: "abc" }),
-      ]),
-      makeFile("/b.ts", [
-        makeFunction({ name: "fn2", file: "/b.ts", line: 42, bodyHash: "abc" }),
-      ]),
+      makeFile("/a.ts", [makeFunction({ name: "fn1", file: "/a.ts", line: 10, bodyHash: "abc" })]),
+      makeFile("/b.ts", [makeFunction({ name: "fn2", file: "/b.ts", line: 42, bodyHash: "abc" })]),
     ];
     const [cluster] = detectStructuralHash(files);
     const memberFn1 = cluster.members.find((m) => m.functionName === "fn1");

@@ -1,13 +1,13 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
+import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
-  stripCommentsAndStrings,
   detectAnyOnLine,
   findAnyViolations,
   findLazyUnknownUsage,
+  stripCommentsAndStrings,
   TypeStrictness,
   type TypeStrictnessDeps,
-} from "./TypeStrictness.contract";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+} from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -196,39 +196,79 @@ const record: Record<string, number> = {};`;
 
 describe("TypeStrictness.accepts", () => {
   it("accepts Edit on .ts files", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.ts", new_string: "" } }))).toBe(true);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.ts", new_string: "" } }),
+      ),
+    ).toBe(true);
   });
 
   it("accepts Write on .tsx files", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Write", tool_input: { file_path: "/src/App.tsx", content: "" } }))).toBe(true);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({ tool_name: "Write", tool_input: { file_path: "/src/App.tsx", content: "" } }),
+      ),
+    ).toBe(true);
   });
 
   it("rejects Edit on .js files", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.js", new_string: "" } }))).toBe(false);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.js", new_string: "" } }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects Edit on .py files", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.py", new_string: "" } }))).toBe(false);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.py", new_string: "" } }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects Edit on .md files", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: { file_path: "/docs/README.md", new_string: "" } }))).toBe(false);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({
+          tool_name: "Edit",
+          tool_input: { file_path: "/docs/README.md", new_string: "" },
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects Read tool", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Read", tool_input: { file_path: "/src/foo.ts" } }))).toBe(false);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({ tool_name: "Read", tool_input: { file_path: "/src/foo.ts" } }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects Bash tool", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Bash", tool_input: { command: "echo test" } }))).toBe(false);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({ tool_name: "Bash", tool_input: { command: "echo test" } }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects when file_path is missing from tool_input", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: { new_string: "code" } }))).toBe(false);
+    expect(
+      TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: { new_string: "code" } })),
+    ).toBe(false);
   });
 
   it("rejects when tool_input is a string", () => {
-    expect(TypeStrictness.accepts(makeInput({ tool_name: "Edit", tool_input: "/src/foo.ts" as unknown as Record<string, unknown> }))).toBe(false);
+    expect(
+      TypeStrictness.accepts(
+        makeInput({
+          tool_name: "Edit",
+          tool_input: "/src/foo.ts" as unknown as Record<string, unknown>,
+        }),
+      ),
+    ).toBe(false);
   });
 });
 
@@ -337,7 +377,9 @@ describe("TypeStrictness.execute", () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.value.type).toBe("continue");
-      expect((result.value as { additionalContext?: string }).additionalContext).toContain("LAZY TYPE WARNING");
+      expect((result.value as { additionalContext?: string }).additionalContext).toContain(
+        "LAZY TYPE WARNING",
+      );
     }
   });
 });
@@ -410,5 +452,62 @@ describe("findLazyUnknownUsage", () => {
     const code = 'const msg = "type unknown is not allowed";';
     const warnings = findLazyUnknownUsage(code);
     expect(warnings.length).toBe(0);
+  });
+});
+
+// ─── getToolContent edge cases ──────────────────────────────────────────────
+
+describe("TypeStrictness.execute — tool content extraction", () => {
+  it("extracts content from Edit tool new_string", () => {
+    const input = makeInput({
+      tool_name: "Edit",
+      tool_input: {
+        file_path: "/project/src/utils.ts",
+        new_string: `const x${COLON_ANY};`,
+      },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("block");
+  });
+
+  it("continues for non-Write/non-Edit tools", () => {
+    const input = makeInput({
+      tool_name: "Read",
+      tool_input: { file_path: "/project/src/utils.ts" },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
+  });
+});
+
+// ─── Svelte file handling ───────────────────────────────────────────────────
+
+describe("TypeStrictness.execute — Svelte files", () => {
+  it("scans script block from .svelte file", () => {
+    const svelteContent = [
+      '<script lang="ts">',
+      `const x${COLON_ANY} = "hello";`,
+      "</script>",
+      "<div>hello</div>",
+    ].join("\n");
+    const input = makeInput({
+      tool_name: "Write",
+      tool_input: { file_path: "/project/src/Component.svelte", content: svelteContent },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("block");
+  });
+
+  it("continues when .svelte file has no script block", () => {
+    const input = makeInput({
+      tool_name: "Write",
+      tool_input: { file_path: "/project/src/NoScript.svelte", content: "<div>Just HTML</div>" },
+    });
+    const result = TypeStrictness.execute(input, deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.value.type).toBe("continue");
   });
 });

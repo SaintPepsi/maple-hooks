@@ -1,9 +1,9 @@
-import { describe, it, expect, mock } from "bun:test";
-import { UpdateCounts } from "./UpdateCounts.contract";
-import type { UpdateCountsDeps } from "./UpdateCounts.contract";
+import { describe, expect, it, mock } from "bun:test";
+import { ErrorCode, ResultError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { ok, err } from "@hooks/core/result";
-import { PaiError, ErrorCode } from "@hooks/core/error";
+import type { UpdateCountsDeps } from "./UpdateCounts.contract";
+import { UpdateCounts } from "./UpdateCounts.contract";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ describe("UpdateCounts", () => {
     });
 
     it("returns silent even when spawn fails", () => {
-      const spawnError = new PaiError(ErrorCode.ProcessSpawnFailed, "spawn failed");
+      const spawnError = new ResultError(ErrorCode.ProcessSpawnFailed, "spawn failed");
       const deps = makeDeps({
         spawnBackground: mock(() => err(spawnError)),
       });
@@ -68,11 +68,13 @@ describe("UpdateCounts", () => {
     });
 
     it("logs error message when spawn fails", () => {
-      const spawnError = new PaiError(ErrorCode.ProcessSpawnFailed, "bun not found");
+      const spawnError = new ResultError(ErrorCode.ProcessSpawnFailed, "bun not found");
       const stderrMessages: string[] = [];
       const deps = makeDeps({
         spawnBackground: mock(() => err(spawnError)),
-        stderr: mock((msg: string) => { stderrMessages.push(msg); }),
+        stderr: mock((msg: string) => {
+          stderrMessages.push(msg);
+        }),
       });
 
       UpdateCounts.execute(makeInput(), deps);
