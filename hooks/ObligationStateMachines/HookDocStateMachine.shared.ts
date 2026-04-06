@@ -138,6 +138,42 @@ export function getHookDirFromPath(filePath: string): string {
   return dirname(filePath);
 }
 
+/** Get all doc file names (primary + additional). */
+export function allDocFileNames(settings: HookDocEnforcerSettings): string[] {
+  return [settings.docFileName, ...settings.additionalDocs.map((d) => d.fileName)];
+}
+
+/** Tag a source path with the doc file it owes. */
+export function tagPending(sourcePath: string, docFileName: string): string {
+  return `${sourcePath}:${docFileName}`;
+}
+
+/** Parse a tagged pending entry back to source path and doc file name. */
+export function parseTag(entry: string): { source: string; docFile: string } {
+  const lastColon = entry.lastIndexOf(":");
+  if (lastColon <= 0) {
+    return { source: entry, docFile: "doc.md" };
+  }
+  const suffix = entry.slice(lastColon + 1);
+  if (suffix.includes("/") || suffix.includes("\\") || !suffix.includes(".")) {
+    return { source: entry, docFile: "doc.md" };
+  }
+  return { source: entry.slice(0, lastColon), docFile: suffix };
+}
+
+/** Check if a file path matches any doc file name (primary or additional). */
+export function isAnyDocFile(filePath: string, settings: HookDocEnforcerSettings): boolean {
+  return allDocFileNames(settings).some(
+    (name) => filePath.endsWith(`/${name}`) || filePath === name,
+  );
+}
+
+/** Extract the doc file name from a file path (e.g., "/hooks/G/H/IDEA.md" → "IDEA.md"). */
+export function docFileNameFromPath(filePath: string): string {
+  const lastSlash = filePath.lastIndexOf("/");
+  return lastSlash === -1 ? filePath : filePath.slice(lastSlash + 1);
+}
+
 // ─── Section Validation ───────────────────────────────────────────────────────
 
 /** Validate that a doc file contains all required section headings. */

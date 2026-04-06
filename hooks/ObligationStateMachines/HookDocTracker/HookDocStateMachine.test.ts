@@ -5,11 +5,16 @@ import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { HookDocEnforcer } from "@hooks/hooks/ObligationStateMachines/HookDocEnforcer/HookDocEnforcer.contract";
 import {
+  allDocFileNames,
   buildDocSuggestions,
+  docFileNameFromPath,
   getHookDirFromPath,
+  isAnyDocFile,
   isHookDocFile,
   isHookSourceFile,
+  parseTag,
   readHookDocSettings,
+  tagPending,
   validateDocSections,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
 import { HookDocTracker } from "@hooks/hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.contract";
@@ -95,6 +100,80 @@ describe("isHookDocFile", () => {
 describe("getHookDirFromPath", () => {
   it("returns parent directory", () => {
     expect(getHookDirFromPath("/hooks/Group/Hook/Hook.contract.ts")).toBe("/hooks/Group/Hook");
+  });
+});
+
+describe("allDocFileNames", () => {
+  it("returns primary + additional doc file names", () => {
+    const settings = {
+      ...readHookDocSettings(() => null),
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: [] }],
+    };
+    expect(allDocFileNames(settings)).toEqual(["doc.md", "IDEA.md"]);
+  });
+
+  it("returns only primary when no additionalDocs", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(allDocFileNames(settings)).toEqual(["doc.md"]);
+  });
+});
+
+describe("tagPending / parseTag", () => {
+  it("tags a source path with a doc file name", () => {
+    expect(tagPending("/hooks/G/H/H.contract.ts", "doc.md")).toBe(
+      "/hooks/G/H/H.contract.ts:doc.md",
+    );
+  });
+
+  it("parses tag back to source and doc", () => {
+    const { source, docFile } = parseTag("/hooks/G/H/H.contract.ts:doc.md");
+    expect(source).toBe("/hooks/G/H/H.contract.ts");
+    expect(docFile).toBe("doc.md");
+  });
+
+  it("treats untagged entries as primary doc", () => {
+    const { source, docFile } = parseTag("/hooks/G/H/H.contract.ts");
+    expect(source).toBe("/hooks/G/H/H.contract.ts");
+    expect(docFile).toBe("doc.md");
+  });
+
+  it("handles Windows-style paths", () => {
+    const { source, docFile } = parseTag("C:\\hooks\\G\\H\\H.contract.ts:IDEA.md");
+    expect(source).toBe("C:\\hooks\\G\\H\\H.contract.ts");
+    expect(docFile).toBe("IDEA.md");
+  });
+});
+
+describe("isAnyDocFile", () => {
+  it("matches primary doc file", () => {
+    const settings = {
+      ...readHookDocSettings(() => null),
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: [] }],
+    };
+    expect(isAnyDocFile("/hooks/G/H/doc.md", settings)).toBe(true);
+  });
+
+  it("matches additional doc file", () => {
+    const settings = {
+      ...readHookDocSettings(() => null),
+      additionalDocs: [{ fileName: "IDEA.md", requiredSections: [] }],
+    };
+    expect(isAnyDocFile("/hooks/G/H/IDEA.md", settings)).toBe(true);
+  });
+
+  it("rejects non-doc files", () => {
+    const settings = readHookDocSettings(() => null);
+    expect(isAnyDocFile("/hooks/G/H/H.contract.ts", settings)).toBe(false);
+  });
+});
+
+describe("docFileNameFromPath", () => {
+  it("extracts file name from path", () => {
+    expect(docFileNameFromPath("/hooks/G/H/IDEA.md")).toBe("IDEA.md");
+  });
+
+  it("handles bare file name", () => {
+    expect(docFileNameFromPath("doc.md")).toBe("doc.md");
   });
 });
 
