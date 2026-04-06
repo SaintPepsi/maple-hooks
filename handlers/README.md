@@ -52,16 +52,6 @@ Rebuilds skill files when source materials change.
 
 Validates system-level invariants and configuration consistency.
 
-### TabState.ts
-
-Updates terminal tab title on response completion. Converts the working
-title from gerund to past tense ("Fixing auth" → "Fixed auth"), falls back to
-voice line extraction, then response content (TASK/SUMMARY lines), then defers
-to the session name.
-
-**Imports:** Uses `@hooks/lib/tab-setter` and
-`@pai/Tools/TranscriptParser` for the `ParsedTranscript` type.
-
 ### UpdateCounts.ts
 
 Updates settings.json with fresh system counts (skills, workflows, hooks,

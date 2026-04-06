@@ -2,7 +2,7 @@
  * StopOrchestrator Contract — Single entry point for Stop event handlers.
  *
  * Reads and parses the transcript ONCE, then distributes to handlers:
- * - VoiceNotification, TabState, RebuildSkill, AlgorithmEnrichment
+ * - VoiceNotification, RebuildSkill, AlgorithmEnrichment
  *
  * Voice only fires for main terminal sessions (not subagents).
  */
@@ -14,7 +14,6 @@ import type { StopInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { handleAlgorithmEnrichment } from "@hooks/handlers/AlgorithmEnrichment";
 import { handleRebuildSkill } from "@hooks/handlers/RebuildSkill";
-import { handleTabState } from "@hooks/handlers/TabState";
 import { handleVoice } from "@hooks/handlers/VoiceNotification";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { parseTranscript } from "@pai/Tools/TranscriptParser";
@@ -24,7 +23,6 @@ import { parseTranscript } from "@pai/Tools/TranscriptParser";
 export interface StopOrchestratorDeps {
   parseTranscript: typeof parseTranscript;
   handleVoice: typeof handleVoice;
-  handleTabState: typeof handleTabState;
   handleRebuildSkill: typeof handleRebuildSkill;
   handleAlgorithmEnrichment: typeof handleAlgorithmEnrichment;
   isMainSession: (sessionId: string) => boolean;
@@ -38,7 +36,6 @@ export interface StopOrchestratorDeps {
 const defaultDeps: StopOrchestratorDeps = {
   parseTranscript,
   handleVoice,
-  handleTabState,
   handleRebuildSkill,
   handleAlgorithmEnrichment,
   isMainSession: () => true,
@@ -74,11 +71,10 @@ export const StopOrchestrator: AsyncHookContract<StopInput, SilentOutput, StopOr
     }
 
     const handlers: Promise<void>[] = [
-      deps.handleTabState(parsed, input.session_id),
       deps.handleRebuildSkill(),
       deps.handleAlgorithmEnrichment(parsed, input.session_id),
     ];
-    const handlerNames = ["TabState", "RebuildSkill", "AlgorithmEnrichment"];
+    const handlerNames = ["RebuildSkill", "AlgorithmEnrichment"];
 
     if (voiceEnabled) {
       handlers.unshift(deps.handleVoice(parsed, input.session_id));

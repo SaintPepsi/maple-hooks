@@ -1823,7 +1823,7 @@ A single orchestrator claims the session-stop event, parses the transcript once,
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to four handlers in parallel: VoiceNotification, TabState, RebuildSkill, and AlgorithmEnrichment.</p>
+      <p>StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to handlers in parallel: VoiceNotification, RebuildSkill, and AlgorithmEnrichment.</p>
       <p>Voice notifications are only enabled for main terminal sessions, preventing subagent sessions from triggering speech output.</p>
     </div>
   </section>
@@ -1883,7 +1883,6 @@ A single orchestrator claims the session-stop event, parses the transcript once,
         </div>
 </div>
       <div class="reason"><span class="ri">&#x2022;</span> <strong>VoiceNotification</strong> (main sessions only): Speaks the completion summary via TTS</div>
-<div class="reason"><span class="ri">&#x2022;</span> <strong>TabState</strong>: Updates the terminal tab title</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>RebuildSkill</strong>: Checks if skills need rebuilding</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>AlgorithmEnrichment</strong>: Enriches algorithm state from the response</div>
       <div class="flow-steps">
@@ -1903,7 +1902,6 @@ A single orchestrator claims the session-stop event, parses the transcript once,
 // Parse once, distribute to all handlers in parallel
 const parsed = deps.parseTranscript(input.transcript_path!);
 const handlers = [
-  deps.handleTabState(parsed, input.session_id),
   deps.handleRebuildSkill(),
   deps.handleAlgorithmEnrichment(parsed, input.session_id),
 ];
@@ -1951,7 +1949,6 @@ await Promise.allSettled(handlers);</div>
         <tbody>
           <tr><td><code>TranscriptParser</code></td><td>tool</td><td>Parses JSONL transcript into structured completion data</td></tr>
           <tr><td><code>handlers/VoiceNotification</code></td><td>handler</td><td>TTS announcement of completion summaries</td></tr>
-          <tr><td><code>handlers/TabState</code></td><td>handler</td><td>Updates terminal tab title</td></tr>
           <tr><td><code>handlers/RebuildSkill</code></td><td>handler</td><td>Checks and rebuilds stale skills</td></tr>
           <tr><td><code>handlers/AlgorithmEnrichment</code></td><td>handler</td><td>Enriches algorithm state from responses</td></tr>
         </tbody>
