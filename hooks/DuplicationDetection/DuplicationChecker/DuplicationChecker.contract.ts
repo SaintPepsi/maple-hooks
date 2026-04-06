@@ -16,19 +16,14 @@ import {
   ensureDir as adapterEnsureDir,
   readFile as adapterReadFile,
   fileExists,
-  readJson,
 } from "@hooks/core/adapters/fs";
-import { defaultStderr } from "@hooks/lib/paths";
-import { readHookConfig } from "@hooks/lib/hook-config";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
-import { pickNarrative } from "@hooks/lib/narrative-reader";
-import { getFilePath, getWriteContent } from "@hooks/lib/tool-input";
 import {
   BLOCK_THRESHOLD,
   checkFunctions,
@@ -38,6 +33,10 @@ import {
   loadIndex,
   simulateEdit,
 } from "@hooks/hooks/DuplicationDetection/shared";
+import { readHookConfig } from "@hooks/lib/hook-config";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { defaultStderr } from "@hooks/lib/paths";
+import { getFilePath, getWriteContent } from "@hooks/lib/tool-input";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -50,13 +49,26 @@ export interface DuplicationCheckerDeps {
   now: () => number;
   /** When true, 4/4 signal matches block the operation. When false, they log only. */
   blocking: boolean;
+  patternThreshold: number;
+  requireSigMatch: boolean;
+  sigMatchPercent: number;
 }
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
+interface DuplicationCheckerConfig {
+  blocking?: boolean;
+  patternThreshold?: number;
+  requireSigMatch?: boolean;
+  sigMatchPercent?: number;
+}
+
+function readConfig(): DuplicationCheckerConfig {
+  return readHookConfig<DuplicationCheckerConfig>("duplicationChecker") ?? {};
+}
+
 function readBlockingConfig(): boolean {
-  const cfg = readHookConfig<{ blocking?: boolean }>("duplicationChecker");
-  return cfg?.blocking !== false;
+  return readConfig().blocking !== false;
 }
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -76,6 +88,9 @@ const defaultDeps: DuplicationCheckerDeps = {
   stderr: defaultStderr,
   now: () => Date.now(),
   blocking: readBlockingConfig(),
+  patternThreshold: readConfig().patternThreshold ?? 5,
+  requireSigMatch: readConfig().requireSigMatch ?? true,
+  sigMatchPercent: readConfig().sigMatchPercent ?? 60,
 };
 
 export const DuplicationCheckerContract: SyncHookContract<
@@ -95,7 +110,10 @@ export const DuplicationCheckerContract: SyncHookContract<
     return true;
   },
 
-  execute(input: ToolHookInput, deps: DuplicationCheckerDeps): Result<ContinueOutput | BlockOutput, ResultError> {
+  execute(
+    input: ToolHookInput,
+    deps: DuplicationCheckerDeps,
+  ): Result<ContinueOutput | BlockOutput, ResultError> {
     const filePath = getFilePath(input)!;
 
     const indexPath = findIndexPath(filePath, deps);
@@ -179,26 +197,36 @@ export const DuplicationCheckerContract: SyncHookContract<
         opener,
         "",
         ...blockMatches.map(
-          (m) => `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
+          (m) =>
+            `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
         ),
         "",
         "Reuse the existing function instead of duplicating it.",
       ].join("\n");
 
       if (deps.blocking) {
-        deps.stderr(`[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`);
+        deps.stderr(
+          `[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`,
+        );
         return ok({ type: "block", decision: "block", reason });
       }
 
-      deps.stderr(`[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`);
+      deps.stderr(
+        `[DuplicationChecker] ${filePath}: ${blockMatches.length} exact duplicate(s) (blocking disabled)`,
+      );
     }
 
     // Derivation matches: same body, different signature — advisory only, never block
     if (derivationMatches.length > 0) {
       const advisory = derivationMatches
-        .map((m) => `  ${m.functionName} has identical body to ${m.targetFile}:${m.targetName} but different signature — possible derivation issue`)
+        .map(
+          (m) =>
+            `  ${m.functionName} has identical body to ${m.targetFile}:${m.targetName} but different signature — possible derivation issue`,
+        )
         .join("\n");
-      deps.stderr(`[DuplicationChecker] ${filePath}: ${derivationMatches.length} derivation(s) detected`);
+      deps.stderr(
+        `[DuplicationChecker] ${filePath}: ${derivationMatches.length} derivation(s) detected`,
+      );
       return ok({
         ...continueOk(),
         additionalContext: advisory,
@@ -206,7 +234,9 @@ export const DuplicationCheckerContract: SyncHookContract<
     }
 
     // 2-3 signals: log only, no additionalContext, no block
-    deps.stderr(`[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`);
+    deps.stderr(
+      `[DuplicationChecker] ${filePath}: ${matches.length} finding(s) logged (below block threshold)`,
+    );
     return ok(continueOk());
   },
 

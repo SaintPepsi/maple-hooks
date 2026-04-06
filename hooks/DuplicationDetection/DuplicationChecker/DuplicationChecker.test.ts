@@ -1,9 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
 import { ensureDir, writeFile } from "@hooks/core/adapters/fs";
-import { makeWriteInput, makeEditInput, makeToolInput } from "@hooks/lib/test-helpers";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import {
   DuplicationCheckerContract,
@@ -18,6 +16,7 @@ import {
   getArtifactsDir,
   getCurrentBranch,
 } from "@hooks/hooks/DuplicationDetection/shared";
+import { makeEditInput, makeToolInput, makeWriteInput } from "@hooks/lib/test-helpers";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -49,9 +48,14 @@ const mockDeps: DuplicationCheckerDeps = {
   stderr: () => {},
   now: () => Date.now(),
   blocking: true,
+  patternThreshold: 5,
+  requireSigMatch: true,
+  sigMatchPercent: 60,
 };
 
-function unwrap(result: Result<ContinueOutput | BlockOutput, ResultError>): ContinueOutput | BlockOutput {
+function unwrap(
+  result: Result<ContinueOutput | BlockOutput, ResultError>,
+): ContinueOutput | BlockOutput {
   if (!result.ok) throw new Error(`Result not ok: ${result.error.message}`);
   return result.value;
 }
@@ -285,7 +289,9 @@ describe("checkFunctions", () => {
 
 describe("DuplicationCheckerContract defaultDeps", () => {
   test("defaultDeps.readFile returns null for missing file", () => {
-    expect(DuplicationCheckerContract.defaultDeps.readFile("/tmp/pai-nonexistent-dc.ts")).toBeNull();
+    expect(
+      DuplicationCheckerContract.defaultDeps.readFile("/tmp/pai-nonexistent-dc.ts"),
+    ).toBeNull();
   });
 
   test("defaultDeps.exists returns false for missing path", () => {
@@ -296,7 +302,9 @@ describe("DuplicationCheckerContract defaultDeps", () => {
 
   test("defaultDeps.appendFile does not throw", () => {
     const tmpPath = `/tmp/pai-test-dc-append-${Date.now()}.jsonl`;
-    expect(() => DuplicationCheckerContract.defaultDeps.appendFile(tmpPath, "test\n")).not.toThrow();
+    expect(() =>
+      DuplicationCheckerContract.defaultDeps.appendFile(tmpPath, "test\n"),
+    ).not.toThrow();
   });
 
   test("defaultDeps.ensureDir does not throw", () => {
