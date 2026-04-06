@@ -154,27 +154,16 @@ console.log("\nTest 3: Simulated worktree path resolution");
   );
 }
 
-// Test 4: $CLAUDE_PROJECT_DIR is used in existing hooks for subagent detection
+// Test 4: $CLAUDE_PROJECT_DIR is used in existing lib code for environment detection
 console.log("\nTest 4: Existing codebase already depends on CLAUDE_PROJECT_DIR");
 {
   const fs = await import("fs");
-  const filesToCheck = [
-    "hooks/SessionFraming/StartupGreeting/StartupGreeting.contract.ts",
-    "hooks/SessionFraming/BranchAwareness/BranchAwareness.contract.ts",
-    "hooks/SessionFraming/LoadContext/LoadContext.contract.ts",
-  ];
-
-  for (const file of filesToCheck) {
-    try {
-      const content = fs.readFileSync(file, "utf-8");
-      assert(
-        content.includes("CLAUDE_PROJECT_DIR"),
-        `${file} references CLAUDE_PROJECT_DIR`,
-      );
-    } catch {
-      assert(false, `${file} could not be read`);
-    }
-  }
+  const file = "lib/environment.ts";
+  const content = fs.readFileSync(file, "utf-8");
+  assert(
+    content.includes("CLAUDE_PROJECT_DIR"),
+    `${file} references CLAUDE_PROJECT_DIR`,
+  );
 }
 
 // Summary

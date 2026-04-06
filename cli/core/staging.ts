@@ -23,7 +23,7 @@ import type { HookDef } from "@hooks/cli/types/resolved";
 export interface StagedFiles {
   /** All file paths relative to .claude/ that were staged. */
   files: string[];
-  /** The command string for settings.json (relative to .claude/). */
+  /** The command string for settings.json (uses $CLAUDE_PROJECT_DIR for portability). */
   commandString: string;
 }
 
