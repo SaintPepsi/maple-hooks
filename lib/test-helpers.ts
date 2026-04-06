@@ -17,11 +17,7 @@ export function makeWriteInput(filePath: string, content: string): ToolHookInput
 }
 
 /** Create an Edit tool input for testing. */
-export function makeEditInput(
-  filePath: string,
-  oldString = "a",
-  newString = "b",
-): ToolHookInput {
+export function makeEditInput(filePath: string, oldString = "a", newString = "b"): ToolHookInput {
   return {
     session_id: "test-sess",
     tool_name: "Edit",
@@ -57,7 +53,7 @@ export async function runHookScript(
   hookPath: string,
   input: Record<string, unknown>,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
-  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", hookPath], {
+  const proc = Bun.spawn(["bun", hookPath], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",

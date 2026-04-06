@@ -29,9 +29,10 @@ It does **not** fire when:
 5. If rebuild is needed, runs `RebuildPAI.ts` to regenerate SKILL.md from components
 6. Loads settings.json and reads context files (SKILL.md, AISTEERINGRULES.md, user rules)
 7. Loads relationship context: high-confidence opinions and recent relationship notes
-9. Builds a `<system-reminder>` block with date, session ID, identity rules, and all loaded context
-10. Scans `MEMORY/WORK/` for active work sessions from the last 48 hours
-11. Checks for pending improvement proposals in `MEMORY/LEARNING/PROPOSALS/pending/`
+8. Builds a `<system-reminder>` block with date, session ID, identity rules, and all loaded context
+9. Scans `MEMORY/WORK/` for active work sessions from the last 48 hours
+10. Checks for pending improvement proposals in `MEMORY/LEARNING/PROPOSALS/pending/`
+11. Checks for wiki pages in `MEMORY/WIKI/` and adds a wiki pointer if pages exist
 12. Combines all parts and returns as `ContextOutput`
 
 ```typescript
@@ -41,6 +42,7 @@ const contextContent = loadContextFiles(deps.baseDir, settings, deps);
 const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
 const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
 const proposals = loadPendingProposals(deps.baseDir, deps);
+const wikiPointer = loadWikiPointer(deps.baseDir, deps);
 ```
 
 ## Examples
@@ -64,3 +66,4 @@ const proposals = loadPendingProposals(deps.baseDir, deps);
 | `notifications` | lib | Provides `recordSessionStart` for notification tracking |
 | `error` | core | Provides `unknownError` for wrapping unexpected errors |
 | `result` | core | Provides `ok`, `Result`, and `tryCatch` for error handling |
+| `MEMORY/WIKI/` | data | Wiki knowledge pages; `loadWikiPointer` counts pages across entities/concepts/sources |

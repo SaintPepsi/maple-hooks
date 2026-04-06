@@ -1918,6 +1918,11 @@ This is the primary session bootstrap mechanism. It replaces manual context-sett
 
         <div class="flow-step">
           <div class="step-dot">11</div>
+          <div class="step-content"><p>Checks for wiki pages in <code>MEMORY/WIKI/</code> and adds a wiki pointer if pages exist</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">12</div>
           <div class="step-content"><p>Combines all parts and returns as <code>ContextOutput</code></p></div>
         </div>
 </div>
@@ -1934,7 +1939,8 @@ const settings = loadSettings(deps.baseDir, deps);
 const contextContent = loadContextFiles(deps.baseDir, settings, deps);
 const relationshipContext = loadRelationshipContext(deps.baseDir, deps);
 const activeWork = buildActiveWorkSummary(deps.baseDir, deps);
-const proposals = loadPendingProposals(deps.baseDir, deps);</div>
+const proposals = loadPendingProposals(deps.baseDir, deps);
+const wikiPointer = loadWikiPointer(deps.baseDir, deps);</div>
         </div>
       </div>
     </div>
@@ -1982,6 +1988,7 @@ const proposals = loadPendingProposals(deps.baseDir, deps);</div>
           <tr><td><code>notifications</code></td><td>lib</td><td>Provides <code>recordSessionStart</code> for notification tracking</td></tr>
           <tr><td><code>error</code></td><td>core</td><td>Provides <code>unknownError</code> for wrapping unexpected errors</td></tr>
           <tr><td><code>result</code></td><td>core</td><td>Provides <code>ok</code>, <code>Result</code>, and <code>tryCatch</code> for error handling</td></tr>
+          <tr><td><code>MEMORY/WIKI/</code></td><td>data</td><td>Wiki knowledge pages; <code>loadWikiPointer</code> counts pages across entities/concepts/sources</td></tr>
         </tbody>
       </table>
     </div>
