@@ -4,7 +4,7 @@
 
 CanaryHook is a **SessionStart** hook used to verify that the hook propagation pipeline is working. On every session start, it appends a timestamp to a canary log file and opens it in VS Code. If the log file gets entries, hooks are firing. If it doesn't, something is broken in the pipeline.
 
-This is a debug/diagnostic hook, not a production enforcement hook.
+This is a debug/diagnostic hook, not a production enforcement hook. Useful for validating new hook installations.
 
 ## Event
 
