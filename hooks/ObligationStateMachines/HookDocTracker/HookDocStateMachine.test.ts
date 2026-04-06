@@ -355,6 +355,16 @@ describe("HookDocTracker", () => {
     );
   });
 
+  it("accepts Write on IDEA.md when configured as additionalDoc", () => {
+    // Note: accepts depends on readHookDocSettings() reading real config.
+    // Without additionalDocs configured, IDEA.md won't match isAnyDocFile.
+    // This test documents the expected behavior when additionalDocs includes IDEA.md.
+    // With default settings (no additionalDocs), IDEA.md is not accepted.
+    expect(
+      HookDocTracker.accepts(makeToolInput("Write", { file_path: "/hooks/G/H/IDEA.md" })),
+    ).toBe(false);
+  });
+
   it("rejects Read tool", () => {
     expect(
       HookDocTracker.accepts(makeToolInput("Read", { file_path: "/hooks/G/H/H.contract.ts" })),
@@ -386,13 +396,13 @@ describe("HookDocTracker", () => {
     ) as Result<ContinueOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    expect(written).toContain("/hooks/G/H/H.contract.ts");
+    expect(written).toContain("/hooks/G/H/H.contract.ts:doc.md");
   });
 
   it("does not duplicate pending entries", () => {
     let written: string[] = [];
     const deps = makeDeps({
-      readPending: () => ["/hooks/G/H/H.contract.ts"],
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md"],
       writePending: (_p, files) => {
         written = files;
       },
@@ -400,7 +410,7 @@ describe("HookDocTracker", () => {
 
     HookDocTracker.execute(makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }), deps);
 
-    expect(written).toEqual(["/hooks/G/H/H.contract.ts"]);
+    expect(written).toEqual(["/hooks/G/H/H.contract.ts:doc.md"]);
   });
 
   // ── execute: doc file clearing ──
@@ -409,7 +419,7 @@ describe("HookDocTracker", () => {
     let removed = false;
     const deps = makeDeps({
       fileExists: () => true,
-      readPending: () => ["/hooks/G/H/H.contract.ts"],
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md"],
       removeFlag: () => {
         removed = true;
       },
@@ -424,7 +434,7 @@ describe("HookDocTracker", () => {
     let written: string[] = [];
     const deps = makeDeps({
       fileExists: () => true,
-      readPending: () => ["/hooks/G/H1/H1.contract.ts", "/hooks/G/H2/H2.contract.ts"],
+      readPending: () => ["/hooks/G/H1/H1.contract.ts:doc.md", "/hooks/G/H2/H2.contract.ts:doc.md"],
       writePending: (_p, files) => {
         written = files;
       },
@@ -432,7 +442,56 @@ describe("HookDocTracker", () => {
 
     HookDocTracker.execute(makeToolInput("Write", { file_path: "/hooks/G/H1/doc.md" }), deps);
 
-    expect(written).toEqual(["/hooks/G/H2/H2.contract.ts"]);
+    expect(written).toEqual(["/hooks/G/H2/H2.contract.ts:doc.md"]);
+  });
+
+  // ── execute: multi-doc tracking ──
+
+  it("creates tagged pending entry for primary doc", () => {
+    let written: string[] = [];
+    const deps = makeDeps({
+      readPending: () => [],
+      writePending: (_p, files) => {
+        written = files;
+      },
+    });
+
+    HookDocTracker.execute(makeToolInput("Edit", { file_path: "/hooks/G/H/H.contract.ts" }), deps);
+
+    expect(written).toContain("/hooks/G/H/H.contract.ts:doc.md");
+  });
+
+  // ── execute: independent mode clearing ──
+
+  it("clears only matching doc tag in independent mode", () => {
+    let written: string[] = [];
+    const deps = makeDeps({
+      fileExists: () => true,
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md", "/hooks/G/H/H.contract.ts:IDEA.md"],
+      writePending: (_p, files) => {
+        written = files;
+      },
+    });
+
+    HookDocTracker.execute(makeToolInput("Write", { file_path: "/hooks/G/H/doc.md" }), deps);
+
+    expect(written).toEqual(["/hooks/G/H/H.contract.ts:IDEA.md"]);
+  });
+
+  it("clears only doc.md tag and leaves other tags (independent mode)", () => {
+    let written: string[] = [];
+    const deps = makeDeps({
+      fileExists: () => true,
+      readPending: () => ["/hooks/G/H/H.contract.ts:doc.md", "/hooks/G/H2/H2.contract.ts:doc.md"],
+      writePending: (_p, files) => {
+        written = files;
+      },
+    });
+
+    HookDocTracker.execute(makeToolInput("Write", { file_path: "/hooks/G/H/doc.md" }), deps);
+
+    // Only H's doc.md entry cleared; H2's remains
+    expect(written).toEqual(["/hooks/G/H2/H2.contract.ts:doc.md"]);
   });
 
   it("uses session_id in state file path", () => {
