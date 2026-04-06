@@ -14,7 +14,7 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | `time.ts` | Timestamp formatting (timezone via `TZ` env var, defaults to UTC) |
 | `identity.ts` | Settings/identity loading (`getIdentity`, `getPrincipal`, `getVoiceId`, `getVoiceProsody`). Uses `IdentityDeps` for testability. |
 | `notifications.ts` | Session notifications (desktop, voice). Uses `NotificationDeps` for testability. |
-| `tab-setter.ts` | Terminal tab/title management for CronStatusLine. Uses `TabSetterDeps` for testability. |
+| `tab-setter.ts` | Tab state stubs (no-op after kitty removal in #56). Retains `stripPrefix` and `getSessionOneWord` as pure utilities. Uses `TabSetterDeps` for testability. |
 | `algorithm-state.ts` | PRD/algorithm state management (active work, stale sweep). Uses `AlgorithmStateDeps` for testability. |
 | `change-detection.ts` | File change tracking via JSONL history. Uses `ChangeDetectionDeps` for testability. |
 | `paths.ts` | Shared path helpers (`getPaiDir()`, `defaultStderr()`). Factory functions for `defaultDeps`. |

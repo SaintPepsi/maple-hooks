@@ -1883,7 +1883,7 @@ A single orchestrator claims the session-stop event, parses the transcript once,
         </div>
 </div>
       <div class="reason"><span class="ri">&#x2022;</span> <strong>VoiceNotification</strong> (main sessions only): Speaks the completion summary via TTS</div>
-<div class="reason"><span class="ri">&#x2022;</span> <strong>TabState</strong>: Updates the Kitty terminal tab with session state</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>TabState</strong>: Updates the terminal tab title</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>RebuildSkill</strong>: Checks if skills need rebuilding</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>AlgorithmEnrichment</strong>: Enriches algorithm state from the response</div>
       <div class="flow-steps">
@@ -1925,7 +1925,7 @@ await Promise.allSettled(handlers);</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Main session with voice</h3>
       
       <div class="uc-example">
-        <div>Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript, detects a Kitty session file for the session ID, and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.</div>
+        <div>Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
@@ -1951,10 +1951,9 @@ await Promise.allSettled(handlers);</div>
         <tbody>
           <tr><td><code>TranscriptParser</code></td><td>tool</td><td>Parses JSONL transcript into structured completion data</td></tr>
           <tr><td><code>handlers/VoiceNotification</code></td><td>handler</td><td>TTS announcement of completion summaries</td></tr>
-          <tr><td><code>handlers/TabState</code></td><td>handler</td><td>Updates Kitty terminal tab styling</td></tr>
+          <tr><td><code>handlers/TabState</code></td><td>handler</td><td>Updates terminal tab title</td></tr>
           <tr><td><code>handlers/RebuildSkill</code></td><td>handler</td><td>Checks and rebuilds stale skills</td></tr>
           <tr><td><code>handlers/AlgorithmEnrichment</code></td><td>handler</td><td>Enriches algorithm state from responses</td></tr>
-          <tr><td><code>handlers/TabState</code></td><td>handler</td><td>Updates terminal tab title (logging only after kitty removal)</td></tr>
         </tbody>
       </table>
     </div>
