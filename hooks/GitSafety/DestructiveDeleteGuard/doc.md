@@ -77,3 +77,4 @@ if (detectsDestructiveDeleteInCode(content)) {
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | (none) | -- | This hook has no external dependencies beyond core types |
+
