@@ -23,8 +23,7 @@ It does **not** fire when:
 ## What It Does
 
 1. Checks if the session is a subagent; if so, returns `silent` immediately
-2. Reads or preserves tab state (keeps title through compaction if already working/thinking)
-3. Records the session start for notification tracking
+2. Records the session start for notification tracking
 4. Checks if SKILL.md needs rebuilding by comparing component file timestamps
 5. If rebuild is needed, runs `RebuildPAI.ts` to regenerate SKILL.md from components
 6. Loads settings.json and reads context files (SKILL.md, AISTEERINGRULES.md, user rules)
@@ -61,7 +60,6 @@ const wikiPointer = loadWikiPointer(deps.baseDir, deps);
 | --- | --- | --- |
 | `fs` | adapter | File operations: exists, read, readJson, readDir, stat |
 | `process` | adapter | Provides `exec` and `execSyncSafe` for shell commands and SKILL.md rebuild |
-| `tab-setter` | lib | Manages terminal tab state (title, color) across sessions |
 | `identity` | lib | Provides `getDAName` for the assistant identity name |
 | `notifications` | lib | Provides `recordSessionStart` for notification tracking |
 | `error` | core | Provides `unknownError` for wrapping unexpected errors |

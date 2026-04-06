@@ -9,12 +9,10 @@ import { join } from "node:path";
 import { fileExists, readFile, readJson, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { unknownError } from "@hooks/core/error";
-import { ok, type Result, tryCatch } from "@hooks/core/result";
+import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
-import { setTabState } from "@hooks/lib/tab-setter";
 import { getISOTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -26,7 +24,6 @@ export interface SessionSummaryDeps {
   writeFile: (path: string, content: string) => Result<void, ResultError>;
   unlinkSync: (path: string) => void;
   getTimestamp: () => string;
-  setTabState: (opts: { title: string; state: string; sessionId: string }) => void;
   baseDir: string;
   stderr: (msg: string) => void;
 }
@@ -95,7 +92,6 @@ const defaultDeps: SessionSummaryDeps = {
     removeFile(path);
   },
   getTimestamp: getISOTimestamp,
-  setTabState: (opts) => setTabState(opts as Parameters<typeof setTabState>[0]),
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };
@@ -110,16 +106,6 @@ export const SessionSummary: SyncHookContract<SessionEndInput, SilentOutput, Ses
 
   execute(input: SessionEndInput, deps: SessionSummaryDeps): Result<SilentOutput, ResultError> {
     clearSessionWork(input.session_id, deps);
-
-    const tabResult = tryCatch(
-      () => deps.setTabState({ title: "", state: "idle", sessionId: input.session_id }),
-      (e) => unknownError(e),
-    );
-    if (tabResult.ok) {
-      deps.stderr("[SessionSummary] Tab reset to default styling");
-    } else {
-      deps.stderr("[SessionSummary] Tab reset failed (non-critical)");
-    }
 
     return ok({ type: "silent" });
   },

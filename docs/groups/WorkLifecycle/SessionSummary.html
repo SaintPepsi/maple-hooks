@@ -1822,8 +1822,8 @@ At session end, find the session's state file, read the associated work director
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>SessionSummary finalizes a session by marking the WORK/ directory as COMPLETED, deleting the current-work state file, and resetting the terminal tab styling. It is the cleanup counterpart to AutoWorkCreation, ensuring that session state does not persist beyond the session's lifetime.</p>
-      <p>The hook updates META.yaml to set <code>status: "COMPLETED"</code> and <code>completed_at</code> with the current timestamp, removes the session-scoped state file, and resets the tab title to idle.</p>
+      <p>SessionSummary finalizes a session by marking the WORK/ directory as COMPLETED and deleting the current-work state file. It is the cleanup counterpart to AutoWorkCreation, ensuring that session state does not persist beyond the session's lifetime.</p>
+      <p>The hook updates META.yaml to set <code>status: "COMPLETED"</code> and <code>completed_at</code> with the current timestamp, then removes the session-scoped state file.</p>
     </div>
   </section>
 
@@ -1881,11 +1881,6 @@ At session end, find the session's state file, read the associated work director
           <div class="step-dot">4</div>
           <div class="step-content"><p>Deletes the session state file (<code>current-work-{session_id}.json</code>)</p></div>
         </div>
-
-        <div class="flow-step">
-          <div class="step-dot">5</div>
-          <div class="step-content"><p>Resets the terminal tab to idle state (title cleared, state set to "idle")</p></div>
-        </div>
 </div>
       
       <div class="code-window">
@@ -1899,8 +1894,7 @@ At session end, find the session's state file, read the associated work director
 metaContent = metaContent.replace(/^status: "ACTIVE"$/m, 'status: "COMPLETED"');
 metaContent = metaContent.replace(/^completed_at: null$/m, `completed_at: "${deps.getTimestamp()}"`);
 deps.writeFile(metaPath, metaContent);
-deps.unlinkSync(stateFile);
-deps.setTabState({ title: "", state: "idle", sessionId: input.session_id });</div>
+deps.unlinkSync(stateFile);</div>
         </div>
       </div>
     </div>
@@ -1924,7 +1918,7 @@ deps.setTabState({ title: "", state: "idle", sessionId: input.session_id });</di
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: No active work</h3>
       
       <div class="uc-example">
-        <div>You end a session where no work directories were created (e.g., a brief question-only session). SessionSummary finds no state file and logs "No current work to complete", then still resets the terminal tab state.</div>
+        <div>You end a session where no work directories were created (e.g., a brief question-only session). SessionSummary finds no state file and logs "No current work to complete".</div>
       </div>
       </div>
     </div>
@@ -1943,9 +1937,7 @@ deps.setTabState({ title: "", state: "idle", sessionId: input.session_id });</di
         <tbody>
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>File read/write/remove for state and META.yaml</td></tr>
           <tr><td><code>lib/time</code></td><td>lib</td><td>ISO timestamp for completion time</td></tr>
-          <tr><td><code>lib/tab-setter</code></td><td>lib</td><td>Terminal tab state reset</td></tr>
-          <tr><td><code>core/error</code></td><td>core</td><td>Error wrapping for tryCatch operations</td></tr>
-          <tr><td><code>core/result</code></td><td>core</td><td>Result type and tryCatch utility</td></tr>
+          <tr><td><code>core/result</code></td><td>core</td><td>Result type</td></tr>
         </tbody>
       </table>
     </div>

@@ -1873,56 +1873,51 @@ This is the primary session bootstrap mechanism. It replaces manual context-sett
 
         <div class="flow-step">
           <div class="step-dot">2</div>
-          <div class="step-content"><p>Reads or preserves tab state (keeps title through compaction if already working/thinking)</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">3</div>
           <div class="step-content"><p>Records the session start for notification tracking</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">4</div>
+          <div class="step-dot">3</div>
           <div class="step-content"><p>Checks if SKILL.md needs rebuilding by comparing component file timestamps</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">5</div>
+          <div class="step-dot">4</div>
           <div class="step-content"><p>If rebuild is needed, runs <code>RebuildPAI.ts</code> to regenerate SKILL.md from components</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">6</div>
+          <div class="step-dot">5</div>
           <div class="step-content"><p>Loads settings.json and reads context files (SKILL.md, AISTEERINGRULES.md, user rules)</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">7</div>
+          <div class="step-dot">6</div>
           <div class="step-content"><p>Loads relationship context: high-confidence opinions and recent relationship notes</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">8</div>
+          <div class="step-dot">7</div>
           <div class="step-content"><p>Builds a <code><system-reminder></code> block with date, session ID, identity rules, and all loaded context</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">9</div>
+          <div class="step-dot">8</div>
           <div class="step-content"><p>Scans <code>MEMORY/WORK/</code> for active work sessions from the last 48 hours</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">10</div>
+          <div class="step-dot">9</div>
           <div class="step-content"><p>Checks for pending improvement proposals in <code>MEMORY/LEARNING/PROPOSALS/pending/</code></p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">11</div>
+          <div class="step-dot">10</div>
           <div class="step-content"><p>Checks for wiki pages in <code>MEMORY/WIKI/</code> and adds a wiki pointer if pages exist</p></div>
         </div>
 
         <div class="flow-step">
-          <div class="step-dot">12</div>
+          <div class="step-dot">11</div>
           <div class="step-content"><p>Combines all parts and returns as <code>ContextOutput</code></p></div>
         </div>
 </div>
@@ -1983,7 +1978,6 @@ const wikiPointer = loadWikiPointer(deps.baseDir, deps);</div>
         <tbody>
           <tr><td><code>fs</code></td><td>adapter</td><td>File operations: exists, read, readJson, readDir, stat</td></tr>
           <tr><td><code>process</code></td><td>adapter</td><td>Provides <code>exec</code> and <code>execSyncSafe</code> for shell commands and SKILL.md rebuild</td></tr>
-          <tr><td><code>tab-setter</code></td><td>lib</td><td>Manages terminal tab state (title, color) across sessions</td></tr>
           <tr><td><code>identity</code></td><td>lib</td><td>Provides <code>getDAName</code> for the assistant identity name</td></tr>
           <tr><td><code>notifications</code></td><td>lib</td><td>Provides <code>recordSessionStart</code> for notification tracking</td></tr>
           <tr><td><code>error</code></td><td>core</td><td>Provides <code>unknownError</code> for wrapping unexpected errors</td></tr>

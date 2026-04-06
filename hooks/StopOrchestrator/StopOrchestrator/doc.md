@@ -2,7 +2,7 @@
 
 ## Overview
 
-StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to four handlers in parallel: VoiceNotification, TabState, RebuildSkill, and AlgorithmEnrichment.
+StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to handlers in parallel: VoiceNotification, RebuildSkill, and AlgorithmEnrichment.
 
 Voice notifications are only enabled for main terminal sessions, preventing subagent sessions from triggering speech output.
 
@@ -27,7 +27,6 @@ It does **not** fire when:
 3. Determines if this is a main session (always true after kitty removal in #56)
 4. Runs handlers in parallel via `Promise.allSettled`:
    - **VoiceNotification** (main sessions only): Speaks the completion summary via TTS
-   - **TabState**: Updates the Kitty terminal tab with session state
    - **RebuildSkill**: Checks if skills need rebuilding
    - **AlgorithmEnrichment**: Enriches algorithm state from the response
 5. Logs any handler failures without blocking other handlers
@@ -36,7 +35,6 @@ It does **not** fire when:
 // Parse once, distribute to all handlers in parallel
 const parsed = deps.parseTranscript(input.transcript_path!);
 const handlers = [
-  deps.handleTabState(parsed, input.session_id),
   deps.handleRebuildSkill(),
   deps.handleAlgorithmEnrichment(parsed, input.session_id),
 ];
@@ -48,7 +46,7 @@ await Promise.allSettled(handlers);
 
 ### Example 1: Main session with voice
 
-> Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript, detects a Kitty session file for the session ID, and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
+> Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
 
 ### Example 2: Subagent session (no voice)
 
@@ -60,7 +58,5 @@ await Promise.allSettled(handlers);
 | --- | --- | --- |
 | `TranscriptParser` | tool | Parses JSONL transcript into structured completion data |
 | `handlers/VoiceNotification` | handler | TTS announcement of completion summaries |
-| `handlers/TabState` | handler | Updates Kitty terminal tab styling |
 | `handlers/RebuildSkill` | handler | Checks and rebuilds stale skills |
 | `handlers/AlgorithmEnrichment` | handler | Enriches algorithm state from responses |
-| `handlers/TabState` | handler | Updates terminal tab title (logging only after kitty removal) |

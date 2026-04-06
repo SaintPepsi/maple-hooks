@@ -14,7 +14,6 @@ Shared utilities used by hook contracts. Pure functions and thin wrappers — no
 | `time.ts` | Timestamp formatting (timezone via `TZ` env var, defaults to UTC) |
 | `identity.ts` | Settings/identity loading (`getIdentity`, `getPrincipal`, `getVoiceId`, `getVoiceProsody`). Uses `IdentityDeps` for testability. |
 | `notifications.ts` | Session notifications (desktop, voice). Uses `NotificationDeps` for testability. |
-| `tab-setter.ts` | Terminal tab/title management for CronStatusLine. Uses `TabSetterDeps` for testability. |
 | `algorithm-state.ts` | PRD/algorithm state management (active work, stale sweep). Uses `AlgorithmStateDeps` for testability. |
 | `change-detection.ts` | File change tracking via JSONL history. Uses `ChangeDetectionDeps` for testability. |
 | `paths.ts` | Shared path helpers (`getPaiDir()`, `defaultStderr()`). Factory functions for `defaultDeps`. |
@@ -95,7 +94,7 @@ export function myFunction(input: string, deps = defaultDeps) { ... }
 
 This enables unit testing without filesystem access. Tests provide mock deps, production code uses `defaultDeps` which wire to real adapters from `core/adapters/`.
 
-**Migrated modules:** `identity.ts`, `notifications.ts`, `tab-setter.ts`, `algorithm-state.ts`, `change-detection.ts`
+**Migrated modules:** `identity.ts`, `notifications.ts`, `algorithm-state.ts`, `change-detection.ts`
 
 **Shared factories in `paths.ts`:**
 - `getPaiDir()` — resolves `PAI_DIR` env var with `HOME/.claude/pai` fallback

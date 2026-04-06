@@ -9,7 +9,6 @@ import { SessionSummary, type SessionSummaryDeps } from "./SessionSummary.contra
 let lastWrittenPath: string = "";
 let lastWrittenContent: string = "";
 let deletedPaths: string[] = [];
-let setTabStateCalls: Array<{ title: string; state: string; sessionId?: string }> = [];
 
 const MOCK_TIMESTAMP = "2026-02-27T10:00:00Z";
 
@@ -29,7 +28,6 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
   lastWrittenPath = "";
   lastWrittenContent = "";
   deletedPaths = [];
-  setTabStateCalls = [];
 
   return {
     ...SessionSummary.defaultDeps,
@@ -52,9 +50,6 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
       deletedPaths.push(path);
     },
     getTimestamp: () => MOCK_TIMESTAMP,
-    setTabState: (opts: { title: string; state: string; sessionId?: string }) => {
-      setTabStateCalls.push(opts);
-    },
     baseDir: "/tmp/test",
     stderr: () => {},
     ...overrides,
@@ -172,13 +167,6 @@ describe("SessionSummary", () => {
       expect(deletedPaths).toHaveLength(0);
     });
 
-    test("still resets tab state even with no work file", () => {
-      const deps = makeDeps({
-        fileExists: () => false,
-      });
-      SessionSummary.execute(makeInput(), deps);
-      expect(setTabStateCalls).toHaveLength(1);
-    });
   });
 
   describe("execute — mismatched session ID", () => {
@@ -202,46 +190,6 @@ describe("SessionSummary", () => {
             T,
             ResultError
           >,
-      });
-      const result = SessionSummary.execute(makeInput(), deps);
-      expect(result.ok).toBe(true);
-    });
-  });
-
-  describe("execute — tab state reset", () => {
-    test("calls setTabState with idle state", () => {
-      const deps = makeDeps();
-      SessionSummary.execute(makeInput(), deps);
-      expect(setTabStateCalls).toHaveLength(1);
-      expect(setTabStateCalls[0].state).toBe("idle");
-    });
-
-    test("calls setTabState with empty title", () => {
-      const deps = makeDeps();
-      SessionSummary.execute(makeInput(), deps);
-      expect(setTabStateCalls[0].title).toBe("");
-    });
-
-    test("passes session_id to setTabState", () => {
-      const deps = makeDeps();
-      SessionSummary.execute(makeInput(), deps);
-      expect(setTabStateCalls[0].sessionId).toBe("test-session-123");
-    });
-
-    test("does not throw if setTabState throws", () => {
-      const deps = makeDeps({
-        setTabState: () => {
-          throw new Error("tab reset failed");
-        },
-      });
-      expect(() => SessionSummary.execute(makeInput(), deps)).not.toThrow();
-    });
-
-    test("still returns ok if tab reset throws", () => {
-      const deps = makeDeps({
-        setTabState: () => {
-          throw new Error("tab reset failed");
-        },
       });
       const result = SessionSummary.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
