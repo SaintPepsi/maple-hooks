@@ -2,7 +2,7 @@
 
 ## Overview
 
-SkillGuard is a **PreToolUse** hook that blocks false-positive Skill tool invocations caused by position bias in skill matching. Certain skills (such as `keybindings-help`) are known to trigger on unrelated prompts due to their position in the skill list, creating noise and wasting tokens.
+SkillGuard is a **PreToolUse** hook that blocks false-positive Skill tool invocations caused by position bias in skill matching. Certain skills (such as `keybindings-help`) are known to trigger on unrelated prompts due to their position in the skill list, creating noise and wasting tokens. Guards against common false triggers.
 
 This hook maintains a blocklist of known false-positive skills and prevents them from firing unless the user explicitly requests them by name or via the slash command.
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-VoiceGate is a **PreToolUse** hook that prevents subagent sessions from accessing the voice notification server. Only the main session is permitted to reach `localhost:8888` (the Kokoro TTS voice server). Subagent sessions are blocked to prevent duplicate or unexpected TTS notifications when multiple agents are running in parallel.
+VoiceGate is a **PreToolUse** hook that prevents subagent sessions from accessing the voice notification server. Only the main session is permitted to reach `localhost:8888` (the Kokoro TTS voice server). Subagent sessions are blocked to prevent duplicate or unexpected TTS notifications when multiple agents are running in parallel. Essential for multi-agent workflows.
 
 The hook uses the `CLAUDE_CODE_AGENT_SUBAGENT` environment variable to determine whether the current session is a subagent.
 
