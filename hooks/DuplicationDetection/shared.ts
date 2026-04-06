@@ -36,6 +36,7 @@ export interface DuplicationIndex {
   hashGroups: [string, number[]][];
   nameGroups: [string, number[]][];
   sigGroups: [string, number[]][];
+  patterns?: PatternEntry[];
 }
 
 export interface DuplicationMatch {
@@ -47,6 +48,15 @@ export interface DuplicationMatch {
   signals: string[];
   topScore: number;
   derivation?: boolean;
+}
+
+export interface PatternEntry {
+  id: string;
+  name: string;
+  sig: string;
+  tier: 1 | 2;
+  fileCount: number;
+  files: string[];
 }
 
 // ─── Deps ───────────────────────────────────────────────────────────────────
@@ -66,6 +76,37 @@ export function simulateEdit(currentContent: string, input: ToolHookInput): stri
   const newStr = toolInput.new_string as string | undefined;
   if (oldStr && newStr !== undefined) return currentContent.replace(oldStr, newStr);
   return currentContent;
+}
+
+// ─── Sig Normalization ─────────────────────────────────────────────────────
+
+export function normalizeParam(param: string): string {
+  let p = param;
+  p = p.replace(/Partial<\w+>/g, "Partial<*>");
+  p = p.replace(/Record<\w+,\w+>/g, "Record<*,*>");
+  return p;
+}
+
+export function normalizeReturn(ret: string): string {
+  let r = ret;
+  r = r.replace(/\w+Deps$/, "*Deps");
+  r = r.replace(/\w+Input$/, "*Input");
+  r = r.replace(/\w+Output$/, "*Output");
+  return r;
+}
+
+const PRIMITIVE_RETURNS = new Set([
+  "string",
+  "number",
+  "boolean",
+  "void",
+  "{object}",
+  "",
+  "string|null",
+]);
+
+export function isPrimitiveReturn(normalizedReturn: string): boolean {
+  return PRIMITIVE_RETURNS.has(normalizedReturn);
 }
 
 // ─── Branch Detection ──────────────────────────────────────────────────────
@@ -128,7 +169,10 @@ export function loadIndex(indexPath: string, deps: SharedDeps): DuplicationIndex
   if (cachedIndex && cachedIndexPath === indexPath) return cachedIndex;
   const content = deps.readFile(indexPath);
   if (!content) return null;
-  const parseResult = tryCatch(() => JSON.parse(content) as DuplicationIndex, () => null);
+  const parseResult = tryCatch(
+    () => JSON.parse(content) as DuplicationIndex,
+    () => null,
+  );
   if (!parseResult.ok) return null;
   const parsed = parseResult.value;
   if (!parsed.version || !parsed.entries) return null;

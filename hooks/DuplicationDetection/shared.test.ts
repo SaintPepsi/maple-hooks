@@ -1,8 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
-  PROJECT_MARKERS,
   findIndexPath,
   getArtifactsDir,
+  isPrimitiveReturn,
+  normalizeParam,
+  normalizeReturn,
+  PROJECT_MARKERS,
   projectHash,
 } from "@hooks/hooks/DuplicationDetection/shared";
 
@@ -90,7 +93,8 @@ describe("findIndexPath", () => {
     // Match /tmp/pai/duplication/{hash}/{branch}/index.json regardless of branch name
     const mockDeps = {
       readFile: () => null,
-      exists: (path: string) => path.includes("/tmp/pai/duplication/") && path.endsWith("/index.json"),
+      exists: (path: string) =>
+        path.includes("/tmp/pai/duplication/") && path.endsWith("/index.json"),
     };
 
     const result = findIndexPath(projectRoot, mockDeps);
@@ -130,5 +134,70 @@ describe("findIndexPath", () => {
 
     const result = findIndexPath("/tmp/test-project/src/foo.ts", mockDeps);
     expect(result).toBe("/tmp/test-project/.claude/.duplication-index.json");
+  });
+});
+
+describe("normalizeParam", () => {
+  test("replaces Partial<ConcreteType> with Partial<*>", () => {
+    expect(normalizeParam("Partial<SessionSummaryDeps>")).toBe("Partial<*>");
+  });
+  test("replaces Record<K,V> with Record<*,*>", () => {
+    expect(normalizeParam("Record<string,unknown>")).toBe("Record<*,*>");
+  });
+  test("leaves primitive types unchanged", () => {
+    expect(normalizeParam("string")).toBe("string");
+    expect(normalizeParam("number")).toBe("number");
+  });
+  test("handles empty string", () => {
+    expect(normalizeParam("")).toBe("");
+  });
+  test("handles compound params", () => {
+    expect(normalizeParam("Partial<FooDeps>,string")).toBe("Partial<*>,string");
+  });
+});
+
+describe("normalizeReturn", () => {
+  test("replaces *Deps suffix with *Deps", () => {
+    expect(normalizeReturn("SessionSummaryDeps")).toBe("*Deps");
+    expect(normalizeReturn("CanaryHookDeps")).toBe("*Deps");
+  });
+  test("replaces *Input suffix with *Input", () => {
+    expect(normalizeReturn("ToolHookInput")).toBe("*Input");
+    expect(normalizeReturn("SessionEndInput")).toBe("*Input");
+  });
+  test("replaces *Output suffix with *Output", () => {
+    expect(normalizeReturn("ContinueOutput")).toBe("*Output");
+    expect(normalizeReturn("BlockOutput")).toBe("*Output");
+  });
+  test("leaves primitive types unchanged", () => {
+    expect(normalizeReturn("string")).toBe("string");
+    expect(normalizeReturn("void")).toBe("void");
+    expect(normalizeReturn("number")).toBe("number");
+  });
+  test("handles empty string", () => {
+    expect(normalizeReturn("")).toBe("");
+  });
+});
+
+describe("isPrimitiveReturn", () => {
+  test("returns true for string, void, number, boolean", () => {
+    expect(isPrimitiveReturn("string")).toBe(true);
+    expect(isPrimitiveReturn("void")).toBe(true);
+    expect(isPrimitiveReturn("number")).toBe(true);
+    expect(isPrimitiveReturn("boolean")).toBe(true);
+  });
+  test("returns true for empty string", () => {
+    expect(isPrimitiveReturn("")).toBe(true);
+  });
+  test("returns true for common non-domain types", () => {
+    expect(isPrimitiveReturn("{object}")).toBe(true);
+    expect(isPrimitiveReturn("string|null")).toBe(true);
+  });
+  test("returns false for domain types", () => {
+    expect(isPrimitiveReturn("*Deps")).toBe(false);
+    expect(isPrimitiveReturn("*Input")).toBe(false);
+    expect(isPrimitiveReturn("*Output")).toBe(false);
+    expect(isPrimitiveReturn("ToolHookInput")).toBe(false);
+    expect(isPrimitiveReturn("Promise<void>")).toBe(false);
   });
 });
