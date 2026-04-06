@@ -1,5 +1,5 @@
-import { resolve } from "node:path";
 import { describe, expect, test } from "bun:test";
+import { resolve } from "node:path";
 import {
   readDir as adapterReadDir,
   readFile as adapterReadFile,
@@ -11,7 +11,6 @@ import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { makeEditInput, makeSessionStartInput, makeToolInput, makeWriteInput } from "@hooks/lib/test-helpers";
 import {
   DuplicationIndexBuilderContract,
   type DuplicationIndexBuilderDeps,
@@ -19,6 +18,12 @@ import {
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
+import {
+  makeEditInput,
+  makeSessionStartInput,
+  makeToolInput,
+  makeWriteInput,
+} from "@hooks/lib/test-helpers";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -90,15 +95,27 @@ describe("DuplicationIndexBuilderContract", () => {
 
   describe("accepts()", () => {
     test("returns false for non-Write/Edit tools", () => {
-      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Read", "/src/app.ts"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Bash", "/src/app.ts"))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Glob", "/src/app.ts"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Read", "/src/app.ts"))).toBe(
+        false,
+      );
+      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Bash", "/src/app.ts"))).toBe(
+        false,
+      );
+      expect(DuplicationIndexBuilderContract.accepts(makeToolInput("Glob", "/src/app.ts"))).toBe(
+        false,
+      );
     });
 
     test("returns false for non-.ts files", () => {
-      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/app.js", ""))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/style.css", ""))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/README.md", ""))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/app.js", ""))).toBe(
+        false,
+      );
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/style.css", ""))).toBe(
+        false,
+      );
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/README.md", ""))).toBe(
+        false,
+      );
     });
 
     test("returns true for Write to .ts file", () => {
@@ -114,8 +131,12 @@ describe("DuplicationIndexBuilderContract", () => {
     });
 
     test("returns false for .d.ts files", () => {
-      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/types.d.ts", ""))).toBe(false);
-      expect(DuplicationIndexBuilderContract.accepts(makeEditInput("/src/global.d.ts"))).toBe(false);
+      expect(DuplicationIndexBuilderContract.accepts(makeWriteInput("/src/types.d.ts", ""))).toBe(
+        false,
+      );
+      expect(DuplicationIndexBuilderContract.accepts(makeEditInput("/src/global.d.ts"))).toBe(
+        false,
+      );
     });
 
     test("returns false when file_path is missing from tool_input", () => {
@@ -177,7 +198,9 @@ describe("DuplicationIndexBuilderContract", () => {
       const stderrMessages: string[] = [];
       const deps2 = makeMockDeps({
         ...deps,
-        stderr: (msg: string): void => { stderrMessages.push(msg); },
+        stderr: (msg: string): void => {
+          stderrMessages.push(msg);
+        },
         readFile: deps.readFile,
       });
       // Re-use the written files from first build
@@ -325,6 +348,80 @@ describe("DuplicationIndexBuilderContract", () => {
       expect(successMsg).toContain("KB");
     });
 
+    test("built index contains patterns array", () => {
+      let capturedContent = "";
+      const deps = makeMockDeps({
+        writeFile: (_path: string, content: string): boolean => {
+          capturedContent = content;
+          return true;
+        },
+        exists: (): boolean => false,
+        stat: (): null => null,
+        findProjectRoot: (): string => PAI_HOOKS_ROOT,
+      });
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
+      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+      const index = JSON.parse(capturedContent) as DuplicationIndex;
+      expect(Array.isArray(index.patterns)).toBe(true);
+    });
+
+    test("detects makeDeps as a pattern (threshold 5, tier 1)", () => {
+      let capturedContent = "";
+      const deps = makeMockDeps({
+        writeFile: (_path: string, content: string): boolean => {
+          capturedContent = content;
+          return true;
+        },
+        exists: (): boolean => false,
+        stat: (): null => null,
+        findProjectRoot: (): string => PAI_HOOKS_ROOT,
+      });
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
+      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+      const index = JSON.parse(capturedContent) as DuplicationIndex;
+      const makeDepsPattern = index.patterns?.find((p) => p.name === "makeDeps");
+      expect(makeDepsPattern).toBeDefined();
+      expect(makeDepsPattern!.tier).toBe(1);
+      expect(makeDepsPattern!.fileCount).toBeGreaterThanOrEqual(5);
+    });
+
+    test("detects makeInput as a pattern (tier 2, return-only fallback)", () => {
+      let capturedContent = "";
+      const deps = makeMockDeps({
+        writeFile: (_path: string, content: string): boolean => {
+          capturedContent = content;
+          return true;
+        },
+        exists: (): boolean => false,
+        stat: (): null => null,
+        findProjectRoot: (): string => PAI_HOOKS_ROOT,
+      });
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
+      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+      const index = JSON.parse(capturedContent) as DuplicationIndex;
+      const makeInputPattern = index.patterns?.find((p) => p.name === "makeInput");
+      expect(makeInputPattern).toBeDefined();
+      expect(makeInputPattern!.tier).toBe(2);
+    });
+
+    test("does not detect 'main' as a pattern (primitive return filtered)", () => {
+      let capturedContent = "";
+      const deps = makeMockDeps({
+        writeFile: (_path: string, content: string): boolean => {
+          capturedContent = content;
+          return true;
+        },
+        exists: (): boolean => false,
+        stat: (): null => null,
+        findProjectRoot: (): string => PAI_HOOKS_ROOT,
+      });
+      const input = makeWriteInput(`${PAI_HOOKS_ROOT}/hooks/SomeHook/SomeHook.ts`, "");
+      unwrap(DuplicationIndexBuilderContract.execute(input, deps));
+      const index = JSON.parse(capturedContent) as DuplicationIndex;
+      const mainPattern = index.patterns?.find((p) => p.name === "main");
+      expect(mainPattern).toBeUndefined();
+    });
+
     test("works correctly with Edit tool input", () => {
       const stderrMessages: string[] = [];
 
@@ -413,7 +510,9 @@ describe("DuplicationIndexBuilderContract", () => {
       const stderrMessages: string[] = [];
 
       const deps = makeMockDeps({
-        stderr: (msg: string): void => { stderrMessages.push(msg); },
+        stderr: (msg: string): void => {
+          stderrMessages.push(msg);
+        },
         cwd: (): string => PAI_HOOKS_ROOT,
       });
 
