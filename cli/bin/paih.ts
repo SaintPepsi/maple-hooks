@@ -8,6 +8,7 @@
  */
 
 import { catalog } from "@hooks/cli/commands/catalog";
+import { inspect } from "@hooks/cli/commands/inspect";
 import { install } from "@hooks/cli/commands/install";
 import { list } from "@hooks/cli/commands/list";
 import { uninstall } from "@hooks/cli/commands/uninstall";
@@ -17,6 +18,7 @@ import { parseArgs } from "@hooks/cli/core/args";
 import type { PaihError } from "@hooks/cli/core/error";
 import { PaihErrorCode } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
+import { execSyncSafe } from "@hooks/core/adapters/process";
 import { makeDefaultDeps } from "@hooks/cli/types/default-deps";
 
 // ─── Version ────────────────────────────────────────────────────────────────
@@ -37,6 +39,7 @@ Commands:
   verify      Validate hooks (source or installed)
   list        Show installed hooks and their status
   catalog     Show available hooks, groups, and presets
+  inspect     Show hook state for a project
 
 Flags:
   --help        Show this help message
@@ -56,7 +59,7 @@ Flags:
 
 // ─── Known Commands ─────────────────────────────────────────────────────────
 
-const KNOWN_COMMANDS = new Set(["install", "uninstall", "update", "verify", "list", "catalog"]);
+const KNOWN_COMMANDS = new Set(["install", "uninstall", "update", "verify", "list", "catalog", "inspect"]);
 
 // ─── Exit Code Mapping ──────────────────────────────────────────────────────
 
@@ -146,6 +149,16 @@ function routeCommand(
       return list(args, deps);
     case "catalog":
       return catalog(args, deps, deps.cwd());
+    case "inspect":
+      return inspect(args, {
+        readFile: (p) => { const r = deps.readFile(p); return r.ok ? r.value : null; },
+        exists: (p) => deps.fileExists(p),
+        cwd: () => deps.cwd(),
+        getBranch: (dir) => {
+          const r = execSyncSafe("git rev-parse --abbrev-ref HEAD", { cwd: dir });
+          return r.ok ? r.value.trim() || null : null;
+        },
+      });
     default:
       return { ok: true, value: "" };
   }
