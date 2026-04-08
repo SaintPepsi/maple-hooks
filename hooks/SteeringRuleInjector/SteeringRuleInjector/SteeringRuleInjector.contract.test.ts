@@ -243,6 +243,18 @@ describe("SteeringRuleInjector contract", () => {
     expect(result.value.type).toBe("silent");
   });
 
+  it("returns silent for empty-keyword rules on UserPromptSubmit", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/both.md"],
+      readFile: () => BOTH_EVENTS_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makePromptInput("anything here"), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("silent");
+  });
+
   it("skips already-injected rules", () => {
     const deps = makeDeps({
       resolveGlobs: () => ["/rules/always.md"],

@@ -8,7 +8,7 @@
  */
 
 import { join } from "node:path";
-import { fileExists, readFile } from "@hooks/core/adapters/fs";
+import { fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
@@ -141,23 +141,15 @@ const defaultDeps: SteeringRuleInjectorDeps = {
   },
 
   readTracker: (sessionId: string): InjectionTracker => {
-    const trackerDir = join(getPaiDir(), DEFAULT_CONFIG.trackerDir);
-    const trackerPath = join(trackerDir, `injections-${sessionId}.json`);
-    if (!fileExists(trackerPath)) {
-      return { sessionId, injected: {} };
-    }
-    const result = readFile(trackerPath);
-    if (!result.ok) return { sessionId, injected: {} };
-    const parsed = JSON.parse(result.value) as InjectionTracker;
-    return parsed;
+    const trackerPath = join(getPaiDir(), DEFAULT_CONFIG.trackerDir, `injections-${sessionId}.json`);
+    if (!fileExists(trackerPath)) return { sessionId, injected: {} };
+    const result = readJson<InjectionTracker>(trackerPath);
+    return result.ok ? result.value : { sessionId, injected: {} };
   },
 
   writeTracker: (tracker: InjectionTracker): void => {
-    const { mkdirSync, writeFileSync } = require("node:fs") as typeof import("node:fs");
-    const trackerDir = join(getPaiDir(), DEFAULT_CONFIG.trackerDir);
-    const trackerPath = join(trackerDir, `injections-${tracker.sessionId}.json`);
-    mkdirSync(trackerDir, { recursive: true });
-    writeFileSync(trackerPath, JSON.stringify(tracker, null, 2), "utf-8");
+    const trackerPath = join(getPaiDir(), DEFAULT_CONFIG.trackerDir, `injections-${tracker.sessionId}.json`);
+    writeJson(trackerPath, tracker);
   },
 
   getConfig: (): SteeringRuleConfig => {
@@ -227,8 +219,8 @@ export const SteeringRuleInjector: SyncHookContract<
       // For SessionStart, only inject rules with empty keywords (always-rules)
       if (eventType === "SessionStart" && rule.keywords.length > 0) continue;
 
-      // For UserPromptSubmit with keywords, require keyword match
-      if (eventType === "UserPromptSubmit" && rule.keywords.length > 0) {
+      // For UserPromptSubmit, require at least one keyword and a match
+      if (eventType === "UserPromptSubmit") {
         if (!matchesKeywords(prompt, rule.keywords)) continue;
       }
 
