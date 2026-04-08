@@ -36,10 +36,11 @@ const BOOLEAN_FLAGS = new Set([
   "--compiled-ts",
   "--fix",
   "--installed",
+  "--raw",
 ]);
 
 /** Flags that take a string value. */
-const VALUE_FLAGS = new Set(["--to", "--from", "--in", "--preset"]);
+const VALUE_FLAGS = new Set(["--to", "--from", "--in", "--preset", "--project"]);
 
 const ALL_FLAGS = new Set([...BOOLEAN_FLAGS, ...VALUE_FLAGS]);
 
@@ -53,8 +54,11 @@ export function parseArgs(argv: string[]): Result<ParsedArgs, PaihError> {
   const flags: Record<string, boolean | string> = {};
   const positional: string[] = [];
 
-  let i = 0;
-  while (i < argv.length) {
+  const skipIndices = new Set<number>();
+
+  for (let i = 0; i < argv.length; i++) {
+    if (skipIndices.has(i)) continue;
+
     const arg = argv[i];
 
     if (arg.startsWith("--")) {
@@ -72,12 +76,11 @@ export function parseArgs(argv: string[]): Result<ParsedArgs, PaihError> {
           return err(invalidArgs(`Flag ${arg} requires a value`));
         }
         flags[flagKey(arg)] = next;
-        i++;
+        skipIndices.add(i + 1);
       }
     } else {
       positional.push(arg);
     }
-    i++;
   }
 
   const command = positional[0] ?? "";

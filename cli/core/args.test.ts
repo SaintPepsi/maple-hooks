@@ -129,4 +129,32 @@ describe("parseArgs()", () => {
       expect(result.value.flags.to).toBe("/target");
     }
   });
+
+  it("parses --raw boolean flag", () => {
+    const result = parseArgs(["inspect", "--raw"]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.command).toBe("inspect");
+      expect(result.value.flags.raw).toBe(true);
+    }
+  });
+
+  it("parses --project value flag", () => {
+    const result = parseArgs(["inspect", "--project", "/tmp/foo"]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.command).toBe("inspect");
+      expect(result.value.flags.project).toBe("/tmp/foo");
+    }
+  });
+
+  it("parses --project and --raw together", () => {
+    const result = parseArgs(["inspect", "--project", "/tmp/foo", "--raw"]);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.command).toBe("inspect");
+      expect(result.value.flags.project).toBe("/tmp/foo");
+      expect(result.value.flags.raw).toBe(true);
+    }
+  });
 });
