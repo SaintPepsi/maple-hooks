@@ -37,9 +37,22 @@ Bash { command: "python3 -c \"...writeFileSync('settings.json')...\"" }
 # → continue (PostToolUse will compare and revert)
 ```
 
+## Audit Log
+
+Every action is logged to `MEMORY/SECURITY/settings-audit.jsonl` as structured JSONL:
+
+| Field | Description |
+|-------|-------------|
+| `ts` | ISO timestamp |
+| `session_id` | Claude Code session ID |
+| `tool` | Tool name (Edit, Write, Bash) |
+| `target` | File path or settings filename |
+| `action` | `asked` (Edit/Write prompt) or `snapshotted` (Bash pre-command) |
+| `command` | First 500 chars of Bash command (Bash only) |
+
 ## Dependencies
 
-- `core/adapters/fs` — `readFile`, `writeFile`, `fileExists` for snapshot I/O
+- `core/adapters/fs` — `readFile`, `writeFile`, `appendFile`, `ensureDir`, `fileExists` for snapshot and audit I/O
 - `lib/tool-input` — `getFilePath` for extracting file paths from tool input
-- `lib/paths` — `defaultStderr` for logging
+- `lib/paths` — `defaultStderr`, `getPaiDir` for logging and base directory
 - Paired with `SettingsProtectorPost` (PostToolUse) for the revert mechanism

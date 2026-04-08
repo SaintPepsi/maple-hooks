@@ -1741,7 +1741,8 @@ section[id] {
     <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#audit-log"><span class="nav-num">06</span> Audit Log</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1919,6 +1920,29 @@ Bash { command: "python3 -c \"...writeFileSync('settings.json')...\"" }
     </div>
   </section>
 
+  <section id="audit-log">
+    <div class="section-label accent">Audit Log</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Audit Log</h3>
+      </div>
+      <p>Every action is logged to <code>MEMORY/SECURITY/settings-audit.jsonl</code> as structured JSONL:</p>
+      
+      <table class="tbl">
+        <thead><tr><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ts</code></td><td>ISO timestamp</td></tr>
+          <tr><td><code>session_id</code></td><td>Claude Code session ID</td></tr>
+          <tr><td><code>tool</code></td><td>Tool name (Edit, Write, Bash)</td></tr>
+          <tr><td><code>target</code></td><td>File path or settings filename</td></tr>
+          <tr><td><code>action</code></td><td><code>asked</code> (Edit/Write prompt) or <code>snapshotted</code> (Bash pre-command)</td></tr>
+          <tr><td><code>command</code></td><td>First 500 chars of Bash command (Bash only)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="dependencies">
     <div class="section-label cyan">Dependencies</div>
     <div class="card cyan">
@@ -1926,9 +1950,9 @@ Bash { command: "python3 -c \"...writeFileSync('settings.json')...\"" }
         <div class="card-icon">&#x1F517;</div>
         <h3>Dependencies</h3>
       </div>
-      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>fileExists</code> for snapshot I/O</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for snapshot and audit I/O</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getFilePath</code> for extracting file paths from tool input</div>
-<div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code> for logging</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code>, <code>getPaiDir</code> for logging and base directory</div>
 <div class="reason"><span class="ri">&#x2022;</span> Paired with <code>SettingsProtectorPost</code> (PostToolUse) for the revert mechanism</div>
     </div>
   </section>

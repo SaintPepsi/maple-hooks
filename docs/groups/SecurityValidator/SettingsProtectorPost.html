@@ -1741,7 +1741,8 @@ section[id] {
     <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#audit-log"><span class="nav-num">06</span> Audit Log</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1926,6 +1927,29 @@ PostToolUse { tool_name: "Edit", ... }
     </div>
   </section>
 
+  <section id="audit-log">
+    <div class="section-label accent">Audit Log</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Audit Log</h3>
+      </div>
+      <p>Every comparison result is logged to <code>MEMORY/SECURITY/settings-audit.jsonl</code>:</p>
+      
+      <table class="tbl">
+        <thead><tr><th>Field</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>ts</code></td><td>ISO timestamp</td></tr>
+          <tr><td><code>session_id</code></td><td>Claude Code session ID</td></tr>
+          <tr><td><code>tool</code></td><td>Always <code>Bash</code></td></tr>
+          <tr><td><code>target</code></td><td>Reverted filename(s) or <code>settings.json</code> if unchanged</td></tr>
+          <tr><td><code>action</code></td><td><code>reverted</code> (change detected and undone) or <code>unchanged</code> (no modification)</td></tr>
+          <tr><td><code>command</code></td><td>First 500 chars of the Bash command</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="dependencies">
     <div class="section-label cyan">Dependencies</div>
     <div class="card cyan">
@@ -1933,9 +1957,10 @@ PostToolUse { tool_name: "Edit", ... }
         <div class="card-icon">&#x1F517;</div>
         <h3>Dependencies</h3>
       </div>
-      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>fileExists</code> for comparison and revert I/O</div>
-<div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract</code> — <code>snapshotPath</code> function for deterministic snapshot file locations</div>
-<div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code> for logging</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for comparison, revert, and audit I/O</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract</code> — <code>snapshotPath</code> and <code>logSettingsAudit</code> for snapshot locations and shared audit logging</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getCommand</code> for extracting Bash commands</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code>, <code>getPaiDir</code> for logging and base directory</div>
 <div class="reason"><span class="ri">&#x2022;</span> Requires <code>SettingsProtector</code> (PreToolUse) to have run first to create snapshots</div>
     </div>
   </section>

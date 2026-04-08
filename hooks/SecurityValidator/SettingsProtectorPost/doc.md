@@ -42,9 +42,23 @@ PostToolUse { tool_name: "Edit", ... }
 # → rejected by accepts() (Edit changes go through SettingsProtector ask flow)
 ```
 
+## Audit Log
+
+Every comparison result is logged to `MEMORY/SECURITY/settings-audit.jsonl`:
+
+| Field | Description |
+|-------|-------------|
+| `ts` | ISO timestamp |
+| `session_id` | Claude Code session ID |
+| `tool` | Always `Bash` |
+| `target` | Reverted filename(s) or `settings.json` if unchanged |
+| `action` | `reverted` (change detected and undone) or `unchanged` (no modification) |
+| `command` | First 500 chars of the Bash command |
+
 ## Dependencies
 
-- `core/adapters/fs` — `readFile`, `writeFile`, `fileExists` for comparison and revert I/O
-- `hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract` — `snapshotPath` function for deterministic snapshot file locations
-- `lib/paths` — `defaultStderr` for logging
+- `core/adapters/fs` — `readFile`, `writeFile`, `appendFile`, `ensureDir`, `fileExists` for comparison, revert, and audit I/O
+- `hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract` — `snapshotPath` and `logSettingsAudit` for snapshot locations and shared audit logging
+- `lib/tool-input` — `getCommand` for extracting Bash commands
+- `lib/paths` — `defaultStderr`, `getPaiDir` for logging and base directory
 - Requires `SettingsProtector` (PreToolUse) to have run first to create snapshots
