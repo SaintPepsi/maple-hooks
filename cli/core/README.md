@@ -10,7 +10,7 @@ Core logic for the `paih` CLI. Business logic modules that power CLI commands.
 | `error.ts` | `PaihErrorCode` enum + `PaihError` class + factory functions | #6 |
 | `result.ts` | Re-exports `ok`, `err`, `Result` from `@hooks/core/result` | #6 |
 | `pipe.ts` | `pipe()` combinator threading `Result` through steps, short-circuits on first Err | #6 |
-| `args.ts` | CLI argument parser: commands, multi-name positionals, known/unknown flags, --preset value flag | #6, #14 |
+| `args.ts` | CLI argument parser: commands, multi-name positionals, known/unknown flags, --preset/--project value flags, --raw boolean flag | #6, #14 |
 | `target.ts` | `resolveTarget()` walks up from CWD to find nearest `.claude/` directory | #6 |
 | `resolver.ts` | Resolve names to hooks (hook > group > preset priority, wildcard, cycle detection) | #6 |
 | `deps.ts` | `dedup()` for hook deduplication by identity (name + sourceDir) | #6 |

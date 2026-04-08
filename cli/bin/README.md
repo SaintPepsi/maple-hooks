@@ -13,6 +13,6 @@ Entry point for the `paih` CLI.
 ```
 paih <command> [names...] [flags]
 
-Commands: install, uninstall, update, verify, list, catalog
-Flags: --help, --version, --to, --from, --in, --preset, --force, --dry-run, --json, --groups, --presets, --compiled, --compiled-ts, --fix, --installed
+Commands: install, uninstall, update, verify, list, catalog, inspect
+Flags: --help, --version, --to, --from, --in, --preset, --project, --force, --dry-run, --json, --raw, --groups, --presets, --compiled, --compiled-ts, --fix, --installed
 ```

@@ -132,3 +132,4 @@ Pattern detection thresholds are set in `hookConfig.duplicationChecker` in `sett
 | `DuplicationDetection/parser` | shared | `extractFunctions` for SWC-based function extraction |
 | `lib/narrative-reader` | lib | `pickNarrative` for severity-tiered block message openers |
 | `DuplicationChecker.narrative.jsonl` | data | 9 agent narratives (3 per severity tier) with DRY/WET theming |
+| `inspector.ts` | cli | State inspector for `paih inspect DuplicationChecker` — reads index, returns summary/raw/JSON views |
