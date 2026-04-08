@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { parseFrontmatter } from "./SteeringRuleInjector.contract";
+import { matchesKeywords, parseFrontmatter } from "./SteeringRuleInjector.contract";
 
 describe("parseFrontmatter", () => {
   it("parses valid frontmatter with all fields", () => {
@@ -62,5 +62,23 @@ keywords: []
   Content with spaces.
 `;
     expect(parseFrontmatter(content)!.body).toBe("Content with spaces.");
+  });
+});
+
+describe("matchesKeywords", () => {
+  it("returns true when keyword in prompt", () => {
+    expect(matchesKeywords("let's push to remote", ["push", "remote"])).toBe(true);
+  });
+
+  it("is case-insensitive", () => {
+    expect(matchesKeywords("Minimize Output TOKENS", ["tokens"])).toBe(true);
+  });
+
+  it("returns false when no match", () => {
+    expect(matchesKeywords("refactor the parser", ["push", "deploy"])).toBe(false);
+  });
+
+  it("returns false for empty keywords", () => {
+    expect(matchesKeywords("anything here", [])).toBe(false);
   });
 });

@@ -46,7 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtector/SettingsProtector.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
           },
           {
             "type": "command",
@@ -87,7 +87,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtector/SettingsProtector.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
           },
           {
             "type": "command",
@@ -124,7 +124,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtector/SettingsProtector.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsGuard/SettingsGuard.hook.ts"
           },
           {
             "type": "command",
@@ -199,7 +199,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsProtectorPost/SettingsProtectorPost.hook.ts"
+            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SecurityValidator/SettingsRevert/SettingsRevert.hook.ts"
           },
           {
             "type": "command",

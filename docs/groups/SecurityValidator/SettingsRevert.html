@@ -1825,7 +1825,7 @@ Instead of trying to predict what a command will do, observe what it actually di
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>Detects and automatically reverts unauthorized changes to <code>~/.claude/settings.json</code> and <code>~/.claude/settings.local.json</code> after Bash commands. Paired with <code>SettingsProtector</code> (PreToolUse) which takes the pre-command snapshots.</p>
+      <p>Detects and automatically reverts unauthorized changes to <code>~/.claude/settings.json</code> and <code>~/.claude/settings.local.json</code> after Bash commands. Paired with <code>SettingsGuard</code> (PreToolUse) which takes the pre-command snapshots.</p>
     </div>
   </section>
 
@@ -1861,7 +1861,7 @@ Instead of trying to predict what a command will do, observe what it actually di
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Reads the snapshot files written by <code>SettingsProtector</code> from <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code></p></div>
+          <div class="step-content"><p>Reads the snapshot files written by <code>SettingsGuard</code> from <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code></p></div>
         </div>
 
         <div class="flow-step">
@@ -1880,16 +1880,16 @@ Instead of trying to predict what a command will do, observe what it actually di
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>If no snapshot exists (SettingsProtector didn't run) or files are unchanged, returns silent</p></div>
+          <div class="step-content"><p>If no snapshot exists (SettingsGuard didn't run) or files are unchanged, returns silent</p></div>
         </div>
 </div>
       
       <div class="uc-example">
-        <div>A Bash command runs <code>sed -i 's/true/false/' ~/.claude/settings.json</code>. After it completes, SettingsProtectorPost detects the content differs from the snapshot and overwrites settings.json with the original content. The AI receives a security warning.</div>
+        <div>A Bash command runs <code>sed -i 's/true/false/' ~/.claude/settings.json</code>. After it completes, SettingsRevert detects the content differs from the snapshot and overwrites settings.json with the original content. The AI receives a security warning.</div>
       </div>
       
       <div class="uc-example">
-        <div>A Bash command runs <code>rm ~/.claude/settings.json</code>. SettingsProtectorPost detects the file is missing and restores it from the snapshot.</div>
+        <div>A Bash command runs <code>rm ~/.claude/settings.json</code>. SettingsRevert detects the file is missing and restores it from the snapshot.</div>
       </div>
     </div>
   </section>
@@ -1921,7 +1921,7 @@ PostToolUse { tool_name: "Bash", command: "python3 -c '...'" }
 
 # Non-Bash tools — not processed
 PostToolUse { tool_name: "Edit", ... }
-# → rejected by accepts() (Edit changes go through SettingsProtector ask flow)</div>
+# → rejected by accepts() (Edit changes go through SettingsGuard ask flow)</div>
         </div>
       </div>
     </div>
@@ -1958,10 +1958,10 @@ PostToolUse { tool_name: "Edit", ... }
         <h3>Dependencies</h3>
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for comparison, revert, and audit I/O</div>
-<div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/SettingsProtector/SettingsProtector.contract</code> — <code>snapshotPath</code> and <code>logSettingsAudit</code> for snapshot locations and shared audit logging</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract</code> — <code>snapshotPath</code> and <code>logSettingsAudit</code> for snapshot locations and shared audit logging</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getCommand</code> for extracting Bash commands</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code>, <code>getPaiDir</code> for logging and base directory</div>
-<div class="reason"><span class="ri">&#x2022;</span> Requires <code>SettingsProtector</code> (PreToolUse) to have run first to create snapshots</div>
+<div class="reason"><span class="ri">&#x2022;</span> Requires <code>SettingsGuard</code> (PreToolUse) to have run first to create snapshots</div>
     </div>
   </section>
 

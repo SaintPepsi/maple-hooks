@@ -43,3 +43,11 @@ export function parseFrontmatter(content: string): RuleFrontmatter | null {
 
   return { name, events, keywords, body: body.trim() };
 }
+
+// ─── Keyword Matching ───────────────────────────────────────────────────────
+
+export function matchesKeywords(prompt: string, keywords: string[]): boolean {
+  if (keywords.length === 0) return false;
+  const lower = prompt.toLowerCase();
+  return keywords.some((kw) => lower.includes(kw.toLowerCase()));
+}

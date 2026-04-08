@@ -1875,7 +1875,7 @@ This eliminates the need to parse or pattern-match commands. The protection work
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p><strong>Bash commands</strong>: Reads the current content of both settings files and writes snapshots to <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code>. Returns <code>continue</code> so the command proceeds normally. The paired PostToolUse hook (<code>SettingsProtectorPost</code>) compares the files after execution and reverts any unauthorized changes.</p></div>
+          <div class="step-content"><p><strong>Bash commands</strong>: Reads the current content of both settings files and writes snapshots to <code>/tmp/pai-settings-snapshot-{session_id}-{filename}</code>. Returns <code>continue</code> so the command proceeds normally. The paired PostToolUse hook (<code>SettingsRevert</code>) compares the files after execution and reverts any unauthorized changes.</p></div>
         </div>
 </div>
       
@@ -1884,7 +1884,7 @@ This eliminates the need to parse or pattern-match commands. The protection work
       </div>
       
       <div class="uc-example">
-        <div>A Bash command runs <code>python3 -c "open('settings.json','w')..."</code>. The command completes, but SettingsProtectorPost detects the change and reverts settings.json to its pre-command state, injecting an error message.</div>
+        <div>A Bash command runs <code>python3 -c "open('settings.json','w')..."</code>. The command completes, but SettingsRevert detects the change and reverts settings.json to its pre-command state, injecting an error message.</div>
       </div>
     </div>
   </section>
@@ -1953,7 +1953,7 @@ Bash { command: "python3 -c \"...writeFileSync('settings.json')...\"" }
       <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for snapshot and audit I/O</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getFilePath</code> for extracting file paths from tool input</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code>, <code>getPaiDir</code> for logging and base directory</div>
-<div class="reason"><span class="ri">&#x2022;</span> Paired with <code>SettingsProtectorPost</code> (PostToolUse) for the revert mechanism</div>
+<div class="reason"><span class="ri">&#x2022;</span> Paired with <code>SettingsRevert</code> (PostToolUse) for the revert mechanism</div>
     </div>
   </section>
 
