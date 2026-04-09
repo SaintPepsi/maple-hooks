@@ -269,19 +269,7 @@ export function matchesPathPattern(
 }
 
 function loadPatterns(deps: SecurityValidatorDeps): PatternsConfig {
-  const userPath = join(deps.baseDir, "PAI", "USER", "PAISECURITYSYSTEM", "patterns.yaml");
-  const systemPath = join(deps.baseDir, "PAI", "PAISECURITYSYSTEM", "patterns.example.yaml");
-
-  const patternsPath = deps.fileExists(userPath)
-    ? userPath
-    : deps.fileExists(systemPath)
-      ? systemPath
-      : null;
-  if (!patternsPath) {
-    deps.stderr("[SecurityValidator] WARNING: No security patterns file found — all validation bypassed");
-    return EMPTY_PATTERNS;
-  }
-
+  const patternsPath = join(import.meta.dir, "..", "patterns.yaml");
   const result = deps.readFile(patternsPath);
   if (!result.ok) {
     deps.stderr(`[SecurityValidator] WARNING: Failed to read ${patternsPath} — all validation bypassed`);

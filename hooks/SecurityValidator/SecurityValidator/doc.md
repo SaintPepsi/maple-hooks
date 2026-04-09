@@ -26,7 +26,7 @@ It does **not** fire when:
 
 ## What It Does
 
-1. Loads security patterns from `PAI/USER/PAISECURITYSYSTEM/patterns.yaml` (user) or `PAI/PAISECURITYSYSTEM/patterns.example.yaml` (system fallback)
+1. Loads security patterns from `hooks/SecurityValidator/patterns.yaml` (collocated with the hook)
 2. For Bash commands:
    - Strips environment variable prefixes from the command
    - Checks against blocked patterns (hard block via exit code 2)

@@ -69,7 +69,7 @@ spawnAgent({
 ```
 
 The hardening prompt instructs the agent to:
-1. Read `~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml`
+1. Read `hooks/SecurityValidator/patterns.yaml` (collocated with the hook)
 2. Add a `blocked` entry under `bash.blocked` that catches this command
 3. Keep the pattern specific enough to avoid false positives
 4. Use `reason: "Auto-hardened: {description} (caught {date})"` for traceability

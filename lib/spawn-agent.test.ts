@@ -85,6 +85,9 @@ describe("spawnAgent", () => {
     expect(parsed.model).toBe("opus");
     expect(parsed.maxTurns).toBe(5);
     expect(parsed.timeout).toBe(300_000);
+    expect(parsed.lockPath).toBe(config.lockPath);
+    expect(parsed.logPath).toBe(config.logPath);
+    expect(parsed.source).toBe(config.source);
   });
 
   // ─── Writes lock file before spawning ──────────────────────────────────────

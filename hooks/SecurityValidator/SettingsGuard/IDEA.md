@@ -19,6 +19,12 @@ This eliminates the need to parse or pattern-match commands. The protection work
 4. If the content differs from the snapshot, the original content is written back (reverted)
 5. An error message is injected into the AI's context explaining the revert and instructing it not to retry
 
+## Relationship to SecurityValidator
+
+SettingsGuard is the **primary protection** for settings files. It handles the common case: direct edits get a confirmation prompt, and shell commands are covered by the snapshot/revert cycle. This is the first line of defense and the one that catches all bypass vectors.
+
+SecurityValidator's `confirmWrite` path rule for settings.json acts as a **failure fallback**. If SettingsGuard fails to load, is misconfigured, or is temporarily disabled, SecurityValidator still blocks direct writes and catches known shell write patterns (sed -i, cp, mv, redirects). It cannot catch novel write vectors the way the snapshot approach can, but it provides defense-in-depth.
+
 ## Signals
 
 **Input:**

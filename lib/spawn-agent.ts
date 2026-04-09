@@ -111,6 +111,10 @@ export function spawnAgent(
     model: config.model ?? DEFAULT_MODEL,
     maxTurns: config.maxTurns ?? DEFAULT_MAX_TURNS,
     timeout: config.timeout ?? DEFAULT_TIMEOUT,
+    lockPath: config.lockPath,
+    logPath: config.logPath,
+    source: config.source,
+    cwd: config.cwd,
   };
 
   const spawnOpts = config.cwd ? { cwd: config.cwd } : undefined;

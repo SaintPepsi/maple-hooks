@@ -18,6 +18,10 @@ Intercept every shell command and file operation before execution. Match them ag
 4. For shell commands that write files (sed -i, cp, mv, tee, redirects, inline scripts): extract write targets and validate them against path rules.
 5. Return block, confirm, alert, or allow — and log all non-trivial events to structured files.
 
+## Relationship to SettingsGuard
+
+For settings.json protection specifically, SecurityValidator acts as a **failure fallback**. The primary protection is SettingsGuard, which uses a snapshot/revert approach that catches all write vectors regardless of method. SecurityValidator's `confirmWrite` path rule and `extractWriteTargets()` pattern matching provide defense-in-depth — if SettingsGuard fails to load or is disabled, SecurityValidator still blocks direct writes and known shell write patterns (sed -i, cp, mv, redirects, inline scripts). It cannot catch novel vectors the way snapshot/revert can, but it prevents the most common bypass attempts pre-execution rather than reverting post-execution.
+
 ## Signals
 
 - **Input:** Tool name and arguments (command string or file path) on every tool invocation

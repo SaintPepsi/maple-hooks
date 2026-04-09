@@ -9,9 +9,9 @@ describe("buildHardeningPrompt", () => {
     expect(prompt).toContain(BYPASS_COMMAND);
   });
 
-  it("references PAI/USER/PAISECURITYSYSTEM/patterns.yaml path", () => {
+  it("references collocated patterns.yaml path", () => {
     const prompt = buildHardeningPrompt(BYPASS_COMMAND);
-    expect(prompt).toContain("PAI/USER/PAISECURITYSYSTEM/patterns.yaml");
+    expect(prompt).toContain("hooks/SecurityValidator/patterns.yaml");
   });
 
   it("instructs to add under bash.blocked", () => {

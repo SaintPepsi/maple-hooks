@@ -7,7 +7,7 @@
  * security patterns file.
  */
 
-const PATTERNS_PATH = "~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml";
+const PATTERNS_PATH = "~/.claude/pai-hooks/hooks/SecurityValidator/patterns.yaml";
 const TEST_CMD = "cd ~/.claude/pai-hooks && bun test hooks/SecurityValidator/SecurityValidator/SecurityValidator.test.ts";
 
 /**

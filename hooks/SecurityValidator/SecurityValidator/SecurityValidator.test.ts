@@ -7,8 +7,8 @@
 
 import { describe, expect, it } from "bun:test";
 import { createRegex, safeRegexTest } from "@hooks/core/adapters/regex";
-import { ErrorCode } from "@hooks/core/error";
-import { ok } from "@hooks/core/result";
+import { ErrorCode, fileNotFound } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
   extractWriteTargets,
@@ -53,10 +53,8 @@ const TEST_YAML = [
 // ─── Mock Deps Factory ────────────────────────────────────────────────────────
 
 function makeDeps(overrides: Partial<SecurityValidatorDeps> = {}): SecurityValidatorDeps {
-  const userPatternPath = "/tmp/test/PAI/USER/PAISECURITYSYSTEM/patterns.yaml";
-
   return {
-    fileExists: (path: string) => path === userPatternPath,
+    fileExists: (path: string) => path.endsWith("patterns.yaml"),
     readFile: (_path: string) => ok(TEST_YAML),
     writeFile: (_path: string, _content: string) => ok(undefined),
     ensureDir: (_path: string) => ok(undefined),
@@ -631,7 +629,7 @@ describe("SecurityValidator.execute() — bash tool substitution bypass", () => 
 describe("SecurityValidator.execute() — patterns fallback", () => {
   it("fails open when no patterns file exists (allows everything)", () => {
     const deps = makeDeps({
-      fileExists: () => false,
+      readFile: () => err(fileNotFound("patterns.yaml")),
     });
     const input = makeInput("Bash", { command: "r" + "m -r" + "f /" });
     const result = SecurityValidator.execute(input, deps);
