@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
+import type { SpawnAgentConfig } from "@hooks/lib/spawn-agent";
 import {
   SettingsRevert,
   type SettingsRevertDeps,
@@ -34,6 +35,7 @@ function postDeps(fs: FakeFS, overrides: Partial<SettingsRevertDeps> = {}): Sett
     appendFile: (p, c) => { const prev = fs.get(p) || ""; fs.set(p, prev + c); return ok(undefined as void); },
     ensureDir: () => ok(undefined as void),
     baseDir: "/fake/pai",
+    spawnAgent: () => ok(undefined as void),
     ...overrides,
   };
 }
@@ -196,5 +198,74 @@ describe("SettingsRevert.execute — revert", () => {
       expect(result.value.additionalContext).toContain("Do NOT attempt");
       expect(result.value.additionalContext).toContain("shell escapes");
     }
+  });
+});
+
+// ─── execute: spawnAgent hardening ─────────────────────────────────────────
+
+describe("SettingsRevert.execute — spawnAgent hardening", () => {
+  it("calls spawnAgent after revert with correct source", () => {
+    const calls: SpawnAgentConfig[] = [];
+    const fs: FakeFS = new Map([
+      [SETTINGS_PATH, MODIFIED],
+      [SNAP_MAIN, ORIGINAL],
+    ]);
+    const deps = postDeps(fs, {
+      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
+    });
+
+    SettingsRevert.execute(bashInput("python3 -c 'bypass'"), deps);
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].source).toBe("SettingsRevert");
+  });
+
+  it("does NOT call spawnAgent when no revert happens", () => {
+    const calls: SpawnAgentConfig[] = [];
+    const fs: FakeFS = new Map([
+      [SETTINGS_PATH, ORIGINAL],
+      [SNAP_MAIN, ORIGINAL],
+    ]);
+    const deps = postDeps(fs, {
+      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
+    });
+
+    SettingsRevert.execute(bashInput("git status"), deps);
+
+    expect(calls.length).toBe(0);
+  });
+
+  it("passes the bypass command in the prompt", () => {
+    const calls: SpawnAgentConfig[] = [];
+    const fs: FakeFS = new Map([
+      [SETTINGS_PATH, MODIFIED],
+      [SNAP_MAIN, ORIGINAL],
+    ]);
+    const deps = postDeps(fs, {
+      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
+    });
+
+    const bypassCmd = "jq '.hooks.enabled = false' ~/.claude/settings.json";
+    SettingsRevert.execute(bashInput(bypassCmd), deps);
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].prompt).toContain(bypassCmd);
+  });
+
+  it("uses correct lockPath and logPath", () => {
+    const calls: SpawnAgentConfig[] = [];
+    const fs: FakeFS = new Map([
+      [SETTINGS_PATH, MODIFIED],
+      [SNAP_MAIN, ORIGINAL],
+    ]);
+    const deps = postDeps(fs, {
+      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
+    });
+
+    SettingsRevert.execute(bashInput("sed ..."), deps);
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].lockPath).toBe("/tmp/pai-hardening-agent.lock");
+    expect(calls[0].logPath).toContain("MEMORY/SECURITY/hardening-log.jsonl");
   });
 });

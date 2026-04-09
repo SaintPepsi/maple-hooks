@@ -23,6 +23,9 @@ import type { ContinueOutput, SilentOutput } from "@hooks/core/types/hook-output
 import { snapshotPath, logSettingsAudit } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
 import type { AuditLogDeps } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { spawnAgent, type SpawnAgentConfig } from "@hooks/lib/spawn-agent";
+import { buildHardeningPrompt } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
+import { join } from "node:path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +35,7 @@ export interface SettingsRevertDeps extends AuditLogDeps {
   readFile: (path: string) => Result<string, ResultError>;
   writeFile: (path: string, content: string) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
+  spawnAgent: (config: SpawnAgentConfig) => Result<void, ResultError>;
 }
 
 // ─── Pure Logic ─────────────────────────────────────────────────────────────
@@ -90,7 +94,8 @@ function compareAndRevert(
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
-import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
+import { appendFile, ensureDir, removeFile } from "@hooks/core/adapters/fs";
+import { spawnBackground } from "@hooks/core/adapters/process";
 
 const defaultDeps: SettingsRevertDeps = {
   homedir: () => process.env.HOME || "/",
@@ -101,6 +106,16 @@ const defaultDeps: SettingsRevertDeps = {
   appendFile,
   ensureDir,
   baseDir: getPaiDir(),
+  spawnAgent: (config) => spawnAgent(config, {
+    fileExists,
+    readFile,
+    writeFile,
+    appendFile,
+    removeFile,
+    spawnBackground,
+    runnerPath: join(getPaiDir(), "pai-hooks/runners/agent-runner.ts"),
+    stderr: defaultStderr,
+  }),
 };
 
 export const SettingsRevert: SyncHookContract<
@@ -132,6 +147,16 @@ export const SettingsRevert: SyncHookContract<
       action,
       command,
     }, deps);
+
+    if (reverted.length > 0) {
+      deps.spawnAgent({
+        prompt: buildHardeningPrompt(command),
+        lockPath: "/tmp/pai-hardening-agent.lock",
+        logPath: join(deps.baseDir, "MEMORY/SECURITY/hardening-log.jsonl"),
+        source: "SettingsRevert",
+        reason: `bypass: ${command.slice(0, 200)}`,
+      });
+    }
 
     if (reverted.length === 0) {
       return ok(silent());
