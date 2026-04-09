@@ -56,10 +56,7 @@ const SILENT: SilentOutput = { type: "silent" };
 
 const DEFAULT_CONFIG: SteeringRuleConfig = {
   enabled: true,
-  includes: [
-    "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/*.md",
-    "${HOME}/.claude/PAI/USER/rules/*.md",
-  ],
+  includes: [],
   trackerDir: "MEMORY/STATE/.injections",
 };
 
