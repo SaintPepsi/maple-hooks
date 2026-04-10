@@ -1,7 +1,7 @@
 ---
 name: follow-established-patterns-in-directory
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [Write, create]
 ---
 
 Before creating a new file, read 2-3 existing files in that directory. Match their patterns.

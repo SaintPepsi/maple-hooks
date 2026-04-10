@@ -1,7 +1,7 @@
 ---
 name: coding-standards-are-not-optional-changes
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [Edit, Write]
 ---
 
 Follow coding standard principles in ALL code, not just PAI. Coding standards apply to all touched code.

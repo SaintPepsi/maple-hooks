@@ -1,6 +1,6 @@
 ---
 name: write-before-compacting
-events: [SessionStart]
+events: [PreCompact]
 keywords: []
 ---
 

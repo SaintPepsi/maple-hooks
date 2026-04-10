@@ -1,6 +1,6 @@
 ---
 name: reconfirm-understanding-after-being-corrected
-events: [SessionStart]
+events: [UserPromptSubmit]
 keywords: []
 ---
 

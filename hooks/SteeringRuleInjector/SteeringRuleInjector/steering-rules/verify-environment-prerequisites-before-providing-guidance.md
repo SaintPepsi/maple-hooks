@@ -1,7 +1,7 @@
 ---
 name: verify-environment-prerequisites-before-providing-guidance
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [localhost, deploy, server, url]
 ---
 
 Before telling Ian to access a URL, run a command that depends on a service, or claim infrastructure is working, verify the prerequisite environment state first. Check that servers are running, hooks have fired, dependencies are installed, and services are accessible. Existing rules cover post-action verification and sequential instruction delivery — this rule covers pre-advice verification.

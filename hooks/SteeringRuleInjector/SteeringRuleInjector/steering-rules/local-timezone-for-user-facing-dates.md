@@ -1,7 +1,7 @@
 ---
 name: local-timezone-for-user-facing-dates
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [date, timestamp, timezone, .ts, Edit, Write]
 ---
 
 When deriving a calendar date from a timestamp for display, storage, or grouping (e.g. "which day did this session happen?"), always convert to the user's local timezone first. Never extract dates by slicing UTC strings.

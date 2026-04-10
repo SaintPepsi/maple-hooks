@@ -1,7 +1,7 @@
 ---
 name: check-git-remote-before-push
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [push, remote, origin]
 ---
 
 **Statement:** Run `git remote -v` before pushing to verify correct repository.

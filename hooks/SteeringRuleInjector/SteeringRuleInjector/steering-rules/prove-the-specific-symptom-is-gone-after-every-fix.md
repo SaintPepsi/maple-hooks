@@ -1,7 +1,7 @@
 ---
 name: prove-the-specific-symptom-is-gone-after-every-fix
-events: [SessionStart]
-keywords: []
+events: [PostToolUse]
+keywords: [Edit, Write, Bash]
 ---
 
 After applying a fix, prove the SPECIFIC reported symptom is resolved using the appropriate proof mechanism. Don't just confirm the edit was made. Each fix type has a required proof:

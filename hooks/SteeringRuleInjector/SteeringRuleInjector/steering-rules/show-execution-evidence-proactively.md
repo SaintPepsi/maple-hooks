@@ -1,7 +1,7 @@
 ---
 name: show-execution-evidence-proactively
-events: [SessionStart]
-keywords: []
+events: [PostToolUse]
+keywords: [Bash, Edit, Write]
 ---
 
 Show actual output proving real execution. Don't just report steps taken.

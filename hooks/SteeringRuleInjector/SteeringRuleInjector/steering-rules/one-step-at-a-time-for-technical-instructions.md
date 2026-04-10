@@ -1,6 +1,6 @@
 ---
 name: one-step-at-a-time-for-technical-instructions
-events: [SessionStart]
+events: [UserPromptSubmit]
 keywords: []
 ---
 

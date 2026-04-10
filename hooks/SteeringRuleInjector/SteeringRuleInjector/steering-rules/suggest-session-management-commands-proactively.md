@@ -1,6 +1,6 @@
 ---
 name: suggest-session-management-commands-proactively
-events: [SessionStart]
+events: [UserPromptSubmit]
 keywords: []
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: dont-modify-user-content-without-asking
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [Edit, Write]
 ---
 
 **Statement:** Never edit quotes, user-written text without permission.

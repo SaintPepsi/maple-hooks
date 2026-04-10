@@ -1,7 +1,7 @@
 ---
 name: improve-touched-files
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [Edit, Write]
 ---
 
 Every file you touch should leave better than you found it. This is Kaizen — continuous, incremental improvement. Even a 1% improvement on every touch compounds into transformative quality gains over time. No big bang cleanups needed when every pass raises the bar.

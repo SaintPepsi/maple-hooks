@@ -1,7 +1,7 @@
 ---
 name: verify-issues-through-sad-path-code
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [bug, issue, investigate, confirm]
 ---
 
 When scoping, investigating, or confirming a bug, write and run code that exercises the ACTUAL broken code path. Not static analysis that reads source files and checks for string patterns — that's just restating what you already read. Import the real modules, call the real functions, trigger the real failure, and show the output. For server/daemon bugs: start the service (or a minimal mock), trigger the scenario, observe the result. For logic bugs: call the function with the failing input, show the wrong output. For missing features: exercise the code path that should handle it and show the gap. The verification script IS the evidence. If the script exits 0, the bug is confirmed. If it exits 1, the hypothesis was wrong. These scripts live in `scripts/verify-{issue}-{description}.ts` and are committed alongside the issue scoping work.

@@ -1,7 +1,7 @@
 ---
 name: check-for-regressions-after-fixes
-events: [SessionStart]
-keywords: []
+events: [PostToolUse]
+keywords: [Edit, Write]
 ---
 
 After applying any fix, verify that adjacent functionality still works. Run existing tests. If fixing a UI component, check sibling components and animations. A fix that solves one problem and creates another is not a fix.

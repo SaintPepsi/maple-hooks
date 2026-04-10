@@ -1,6 +1,6 @@
 ---
 name: lead-with-the-point-and-define-terms-before-using-them
-events: [SessionStart]
+events: [UserPromptSubmit]
 keywords: []
 ---
 

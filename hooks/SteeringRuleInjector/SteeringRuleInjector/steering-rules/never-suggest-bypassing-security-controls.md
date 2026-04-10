@@ -1,7 +1,7 @@
 ---
 name: never-suggest-bypassing-security-controls
-events: [SessionStart]
-keywords: []
+events: [PreToolUse, UserPromptSubmit]
+keywords: [permission, security, bypass, disable]
 ---
 
 When a security mechanism blocks an action, fix the root cause. Investigate why the control is blocking, then resolve the underlying issue so the action works within the security model. If the security control is incorrectly configured, fix the configuration. If the action is legitimately dangerous, explain why and propose a safe alternative.

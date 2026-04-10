@@ -1,7 +1,7 @@
 ---
 name: verify-visual-changes-with-screenshots
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [.css, .scss, .svelte, style]
 ---
 
 **Statement:** For CSS/layout, use Browser skill to verify result.

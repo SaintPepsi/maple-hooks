@@ -1,7 +1,7 @@
 ---
 name: ask-before-production-deployments
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [deploy, production, release]
 ---
 
 **Statement:** Never deploy to production without explicit approval.

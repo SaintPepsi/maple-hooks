@@ -1,7 +1,7 @@
 ---
 name: commit-and-push-when-finished-never-merge-without-approval
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [commit, push, merge, pr]
 ---
 
 When work is complete, commit and push immediately. Do not ask "want me to commit?" or "want me to push?" — just do it. However, NEVER merge a PR or merge branches without explicit approval from Ian. Merging affects shared state and other contributors.

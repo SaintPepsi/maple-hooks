@@ -1,7 +1,7 @@
 ---
 name: analysis-includes-action-fix-what-you-find
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [review, audit, analyze, check]
 ---
 
 When analysis, review, or audit work reveals issues, the response depends on the fix complexity. Mechanical/obvious fixes (typos, missing imports, clear violations of established rules, one-line corrections): fix them in the same pass and report what you found and what you fixed. Non-trivial fixes (refactors, architectural changes, ambiguous trade-offs, changes that could break other things): present the evidence and ask before fixing. The default for simple issues is action. The default for complex issues is evidence-first. Never just catalog problems and stop — either fix them or explicitly present them for a decision. Never dismiss findings as "pre-existing" or "from prior commits" — that label is a rationalization to avoid work, and the assessment of what is or isn't pre-existing can itself be wrong. Every finding requires action regardless of when it was introduced.

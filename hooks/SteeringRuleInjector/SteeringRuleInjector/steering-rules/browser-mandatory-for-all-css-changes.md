@@ -1,7 +1,7 @@
 ---
 name: browser-mandatory-for-all-css-changes
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [.css, .scss, .less, style]
 ---
 
 Every CSS change requires before/after screenshots via Browser skill. No exceptions.

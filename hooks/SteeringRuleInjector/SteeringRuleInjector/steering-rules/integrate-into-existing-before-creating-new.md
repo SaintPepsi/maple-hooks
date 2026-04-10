@@ -1,7 +1,7 @@
 ---
 name: integrate-into-existing-before-creating-new
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [Write, create]
 ---
 
 When asked to add functionality, first check whether it fits into an existing file, test, component, or module. The default should be to modify existing code, not create new files. Ask: "Is there an existing structure this belongs in?" Only create something new when the addition is genuinely unrelated to anything that exists, or when adding it to an existing file would violate SRP.

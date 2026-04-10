@@ -1,6 +1,6 @@
 ---
 name: confirm-format-for-novel-deliverables
-events: [SessionStart]
+events: [UserPromptSubmit]
 keywords: []
 ---
 

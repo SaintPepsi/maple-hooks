@@ -1,7 +1,7 @@
 ---
 name: check-known-preferences-before-recommending
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [recommend, suggest, use, framework, library]
 ---
 
 When recommending a technology, language, framework, or output format NOT already in use in the current project, check memory and context for relevant user preferences before suggesting. Ian has strong technology aversions (Python) and presentation preferences (pixel art identity, no name personalization in technical output) that have been stated explicitly. Default to what the project already uses.

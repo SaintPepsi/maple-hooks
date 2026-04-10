@@ -1,7 +1,7 @@
 ---
 name: verify-factual-claims-in-articles
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [article, blog, post, write]
 ---
 
 After writing articles, verify every factual claim against actual codebase. Dates, counts, paths, names.

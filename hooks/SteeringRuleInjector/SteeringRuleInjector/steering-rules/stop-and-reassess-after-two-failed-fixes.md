@@ -1,7 +1,7 @@
 ---
 name: stop-and-reassess-after-two-failed-fixes
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [fix, error, fail, broken, bug]
 ---
 
 Two fix attempts fail → STOP. State what was tried and why. Propose fundamentally different approach. Doesn't apply to exploratory work.

@@ -1,7 +1,7 @@
 ---
 name: use-existing-patterns-before-custom-logic
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [Edit, Write]
 ---
 
 Check for existing patterns/libraries first. Match working code rather than inventing new approaches.

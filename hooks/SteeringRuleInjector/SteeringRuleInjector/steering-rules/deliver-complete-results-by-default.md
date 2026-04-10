@@ -1,6 +1,6 @@
 ---
 name: deliver-complete-results-by-default
-events: [SessionStart]
+events: [UserPromptSubmit]
 keywords: []
 ---
 
