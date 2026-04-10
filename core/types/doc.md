@@ -10,6 +10,7 @@ Typed input and output interfaces for all Claude Code hook events. Provides type
 ## Key Types
 
 - `ToolHookInput` — Used by PreToolUse and PostToolUse hooks. Contains `tool_name`, `tool_input`, optional `tool_response`.
+- `StopInput` — Used by Stop hooks. Contains optional `transcript_path`, `last_assistant_message` (text of Claude's final response), and `stop_hook_active`.
 - `PermissionRequestInput` — Used by PermissionRequest hooks. Contains `tool_name`, `tool_input`, optional `permission_mode` and `permission_suggestions`.
 - `HookInput` — Union of all input types. Used by the runner for generic dispatch.
 - `HookOutput` — Union of all output types. Used by the runner for formatting.
