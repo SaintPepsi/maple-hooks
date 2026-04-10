@@ -1824,7 +1824,7 @@ At the end of each session, evaluate whether enough new learning has accumulated
         <h3>Overview</h3>
       </div>
       <p>LearningActioner spawns a background analysis agent that reads accumulated learning signals (reflections, ratings, quality violations, and learning files) and produces structured improvement proposals. It uses a credit accumulation system based on API usage to control spawn frequency: each session end accumulates credit proportional to available capacity, and the agent only spawns when credit reaches the threshold of 10 (roughly equivalent to 10 low-usage sessions or 5 hours of work).</p>
-      <p>The spawned agent (via <code>learning-agent-runner.ts</code>) runs Claude with a detailed prompt that reads learning sources, studies the historical proposal corpus for calibration, and writes 0-3 evidence-backed proposals to <code>MEMORY/LEARNING/PROPOSALS/pending/</code>. A lock file with 45-minute stale timeout prevents concurrent agents, and the runner handles cleanup in a finally block.</p>
+      <p>The spawned agent (via <code>run-learning-agent.ts</code> → <code>spawnAgent()</code> → <code>agent-runner.ts</code>) runs Claude with a detailed prompt that reads learning sources, studies the historical proposal corpus for calibration, and writes 0-3 evidence-backed proposals to <code>MEMORY/LEARNING/PROPOSALS/pending/</code>. A lock file with 45-minute stale timeout prevents concurrent agents, and the generic agent-runner handles cleanup in a finally block.</p>
     </div>
   </section>
 
@@ -1896,7 +1896,7 @@ At the end of each session, evaluate whether enough new learning has accumulated
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Writes the lock file and spawns <code>learning-agent-runner.ts</code> as a background process</p></div>
+          <div class="step-content"><p>Calls <code>runLearningAgent()</code> which delegates to <code>spawnAgent()</code> for lock creation, traceability logging, and background spawning via the generic <code>agent-runner.ts</code></p></div>
         </div>
 </div>
       
@@ -1916,9 +1916,8 @@ if (!creditResult.shouldSpawn) return ok({ type: "silent" });
 // Gate: learning sources must exist
 if (!hasLearningSources(deps.baseDir, deps)) return ok({ type: "silent" });
 
-// Spawn analysis agent
-deps.writeFile(lockPath, deps.getISOTimestamp());
-deps.spawnBackground("bun", [wrapperPath, deps.baseDir]);</div>
+// Spawn analysis agent via shared infrastructure
+deps.runLearningAgent();</div>
         </div>
       </div>
     </div>
@@ -1967,9 +1966,9 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir]);</div>
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>File operations for lock, credit state, and learning sources</td></tr>
-          <tr><td><code>core/adapters/process</code></td><td>adapter</td><td>Spawns background analysis agent</td></tr>
-          <tr><td><code>lib/time</code></td><td>lib</td><td>ISO timestamps for lock files and credit state</td></tr>
-          <tr><td><code>learning-agent-runner.ts</code></td><td>runner</td><td>Background wrapper that runs claude with the analysis prompt</td></tr>
+          <tr><td><code>run-learning-agent.ts</code></td><td>wrapper</td><td>Thin wrapper that calls <code>spawnAgent()</code> with learning-agent config</td></tr>
+          <tr><td><code>lib/spawn-agent</code></td><td>lib</td><td>Shared agent spawning with lock/log/traceability</td></tr>
+          <tr><td><code>runners/agent-runner.ts</code></td><td>runner</td><td>Generic background runner for all hook agents</td></tr>
           <tr><td><code>core/result</code></td><td>core</td><td>Result type for error handling</td></tr>
         </tbody>
       </table>

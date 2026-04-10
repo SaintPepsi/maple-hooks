@@ -1823,7 +1823,7 @@ At session end, check whether the session produced substantial work (measured by
         <h3>Overview</h3>
       </div>
       <p>ArticleWriter spawns a background agent to write blog articles for the AI's personal column on the principal's website. It runs at session end, checking three gates before spawning: the website repo must exist on disk, no other article-writing agent can be running (lock file with 30-minute stale timeout), and the session must have substantial work (PRD with 4+ checked criteria).</p>
-      <p>The spawned agent (via <code>article-writer-runner.ts</code>) hunts through PAI memory for compelling stories, writes an article matching a detailed voice guide, creates a PR in the website repo, and tracks the article in MEMORY/ARTICLES/. The runner handles lock cleanup deterministically in a finally block.</p>
+      <p>The spawned agent (via <code>run-article-writer.ts</code> → <code>spawnAgent()</code> → <code>agent-runner.ts</code>) hunts through PAI memory for compelling stories, writes an article matching a detailed voice guide, creates a PR in the website repo, and tracks the article in MEMORY/ARTICLES/. The generic agent-runner handles lock cleanup deterministically in a finally block.</p>
     </div>
   </section>
 
@@ -1887,12 +1887,7 @@ At session end, check whether the session produced substantial work (measured by
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Writes a lock file with the current timestamp</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">6</div>
-          <div class="step-content"><p>Spawns <code>article-writer-runner.ts</code> as a background process with the base directory and session ID</p></div>
+          <div class="step-content"><p>Calls <code>runArticleWriter(sessionId)</code> which resolves the GitHub repo to a local cache, builds the prompt, and delegates to <code>spawnAgent()</code> for lock creation, traceability logging, and background spawning via the generic <code>agent-runner.ts</code></p></div>
         </div>
 </div>
       
@@ -1908,8 +1903,7 @@ if (!hasWebsiteRepo(deps)) return ok({ type: "silent" });
 if (deps.fileExists(lockPath) &amp;&amp; isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) return ok({ type: "silent" });
 if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps)) return ok({ type: "silent" });
 
-deps.writeFile(lockPath, deps.getISOTimestamp());
-deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);</div>
+deps.runArticleWriter(input.session_id);</div>
         </div>
       </div>
     </div>
@@ -1926,7 +1920,7 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);</div
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Substantial session triggers article</h3>
       
       <div class="uc-example">
-        <div>You complete a session with a PRD that has 6 checked criteria. No lock file exists. ArticleWriter writes the <code>.writing</code> lock and spawns the article-writer-runner, which reads PAI memory, writes an article matching the voice guide, generates audio, creates a git branch, and opens a PR on the website repo.</div>
+        <div>You complete a session with a PRD that has 6 checked criteria. No lock file exists. ArticleWriter calls <code>runArticleWriter()</code> which resolves the website repo, builds the prompt, and spawns the agent via <code>spawnAgent()</code>. The agent reads PAI memory, writes an article matching the voice guide, generates audio, creates a git branch, and opens a PR on the website repo.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
@@ -1958,11 +1952,11 @@ deps.spawnBackground("bun", [wrapperPath, deps.baseDir, input.session_id]);</div
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>core/adapters/fs</code></td><td>adapter</td><td>File operations (read, write, exists, stat, remove, ensureDir)</td></tr>
-          <tr><td><code>core/adapters/process</code></td><td>adapter</td><td>Spawns background agent process</td></tr>
-          <tr><td><code>lib/time</code></td><td>lib</td><td>ISO timestamp generation</td></tr>
+          <tr><td><code>run-article-writer.ts</code></td><td>wrapper</td><td>Resolves repo, builds prompt, calls <code>spawnAgent()</code></td></tr>
+          <tr><td><code>lib/spawn-agent</code></td><td>lib</td><td>Shared agent spawning with lock/log/traceability</td></tr>
+          <tr><td><code>runners/agent-runner.ts</code></td><td>runner</td><td>Generic background runner for all hook agents</td></tr>
           <tr><td><code>lib/identity</code></td><td>lib</td><td>Reads DA name and principal name</td></tr>
           <tr><td><code>lib/hook-config</code></td><td>lib</td><td>Reads <code>hookConfig.articleWriter</code> for repo path</td></tr>
-          <tr><td><code>article-writer-runner.ts</code></td><td>runner</td><td>Background wrapper that runs claude with the article prompt</td></tr>
         </tbody>
       </table>
     </div>

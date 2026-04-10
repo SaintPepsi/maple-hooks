@@ -5,6 +5,7 @@ Typed input and output interfaces for all Claude Code hook events. Provides type
 ## Files
 
 - **hook-inputs.ts** — Input types for each hook event (PreToolUse, PostToolUse, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Stop, SubagentStart, SubagentStop, PermissionRequest)
+- **hook-input-schema.ts** — Effect Schema discriminated union on `hook_type`. Provides `parseHookInput(raw)` for validated parsing and `getEventType(input)` for type-safe event resolution. Replaces fragile `"field" in input` / `as Type` casts.
 - **hook-outputs.ts** — Output types (ContinueOutput, BlockOutput, AskOutput, ContextOutput, UpdatedInputOutput, SilentOutput) with factory functions
 
 ## Key Types
