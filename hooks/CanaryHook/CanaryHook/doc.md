@@ -42,3 +42,4 @@ deps.execSyncSafe(`code "${logFile}"`);
 | --- | --- | --- |
 | `core/adapters/fs` | adapter | `appendFile`, `ensureDir` for log file operations |
 | `core/adapters/process` | adapter | `execSyncSafe` to open the log in VS Code |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor) |
