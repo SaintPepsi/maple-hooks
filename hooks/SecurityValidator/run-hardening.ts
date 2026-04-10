@@ -14,7 +14,8 @@
  */
 
 import { join } from "node:path";
-import { buildHardeningPrompt } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
+import { buildHardeningPrompt, buildHardeningFollowUp } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
+import { fileExists, readFile } from "@hooks/core/adapters/fs";
 import { spawnAgent, type SpawnAgentConfig, type SpawnAgentDeps } from "@hooks/lib/spawn-agent";
 import type { Result } from "@hooks/core/result";
 import type { ResultError } from "@hooks/core/error";
@@ -46,7 +47,10 @@ export function runHardening(
   bypassCommand: string,
   deps: HardeningDeps = defaultDeps,
 ): Result<void, ResultError> {
-  const prompt = buildHardeningPrompt(bypassCommand);
+  const sessionStatePath = join(import.meta.dir, ".hardening-session");
+  const sessionState = fileExists(sessionStatePath) ? readFile(sessionStatePath) : undefined;
+  const hasSession = sessionState?.ok && sessionState.value.trim().length > 0;
+  const prompt = hasSession ? buildHardeningFollowUp(bypassCommand) : buildHardeningPrompt(bypassCommand);
 
   deps.stderr(`[run-hardening] Spawning hardening agent for: ${bypassCommand.slice(0, 100)}`);
 
@@ -60,7 +64,7 @@ export function runHardening(
     maxTurns: 5,
     timeout: 120_000,
     cwd: join(import.meta.dir),
-    sessionStatePath: join(import.meta.dir, ".hardening-session"),
+    sessionStatePath,
     claudeArgs: [
       "--setting-sources", "",
       "--disable-slash-commands",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { buildHardeningPrompt } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
+import { buildHardeningPrompt, buildHardeningFollowUp } from "@hooks/hooks/SecurityValidator/SettingsRevert/hardening-prompt";
 
 const BYPASS_COMMAND = "python3 -c 'import json; json.dump({}, open(\"settings.json\",\"w\"))'";
 
@@ -34,5 +34,24 @@ describe("buildHardeningPrompt", () => {
     const prompt = buildHardeningPrompt(other);
     expect(prompt).toContain(other);
     expect(prompt).toContain("insert_blocked_pattern");
+  });
+});
+
+describe("buildHardeningFollowUp", () => {
+  it("includes the bypass command", () => {
+    const prompt = buildHardeningFollowUp(BYPASS_COMMAND);
+    expect(prompt).toContain(BYPASS_COMMAND);
+  });
+
+  it("does NOT include instructions", () => {
+    const prompt = buildHardeningFollowUp(BYPASS_COMMAND);
+    expect(prompt).not.toContain("insert_blocked_pattern");
+    expect(prompt).not.toContain("get_blocked_patterns");
+  });
+
+  it("is shorter than the full prompt", () => {
+    const full = buildHardeningPrompt(BYPASS_COMMAND);
+    const followUp = buildHardeningFollowUp(BYPASS_COMMAND);
+    expect(followUp.length).toBeLessThan(full.length);
   });
 });

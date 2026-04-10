@@ -7,21 +7,28 @@
  */
 
 /**
- * Build a prompt for a Claude agent that will harden patterns.json
- * using MCP tools (get_blocked_patterns, insert_blocked_pattern).
+ * Build the full prompt for first run — instructions + bypass command.
  */
 export function buildHardeningPrompt(bypassCommand: string): string {
   return `You are a security hardening agent. A bypass command was detected that evaded the current security patterns.
-
-## Bypass Command
-
-${bypassCommand}
 
 ## Instructions
 
 1. Call get_blocked_patterns to check if this vector is already covered.
 2. If not covered, call insert_blocked_pattern with a regex pattern that catches this bypass vector broadly (not just the exact command) and reason "Auto-hardened: <description> (caught ${todayISO()})".
-3. If already covered, do nothing.`;
+3. If already covered, do nothing.
+
+## Bypass Command
+
+${bypassCommand}`;
+}
+
+/**
+ * Build a follow-up prompt for resumed sessions — just the bypass command.
+ * The agent already has the instructions from the first run.
+ */
+export function buildHardeningFollowUp(bypassCommand: string): string {
+  return `New bypass command detected:\n\n${bypassCommand}`;
 }
 
 /** Returns today's date in YYYY-MM-DD format. */

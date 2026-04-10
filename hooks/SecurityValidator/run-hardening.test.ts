@@ -24,7 +24,6 @@ describe("runHardening", () => {
 
     expect(deps._captured.length).toBe(1);
     expect(deps._captured[0].prompt).toContain("python3 evil");
-    expect(deps._captured[0].prompt).toContain("insert_blocked_pattern");
   });
 
   it("sets correct lockPath, logPath, and cwd", () => {
