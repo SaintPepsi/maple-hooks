@@ -1,6 +1,6 @@
 ---
 name: least-privilege-subagents
-events: [SessionStart]
+events: [SubagentStart]
 keywords: []
 ---
 

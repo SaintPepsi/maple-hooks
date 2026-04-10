@@ -1,6 +1,6 @@
 ---
 name: utilize-wait-time-during-background-agents
-events: [SessionStart]
+events: [SubagentStart]
 keywords: []
 ---
 

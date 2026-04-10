@@ -1,6 +1,6 @@
 ---
 name: never-bypass-permissions-for-agents
-events: [SessionStart]
+events: [SubagentStart]
 keywords: []
 ---
 

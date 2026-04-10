@@ -1,7 +1,7 @@
 ---
 name: keep-deps-interfaces-narrow
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [.ts, .tsx, Edit, Write]
 ---
 
 When declaring a Deps interface for dependency injection, specify only the methods and properties the module actually calls. Never use full SDK types (S3Client, typeof fetch). If a test needs `as unknown` to satisfy a Deps interface, the interface is too broad. Narrow it so plain test objects satisfy Deps without casts.

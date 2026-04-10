@@ -1,7 +1,7 @@
 ---
 name: validate-technical-approach-before-committing
-events: [SessionStart]
-keywords: []
+events: [SubagentStart, UserPromptSubmit]
+keywords: [delegate, agent, sub-agent]
 ---
 
 Before delegating implementation work to a sub-agent or committing to a multi-step approach, verify that the core technical assumption works. Write a minimal proof-of-concept: call the API, run the framework method, test the library feature. If the assumption fails, the approach needs to change before anyone writes production code. This is especially critical for delegation: a sub-agent working from a flawed assumption will waste its entire session before discovering the problem. The validation should take minutes, not hours. If the assumption is about a technology you've already validated in the current session, skip the re-test. Having concrete evidence before execution reduces fog-of-war behaviour where agents proceed on assumptions instead of facts.

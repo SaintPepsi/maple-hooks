@@ -1,6 +1,6 @@
 ---
 name: iteration-limits-on-agent-loops
-events: [SessionStart]
+events: [SubagentStart]
 keywords: []
 ---
 

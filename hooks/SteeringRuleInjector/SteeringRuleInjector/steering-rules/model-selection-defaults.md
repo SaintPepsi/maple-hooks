@@ -1,6 +1,6 @@
 ---
 name: model-selection-defaults
-events: [SessionStart]
+events: [SubagentStart]
 keywords: []
 ---
 

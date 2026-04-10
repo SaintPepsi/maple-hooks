@@ -1,7 +1,7 @@
 ---
 name: write-proper-types-not-quick-fixes
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [.ts, .tsx, Edit, Write]
 ---
 
 When TypeScript code needs types, take the time to find and use the correct types. Do not reach for `any` or `unknown` as a first instinct. Read the relevant type definitions, check imported modules for exported types, and define proper interfaces for data shapes. `unknown` is only acceptable when the type is genuinely unknowable AND you add a type guard to narrow it. Speed of completion is never more important than type correctness. This applies to ALL TypeScript code, not just PAI hooks.

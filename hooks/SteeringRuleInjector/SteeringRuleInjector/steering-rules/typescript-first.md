@@ -1,7 +1,7 @@
 ---
 name: typescript-first
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [.sh, .py, .bash, Write]
 ---
 
 Default to TypeScript (bun) for all new scripts. Bash only for git hooks/bootstrap before bun is available.

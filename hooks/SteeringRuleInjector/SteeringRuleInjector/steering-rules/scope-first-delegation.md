@@ -1,6 +1,6 @@
 ---
 name: scope-first-delegation
-events: [SessionStart]
+events: [SubagentStart]
 keywords: []
 ---
 

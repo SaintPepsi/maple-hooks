@@ -1,6 +1,6 @@
 ---
 name: verify-delegated-agent-work-before-reporting
-events: [SessionStart]
+events: [SubagentStart]
 keywords: []
 ---
 
