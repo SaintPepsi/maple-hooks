@@ -6,6 +6,7 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   ensureDir,
   fileExists,
@@ -19,7 +20,6 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { generatePRDFilename, generatePRDTemplate } from "@hooks/lib/prd-template";
 import { getISOTimestamp, getLocalComponents } from "@hooks/lib/time";
@@ -122,11 +122,7 @@ const defaultDeps: AutoWorkCreationDeps = {
   stderr: defaultStderr,
 };
 
-export const AutoWorkCreation: SyncHookContract<
-  UserPromptSubmitInput,
-  SilentOutput,
-  AutoWorkCreationDeps
-> = {
+export const AutoWorkCreation: SyncHookContract<UserPromptSubmitInput, AutoWorkCreationDeps> = {
   name: "AutoWorkCreation",
   event: "UserPromptSubmit",
 
@@ -138,7 +134,7 @@ export const AutoWorkCreation: SyncHookContract<
   execute(
     input: UserPromptSubmitInput,
     deps: AutoWorkCreationDeps,
-  ): Result<SilentOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const prompt = input.prompt || input.user_prompt || "";
     const sessionId = input.session_id || "unknown";
     const workDir = join(deps.baseDir, "MEMORY", "WORK");
@@ -160,7 +156,7 @@ export const AutoWorkCreation: SyncHookContract<
 
     if (classification.type === "conversational" && !classification.is_new_topic) {
       deps.stderr("[AutoWork] Conversational continuation, no new task");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     if (!isExistingSession) {
@@ -236,7 +232,7 @@ export const AutoWorkCreation: SyncHookContract<
       deps.stderr(`[AutoWork] Continuing task: ${currentWork!.current_task}`);
     }
 
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

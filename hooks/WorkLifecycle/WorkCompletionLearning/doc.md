@@ -62,3 +62,4 @@ deps.writeFile(filepath, content);
 | `lib/time` | lib | ISO timestamp and local date generation |
 | `lib/learning-utils` | lib | Categorizes learnings as SYSTEM or ALGORITHM |
 | `core/result` | core | Result type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor) |

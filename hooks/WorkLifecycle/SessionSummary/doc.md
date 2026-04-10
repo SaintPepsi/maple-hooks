@@ -53,3 +53,4 @@ deps.unlinkSync(stateFile);
 | `core/adapters/fs` | adapter | File read/write/remove for state and META.yaml |
 | `lib/time` | lib | ISO timestamp for completion time |
 | `core/result` | core | Result type |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor) |

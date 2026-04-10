@@ -59,3 +59,4 @@ syncWorkJson(slug, entry, workJsonPath, deps);
 | --- | --- | --- |
 | `core/adapters/fs` | adapter | File read/write, existence checks, JSON parsing |
 | `core/result` | core | Result type for error handling pipelines |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type (post-SDK-refactor) |

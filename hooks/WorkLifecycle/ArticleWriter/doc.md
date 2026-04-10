@@ -34,9 +34,9 @@ It does **not** fire when:
 
 ```typescript
 // Three gates, then spawn
-if (!hasWebsiteRepo(deps)) return ok({ type: "silent" });
-if (deps.fileExists(lockPath) && isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) return ok({ type: "silent" });
-if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps)) return ok({ type: "silent" });
+if (!hasWebsiteRepo(deps)) return ok({});
+if (deps.fileExists(lockPath) && isTimestampFresh(lockPath, LOCK_STALE_MS, deps)) return ok({});
+if (!sessionHadSubstantialWork(input.session_id, deps.baseDir, deps)) return ok({});
 
 deps.runArticleWriter(input.session_id);
 ```

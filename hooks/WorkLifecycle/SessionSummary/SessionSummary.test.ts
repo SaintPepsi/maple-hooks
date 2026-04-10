@@ -82,13 +82,13 @@ describe("SessionSummary", () => {
     });
   });
 
-  describe("execute — returns SilentOutput", () => {
-    test("always returns ok with silent type", () => {
+  describe("execute — returns silent output", () => {
+    test("always returns ok with empty output", () => {
       const deps = makeDeps();
       const result = SessionSummary.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
     });
   });
@@ -166,7 +166,6 @@ describe("SessionSummary", () => {
       expect(lastWrittenPath).toBe("");
       expect(deletedPaths).toHaveLength(0);
     });
-
   });
 
   describe("execute — mismatched session ID", () => {
