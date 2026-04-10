@@ -4,28 +4,21 @@
  * Source of truth: @anthropic-ai/claude-agent-sdk hookSpecificOutput discriminated union.
  * Reference: https://code.claude.com/docs/en/agent-sdk/hooks
  *
- * The hookSpecificOutput field is a discriminated union keyed on hookEventName.
- * Only certain events appear in the union — others (PreCompact, Stop, SessionEnd, etc.)
- * cannot use hookSpecificOutput at all.
- *
  * Usage:
- *   import { encodeHookOutput } from "@hooks/core/types/hook-output-schema";
- *   const json = encodeHookOutput(hookOutput, eventName);
- *   if (json !== null) io.write(json);
+ *   import { validateHookOutput } from "@hooks/core/types/hook-output-schema";
+ *   const result = validateHookOutput(contractOutput);
+ *   if (result._tag === "Left") { ... validation failed ... }
  */
 
-import type { HookOutput } from "@hooks/core/types/hook-outputs";
 import { Schema } from "effect";
 
 // ─── hookSpecificOutput variants (discriminated on hookEventName) ────────────
 
 const PreToolUseSpecific = Schema.Struct({
   hookEventName: Schema.Literal("PreToolUse"),
-  permissionDecision: Schema.optional(Schema.Literal("allow", "deny", "ask")),
+  permissionDecision: Schema.optional(Schema.Literal("allow", "deny", "ask", "defer")),
   permissionDecisionReason: Schema.optional(Schema.String),
-  updatedInput: Schema.optional(
-    Schema.Record({ key: Schema.String, value: Schema.Unknown }),
-  ),
+  updatedInput: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
   additionalContext: Schema.optional(Schema.String),
 });
 
@@ -43,11 +36,14 @@ const PostToolUseFailureSpecific = Schema.Struct({
 const UserPromptSubmitSpecific = Schema.Struct({
   hookEventName: Schema.Literal("UserPromptSubmit"),
   additionalContext: Schema.optional(Schema.String),
+  sessionTitle: Schema.optional(Schema.String),
 });
 
 const SessionStartSpecific = Schema.Struct({
   hookEventName: Schema.Literal("SessionStart"),
   additionalContext: Schema.optional(Schema.String),
+  initialUserMessage: Schema.optional(Schema.String),
+  watchPaths: Schema.optional(Schema.Array(Schema.String)),
 });
 
 const SetupSpecific = Schema.Struct({
@@ -70,9 +66,7 @@ const PermissionRequestSpecific = Schema.Struct({
   decision: Schema.Union(
     Schema.Struct({
       behavior: Schema.Literal("allow"),
-      updatedInput: Schema.optional(
-        Schema.Record({ key: Schema.String, value: Schema.Unknown }),
-      ),
+      updatedInput: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
     }),
     Schema.Struct({
       behavior: Schema.Literal("deny"),
@@ -80,6 +74,38 @@ const PermissionRequestSpecific = Schema.Struct({
       interrupt: Schema.optional(Schema.Boolean),
     }),
   ),
+});
+
+const PermissionDeniedSpecific = Schema.Struct({
+  hookEventName: Schema.Literal("PermissionDenied"),
+  retry: Schema.optional(Schema.Boolean),
+});
+
+const ElicitationSpecific = Schema.Struct({
+  hookEventName: Schema.Literal("Elicitation"),
+  action: Schema.optional(Schema.Literal("accept", "decline", "cancel")),
+  content: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+});
+
+const ElicitationResultSpecific = Schema.Struct({
+  hookEventName: Schema.Literal("ElicitationResult"),
+  action: Schema.optional(Schema.Literal("accept", "decline", "cancel")),
+  content: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+});
+
+const CwdChangedSpecific = Schema.Struct({
+  hookEventName: Schema.Literal("CwdChanged"),
+  watchPaths: Schema.optional(Schema.Array(Schema.String)),
+});
+
+const FileChangedSpecific = Schema.Struct({
+  hookEventName: Schema.Literal("FileChanged"),
+  watchPaths: Schema.optional(Schema.Array(Schema.String)),
+});
+
+const WorktreeCreateSpecific = Schema.Struct({
+  hookEventName: Schema.Literal("WorktreeCreate"),
+  worktreePath: Schema.String,
 });
 
 // ─── hookSpecificOutput union ───────────────────────────────────────────────
@@ -94,6 +120,12 @@ export const HookSpecificOutput = Schema.Union(
   SubagentStartSpecific,
   NotificationSpecific,
   PermissionRequestSpecific,
+  PermissionDeniedSpecific,
+  ElicitationSpecific,
+  ElicitationResultSpecific,
+  CwdChangedSpecific,
+  FileChangedSpecific,
+  WorktreeCreateSpecific,
 );
 
 export type HookSpecificOutputType = typeof HookSpecificOutput.Type;
@@ -114,10 +146,6 @@ export type SyncHookJSONOutputType = typeof SyncHookJSONOutput.Type;
 
 // ─── Events that support hookSpecificOutput ─────────────────────────────────
 
-/**
- * Set of event names that appear in the hookSpecificOutput discriminated union.
- * Events not in this set cannot use hookSpecificOutput.
- */
 export const HOOK_SPECIFIC_EVENTS = new Set([
   "PreToolUse",
   "PostToolUse",
@@ -128,6 +156,12 @@ export const HOOK_SPECIFIC_EVENTS = new Set([
   "SubagentStart",
   "Notification",
   "PermissionRequest",
+  "PermissionDenied",
+  "Elicitation",
+  "ElicitationResult",
+  "CwdChanged",
+  "FileChanged",
+  "WorktreeCreate",
 ] as const);
 
 // ─── Validation ─────────────────────────────────────────────────────────────
@@ -138,95 +172,6 @@ const validateSync = Schema.decodeUnknownEither(SyncHookJSONOutput);
  * Validate a raw object against the Claude Code sync hook output schema.
  * Returns Either — Right(output) on success, Left(error) on failure.
  */
-export function validateHookOutput(
-  raw: unknown,
-): ReturnType<typeof validateSync> {
+export function validateHookOutput(raw: unknown): ReturnType<typeof validateSync> {
   return validateSync(raw);
-}
-
-// ─── Encoder: internal HookOutput → Claude Code JSON ────────────────────────
-
-/**
- * Encode an internal HookOutput into the JSON string Claude Code expects.
- *
- * Returns null for silent outputs, raw string for context outputs.
- * For all JSON outputs, validates against the schema before serializing.
- *
- * Falls back to { continue: true } on validation failure (fail-open).
- */
-export function encodeHookOutput(
-  output: HookOutput,
-  eventName: string,
-  onError?: (msg: string) => void,
-): string | null {
-  // Context and silent bypass JSON schema entirely
-  if (output.type === "context") return output.content;
-  if (output.type === "silent") return null;
-
-  const obj = buildOutputObject(output, eventName);
-  const result = validateSync(obj);
-
-  if (result._tag === "Left") {
-    onError?.(
-      `[hook-output-schema] validation failed for ${eventName}: ${result.left.message}`,
-    );
-    return JSON.stringify({ continue: true });
-  }
-
-  return JSON.stringify(obj);
-}
-
-// ─── Object builder (internal HookOutput → plain object) ────────────────────
-
-function buildOutputObject(
-  output: HookOutput,
-  eventName: string,
-): Record<string, unknown> {
-  switch (output.type) {
-    case "continue": {
-      if (
-        output.additionalContext !== undefined &&
-        HOOK_SPECIFIC_EVENTS.has(eventName)
-      ) {
-        return {
-          hookSpecificOutput: {
-            hookEventName: eventName,
-            additionalContext: output.additionalContext,
-          },
-        };
-      }
-      if (output.additionalContext !== undefined) {
-        // Event doesn't support hookSpecificOutput — use systemMessage fallback
-        return { continue: true, systemMessage: output.additionalContext };
-      }
-      return { continue: true };
-    }
-
-    case "block": {
-      if (eventName === "PreToolUse") {
-        return {
-          hookSpecificOutput: {
-            hookEventName: "PreToolUse",
-            permissionDecision: "deny",
-            permissionDecisionReason: output.reason,
-          },
-        };
-      }
-      return { decision: "block", reason: output.reason };
-    }
-
-    case "ask":
-      return { decision: "ask", message: output.message };
-
-    case "updatedInput":
-      return {
-        hookSpecificOutput: {
-          hookEventName: eventName,
-          updatedInput: output.updatedInput,
-        },
-      };
-
-    default:
-      return { continue: true };
-  }
 }
