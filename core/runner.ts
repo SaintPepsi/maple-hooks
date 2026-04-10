@@ -24,8 +24,11 @@ import type { HookOutput } from "@hooks/core/types/hook-outputs";
  */
 function resolveEvent(contractEvent: HookEventType | HookEventType[], input: HookInput): string {
   if (Array.isArray(contractEvent)) {
+    if ("tool_name" in input) return "tool_response" in input ? "PostToolUse" : "PreToolUse";
     if ("prompt" in input) return "UserPromptSubmit";
-    if ("tool_name" in input) return "tool_input" in input ? "PreToolUse" : "PostToolUse";
+    if ("trigger" in input) return "PreCompact";
+    if ("stop_hook_active" in input || "last_assistant_message" in input) return "Stop";
+    if ("transcript_path" in input) return "SubagentStart";
     return contractEvent[0];
   }
   return contractEvent;
@@ -253,10 +256,16 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
   const io = createPipelineIO(options);
   const timeoutMs = options.stdinTimeout ?? 200;
   const events = Array.isArray(contract.event) ? contract.event : [contract.event];
-  const isToolEvent = events.includes("PreToolUse") || events.includes("PostToolUse");
+  const contractHandlesToolEvents = events.includes("PreToolUse") || events.includes("PostToolUse");
+
+  // Track whether the current input is a tool event (set after parsing)
+  let inputIsToolEvent = false;
+  let inputParsed = false;
 
   const safeExit = () => {
-    if (isToolEvent) {
+    // Emit continue:true for tool events so Claude Code doesn't block.
+    // After parsing, use actual input type; before parsing, fall back to contract declaration.
+    if (inputIsToolEvent || (contractHandlesToolEvents && !inputParsed)) {
       io.write(JSON.stringify({ continue: true }));
     }
     io.exit(0);
@@ -288,9 +297,12 @@ export async function runHook<I extends HookInput, O extends HookOutput, D>(
     }
 
     const input = inputResult.value as I;
+    inputParsed = true;
+    inputIsToolEvent = "tool_name" in inputResult.value;
 
     // Step 2.5: Runtime validation — catch settings.json event routing misconfigs
-    if (isToolEvent && !("tool_name" in inputResult.value)) {
+    // Only flag when a tool-only contract receives non-tool input (multi-event contracts legitimately receive both)
+    if (contractHandlesToolEvents && !inputIsToolEvent && events.length === 1) {
       const resolvedEvent = resolveEvent(contract.event, input);
       io.writeErr(
         `[${contract.name}] input missing tool_name for ${resolvedEvent} contract — check settings.json event routing`,
