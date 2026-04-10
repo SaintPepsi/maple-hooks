@@ -544,6 +544,56 @@ Matched on tool or path.`;
     expect((result.value as ContinueOutput).additionalContext).toContain("Matched on tool or path.");
   });
 
+  it("matches keywords against tool_input.skill for Skill tool calls", () => {
+    const SKILL_RULE = `---
+name: skill-dogfood-rule
+events: [PreToolUse]
+keywords: [brainstorming, writing-plans]
+---
+
+Dogfood every task.`;
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/skill.md"],
+      readFile: () => SKILL_RULE,
+    });
+    const input: ToolHookInput = {
+      session_id: "test-session-123",
+      tool_name: "Skill",
+      tool_input: { skill: "superpowers:brainstorming", args: "some topic" },
+    };
+    const result = SteeringRuleInjector.execute(input, deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    expect((result.value as ContinueOutput).additionalContext).toContain("Dogfood every task.");
+  });
+
+  it("does not match Skill tool when skill name has no keyword match", () => {
+    const SKILL_RULE = `---
+name: skill-dogfood-rule
+events: [PreToolUse]
+keywords: [brainstorming, writing-plans]
+---
+
+Dogfood every task.`;
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/skill.md"],
+      readFile: () => SKILL_RULE,
+    });
+    const input: ToolHookInput = {
+      session_id: "test-session-123",
+      tool_name: "Skill",
+      tool_input: { skill: "commit" },
+    };
+    const result = SteeringRuleInjector.execute(input, deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+  });
+
 });
 
 describe("SteeringRuleInjector defaultDeps", () => {

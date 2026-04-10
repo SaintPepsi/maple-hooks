@@ -125,7 +125,8 @@ function getEventType(input: SteeringRuleInput): SteeringEventType {
 function getMatchText(input: SteeringRuleInput): string {
   if (isToolEvent(input)) {
     const filePath = typeof input.tool_input["file_path"] === "string" ? input.tool_input["file_path"] : "";
-    return `${input.tool_name} ${filePath}`;
+    const skill = typeof input.tool_input["skill"] === "string" ? input.tool_input["skill"] : "";
+    return `${input.tool_name} ${filePath} ${skill}`.trim();
   }
   if (isPromptEvent(input)) return input.prompt ?? "";
   // SubagentStart/PreCompact/SessionStart use always-inject only — keyword matching is skipped in execute()
