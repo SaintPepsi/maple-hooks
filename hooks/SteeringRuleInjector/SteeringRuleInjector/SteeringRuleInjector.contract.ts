@@ -13,7 +13,8 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionStartInput, UserPromptSubmitInput, ToolHookInput, SubagentStartInput, PreCompactInput, StopInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { block } from "@hooks/core/types/hook-outputs";
+import type { BlockOutput, ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -194,7 +195,7 @@ const BARE_CONTINUE: ContinueOutput = { type: "continue", continue: true };
 
 export const SteeringRuleInjector: SyncHookContract<
   SteeringRuleInput,
-  ContextOutput | ContinueOutput | SilentOutput,
+  BlockOutput | ContextOutput | ContinueOutput | SilentOutput,
   SteeringRuleInjectorDeps
 > = {
   name: "SteeringRuleInjector",
@@ -271,6 +272,11 @@ export const SteeringRuleInjector: SyncHookContract<
     deps.stderr(
       `[SteeringRuleInjector] Injecting ${bodiesToInject.length} rule(s) on ${eventType}`,
     );
+
+    // Stop events block with the rule as the reason — Stop hooks can't inject context
+    if (eventType === "Stop") {
+      return ok(block(joined));
+    }
 
     if (isToolEventType) {
       return ok({ type: "continue", continue: true, additionalContext: joined });

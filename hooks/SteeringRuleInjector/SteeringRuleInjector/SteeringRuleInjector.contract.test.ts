@@ -548,9 +548,9 @@ describe("SteeringRuleInjector contract", () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("context");
-    if (result.value.type !== "context") return;
-    expect(result.value.content).toContain("Always go with the proper fix.");
+    expect(result.value.type).toBe("block");
+    if (result.value.type !== "block") return;
+    expect(result.value.reason).toContain("Always go with the proper fix.");
   });
 
   it("returns silent on Stop when no keywords match last_assistant_message", () => {
