@@ -2,24 +2,33 @@
 
 Injects individual steering rule files into context based on event type and keyword matching. Rules are `.md` files with YAML frontmatter declaring when they should fire. Each rule injects at most once per session, tracked via a gitignored JSON file.
 
-Registered for both `SessionStart` and `UserPromptSubmit`. Skips subagent sessions.
+Registered for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStart`, and `PreCompact`. Skips subagent sessions (except on `SubagentStart` itself).
 
 ## Event
 
-`SessionStart` and `UserPromptSubmit` — fires at session initialization for always-on rules, and on each user prompt for keyword-triggered rules.
+- `SessionStart` — always-inject rules with empty keywords fire at session initialization
+- `UserPromptSubmit` — keyword-matched against prompt text; rules with matching keywords inject as context
+- `PreToolUse` — keyword-matched against `tool_name` and `file_path`; returns `ContinueOutput` with `additionalContext`
+- `PostToolUse` — keyword-matched against `tool_name` and `file_path`; returns `ContinueOutput` with `additionalContext`
+- `SubagentStart` — always-inject rules with empty keywords fire when a subagent is spawned
+- `PreCompact` — always-inject rules with empty keywords fire before context compaction
 
 ## When It Fires
 
 - Every `SessionStart` for rules with empty keywords (always-inject)
 - Every `UserPromptSubmit` when a rule's keywords match the prompt text (case-insensitive substring)
+- Every `PreToolUse` when rule keywords match `tool_name` or file path (case-insensitive substring)
+- Every `PostToolUse` when rule keywords match `tool_name` or file path (case-insensitive substring)
+- Every `SubagentStart` for rules with empty keywords (always-inject)
+- Every `PreCompact` for rules with empty keywords (always-inject)
 
 It does **not** fire when:
 
-- Running in a subagent session
 - Config has `enabled: false`
 - No rule files resolve from the configured glob patterns
 - No rules match the current event type
 - On `UserPromptSubmit`, rules with empty keywords are skipped (must have at least one keyword)
+- On `PreToolUse`/`PostToolUse`, rules with empty keywords are skipped (must have at least one keyword)
 - A rule has already been injected this session (per-session dedup)
 
 ## What It Does
@@ -28,9 +37,9 @@ It does **not** fire when:
 2. Resolves rule files from `includes` glob patterns (supports `${ENV_VAR}` expansion)
 3. Parses YAML frontmatter from each file to extract `name`, `events`, and `keywords`
 4. Filters rules by current event type
-5. For `UserPromptSubmit`: filters by case-insensitive keyword substring match against prompt
+5. Filters by keyword match — prompt text for `UserPromptSubmit`; `tool_name` + `file_path` for `PreToolUse`/`PostToolUse`; empty keywords pass through for `SessionStart`, `SubagentStart`, and `PreCompact`
 6. Checks per-session injection tracker — skips already-injected rules
-7. Concatenates matched rule bodies into a single `ContextOutput`
+7. Concatenates matched rule bodies into output — `ContextOutput` for prompt events; `ContinueOutput` with `additionalContext` for tool events (`PreToolUse`/`PostToolUse`)
 8. Records injected rules to tracker file at `{trackerDir}/injections-{sessionId}.json`
 
 ## Examples
@@ -40,6 +49,10 @@ It does **not** fire when:
 > The user submits "let's push to origin". The `git-safety` rule declares keywords `[push, remote, origin]`. "push" matches, so the rule injects. On the next prompt mentioning "push", the tracker prevents re-injection.
 
 > The user submits a prompt about database migrations. No rules declare matching keywords. SteeringRuleInjector returns silent.
+
+> A `PreToolUse` event fires with `tool_name: Edit` and `file_path: src/styles/theme.css`. The `browser-mandatory` rule declares keywords `[.css, styles]`. ".css" matches the file path, so the rule injects as `additionalContext` before the tool runs.
+
+> A `SubagentStart` event fires when spawning a new agent. Rules with `SubagentStart` in their events and empty keywords inject automatically, surfacing least-privilege and role-boundary rules at the start of every subagent session.
 
 ### Rule File Format
 
