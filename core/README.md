@@ -14,7 +14,7 @@ Three exported types for hook contracts:
 
 All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
 
-The `event` field accepts `HookEventType | HookEventType[]` — multi-event hooks declare an array (e.g., `event: ["SessionStart", "UserPromptSubmit"]`). The runner resolves the actual event from the input shape for logging and output formatting.
+The `event` field accepts `HookEventType | HookEventType[]` — multi-event hooks declare an array (e.g., `event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "PreCompact", "Stop"]`). The runner resolves the actual event from the input shape for logging and output formatting.
 
 ## Result Pattern (`result.ts`)
 
@@ -30,6 +30,8 @@ The `event` field accepts `HookEventType | HookEventType[]` — multi-event hook
 `runHookWith(contract, input)` — pre-built input, skips stdin.
 
 Both accept `HookContract` (the union) and normalize sync/async via `await Promise.resolve()`. Both include a dedup guard after `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels. Running dedup after accepts avoids creating lock files for hooks that don't apply to the input.
+
+Multi-event contracts (e.g., SteeringRuleInjector handling 7 events) receive different input shapes per event. The runner determines whether the current input is a tool event after parsing, and uses this to decide the safe-exit output format (`{"continue":true}` for tool events, empty for others). The `resolveEvent()` function detects all event types from input shape for logging: tool_name → PreToolUse/PostToolUse, prompt → UserPromptSubmit, trigger → PreCompact, stop_hook_active/last_assistant_message → Stop, transcript_path → SubagentStart.
 
 `RunHookOptions` allows overriding stdout, stderr, exit, log, and `isDuplicate` for testing.
 
