@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, SubagentStartInput, PreCompactInput, ToolHookInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import type { SessionStartInput, SubagentStartInput, PreCompactInput, StopInput, ToolHookInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   type InjectionTracker,
@@ -136,6 +136,14 @@ keywords: []
 
 Write state before compacting.`;
 
+const STOP_RULE = `---
+name: stop-rule
+events: [Stop]
+keywords: [quick fix, workaround, shortcut]
+---
+
+Always go with the proper fix.`;
+
 const KEYWORD_RULE = `---
 name: keyword-rule
 events: [UserPromptSubmit]
@@ -210,6 +218,10 @@ function makePreCompactInput(): PreCompactInput {
   return { session_id: "test-session-123", trigger: "auto" };
 }
 
+function makeStopInput(lastMessage?: string): StopInput {
+  return { session_id: "test-session-123", last_assistant_message: lastMessage, stop_hook_active: true };
+}
+
 describe("SteeringRuleInjector contract", () => {
   it("has correct name and event", () => {
     expect(SteeringRuleInjector.name).toBe("SteeringRuleInjector");
@@ -220,6 +232,7 @@ describe("SteeringRuleInjector contract", () => {
       "PostToolUse",
       "SubagentStart",
       "PreCompact",
+      "Stop",
     ]);
   });
 
@@ -521,6 +534,50 @@ describe("SteeringRuleInjector contract", () => {
     expect(result.value.type).toBe("context");
     if (result.value.type !== "context") return;
     expect(result.value.content).toContain("Write state before compacting.");
+  });
+
+  it("injects keyword-matched rules on Stop (matches last_assistant_message)", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/stop.md"],
+      readFile: () => STOP_RULE,
+    });
+    const result = SteeringRuleInjector.execute(
+      makeStopInput("Here's a quick fix: just disable the check"),
+      deps,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("context");
+    if (result.value.type !== "context") return;
+    expect(result.value.content).toContain("Always go with the proper fix.");
+  });
+
+  it("returns silent on Stop when no keywords match last_assistant_message", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/stop.md"],
+      readFile: () => STOP_RULE,
+    });
+    const result = SteeringRuleInjector.execute(
+      makeStopInput("I implemented the proper solution with full test coverage."),
+      deps,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("silent");
+  });
+
+  it("returns silent on Stop when last_assistant_message is missing", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/stop.md"],
+      readFile: () => STOP_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makeStopInput(), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("silent");
   });
 
   it("matches keywords against tool_name + file_path combined", () => {

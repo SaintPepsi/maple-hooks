@@ -60,6 +60,8 @@ export interface PreCompactInput extends HookInputBase {
 
 export interface StopInput extends HookInputBase {
   transcript_path?: string;
+  last_assistant_message?: string;
+  stop_hook_active?: boolean;
 }
 
 // ─── Subagent Lifecycle Inputs ────────────────────────────────────────────────
