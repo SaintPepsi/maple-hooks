@@ -264,7 +264,7 @@ export type NonHookSpecificEvent =
 
 **Step 2: Verify types compile**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/types/hook-output-helpers.ts`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/types/hook-output-helpers.ts`
 Expected: No errors.
 
 **Step 3: Commit**
@@ -344,7 +344,7 @@ export type HookContract<I extends HookInput = HookInput, D = unknown> =
 
 **Step 3: Verify it compiles**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/contract.ts`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/contract.ts`
 Expected: Errors in downstream files (contracts still use old generics). That's expected — Phase 1 fixes them.
 
 **Step 4: Commit**
@@ -638,7 +638,7 @@ export async function runHook<I extends HookInput, D>(
 
 **Step 3: Verify it compiles** (expect downstream errors, that's fine)
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/runner.ts 2>&1 | head -5`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/runner.ts 2>&1 | head -5`
 
 **Step 4: Commit**
 
@@ -926,7 +926,7 @@ describe("runHook — error safety", () => {
 
 **Step 4: Run tests**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test core/runner.test.ts core/runner.coverage.test.ts`
+Run: `cd /Users/hogers/.claude/pai-hooks && bun test core/runner.test.ts core/runner.coverage.test.ts`
 Expected: All pass.
 
 **Step 5: Commit**
@@ -977,7 +977,7 @@ export { validateHookOutput } from "@hooks/core/types/hook-output-schema";
 
 **Step 3: Verify no compile errors in index.ts itself**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit core/index.ts 2>&1 | head -5`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit core/index.ts 2>&1 | head -5`
 
 **Step 4: Commit**
 
@@ -1190,7 +1190,7 @@ export function validateHookOutput(
 
 **Step 3: Run output schema tests if they exist**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test core/types/hook-output-schema 2>&1 | tail -5`
+Run: `cd /Users/hogers/.claude/pai-hooks && bun test core/types/hook-output-schema 2>&1 | tail -5`
 
 **Step 4: Commit**
 
@@ -1683,7 +1683,7 @@ Import `HookSpecificEventName` from `@hooks/core/types/hook-output-helpers` to t
 
 **Step 1: Verify no remaining imports**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && grep -r "hook-outputs" --include="*.ts" | grep -v node_modules | grep -v "docs/plans"`
+Run: `cd /Users/hogers/.claude/pai-hooks && grep -r "hook-outputs" --include="*.ts" | grep -v node_modules | grep -v "docs/plans"`
 Expected: No results (all imports migrated in Phase 1).
 
 **Step 2: Delete files**
@@ -1705,12 +1705,12 @@ git commit -m "cleanup: delete hook-outputs.ts — replaced by SDK SyncHookJSONO
 
 **Step 1: Type check entire project**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit`
+Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit`
 Expected: Zero errors.
 
 **Step 2: Run full test suite**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test`
+Run: `cd /Users/hogers/.claude/pai-hooks && bun test`
 Expected: All tests pass.
 
 **Step 3: Commit any remaining fixes**
