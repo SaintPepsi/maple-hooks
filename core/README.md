@@ -28,10 +28,10 @@ The `event` field accepts `HookEventType | HookEventType[]` — multi-event hook
 
 ## Runner (`runner.ts`)
 
-`runHook(contract)` — full pipeline: stdin, parse, accepts, dedup, execute, format, exit.
+`runHook(contract)` — full pipeline: stdin → parse → accepts → dedup → execute → validate → serialize → exit.
 `runHookWith(contract, input)` — pre-built input, skips stdin.
 
-Both accept `HookContract` (the union) and normalize sync/async via `await Promise.resolve()`. Both include a dedup guard after `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels. Running dedup after accepts avoids creating lock files for hooks that don't apply to the input.
+Both accept `HookContract<I, D>` (the 2-generic union) and normalize sync/async via `await Promise.resolve()`. Contracts return `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk` directly — the runner calls `validateHookOutput()` from `types/hook-output-schema.ts` and `JSON.stringify`s the result without any mapping layer. An empty object `{}` serializes to silent (no write). If validation fails, the runner writes `{ continue: true }` as a fail-open safety net rather than crashing. Both include a dedup guard after `accepts()` that prevents the same hook from firing twice when registered at both global and project config levels. Running dedup after accepts avoids creating lock files for hooks that don't apply to the input.
 
 Multi-event contracts (e.g., SteeringRuleInjector handling 7 events) receive different input shapes per event. The runner determines whether the current input is a tool event after parsing, and uses this to decide the safe-exit output format (`{"continue":true}` for tool events, empty for others). The `resolveEvent()` function uses the Effect Schema from `types/hook-input-schema.ts` to discriminate on the `hook_type` field — no field-sniffing or type casts.
 
