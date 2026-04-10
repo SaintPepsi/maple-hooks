@@ -37,7 +37,17 @@ Each runner appends timestamped entries to a log file for diagnostics:
 | learning-agent-runner | `MEMORY/LEARNING/PROPOSALS/.analysis-log` | `MEMORY/LEARNING/PROPOSALS/.analyzing` |
 | article-writer-runner | `MEMORY/ARTICLES/.writing-log` | `MEMORY/ARTICLES/.writing` |
 
-`agent-runner` logs structured JSONL entries: `{"ts":"...","event":"completed","source":"...","exitCode":0,"session":"..."}`. Legacy runners use plaintext `{ISO timestamp} {STATUS} {details}`.
+`agent-runner` logs structured JSONL entries: `{"ts":"...","event":"completed","source":"...","exitCode":0,"session":"...","resumed":"false"}`. Legacy runners use plaintext `{ISO timestamp} {STATUS} {details}`.
+
+## Session Resumption
+
+`agent-runner` supports session resumption via `sessionStatePath` in `RunnerConfig`. When set:
+1. Before spawning, reads the state file for a previous session ID
+2. If found, passes `--resume <session-id>` to reuse cached system prompt
+3. If resume fails, falls back to a fresh session automatically
+4. After success, writes the new session ID to the state file for next run
+
+This reduces token cost on repeated runs by leveraging Claude's prompt cache.
 
 ## Path Resolution
 
