@@ -9,7 +9,6 @@
 import { join } from "node:path";
 import { ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { createRegex, safeRegexTest } from "@hooks/core/adapters/regex";
-import { safeParseYaml } from "@hooks/core/adapters/yaml";
 import type { SyncHookContract } from "@hooks/core/contract";
 import { type ResultError, securityBlock as securityBlockError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
@@ -18,21 +17,10 @@ import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import type { AskOutput, BlockOutput, ContinueOutput } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
+import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface Pattern {
-  pattern: string;
-  reason: string;
-}
-
-interface PatternsConfig {
-  version: string;
-  philosophy: { mode: string; principle: string };
-  bash: { blocked: Pattern[]; confirm: Pattern[]; alert: Pattern[] };
-  paths: { zeroAccess: string[]; readOnly: string[]; confirmWrite: string[]; noDelete: string[] };
-  projects: Record<string, { path: string; rules: Array<{ action: string; reason: string }> }>;
-}
 
 interface SecurityEvent {
   timestamp: string;
@@ -54,7 +42,6 @@ export interface SecurityValidatorDeps {
   readFile: (path: string) => Result<string, ResultError>;
   writeFile: (path: string, content: string) => Result<void, ResultError>;
   ensureDir: (path: string) => Result<void, ResultError>;
-  safeParseYaml: (content: string) => unknown | null;
   safeRegexTest: (input: string, pattern: string, flags?: string) => boolean;
   createRegex: (pattern: string, flags?: string) => RegExp | null;
   homedir: () => string;
@@ -269,19 +256,19 @@ export function matchesPathPattern(
 }
 
 function loadPatterns(deps: SecurityValidatorDeps): PatternsConfig {
-  const patternsPath = join(import.meta.dir, "..", "patterns.yaml");
+  const patternsPath = join(import.meta.dir, "..", "patterns.json");
   const result = deps.readFile(patternsPath);
   if (!result.ok) {
     deps.stderr(`[SecurityValidator] WARNING: Failed to read ${patternsPath} — all validation bypassed`);
     return EMPTY_PATTERNS;
   }
 
-  const parsed = deps.safeParseYaml(result.value);
-  if (!parsed) {
+  const config = decodePatternsConfig(result.value);
+  if (!config) {
     deps.stderr(`[SecurityValidator] WARNING: Failed to parse ${patternsPath} — all validation bypassed`);
     return EMPTY_PATTERNS;
   }
-  return parsed as PatternsConfig;
+  return config;
 }
 
 function validateBashCommand(
@@ -387,7 +374,6 @@ const defaultDeps: SecurityValidatorDeps = {
   readFile,
   writeFile,
   ensureDir,
-  safeParseYaml,
   safeRegexTest,
   createRegex,
   homedir: () => process.env.HOME || "/",

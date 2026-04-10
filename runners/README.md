@@ -8,6 +8,7 @@ Each runner imports a prompt builder from its contract, runs `claude -p` synchro
 
 | Runner | Spawned by | Purpose |
 |--------|-----------|---------|
+| **agent-runner** | `spawnAgent()` via `lib/spawn-agent.ts` | Generic runner for any background agent. Receives config as JSON arg, runs `claude -p` synchronously, captures session ID from JSON output, logs JSONL events. BUN_TEST guard prevents accidental token burn in tests. |
 | **article-writer-runner** | `ArticleWriter` contract | Runs claude to write blog articles. Auto-clones repo from `hookConfig.articleWriter.repo` to `~/.claude/cache/repos/`. Identity from `settings.json`. |
 | **learning-agent-runner** | `LearningActioner` contract | Runs claude to analyze learning signals and create proposals |
 
@@ -32,10 +33,11 @@ Each runner appends timestamped entries to a log file for diagnostics:
 
 | Runner | Log file | Lock file |
 |--------|----------|-----------|
+| agent-runner | Configured per caller (e.g. `MEMORY/SECURITY/hardening-log.jsonl`) | Configured per caller (e.g. `/tmp/pai-hardening-agent.lock`) |
 | learning-agent-runner | `MEMORY/LEARNING/PROPOSALS/.analysis-log` | `MEMORY/LEARNING/PROPOSALS/.analyzing` |
 | article-writer-runner | `MEMORY/ARTICLES/.writing-log` | `MEMORY/ARTICLES/.writing` |
 
-Log entries use the format `{ISO timestamp} {STATUS} {details}` with statuses: START, COMPLETE, ERROR, CLEANUP.
+`agent-runner` logs structured JSONL entries: `{"ts":"...","event":"completed","source":"...","exitCode":0,"session":"..."}`. Legacy runners use plaintext `{ISO timestamp} {STATUS} {details}`.
 
 ## Path Resolution
 

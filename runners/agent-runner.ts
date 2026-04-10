@@ -15,6 +15,12 @@ import type { Result } from "@hooks/core/result";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
+interface ClaudeJsonOutput {
+  session_id?: string;
+  result?: string;
+  is_error?: boolean;
+}
+
 export interface RunnerConfig {
   prompt: string;
   model: string;
@@ -47,9 +53,9 @@ const defaultDeps: AgentRunnerDeps = {
 
 // ─── Logging ───────────────────────────────────────────────────────────────
 
-function logEvent(logPath: string, event: string, deps: AgentRunnerDeps): void {
-  const timestamp = new Date().toISOString();
-  deps.appendFile(logPath, `${timestamp} ${event}\n`);
+function logEvent(logPath: string, data: Record<string, string | number>, deps: AgentRunnerDeps): void {
+  const entry = { ts: new Date().toISOString(), ...data };
+  deps.appendFile(logPath, JSON.stringify(entry) + "\n");
 }
 
 // ─── Runner ────────────────────────────────────────────────────────────────
@@ -67,27 +73,39 @@ export function runAgent(
   }
 
   if (dryRun) {
-    logEvent(config.logPath, `dry-run source=${config.source} model=${config.model}`, deps);
+    logEvent(config.logPath, { event: "dry-run", source: config.source, model: config.model }, deps);
     // Exercise cleanup path even in dry-run
     deps.removeFile(config.lockPath);
     return;
   }
 
-  // Real execution
+  // Real execution — use pipe + --output-format json to capture session ID
   const result = deps.spawnSyncSafe(
     "claude",
-    ["-p", config.prompt, "--max-turns", String(config.maxTurns), "--model", config.model, ...(config.claudeArgs ?? [])],
+    [
+      "-p", config.prompt,
+      "--max-turns", String(config.maxTurns),
+      "--model", config.model,
+      "--output-format", "json",
+      ...(config.claudeArgs ?? []),
+    ],
     {
       cwd: config.cwd,
       timeout: config.timeout,
-      stdio: "ignore",
+      stdio: "pipe",
     },
   );
 
+  let sessionId = "";
+  if (result.ok && result.value.stdout) {
+    const output: ClaudeJsonOutput = JSON.parse(result.value.stdout);
+    sessionId = output.session_id ?? "";
+  }
+
   if (result.ok) {
-    logEvent(config.logPath, `completed source=${config.source} exitCode=${result.value.exitCode}`, deps);
+    logEvent(config.logPath, { event: "completed", source: config.source, exitCode: result.value.exitCode, session: sessionId }, deps);
   } else {
-    logEvent(config.logPath, `failed source=${config.source} error=${result.error.message}`, deps);
+    logEvent(config.logPath, { event: "failed", source: config.source, error: result.error.message }, deps);
   }
 
   // Cleanup — always runs after sync call returns

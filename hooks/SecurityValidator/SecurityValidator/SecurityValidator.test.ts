@@ -18,47 +18,35 @@ import {
   type SecurityValidatorDeps,
   stripEnvVarPrefix,
 } from "@hooks/hooks/SecurityValidator/SecurityValidator/SecurityValidator.contract";
-import { parse as parseYaml } from "yaml";
 
-// ─── Test YAML ────────────────────────────────────────────────────────────────
+// ─── Test JSON ────────────────────────────────────────────────────────────────
 
 const RM_PATTERN = "r" + "m -r" + "f /";
-const TEST_YAML = [
-  'version: "1.0"',
-  "philosophy:",
-  "  mode: permissive",
-  "  principle: test",
-  "bash:",
-  "  blocked:",
-  `    - pattern: "${RM_PATTERN}"`,
-  '      reason: "Dangerous"',
-  "  confirm:",
-  '    - pattern: "git push --force"',
-  '      reason: "Force push"',
-  "  alert:",
-  '    - pattern: "curl.*\\\\\\\\|.*sh"',
-  '      reason: "Pipe to shell"',
-  "paths:",
-  "  zeroAccess:",
-  '    - "~/.ssh/id_*"',
-  "  readOnly:",
-  '    - "~/.claude/settings.json"',
-  "  confirmWrite:",
-  '    - "~/.env"',
-  "  noDelete:",
-  '    - "~/.claude/skills/**"',
-  "projects: {}",
-].join("\n");
+const TEST_JSON = JSON.stringify({
+  version: "1.0",
+  philosophy: { mode: "permissive", principle: "test" },
+  bash: {
+    blocked: [{ pattern: RM_PATTERN, reason: "Dangerous" }],
+    confirm: [{ pattern: "git push --force", reason: "Force push" }],
+    alert: [{ pattern: "curl.*\\|.*sh", reason: "Pipe to shell" }],
+  },
+  paths: {
+    zeroAccess: ["~/.ssh/id_*"],
+    readOnly: ["~/.claude/settings.json"],
+    confirmWrite: ["~/.env"],
+    noDelete: ["~/.claude/skills/**"],
+  },
+  projects: {},
+});
 
 // ─── Mock Deps Factory ────────────────────────────────────────────────────────
 
 function makeDeps(overrides: Partial<SecurityValidatorDeps> = {}): SecurityValidatorDeps {
   return {
-    fileExists: (path: string) => path.endsWith("patterns.yaml"),
-    readFile: (_path: string) => ok(TEST_YAML),
+    fileExists: (path: string) => path.endsWith("patterns.json"),
+    readFile: (_path: string) => ok(TEST_JSON),
     writeFile: (_path: string, _content: string) => ok(undefined),
     ensureDir: (_path: string) => ok(undefined),
-    safeParseYaml: (content: string) => parseYaml(content),
     safeRegexTest,
     createRegex,
     homedir: () => "/Users/test",
@@ -629,7 +617,7 @@ describe("SecurityValidator.execute() — bash tool substitution bypass", () => 
 describe("SecurityValidator.execute() — patterns fallback", () => {
   it("fails open when no patterns file exists (allows everything)", () => {
     const deps = makeDeps({
-      readFile: () => err(fileNotFound("patterns.yaml")),
+      readFile: () => err(fileNotFound("patterns.json")),
     });
     const input = makeInput("Bash", { command: "r" + "m -r" + "f /" });
     const result = SecurityValidator.execute(input, deps);

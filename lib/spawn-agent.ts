@@ -1,6 +1,11 @@
 /**
  * Shared spawnAgent() — background Claude agent spawning with lock/log/traceability.
  *
+ * PRINCIPLE: Least privileged agent to perform task.
+ * Callers should scope each agent to the minimum capabilities required:
+ * narrow MCP tools (e.g. read/write for a single file), no hooks unless
+ * needed, no extra permissions. More surface = more cost, more drift.
+ *
  * Any hook can import this to spawn a background Claude agent. Handles:
  * - Lock file check (skip if fresh, replace if stale > 6 min)
  * - Lock file creation with { ts, source, reason }
@@ -10,8 +15,12 @@
  * Returns Result<void, ResultError> — never throws.
  */
 
+import { join } from "node:path";
+import { fileExists, readFile, writeFile, appendFile, removeFile } from "@hooks/core/adapters/fs";
+import { spawnBackground } from "@hooks/core/adapters/process";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -61,11 +70,24 @@ function isLockStale(lockContent: string): boolean {
   return lockAge > LOCK_STALE_MS;
 }
 
+// ─── Defaults ───────────────────────────────────────────────────────────────
+
+const defaultDeps: SpawnAgentDeps = {
+  fileExists,
+  readFile,
+  writeFile,
+  appendFile,
+  removeFile,
+  spawnBackground,
+  runnerPath: join(import.meta.dir, "../runners/agent-runner.ts"),
+  stderr: defaultStderr,
+};
+
 // ─── Core ───────────────────────────────────────────────────────────────────
 
 export function spawnAgent(
   config: SpawnAgentConfig,
-  deps: SpawnAgentDeps,
+  deps: SpawnAgentDeps = defaultDeps,
 ): Result<void, ResultError> {
   const { lockPath, logPath, source, reason } = config;
 

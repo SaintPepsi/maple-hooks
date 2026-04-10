@@ -2,7 +2,7 @@
 
 ## Overview
 
-SecurityValidator is a **PreToolUse** hook that validates Bash commands and file operations against a YAML-defined security policy. It enforces path-based access controls (zero-access, read-only, confirm-write, no-delete) and command-pattern matching (blocked, confirm, alert) to prevent dangerous operations from executing within Claude Code.
+SecurityValidator is a **PreToolUse** hook that validates Bash commands and file operations against a JSON-defined security policy. It enforces path-based access controls (zero-access, read-only, confirm-write, no-delete) and command-pattern matching (blocked, confirm, alert) to prevent dangerous operations from executing within Claude Code.
 
 The hook also detects tool substitution bypasses where a user might use `sed -i`, `cp`, `mv`, `tee`, or other Bash commands to write to protected files that would be blocked via Edit/Write. All security events are logged to structured JSONL files for audit purposes.
 
@@ -26,7 +26,7 @@ It does **not** fire when:
 
 ## What It Does
 
-1. Loads security patterns from `hooks/SecurityValidator/patterns.yaml` (collocated with the hook)
+1. Loads security patterns from `hooks/SecurityValidator/patterns.json` (collocated with the hook)
 2. For Bash commands:
    - Strips environment variable prefixes from the command
    - Checks against blocked patterns (hard block via exit code 2)
@@ -70,6 +70,6 @@ for (const target of writeTargets) {
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `narrative-reader` | lib | Picks contextual narrative openers for security messages |
-| `fs` | adapter | Reads security patterns YAML and writes audit logs |
+| `fs` | adapter | Reads security patterns JSON and writes audit logs |
 | `regex` | adapter | Safe regex testing for pattern matching |
-| `yaml` | adapter | Parses the YAML security patterns configuration |
+| `patterns-schema` | lib | Effect Schema decoder for patterns.json validation |

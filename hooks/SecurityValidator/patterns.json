@@ -1,0 +1,314 @@
+{
+  "version": "1.1",
+  "philosophy": {
+    "mode": "safe_functional",
+    "principle": "Meaningful protection without friction that drives people to disable security"
+  },
+  "bash": {
+    "blocked": [
+      {
+        "pattern": "rm -rf /$",
+        "reason": "Filesystem destruction",
+        "regex": true,
+        "group": "Filesystem root - absolute block"
+      },
+      {
+        "pattern": "rm -rf / ",
+        "reason": "Filesystem destruction",
+        "group": "Filesystem root - absolute block"
+      },
+      {
+        "pattern": "rm -rf ~$",
+        "reason": "Home directory destruction (entire home)",
+        "regex": true,
+        "group": "Home directory - only block entire home, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~ ",
+        "reason": "Home directory destruction (entire home)",
+        "group": "Home directory - only block entire home, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/$",
+        "reason": "Home directory destruction (entire home)",
+        "regex": true,
+        "group": "Home directory - only block entire home, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/ ",
+        "reason": "Home directory destruction (entire home)",
+        "group": "Home directory - only block entire home, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/.claude$",
+        "reason": "PAI infrastructure destruction (entire .claude)",
+        "regex": true,
+        "group": "PAI infrastructure - only block entire .claude, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/.claude ",
+        "reason": "PAI infrastructure destruction (entire .claude)",
+        "group": "PAI infrastructure - only block entire .claude, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/.claude/$",
+        "reason": "PAI infrastructure destruction (entire .claude)",
+        "regex": true,
+        "group": "PAI infrastructure - only block entire .claude, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/.claude/ ",
+        "reason": "PAI infrastructure destruction (entire .claude)",
+        "group": "PAI infrastructure - only block entire .claude, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/Projects$",
+        "reason": "Projects directory destruction (entire Projects)",
+        "regex": true,
+        "group": "Projects directory - only block entire Projects, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/Projects ",
+        "reason": "Projects directory destruction (entire Projects)",
+        "group": "Projects directory - only block entire Projects, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/Projects/$",
+        "reason": "Projects directory destruction (entire Projects)",
+        "regex": true,
+        "group": "Projects directory - only block entire Projects, not subdirs"
+      },
+      {
+        "pattern": "rm -rf ~/Projects/ ",
+        "reason": "Projects directory destruction (entire Projects)",
+        "group": "Projects directory - only block entire Projects, not subdirs"
+      },
+      {
+        "pattern": "sudo rm -rf /$",
+        "reason": "Filesystem destruction with sudo",
+        "regex": true,
+        "group": "Sudo variants"
+      },
+      {
+        "pattern": "sudo rm -rf / ",
+        "reason": "Filesystem destruction with sudo",
+        "group": "Sudo variants"
+      },
+      {
+        "pattern": "sudo rm -rf ~$",
+        "reason": "Home directory destruction with sudo",
+        "regex": true,
+        "group": "Sudo variants"
+      },
+      {
+        "pattern": "sudo rm -rf ~ ",
+        "reason": "Home directory destruction with sudo",
+        "group": "Sudo variants"
+      },
+      {
+        "pattern": "diskutil eraseDisk",
+        "reason": "Disk destruction",
+        "group": "Disk operations"
+      },
+      {
+        "pattern": "diskutil zeroDisk",
+        "reason": "Disk destruction",
+        "group": "Disk operations"
+      },
+      {
+        "pattern": "diskutil partitionDisk",
+        "reason": "Disk partitioning",
+        "group": "Disk operations"
+      },
+      {
+        "pattern": "diskutil apfs deleteContainer",
+        "reason": "APFS container deletion",
+        "group": "Disk operations"
+      },
+      {
+        "pattern": "diskutil apfs eraseVolume",
+        "reason": "Volume destruction",
+        "group": "Disk operations"
+      },
+      {
+        "pattern": "dd if=/dev/zero",
+        "reason": "Disk overwrite",
+        "group": "Disk operations"
+      },
+      {
+        "pattern": "mkfs",
+        "reason": "Filesystem format",
+        "group": "Disk operations"
+      },
+      {
+        "pattern": "gh repo delete",
+        "reason": "Repository deletion",
+        "group": "GitHub operations"
+      },
+      {
+        "pattern": "gh repo edit --visibility public",
+        "reason": "Repository exposure",
+        "group": "GitHub operations"
+      },
+      {
+        "pattern": "python3?\\s+-c\\s+.*open\\s*\\(.*settings\\.json",
+        "reason": "Auto-hardened: python -c one-liner writing to settings.json via open() (caught 2026-04-10)",
+        "group": "Auto-hardened by settings bypass detection"
+      },
+      {
+        "pattern": "node\\s+(-e|--eval)\\s+.*settings\\.json",
+        "reason": "Auto-hardened: node -e/--eval one-liner writing to settings.json via require('fs') (caught 2026-04-10)",
+        "group": "Auto-hardened by settings bypass detection"
+      }
+    ],
+    "confirm": [
+      {
+        "pattern": "git push --force",
+        "reason": "Force push can lose commits",
+        "group": "Git operations"
+      },
+      {
+        "pattern": "git push -f",
+        "reason": "Force push can lose commits",
+        "group": "Git operations"
+      },
+      {
+        "pattern": "git push origin --force",
+        "reason": "Force push can lose commits",
+        "group": "Git operations"
+      },
+      {
+        "pattern": "git push origin -f",
+        "reason": "Force push can lose commits",
+        "group": "Git operations"
+      },
+      {
+        "pattern": "git reset --hard",
+        "reason": "Loses uncommitted changes",
+        "group": "Git operations"
+      },
+      {
+        "pattern": "aws s3 rm.*--recursive",
+        "reason": "Bulk S3 deletion",
+        "group": "Cloud - AWS"
+      },
+      {
+        "pattern": "aws ec2 terminate",
+        "reason": "EC2 instance termination",
+        "group": "Cloud - AWS"
+      },
+      {
+        "pattern": "aws rds delete",
+        "reason": "RDS deletion",
+        "group": "Cloud - AWS"
+      },
+      {
+        "pattern": "gcloud.*delete",
+        "reason": "GCP resource deletion",
+        "group": "Cloud - GCP"
+      },
+      {
+        "pattern": "terraform destroy",
+        "reason": "Infrastructure destruction",
+        "group": "Infrastructure as Code"
+      },
+      {
+        "pattern": "terraform apply.*-auto-approve",
+        "reason": "Auto-approve bypasses review",
+        "group": "Infrastructure as Code"
+      },
+      {
+        "pattern": "pulumi destroy",
+        "reason": "Infrastructure destruction",
+        "group": "Infrastructure as Code"
+      },
+      {
+        "pattern": "docker system prune",
+        "reason": "Container/image cleanup",
+        "group": "Containers"
+      },
+      {
+        "pattern": "docker volume rm",
+        "reason": "Volume data deletion",
+        "group": "Containers"
+      },
+      {
+        "pattern": "kubectl delete namespace",
+        "reason": "Namespace deletion",
+        "group": "Containers"
+      },
+      {
+        "pattern": "DELETE FROM.*WHERE",
+        "reason": "Database deletion (confirm scope)",
+        "group": "Databases"
+      },
+      {
+        "pattern": "DROP DATABASE",
+        "reason": "Database destruction",
+        "group": "Databases"
+      },
+      {
+        "pattern": "DROP TABLE",
+        "reason": "Table destruction",
+        "group": "Databases"
+      },
+      {
+        "pattern": "TRUNCATE",
+        "reason": "Table data destruction",
+        "group": "Databases"
+      }
+    ],
+    "alert": [
+      {
+        "pattern": "curl.*\\|.*sh",
+        "reason": "Piping curl to shell",
+        "group": "Piping remote content to shell"
+      },
+      {
+        "pattern": "curl.*\\|.*bash",
+        "reason": "Piping curl to bash",
+        "group": "Piping remote content to shell"
+      },
+      {
+        "pattern": "wget.*\\|.*sh",
+        "reason": "Piping wget to shell",
+        "group": "Piping remote content to shell"
+      },
+      {
+        "pattern": "wget.*\\|.*bash",
+        "reason": "Piping wget to bash",
+        "group": "Piping remote content to shell"
+      }
+    ]
+  },
+  "paths": {
+    "zeroAccess": [
+      "~/.ssh/id_*",
+      "~/.ssh/*.pem",
+      "~/.aws/credentials",
+      "~/.gnupg/private*",
+      "**/credentials.json",
+      "**/service-account*.json"
+    ],
+    "readOnly": [
+      "/etc/**"
+    ],
+    "confirmWrite": [
+      "~/.claude/settings.json",
+      "**/.env",
+      "**/.env.local",
+      "**/.env.production",
+      "**/.env.staging",
+      "**/.env.development",
+      "~/.ssh/*"
+    ],
+    "noDelete": [
+      "~/.claude/hooks/**",
+      "~/.claude/PAI/**",
+      ".git/**",
+      "LICENSE*",
+      "README.md"
+    ]
+  },
+  "projects": {}
+}

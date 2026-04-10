@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { SpawnAgentConfig } from "@hooks/lib/spawn-agent";
 import {
   SettingsRevert,
   type SettingsRevertDeps,
@@ -35,7 +34,7 @@ function postDeps(fs: FakeFS, overrides: Partial<SettingsRevertDeps> = {}): Sett
     appendFile: (p, c) => { const prev = fs.get(p) || ""; fs.set(p, prev + c); return ok(undefined as void); },
     ensureDir: () => ok(undefined as void),
     baseDir: "/fake/pai",
-    spawnAgent: () => ok(undefined as void),
+    runHardening: () => ok(undefined as void),
     ...overrides,
   };
 }
@@ -201,33 +200,33 @@ describe("SettingsRevert.execute — revert", () => {
   });
 });
 
-// ─── execute: spawnAgent hardening ─────────────────────────────────────────
+// ─── execute: runHardening ─────────────────────────────────────────────────
 
-describe("SettingsRevert.execute — spawnAgent hardening", () => {
-  it("calls spawnAgent after revert with correct source", () => {
-    const calls: SpawnAgentConfig[] = [];
+describe("SettingsRevert.execute — runHardening", () => {
+  it("calls runHardening after revert with bypass command", () => {
+    const calls: string[] = [];
     const fs: FakeFS = new Map([
       [SETTINGS_PATH, MODIFIED],
       [SNAP_MAIN, ORIGINAL],
     ]);
     const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
+      runHardening: (cmd: string) => { calls.push(cmd); return ok(undefined as void); },
     });
 
     SettingsRevert.execute(bashInput("python3 -c 'bypass'"), deps);
 
     expect(calls.length).toBe(1);
-    expect(calls[0].source).toBe("SettingsRevert");
+    expect(calls[0]).toContain("python3 -c 'bypass'");
   });
 
-  it("does NOT call spawnAgent when no revert happens", () => {
-    const calls: SpawnAgentConfig[] = [];
+  it("does NOT call runHardening when no revert happens", () => {
+    const calls: string[] = [];
     const fs: FakeFS = new Map([
       [SETTINGS_PATH, ORIGINAL],
       [SNAP_MAIN, ORIGINAL],
     ]);
     const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
+      runHardening: (cmd: string) => { calls.push(cmd); return ok(undefined as void); },
     });
 
     SettingsRevert.execute(bashInput("git status"), deps);
@@ -235,37 +234,20 @@ describe("SettingsRevert.execute — spawnAgent hardening", () => {
     expect(calls.length).toBe(0);
   });
 
-  it("passes the bypass command in the prompt", () => {
-    const calls: SpawnAgentConfig[] = [];
+  it("passes the full command to runHardening", () => {
+    const calls: string[] = [];
     const fs: FakeFS = new Map([
       [SETTINGS_PATH, MODIFIED],
       [SNAP_MAIN, ORIGINAL],
     ]);
     const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
+      runHardening: (cmd: string) => { calls.push(cmd); return ok(undefined as void); },
     });
 
     const bypassCmd = "jq '.hooks.enabled = false' ~/.claude/settings.json";
     SettingsRevert.execute(bashInput(bypassCmd), deps);
 
     expect(calls.length).toBe(1);
-    expect(calls[0].prompt).toContain(bypassCmd);
-  });
-
-  it("uses correct lockPath and logPath", () => {
-    const calls: SpawnAgentConfig[] = [];
-    const fs: FakeFS = new Map([
-      [SETTINGS_PATH, MODIFIED],
-      [SNAP_MAIN, ORIGINAL],
-    ]);
-    const deps = postDeps(fs, {
-      spawnAgent: (config: SpawnAgentConfig) => { calls.push(config); return ok(undefined as void); },
-    });
-
-    SettingsRevert.execute(bashInput("sed ..."), deps);
-
-    expect(calls.length).toBe(1);
-    expect(calls[0].lockPath).toBe("/tmp/pai-hardening-agent.lock");
-    expect(calls[0].logPath).toContain("MEMORY/SECURITY/hardening-log.jsonl");
+    expect(calls[0]).toBe(bypassCmd);
   });
 });

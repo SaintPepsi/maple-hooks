@@ -6,7 +6,7 @@
  *   - get_blocked_patterns: Returns current bash.blocked entries
  *   - insert_blocked_pattern: Appends a new entry to bash.blocked
  *
- * This is the agent's ONLY way to modify patterns.yaml — no Edit/Write
+ * This is the agent's ONLY way to modify patterns.json — no Edit/Write
  * permissions needed. The MCP server is the security boundary.
  *
  * Run via: --mcp-config with --strict-mcp-config
@@ -14,10 +14,12 @@
 
 import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import { join } from "node:path";
-import { ok, err, type Result } from "@hooks/core/result";
+import { ok, type Result } from "@hooks/core/result";
 import type { ResultError } from "@hooks/core/error";
+import { decodePatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
+import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
 
-const PATTERNS_PATH = join(import.meta.dir, "patterns.yaml");
+const PATTERNS_PATH = join(import.meta.dir, "patterns.json");
 const MAX_LINES = 10_000;
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -43,72 +45,56 @@ interface McpToolResult {
   isError?: boolean;
 }
 
-// ─── YAML helpers ──────────────────────────────────────────────────────────
+// ─── JSON helpers ──────────────────────────────────────────────────────────
 
-function extractBlockedSection(yaml: string): string[] {
-  const lines = yaml.split("\n");
-  const entries: string[] = [];
-  let inBlocked = false;
-  let currentEntry = "";
+function loadPatterns(): Result<PatternsConfig, ResultError> {
+  const jsonResult = readFile(PATTERNS_PATH);
+  if (!jsonResult.ok) return jsonResult;
 
-  for (const line of lines) {
-    if (/^\s+blocked:/.test(line)) {
-      inBlocked = true;
-      continue;
-    }
-    if (inBlocked) {
-      if (/^\s{2}\w/.test(line) && !/^\s{4}/.test(line)) break;
-      if (/^\s+-\s+pattern:/.test(line)) {
-        if (currentEntry) entries.push(currentEntry.trim());
-        currentEntry = line + "\n";
-      } else if (currentEntry && /^\s+/.test(line)) {
-        currentEntry += line + "\n";
-      }
-    }
+  const config = decodePatternsConfig(jsonResult.value);
+  if (!config) {
+    return { ok: false, error: { code: "INVALID_INPUT", message: "Failed to decode patterns.json" } as ResultError };
   }
-  if (currentEntry) entries.push(currentEntry.trim());
-  return entries;
+  return ok(config);
 }
 
-function insertBlockedEntry(pattern: string, reason: string): Result<string, ResultError> {
-  const yamlResult = readFile(PATTERNS_PATH);
-  if (!yamlResult.ok) return yamlResult;
-  const yaml = yamlResult.value;
+function getBlockedEntries(): string[] {
+  const result = loadPatterns();
+  if (!result.ok) return [];
+  return result.value.bash.blocked.map(
+    (entry) => `pattern: "${entry.pattern}" reason: "${entry.reason}"${entry.group ? ` group: "${entry.group}"` : ""}`,
+  );
+}
 
-  if (yaml.includes(`pattern: "${pattern}"`)) {
-    return ok(`Pattern already exists: ${pattern}`);
+function getValidGroups(): string[] {
+  const result = loadPatterns();
+  if (!result.ok) return [];
+  const groups = new Set<string>();
+  for (const entry of result.value.bash.blocked) {
+    if (entry.group) groups.add(entry.group);
+  }
+  return [...groups];
+}
+
+function insertBlockedEntry(pattern: string, reason: string, group: string): Result<string, ResultError> {
+  const configResult = loadPatterns();
+  if (!configResult.ok) return configResult;
+  const config = configResult.value;
+
+  const exists = config.bash.blocked.some((entry) => entry.pattern === pattern);
+  if (exists) return ok(`Pattern already exists: ${pattern}`);
+
+  const validGroups = getValidGroups();
+  if (!validGroups.includes(group)) {
+    return { ok: false, error: { code: "INVALID_INPUT", message: `Invalid group "${group}". Valid groups: ${validGroups.join(", ")}` } as ResultError };
   }
 
-  const lines = yaml.split("\n");
-  let insertIndex = -1;
-  let inBlocked = false;
+  config.bash.blocked.push({ pattern, reason, group });
 
-  for (let i = 0; i < Math.min(lines.length, MAX_LINES); i++) {
-    if (/^\s+blocked:/.test(lines[i])) {
-      inBlocked = true;
-      continue;
-    }
-    if (inBlocked && /^\s{2}\w/.test(lines[i]) && !/^\s{4}/.test(lines[i])) {
-      insertIndex = i;
-      break;
-    }
-  }
-
-  if (insertIndex === -1) {
-    return err({ code: "INVALID_INPUT", message: "Could not find end of bash.blocked section" } as ResultError);
-  }
-
-  const newEntry = [
-    `    - pattern: "${pattern}"`,
-    `      reason: "${reason}"`,
-    "",
-  ];
-
-  lines.splice(insertIndex, 0, ...newEntry);
-  const writeResult = writeFile(PATTERNS_PATH, lines.join("\n"));
+  const writeResult = writeFile(PATTERNS_PATH, JSON.stringify(config, null, 2) + "\n");
   if (!writeResult.ok) return writeResult;
 
-  return ok(`Inserted blocked pattern: ${pattern}`);
+  return ok(`Inserted blocked pattern: ${pattern} (group: ${group})`);
 }
 
 // ─── MCP Protocol ──────────────────────────────────────────────────────────
@@ -116,37 +102,36 @@ function insertBlockedEntry(pattern: string, reason: string): Result<string, Res
 const TOOLS: McpToolDef[] = [
   {
     name: "get_blocked_patterns",
-    description: "Returns all current bash.blocked entries from patterns.yaml",
+    description: "Returns all current bash.blocked entries from patterns.json",
     inputSchema: { type: "object", properties: {}, required: [] },
   },
   {
     name: "insert_blocked_pattern",
-    description: "Appends a new blocked pattern to bash.blocked in patterns.yaml",
+    description: "Appends a new blocked pattern to bash.blocked in patterns.json. Call get_blocked_patterns first to see valid groups.",
     inputSchema: {
       type: "object",
       properties: {
         pattern: { type: "string", description: "Regex pattern to block (e.g. 'python3.*settings\\\\.json')" },
         reason: { type: "string", description: "Human-readable reason (e.g. 'Auto-hardened: python3 file write (caught 2026-04-10)')" },
+        group: { type: "string", description: "Group name — must match an existing group from get_blocked_patterns" },
       },
-      required: ["pattern", "reason"],
+      required: ["pattern", "reason", "group"],
     },
   },
 ];
 
 function handleToolCall(name: string, args: Record<string, string>): McpToolResult {
   if (name === "get_blocked_patterns") {
-    const yamlResult = readFile(PATTERNS_PATH);
-    if (!yamlResult.ok) return { content: [{ type: "text", text: `Error: ${yamlResult.error.message}` }], isError: true };
-    const entries = extractBlockedSection(yamlResult.value);
-    return { content: [{ type: "text", text: entries.join("\n\n") }] };
+    const entries = getBlockedEntries();
+    return { content: [{ type: "text", text: entries.join("\n") }] };
   }
 
   if (name === "insert_blocked_pattern") {
-    const { pattern, reason } = args;
-    if (!pattern || !reason) {
-      return { content: [{ type: "text", text: "Error: pattern and reason are required" }], isError: true };
+    const { pattern, reason, group } = args;
+    if (!pattern || !reason || !group) {
+      return { content: [{ type: "text", text: "Error: pattern, reason, and group are required" }], isError: true };
     }
-    const result = insertBlockedEntry(pattern, reason);
+    const result = insertBlockedEntry(pattern, reason, group);
     if (!result.ok) {
       return { content: [{ type: "text", text: `Error: ${result.error.message}` }], isError: true };
     }
@@ -169,7 +154,7 @@ function handleRequest(request: McpRequest): Record<string, unknown> | null {
     case "tools/list":
       return { tools: TOOLS };
     case "tools/call":
-      return handleToolCall(request.params?.name ?? "", request.params?.arguments ?? {});
+      return handleToolCall(request.params?.name ?? "", request.params?.arguments ?? {}) as unknown as Record<string, unknown>;
     default:
       return { error: { code: -32601, message: `Unknown method: ${request.method}` } };
   }

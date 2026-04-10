@@ -1742,7 +1742,8 @@ section[id] {
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#audit-log"><span class="nav-num">06</span> Audit Log</a></li>
-    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">07</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#hardening-loop"><span class="nav-num">07</span> Hardening Loop</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">08</span> Dependencies</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1877,6 +1878,7 @@ Instead of trying to predict what a command will do, observe what it actually di
       <div class="reason"><span class="ri">&#x2022;</span> <strong>Reverts</strong> the file by writing the snapshot content back</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>Logs</strong> the revert to stderr</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>Injects context</strong> telling the AI the change was reverted and not to retry</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>Spawns a hardening agent</strong> via <code>lib/spawn-agent.ts</code> that auto-adds a <code>blocked</code> pattern to <code>patterns.json</code> so SecurityValidator catches the same bypass pre-execution next time</div>
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
@@ -1950,6 +1952,29 @@ PostToolUse { tool_name: "Edit", ... }
     </div>
   </section>
 
+  <section id="hardening-loop">
+    <div class="section-label accent">Hardening Loop</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4D6;</div>
+        <h3>Hardening Loop</h3>
+      </div>
+      <p>When a revert occurs, SettingsRevert calls <code>runHardening(command)</code> which spawns a background Claude agent with a purpose-built MCP server (least-privilege). The agent:</p>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>Calls <code>get_blocked_patterns</code> to check if the bypass is already covered and see valid groups</p></div>
+        </div>
+
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>Calls <code>insert_blocked_pattern</code> to add a new <code>blocked</code> entry with pattern, reason, and optional group (must match an existing group)</p></div>
+        </div>
+</div>
+      <p>The agent runs with <code>--strict-mcp-config</code> (MCP tools only, no filesystem access) and <code>--setting-sources ""</code> (no user hooks). Agent lifecycle is logged to <code>MEMORY/SECURITY/hardening-log.jsonl</code>. A lock file at <code>/tmp/pai-hardening-agent.lock</code> prevents concurrent runs.</p>
+    </div>
+  </section>
+
   <section id="dependencies">
     <div class="section-label cyan">Dependencies</div>
     <div class="card cyan">
@@ -1959,6 +1984,7 @@ PostToolUse { tool_name: "Edit", ... }
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> <code>core/adapters/fs</code> — <code>readFile</code>, <code>writeFile</code>, <code>appendFile</code>, <code>ensureDir</code>, <code>fileExists</code> for comparison, revert, and audit I/O</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract</code> — <code>snapshotPath</code> and <code>logSettingsAudit</code> for snapshot locations and shared audit logging</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>hooks/SecurityValidator/run-hardening</code> — <code>runHardening()</code> spawns a background hardening agent via MCP</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/tool-input</code> — <code>getCommand</code> for extracting Bash commands</div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>lib/paths</code> — <code>defaultStderr</code>, <code>getPaiDir</code> for logging and base directory</div>
 <div class="reason"><span class="ri">&#x2022;</span> Requires <code>SettingsGuard</code> (PreToolUse) to have run first to create snapshots</div>

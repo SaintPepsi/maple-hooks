@@ -124,7 +124,11 @@ describe("agent-runner / real execution", () => {
       },
     });
     runAgent(makeConfig(), false, deps);
-    expect(logged.some((l) => l.content.includes("completed") && l.content.includes("exitCode=0"))).toBe(true);
+    const entry = logged.find((l) => l.content.includes('"completed"'));
+    expect(entry).toBeDefined();
+    const parsed = JSON.parse(entry!.content.trim());
+    expect(parsed.event).toBe("completed");
+    expect(parsed.exitCode).toBe(0);
   });
 
   test("logs failed event when spawnSyncSafe returns error", () => {

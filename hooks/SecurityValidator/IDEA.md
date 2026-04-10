@@ -12,7 +12,7 @@ Intercept every tool invocation — shell commands, file reads, file writes — 
 
 ## How It Works
 
-1. Load a security policy file (YAML) that defines blocked command patterns, path access tiers (zero-access, read-only, confirm-write, no-delete), and per-project overrides.
+1. Load a security policy file (JSON) that defines blocked command patterns, path access tiers (zero-access, read-only, confirm-write, no-delete), and per-project overrides.
 2. When a shell command is invoked, test it against blocked, confirm, and alert pattern lists in priority order.
 3. When a file operation is invoked, resolve the file path and check it against the path access tiers for the relevant action (read, write, delete).
 4. For shell commands that modify files (sed -i, cp, mv, tee, redirects, inline scripts), extract the write targets and validate them against path rules — preventing tool-substitution bypasses.
@@ -26,4 +26,4 @@ Intercept every tool invocation — shell commands, file reads, file writes — 
 
 ## Context
 
-Designed for AI-assisted development environments where the AI has direct tool access. The YAML-based policy is user-editable, so security posture can be tuned per-project without code changes.
+Designed for AI-assisted development environments where the AI has direct tool access. The JSON-based policy is user-editable, so security posture can be tuned per-project without code changes.

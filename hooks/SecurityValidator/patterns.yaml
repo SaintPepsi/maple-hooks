@@ -107,6 +107,9 @@ bash:
 
   # CONFIRM - Dangerous but sometimes legitimate (LOGGED + prompt)
   # AI should use AskUserQuestion before attempting (see RULE P3)
+    - pattern: "python3?\s+-c\s+.*open\s*\(.*settings\.json"
+      reason: "Auto-hardened: python -c one-liner writing to settings.json via open() (caught 2026-04-10)"
+
   confirm:
     # Git operations
     - pattern: "git push --force"
