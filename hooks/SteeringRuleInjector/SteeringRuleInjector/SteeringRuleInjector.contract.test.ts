@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import type { SessionStartInput, SubagentStartInput, PreCompactInput, ToolHookInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import type { ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   type InjectionTracker,
   type SteeringRuleConfig,
@@ -104,6 +104,38 @@ keywords: []
 
 Always inject this content.`;
 
+const PRETOOLUSE_RULE = `---
+name: pretool-rule
+events: [PreToolUse]
+keywords: [.css, .scss]
+---
+
+Browser-mandatory for CSS changes.`;
+
+const POSTTOOLUSE_RULE = `---
+name: posttool-rule
+events: [PostToolUse]
+keywords: [Edit, Write]
+---
+
+Verify after editing.`;
+
+const SUBAGENT_RULE = `---
+name: subagent-rule
+events: [SubagentStart]
+keywords: []
+---
+
+Least privilege for sub-agents.`;
+
+const PRECOMPACT_RULE = `---
+name: precompact-rule
+events: [PreCompact]
+keywords: []
+---
+
+Write state before compacting.`;
+
 const KEYWORD_RULE = `---
 name: keyword-rule
 events: [UserPromptSubmit]
@@ -162,10 +194,33 @@ function makePromptInput(prompt: string): UserPromptSubmitInput {
   return { session_id: "test-session-123", prompt };
 }
 
+function makeToolInput(toolName: string, filePath: string): ToolHookInput {
+  return { session_id: "test-session-123", tool_name: toolName, tool_input: { file_path: filePath } };
+}
+
+function makePostToolInput(toolName: string, filePath: string): ToolHookInput {
+  return { session_id: "test-session-123", tool_name: toolName, tool_input: { file_path: filePath }, tool_response: {} };
+}
+
+function makeSubagentInput(): SubagentStartInput {
+  return { session_id: "test-session-123", transcript_path: "/tmp/transcript.jsonl" };
+}
+
+function makePreCompactInput(): PreCompactInput {
+  return { session_id: "test-session-123", trigger: "auto" };
+}
+
 describe("SteeringRuleInjector contract", () => {
   it("has correct name and event", () => {
     expect(SteeringRuleInjector.name).toBe("SteeringRuleInjector");
-    expect(SteeringRuleInjector.event).toEqual(["SessionStart", "UserPromptSubmit"]);
+    expect(SteeringRuleInjector.event).toEqual([
+      "SessionStart",
+      "UserPromptSubmit",
+      "PreToolUse",
+      "PostToolUse",
+      "SubagentStart",
+      "PreCompact",
+    ]);
   });
 
   it("accepts all inputs", () => {
@@ -367,6 +422,112 @@ describe("SteeringRuleInjector contract", () => {
     if (result.value.type !== "context") return;
     expect(result.value.content).toContain("Always inject this content.");
   });
+
+  it("injects matched rules on PreToolUse (keyword matches file path)", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/pretool.md"],
+      readFile: () => PRETOOLUSE_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/main.css"), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Browser-mandatory for CSS changes.");
+  });
+
+  it("returns bare continue on PreToolUse when no keywords match", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/pretool.md"],
+      readFile: () => PRETOOLUSE_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/middleware.ts"), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+  });
+
+  it("injects matched rules on PostToolUse (keyword matches tool name)", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/posttool.md"],
+      readFile: () => POSTTOOLUSE_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makePostToolInput("Edit", "src/foo.ts"), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Verify after editing.");
+  });
+
+  it("returns bare continue on PostToolUse when no keywords match", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/posttool.md"],
+      readFile: () => POSTTOOLUSE_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makePostToolInput("Read", "src/foo.ts"), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
+  });
+
+  it("injects always-rules on SubagentStart", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/subagent.md"],
+      readFile: () => SUBAGENT_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makeSubagentInput(), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("context");
+    if (result.value.type !== "context") return;
+    expect(result.value.content).toContain("Least privilege for sub-agents.");
+  });
+
+  it("injects always-rules on PreCompact", () => {
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/precompact.md"],
+      readFile: () => PRECOMPACT_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makePreCompactInput(), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("context");
+    if (result.value.type !== "context") return;
+    expect(result.value.content).toContain("Write state before compacting.");
+  });
+
+  it("matches keywords against tool_name + file_path combined", () => {
+    const MULTI_KEYWORD_RULE = `---
+name: multi-kw-rule
+events: [PreToolUse]
+keywords: [Edit, .css]
+---
+
+Matched on tool or path.`;
+    const deps = makeDeps({
+      resolveGlobs: () => ["/rules/multi.md"],
+      readFile: () => MULTI_KEYWORD_RULE,
+    });
+    const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/foo.ts"), deps);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value.type).toBe("continue");
+    if (result.value.type !== "continue") return;
+    expect((result.value as ContinueOutput).additionalContext).toContain("Matched on tool or path.");
+  });
+
 });
 
 describe("SteeringRuleInjector defaultDeps", () => {

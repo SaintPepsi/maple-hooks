@@ -1,10 +1,10 @@
 /**
  * SteeringRuleInjector Contract — Inject steering rules into session context.
  *
- * Fires on SessionStart (always-rules with empty keywords) and
- * UserPromptSubmit (keyword-matched rules). Parses YAML frontmatter
- * from .md rule files, matches keywords case-insensitively, and
- * tracks injections per-session so each rule fires at most once.
+ * Fires on SessionStart, UserPromptSubmit, PreToolUse, PostToolUse,
+ * SubagentStart, and PreCompact. Parses YAML frontmatter from .md rule files,
+ * matches keywords case-insensitively, and tracks injections per-session so
+ * each rule fires at most once.
  */
 
 import { join } from "node:path";
@@ -12,15 +12,17 @@ import { fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { SessionStartInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
-import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import type { SessionStartInput, UserPromptSubmitInput, ToolHookInput, SubagentStartInput, PreCompactInput } from "@hooks/core/types/hook-inputs";
+import type { ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type SteeringRuleInput = SessionStartInput | UserPromptSubmitInput;
+type SteeringRuleInput = SessionStartInput | UserPromptSubmitInput | ToolHookInput | SubagentStartInput | PreCompactInput;
+
+type SteeringEventType = "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "PostToolUse" | "SubagentStart" | "PreCompact";
 
 export interface RuleFrontmatter {
   name: string;
@@ -102,12 +104,31 @@ function isPromptEvent(input: SteeringRuleInput): input is UserPromptSubmitInput
   return "prompt" in input && input.prompt != null;
 }
 
-function getEventType(input: SteeringRuleInput): "SessionStart" | "UserPromptSubmit" {
-  return isPromptEvent(input) ? "UserPromptSubmit" : "SessionStart";
+function isToolEvent(input: SteeringRuleInput): input is ToolHookInput {
+  return "tool_name" in input;
 }
 
-function getPromptText(input: SteeringRuleInput): string {
-  return isPromptEvent(input) ? (input.prompt ?? "") : "";
+function isPreCompactEvent(input: SteeringRuleInput): input is PreCompactInput {
+  return "trigger" in input;
+}
+
+function getEventType(input: SteeringRuleInput): SteeringEventType {
+  if (isToolEvent(input)) {
+    return "tool_response" in input && input.tool_response !== undefined ? "PostToolUse" : "PreToolUse";
+  }
+  if (isPromptEvent(input)) return "UserPromptSubmit";
+  if (isPreCompactEvent(input)) return "PreCompact";
+  if ("transcript_path" in input) return "SubagentStart";
+  return "SessionStart";
+}
+
+function getMatchText(input: SteeringRuleInput): string {
+  if (isToolEvent(input)) {
+    const filePath = typeof input.tool_input["file_path"] === "string" ? input.tool_input["file_path"] : "";
+    return `${input.tool_name} ${filePath}`;
+  }
+  if (isPromptEvent(input)) return input.prompt ?? "";
+  return "";
 }
 
 // ─── Env Expansion (used only in defaultDeps) ───────────────────────────────
@@ -161,13 +182,15 @@ const defaultDeps: SteeringRuleInjectorDeps = {
 
 // ─── Contract ───────────────────────────────────────────────────────────────
 
+const BARE_CONTINUE: ContinueOutput = { type: "continue", continue: true };
+
 export const SteeringRuleInjector: SyncHookContract<
   SteeringRuleInput,
-  ContextOutput | SilentOutput,
+  ContextOutput | ContinueOutput | SilentOutput,
   SteeringRuleInjectorDeps
 > = {
   name: "SteeringRuleInjector",
-  event: ["SessionStart", "UserPromptSubmit"],
+  event: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "SubagentStart", "PreCompact"],
 
   accepts(_input: SteeringRuleInput): boolean {
     return true;
@@ -176,7 +199,7 @@ export const SteeringRuleInjector: SyncHookContract<
   execute(
     input: SteeringRuleInput,
     deps: SteeringRuleInjectorDeps,
-  ): Result<ContextOutput | SilentOutput, ResultError> {
+  ): Result<ContextOutput | ContinueOutput | SilentOutput, ResultError> {
     if (deps.isSubagent()) {
       return ok(SILENT);
     }
@@ -187,13 +210,14 @@ export const SteeringRuleInjector: SyncHookContract<
     }
 
     const eventType = getEventType(input);
-    const prompt = getPromptText(input);
+    const matchText = getMatchText(input);
+    const isToolEventType = eventType === "PreToolUse" || eventType === "PostToolUse";
 
     // Resolve glob patterns to file paths
     const filePaths = deps.resolveGlobs(config.includes);
     if (filePaths.length === 0) {
       deps.stderr("[SteeringRuleInjector] No rule files found");
-      return ok(SILENT);
+      return ok(isToolEventType ? BARE_CONTINUE : SILENT);
     }
 
     // Load tracker for deduplication
@@ -213,12 +237,12 @@ export const SteeringRuleInjector: SyncHookContract<
       // Skip already-injected rules
       if (tracker.injected[rule.name]) continue;
 
-      // For SessionStart, only inject rules with empty keywords (always-rules)
-      if (eventType === "SessionStart" && rule.keywords.length > 0) continue;
+      // For always-events (SessionStart, SubagentStart, PreCompact), only inject empty-keyword rules
+      if ((eventType === "SessionStart" || eventType === "SubagentStart" || eventType === "PreCompact") && rule.keywords.length > 0) continue;
 
-      // For UserPromptSubmit, require at least one keyword and a match
-      if (eventType === "UserPromptSubmit") {
-        if (!matchesKeywords(prompt, rule.keywords)) continue;
+      // For keyword-events (UserPromptSubmit, PreToolUse, PostToolUse), require a keyword match
+      if (eventType === "UserPromptSubmit" || isToolEventType) {
+        if (!matchesKeywords(matchText, rule.keywords)) continue;
       }
 
       bodiesToInject.push(rule.body);
@@ -229,7 +253,7 @@ export const SteeringRuleInjector: SyncHookContract<
     }
 
     if (bodiesToInject.length === 0) {
-      return ok(SILENT);
+      return ok(isToolEventType ? BARE_CONTINUE : SILENT);
     }
 
     // Persist tracker
@@ -239,6 +263,10 @@ export const SteeringRuleInjector: SyncHookContract<
     deps.stderr(
       `[SteeringRuleInjector] Injecting ${bodiesToInject.length} rule(s) on ${eventType}`,
     );
+
+    if (isToolEventType) {
+      return ok({ type: "continue", continue: true, additionalContext: joined });
+    }
 
     return ok({ type: "context", content: joined });
   },
