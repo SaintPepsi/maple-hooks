@@ -12,8 +12,9 @@ The `@anthropic-ai/claude-agent-sdk` package (v0.2.98+) is the authoritative sou
 
 - **hook-inputs.ts** — Input types for each hook event (PreToolUse, PostToolUse, SessionStart, SessionEnd, UserPromptSubmit, PreCompact, Stop, SubagentStart, SubagentStop, PermissionRequest)
 - **hook-input-schema.ts** — Effect Schema discriminated union on `hook_type`. Provides `parseHookInput(raw)` for validated parsing and `getEventType(input)` for type-safe event resolution. Replaces fragile `"field" in input` / `as Type` casts.
-- **hook-outputs.ts** — Output types (ContinueOutput, BlockOutput, AskOutput, ContextOutput, UpdatedInputOutput, SilentOutput) with factory functions
+- **hook-outputs.ts** — Output types (ContinueOutput, BlockOutput, AskOutput, ContextOutput, UpdatedInputOutput, SilentOutput) with factory functions. **Being phased out** — see the SDK Type Foundation refactor; contracts migrate to returning `SyncHookJSONOutput` directly.
 - **hook-output-schema.ts** — Effect Schema for Claude Code's validated output format. Encodes which events support `hookSpecificOutput` (discriminated union on `hookEventName`) and provides `encodeHookOutput(output, eventName)` for schema-validated encoding. Events not in the union (PreCompact, Stop, SessionEnd, SubagentStop) fall back to `systemMessage` for context injection. Source: `SyncHookJSONOutput` from `@anthropic-ai/claude-agent-sdk`.
+- **hook-output-helpers.ts** — SDK-derived type aliases for compile-time safety. Exports `HookSpecificEventName` (extracted from `SyncHookJSONOutput["hookSpecificOutput"]["hookEventName"]` — the 15 events that support `hookSpecificOutput`) and `NonHookSpecificEvent` (the 12 events that must use top-level output fields). Used by contracts that resolve the event name at runtime (e.g., SteeringRuleInjector) and by the barrel to re-export SDK-aligned type aliases. No runtime code — pure types.
 
 ## hookSpecificOutput Support
 
