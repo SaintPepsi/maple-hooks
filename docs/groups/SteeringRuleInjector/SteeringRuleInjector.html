@@ -1733,7 +1733,7 @@ section[id] {
 <nav class="wiki-nav" id="wikiNav">
   <div class="wiki-nav-header">
     <h4>SteeringRuleInjector</h4>
-    <p>SteeringRuleInjector / SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SubagentStart, PreCompact, Stop</p>
+    <p>SteeringRuleInjector / SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, SubagentStart, Stop</p>
   </div>
   <ul class="wiki-nav-list">
     <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
@@ -1769,7 +1769,6 @@ section[id] {
       <span>PreToolUse</span>
       <span>PostToolUse</span>
       <span>SubagentStart</span>
-      <span>PreCompact</span>
       <span>Stop</span>
       <span>pai-hooks</span>
     </div>
@@ -1783,7 +1782,6 @@ section[id] {
     <span class="tag orange">PreToolUse</span>
     <span class="tag blue">PostToolUse</span>
     <span class="tag maple">SubagentStart</span>
-    <span class="tag pink">PreCompact</span>
     <span class="tag red">Stop</span>
     <span class="tag green">SteeringRuleInjector</span>
   </div>
@@ -1835,7 +1833,7 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
         <h3>Overview</h3>
       </div>
       <p>Injects individual steering rule files into context based on event type and keyword matching. Rules are <code>.md</code> files with YAML frontmatter declaring when they should fire. Each rule injects at most once per session, tracked via a gitignored JSON file.</p>
-      <p>Registered for <code>SessionStart</code>, <code>UserPromptSubmit</code>, <code>PreToolUse</code>, <code>PostToolUse</code>, <code>SubagentStart</code>, and <code>PreCompact</code>. Skips subagent sessions (except on <code>SubagentStart</code> itself).</p>
+      <p>Registered for <code>SessionStart</code>, <code>UserPromptSubmit</code>, <code>PreToolUse</code>, <code>PostToolUse</code>, <code>SubagentStart</code>, and <code>Stop</code>. Skips subagent sessions (except on <code>SubagentStart</code> itself).</p>
     </div>
   </section>
 
@@ -1851,7 +1849,7 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
 <div class="reason"><span class="ri">&#x2022;</span> <code>PreToolUse</code> — keyword-matched against <code>tool_name</code> and <code>file_path</code>; returns <code>ContinueOutput</code> with <code>additionalContext</code></div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>PostToolUse</code> — keyword-matched against <code>tool_name</code> and <code>file_path</code>; returns <code>ContinueOutput</code> with <code>additionalContext</code></div>
 <div class="reason"><span class="ri">&#x2022;</span> <code>SubagentStart</code> — always-inject rules with empty keywords fire when a subagent is spawned</div>
-<div class="reason"><span class="ri">&#x2022;</span> <code>PreCompact</code> — always-inject rules with empty keywords fire before context compaction</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>Stop</code> — keyword-matched against <code>last_assistant_message</code>; blocks with matched rule as reason (Stop hooks cannot inject context)</div>
     </div>
   </section>
 
@@ -1867,12 +1865,12 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
 <div class="reason"><span class="ri">&#x2022;</span> Every <code>PreToolUse</code> when rule keywords match <code>tool_name</code> or file path (case-insensitive substring)</div>
 <div class="reason"><span class="ri">&#x2022;</span> Every <code>PostToolUse</code> when rule keywords match <code>tool_name</code> or file path (case-insensitive substring)</div>
 <div class="reason"><span class="ri">&#x2022;</span> Every <code>SubagentStart</code> for rules with empty keywords (always-inject)</div>
-<div class="reason"><span class="ri">&#x2022;</span> Every <code>PreCompact</code> for rules with empty keywords (always-inject)</div>
+<div class="reason"><span class="ri">&#x2022;</span> Every <code>Stop</code> when rule keywords match <code>last_assistant_message</code> text (case-insensitive substring)</div>
       <p>It does <strong>not</strong> fire when:</p>
       <div class="reason"><span class="ri">&#x2022;</span> Config has <code>enabled: false</code></div>
 <div class="reason"><span class="ri">&#x2022;</span> No rule files resolve from the configured glob patterns</div>
 <div class="reason"><span class="ri">&#x2022;</span> No rules match the current event type</div>
-<div class="reason"><span class="ri">&#x2022;</span> On <code>UserPromptSubmit</code>, rules with empty keywords are skipped (must have at least one keyword)</div>
+<div class="reason"><span class="ri">&#x2022;</span> On <code>UserPromptSubmit</code>/<code>Stop</code>, rules with empty keywords are skipped (must have at least one keyword)</div>
 <div class="reason"><span class="ri">&#x2022;</span> On <code>PreToolUse</code>/<code>PostToolUse</code>, rules with empty keywords are skipped (must have at least one keyword)</div>
 <div class="reason"><span class="ri">&#x2022;</span> A rule has already been injected this session (per-session dedup)</div>
     </div>
@@ -1908,7 +1906,7 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Filters by keyword match — prompt text for <code>UserPromptSubmit</code>; <code>tool_name</code> + <code>file_path</code> for <code>PreToolUse</code>/<code>PostToolUse</code>; empty keywords pass through for <code>SessionStart</code>, <code>SubagentStart</code>, and <code>PreCompact</code></p></div>
+          <div class="step-content"><p>Filters by keyword match — prompt text for <code>UserPromptSubmit</code>; <code>tool_name</code> + <code>file_path</code> + <code>skill</code> for <code>PreToolUse</code>/<code>PostToolUse</code>; <code>last_assistant_message</code> for <code>Stop</code>; empty keywords pass through for <code>SessionStart</code> and <code>SubagentStart</code></p></div>
         </div>
 
         <div class="flow-step">
@@ -1918,7 +1916,7 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
 
         <div class="flow-step">
           <div class="step-dot">7</div>
-          <div class="step-content"><p>Concatenates matched rule bodies into output — <code>ContextOutput</code> for prompt events; <code>ContinueOutput</code> with <code>additionalContext</code> for tool events (<code>PreToolUse</code>/<code>PostToolUse</code>)</p></div>
+          <div class="step-content"><p>Concatenates matched rule bodies into output — <code>ContinueOutput</code> with <code>additionalContext</code> (formatted as <code>hookSpecificOutput</code> by runner) for all context-injecting events; <code>BlockOutput</code> for <code>Stop</code> events (Stop hooks cannot inject context)</p></div>
         </div>
 
         <div class="flow-step">
@@ -1955,6 +1953,10 @@ Store steering rules as individual markdown files with YAML frontmatter declarin
       
       <div class="uc-example">
         <div>A <code>SubagentStart</code> event fires when spawning a new agent. Rules with <code>SubagentStart</code> in their events and empty keywords inject automatically, surfacing least-privilege and role-boundary rules at the start of every subagent session.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div>Claude finishes a response containing "here's a quick fix". The <code>Stop</code> event fires with <code>last_assistant_message</code> containing that text. The <code>always-proper-fix</code> rule declares keywords <code>[quick fix, workaround]</code>. "quick fix" matches, so the hook blocks with the rule as the reason, forcing Claude to retry without presenting shortcuts.</div>
       </div>
       <div style="margin-top: 20px;">
       <h3 style="color: var(--green); margin-bottom: 12px;">Rule File Format</h3>

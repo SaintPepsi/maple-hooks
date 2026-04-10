@@ -567,14 +567,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/WorkLifecycle/PreCompactStatePersist/PreCompactStatePersist.hook.ts"
           }
         ]
