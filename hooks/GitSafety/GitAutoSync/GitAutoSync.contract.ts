@@ -7,6 +7,7 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   copyFile,
   ensureDir,
@@ -21,7 +22,6 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import type { SilentOutput } from "@hooks/core/types/hook-outputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getLocalTimestamp } from "@hooks/lib/time";
 
@@ -241,7 +241,7 @@ const defaultDeps: GitAutoSyncDeps = {
 
 // ─── Contract ────────────────────────────────────────────────────────────────
 
-export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAutoSyncDeps> = {
+export const GitAutoSync: SyncHookContract<SessionEndInput, GitAutoSyncDeps> = {
   name: "GitAutoSync",
   event: "SessionEnd",
 
@@ -249,14 +249,14 @@ export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAut
     return true;
   },
 
-  execute(_input: SessionEndInput, deps: GitAutoSyncDeps): Result<SilentOutput, ResultError> {
+  execute(_input: SessionEndInput, deps: GitAutoSyncDeps): Result<SyncHookJSONOutput, ResultError> {
     // 0. Clean up stale agent tracking files (dead PIDs or TTL expired)
     cleanupStaleAgentFiles(deps);
 
     // 1. Skip if another session is actively using git
     if (isGitBusy(deps)) {
       deps.stderr("[GitAutoSync] Skipped — index.lock exists (active session using git)");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 1. Check for uncommitted changes
@@ -266,17 +266,17 @@ export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAut
     });
     if (!statusResult.ok) {
       deps.stderr(`[GitAutoSync] git status failed: ${statusResult.error.message}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     if (!statusResult.value.trim()) {
       deps.stderr("[GitAutoSync] No changes to sync");
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 2. Debounce — skip if last auto-sync was recent
     if (isDebounced(deps)) {
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 3. Stage all changes
@@ -291,7 +291,7 @@ export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAut
       if (deps.fileExists(lockPath)) {
         deps.removeFile(lockPath);
       }
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 4. Commit
@@ -307,7 +307,7 @@ export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAut
       if (deps.fileExists(lockPath)) {
         deps.removeFile(lockPath);
       }
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 5. Backup key files before pull
@@ -320,7 +320,7 @@ export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAut
     });
     if (!pullResult.ok) {
       deps.stderr(`[GitAutoSync] git pull failed: ${pullResult.error.message}`);
-      return ok({ type: "silent" });
+      return ok({});
     }
 
     // 7. Verify no key files changed unexpectedly
@@ -334,7 +334,7 @@ export const GitAutoSync: SyncHookContract<SessionEndInput, SilentOutput, GitAut
     });
 
     deps.stderr("[GitAutoSync] Synced and pushing to origin");
-    return ok({ type: "silent" });
+    return ok({});
   },
 
   defaultDeps,

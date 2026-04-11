@@ -13,6 +13,23 @@
 
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 
+/** True if output is a PreToolUse ask (R5 confirmation channel). */
+export function isPreToolUseAsk(output: SyncHookJSONOutput): boolean {
+  const hs = output.hookSpecificOutput;
+  return (
+    hs?.hookEventName === "PreToolUse" &&
+    "permissionDecision" in hs &&
+    hs.permissionDecision === "ask"
+  );
+}
+
+/** Get the PreToolUse ask reason if present, else empty string. */
+export function getPreToolUseAskReason(output: SyncHookJSONOutput): string {
+  const hs = output.hookSpecificOutput;
+  if (hs?.hookEventName !== "PreToolUse" || !("permissionDecisionReason" in hs)) return "";
+  return hs.permissionDecisionReason ?? "";
+}
+
 /** True if output is a PreToolUse deny (R4 canonical block channel). */
 export function isPreToolUseDeny(output: SyncHookJSONOutput): boolean {
   const hs = output.hookSpecificOutput;

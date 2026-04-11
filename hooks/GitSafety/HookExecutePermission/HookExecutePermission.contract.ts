@@ -6,13 +6,12 @@
  * where new hooks are created without +x and fail silently.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import { defaultStderr } from "@hooks/lib/paths";
 
 export interface HookExecutePermissionDeps {
@@ -29,11 +28,7 @@ const defaultDeps: HookExecutePermissionDeps = {
   stderr: defaultStderr,
 };
 
-export const HookExecutePermission: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  HookExecutePermissionDeps
-> = {
+export const HookExecutePermission: SyncHookContract<ToolHookInput, HookExecutePermissionDeps> = {
   name: "HookExecutePermission",
   event: "PostToolUse",
 
@@ -46,7 +41,7 @@ export const HookExecutePermission: SyncHookContract<
   execute(
     input: ToolHookInput,
     deps: HookExecutePermissionDeps,
-  ): Result<ContinueOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     const filePath = input.tool_input?.file_path as string;
 
     const result = deps.execSync(`chmod +x "${filePath}"`);
@@ -56,7 +51,7 @@ export const HookExecutePermission: SyncHookContract<
       deps.stderr(`[HookExecutePermission] Set +x on ${filePath}`);
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,
