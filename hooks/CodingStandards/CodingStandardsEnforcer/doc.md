@@ -35,7 +35,7 @@ It does **not** fire when:
 4. Runs `findAllViolations()` against the content
 5. If violations are found, logs them to the signal logger (`coding-standards-violations.jsonl`)
 6. Formats a block message with an escalating narrative opener, grouped violations by category, and specific fix guidance
-7. Returns `block` with the formatted reason
+7. Returns a `SyncHookJSONOutput` with `hookSpecificOutput.permissionDecision: "deny"` (R4 canonical PreToolUse block) and the formatted reason as `permissionDecisionReason`
 
 ```typescript
 // Core enforcement flow (Edit simulation)
@@ -44,7 +44,13 @@ const contentToCheck = applyEdit(currentFile, editParts.oldStr, editParts.newStr
 const violations = findAllViolations(contentToCheck, filePath);
 
 if (violations.length > 0) {
-  return ok({ type: "block", decision: "block", reason: formatBlockMessage(violations, filePath) });
+  return ok({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: formatBlockMessage(violations, filePath),
+    },
+  });
 }
 ```
 
@@ -72,3 +78,4 @@ if (violations.length > 0) {
 | `signal-logger` | lib | Logs violations to JSONL for pattern analysis |
 | `narrative-reader` | lib | `pickNarrative` for escalating block message tone |
 | `svelte-utils` | lib | `isSvelteFile`, `extractSvelteScript` for Svelte support |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |

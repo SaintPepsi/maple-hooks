@@ -33,7 +33,7 @@ It does **not** fire when:
 3. Runs the discovered command with a 10-second timeout
 4. Marks the file as checked (starts the 60-second debounce timer)
 5. Parses the output for errors specific to the edited file (handles both tsc and svelte-check output formats)
-6. If errors are found, formats an advisory with line numbers and error messages
+6. If errors are found, formats an advisory with line numbers and error messages, injected via `hookSpecificOutput.additionalContext` (R2 PostToolUse channel)
 7. Logs the outcome (clean, errors, or timeout) to the signal logger
 
 ```typescript
@@ -44,7 +44,13 @@ markChecked(filePath);
 
 const errors = parseTypeErrors(combinedOutput, filePath);
 if (errors.length > 0) {
-  return ok({ type: "continue", continue: true, additionalContext: formatAdvisory(errors, filePath) });
+  return ok({
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: formatAdvisory(errors, filePath),
+    },
+  });
 }
 ```
 
@@ -71,3 +77,4 @@ if (errors.length > 0) {
 | `process` | adapter | `spawnSyncSafe` for running type-check commands |
 | `signal-logger` | lib | Logs execution outcomes to JSONL for analysis |
 | `svelte-utils` | lib | `isSvelteFile` for Svelte file detection |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"` is the PostToolUse-compatible advisory channel (post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from `continueOk(advisory)` was silently dropped for PostToolUse events) |

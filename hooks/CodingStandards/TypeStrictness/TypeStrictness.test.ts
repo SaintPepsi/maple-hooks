@@ -8,6 +8,11 @@ import {
   TypeStrictness,
   type TypeStrictnessDeps,
 } from "@hooks/hooks/CodingStandards/TypeStrictness/TypeStrictness.contract";
+import {
+  getPreToolUseDenyReason as denyReason,
+  getPreToolUseAdvisory as getAdvisory,
+  isPreToolUseDeny as isDeny,
+} from "@hooks/hooks/CodingStandards/test-helpers";
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -282,10 +287,8 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("block");
-      if (result.value.type === "block") {
-        expect(result.value.reason).toContain("Line 1");
-      }
+      expect(isDeny(result.value)).toBe(true);
+      expect(denyReason(result.value)).toContain("Line 1");
     }
   });
 
@@ -300,7 +303,7 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("block");
+      expect(isDeny(result.value)).toBe(true);
     }
   });
 
@@ -311,7 +314,7 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -322,7 +325,7 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -335,7 +338,7 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -345,10 +348,12 @@ describe("TypeStrictness.execute", () => {
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok && result.value.type === "block") {
-      expect(result.value.reason).toContain("STOP");
-      expect(result.value.reason).toContain("READ the type definitions");
-      expect(result.value.reason).toContain("Type correctness > speed");
+    if (result.ok) {
+      expect(isDeny(result.value)).toBe(true);
+      const reason = denyReason(result.value);
+      expect(reason).toContain("STOP");
+      expect(reason).toContain("READ the type definitions");
+      expect(reason).toContain("Type correctness > speed");
     }
   });
 
@@ -362,7 +367,7 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
+      expect(result.value.continue).toBe(true);
     }
   });
 
@@ -376,10 +381,8 @@ describe("TypeStrictness.execute", () => {
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.type).toBe("continue");
-      expect((result.value as { additionalContext?: string }).additionalContext).toContain(
-        "LAZY TYPE WARNING",
-      );
+      expect(result.value.continue).toBe(true);
+      expect(getAdvisory(result.value) ?? "").toContain("LAZY TYPE WARNING");
     }
   });
 });
@@ -468,7 +471,7 @@ describe("TypeStrictness.execute — tool content extraction", () => {
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   it("continues for non-Write/non-Edit tools", () => {
@@ -478,7 +481,7 @@ describe("TypeStrictness.execute — tool content extraction", () => {
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });
 
@@ -498,7 +501,7 @@ describe("TypeStrictness.execute — Svelte files", () => {
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("block");
+    if (result.ok) expect(isDeny(result.value)).toBe(true);
   });
 
   it("continues when .svelte file has no script block", () => {
@@ -508,6 +511,6 @@ describe("TypeStrictness.execute — Svelte files", () => {
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.value.type).toBe("continue");
+    if (result.ok) expect(result.value.continue).toBe(true);
   });
 });

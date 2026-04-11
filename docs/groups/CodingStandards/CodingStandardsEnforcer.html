@@ -1906,7 +1906,7 @@ This is the "enforce" side of a warn-then-enforce pattern. A companion advisor w
 
         <div class="flow-step">
           <div class="step-dot">5</div>
-          <div class="step-content"><p>Returns <code>block</code> with the formatted reason</p></div>
+          <div class="step-content"><p>Returns a <code>SyncHookJSONOutput</code> with <code>hookSpecificOutput.permissionDecision: "deny"</code> (R4 canonical PreToolUse block) and the formatted reason as <code>permissionDecisionReason</code></p></div>
         </div>
 </div>
       
@@ -1923,7 +1923,13 @@ const contentToCheck = applyEdit(currentFile, editParts.oldStr, editParts.newStr
 const violations = findAllViolations(contentToCheck, filePath);
 
 if (violations.length &gt; 0) {
-  return ok({ type: "block", decision: "block", reason: formatBlockMessage(violations, filePath) });
+  return ok({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse",
+      permissionDecision: "deny",
+      permissionDecisionReason: formatBlockMessage(violations, filePath),
+    },
+  });
 }</div>
         </div>
       </div>
@@ -1978,6 +1984,7 @@ if (violations.length &gt; 0) {
           <tr><td><code>signal-logger</code></td><td>lib</td><td>Logs violations to JSONL for pattern analysis</td></tr>
           <tr><td><code>narrative-reader</code></td><td>lib</td><td><code>pickNarrative</code> for escalating block message tone</td></tr>
           <tr><td><code>svelte-utils</code></td><td>lib</td><td><code>isSvelteFile</code>, <code>extractSvelteScript</code> for Svelte support</td></tr>
+          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type; R4 PreToolUse block via <code>hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }</code></td></tr>
         </tbody>
       </table>
     </div>

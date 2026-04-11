@@ -32,8 +32,8 @@ It does **not** fire when:
    - In-place sed: `sed -i` with a `.ts` file in the command
    - Tee: `tee file.ts` or `tee -a file.ts`
    - Copy/move: `cp`/`mv` with a `.ts`/`.tsx` destination (last argument)
-4. If no write pattern is detected, returns `continue`
-5. If a write pattern is detected, formats a block message explaining why the command is blocked and returns `block`
+4. If no write pattern is detected, returns `{ continue: true }`
+5. If a write pattern is detected, formats a block message explaining why the command is blocked and returns a `SyncHookJSONOutput` with `hookSpecificOutput.permissionDecision: "deny"` (R4 canonical block channel for PreToolUse)
 
 ```typescript
 // Core detection patterns
@@ -63,3 +63,4 @@ if (/\b(?:cp|mv)\b/.test(command) && TS_FILE_PATTERN.test(lastArg)) return true;
 | --- | --- | --- |
 | `result` | core | `ok()` for Result-based returns |
 | `narrative-reader` | lib | `pickNarrative` for block message opener |
+| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |
