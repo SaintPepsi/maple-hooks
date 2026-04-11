@@ -1021,3 +1021,51 @@ describe("TestObligationTracker defaultDeps — write failures", () => {
     ).not.toThrow();
   });
 });
+
+describe("deriveTestPaths", () => {
+  it("derives .test.ts and .spec.ts for a plain .ts source", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Foo.ts");
+    expect(paths).toContain("/abs/path/Foo.test.ts");
+    expect(paths).toContain("/abs/path/Foo.spec.ts");
+  });
+
+  it("derives both conventions for a .contract.ts source", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Foo.contract.ts");
+    // "strip .contract" convention (pai-hooks majority)
+    expect(paths).toContain("/abs/path/Foo.test.ts");
+    expect(paths).toContain("/abs/path/Foo.spec.ts");
+    expect(paths).toContain("/abs/path/Foo.coverage.test.ts");
+    // "keep .contract" convention
+    expect(paths).toContain("/abs/path/Foo.contract.test.ts");
+    expect(paths).toContain("/abs/path/Foo.contract.spec.ts");
+  });
+
+  it("derives coverage test sidecar", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Bar.ts");
+    expect(paths).toContain("/abs/path/Bar.coverage.test.ts");
+  });
+
+  it("derives FooTest.php for PHP sources", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/abs/path/Foo.php");
+    expect(paths).toContain("/abs/path/FooTest.php");
+  });
+
+  it("returns empty array for files without extension", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    expect(deriveTestPaths("/abs/path/README")).toEqual([]);
+  });
+});

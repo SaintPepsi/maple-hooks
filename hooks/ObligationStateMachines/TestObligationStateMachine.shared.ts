@@ -116,13 +116,33 @@ cannot be ${obligationType === "test" ? "tested with standard tooling" : "docume
 `;
 }
 
-/** Derive .test. and .spec. file paths from a source file path. Also derives FooTest.php for PHP files. */
+/**
+ * Derive candidate test file paths from a source file path.
+ *
+ * Handles two pai-hooks conventions for `.contract.ts` files:
+ *   1. `Foo.contract.ts` → `Foo.test.ts` (the majority convention — drop `.contract`)
+ *   2. `Foo.contract.ts` → `Foo.contract.test.ts` (explicit — keep `.contract`)
+ *
+ * Also checks `.spec.ts` variants, a `Foo.coverage.test.ts` sidecar for
+ * hooks that split coverage-specific tests out of the main test file (e.g.
+ * GitAutoSync), and `FooTest.php` for PHP files.
+ */
 export function deriveTestPaths(sourcePath: string): string[] {
   const dotIndex = sourcePath.lastIndexOf(".");
   if (dotIndex === -1) return [];
   const base = sourcePath.slice(0, dotIndex);
   const ext = sourcePath.slice(dotIndex);
-  const paths = [`${base}.test${ext}`, `${base}.spec${ext}`];
+  const paths = [`${base}.test${ext}`, `${base}.spec${ext}`, `${base}.coverage.test${ext}`];
+  // For `.contract.ts` sources, also check the "strip .contract" convention
+  // that most pai-hooks contracts use: `Foo.contract.ts` → `Foo.test.ts`.
+  if (base.endsWith(".contract")) {
+    const stripped = base.slice(0, -".contract".length);
+    paths.push(
+      `${stripped}.test${ext}`,
+      `${stripped}.spec${ext}`,
+      `${stripped}.coverage.test${ext}`,
+    );
+  }
   if (ext === ".php") {
     paths.push(`${base}Test${ext}`);
   }
