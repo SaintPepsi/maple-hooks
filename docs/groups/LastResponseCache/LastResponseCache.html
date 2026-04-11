@@ -1835,7 +1835,7 @@ On session stop, parse the transcript once, find the last assistant message, tru
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>LastResponseCache is a <strong>sync Stop</strong> hook that caches the last assistant response from the session transcript for use by other hooks. On session stop, it reads the transcript JSONL file, extracts the final assistant message, and writes it (truncated to 2000 characters) to <code>MEMORY/STATE/last-response.txt</code>.</p>
+      <p>LastResponseCache is a <strong>sync Stop</strong> hook that caches the last assistant response from the session transcript for use by other hooks. On session stop, it reads the transcript JSONL file, extracts the final assistant message, and writes it (truncated to 2000 characters) to <code>MEMORY/STATE/last-response.txt</code>. Returns a <code>SyncHookJSONOutput</code> silent no-op (<code>ok({})</code>); never blocks or delays the Stop event.</p>
       <p>This cached response provides context for downstream hooks like RatingCapture (UserPromptSubmit), which reads the file to understand what the previous assistant response was about.</p>
     </div>
   </section>

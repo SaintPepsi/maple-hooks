@@ -4,7 +4,7 @@
 
 WorktreeSafetyVerification is a **PostToolUse** hook that runs safety checks after an `EnterWorktree` tool operation. It performs three tasks: ensuring the worktree directory is in the parent repository's `.gitignore` (to prevent cross-worktree contamination), installing dependencies in the background based on detected package managers, and running baseline tests in the background to identify pre-existing issues.
 
-The hook always returns `continue` and never blocks worktree creation. All safety checks are best-effort and log warnings on failure.
+The hook always returns a `SyncHookJSONOutput` continue (`ok({ continue: true })`) and never blocks worktree creation. All safety checks are best-effort and log warnings on failure.
 
 ## Event
 

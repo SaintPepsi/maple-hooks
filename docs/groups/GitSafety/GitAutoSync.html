@@ -1855,7 +1855,7 @@ This pattern is designed for directories that contain configuration and state ra
         <div class="card-icon">&#x26A1;</div>
         <h3>Event</h3>
       </div>
-      <p><code>SessionEnd</code> — fires when a Claude Code session ends, performing a full git sync of the <code>~/.claude</code> directory. Always returns <code>silent</code> and never blocks session end.</p>
+      <p><code>SessionEnd</code> — fires when a Claude Code session ends, performing a full git sync of the <code>~/.claude</code> directory. Always returns a <code>SyncHookJSONOutput</code> silent no-op (<code>ok({})</code>) and never blocks session end.</p>
     </div>
   </section>
 

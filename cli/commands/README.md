@@ -17,3 +17,7 @@ Command implementations for the `paih` CLI. Each file exports a single function 
 ## Routing
 
 Commands are routed from `cli/bin/paih.ts` via a switch statement. Each command receives `ParsedArgs` and `CliDeps`.
+
+## Runner baseline dependencies
+
+`install.ts` exports `RUNNER_BASELINE_DEPS`, the core modules that every compiled installation must include. Post-SDK Type Foundation refactor (Phase 2A, commit `9ed6fd4`), `core/types/hook-outputs` was removed from this list — contracts now return `SyncHookJSONOutput` directly from `@anthropic-ai/claude-agent-sdk`, so the legacy types file is no longer part of the runtime baseline.

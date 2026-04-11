@@ -2,7 +2,7 @@
 
 ## Overview
 
-LastResponseCache is a **sync Stop** hook that caches the last assistant response from the session transcript for use by other hooks. On session stop, it reads the transcript JSONL file, extracts the final assistant message, and writes it (truncated to 2000 characters) to `MEMORY/STATE/last-response.txt`.
+LastResponseCache is a **sync Stop** hook that caches the last assistant response from the session transcript for use by other hooks. On session stop, it reads the transcript JSONL file, extracts the final assistant message, and writes it (truncated to 2000 characters) to `MEMORY/STATE/last-response.txt`. Returns a `SyncHookJSONOutput` silent no-op (`ok({})`); never blocks or delays the Stop event.
 
 This cached response provides context for downstream hooks like RatingCapture (UserPromptSubmit), which reads the file to understand what the previous assistant response was about.
 
