@@ -52,9 +52,11 @@ Exports: `isDuplicate(hookName, sessionId, input, deps?)`, `stableHash(hookName,
 Boundary layer wrapping Node builtins in `Result`:
 
 - `fs.ts` — readFile, writeFile, writeFileExclusive, readJson, writeJson, fileExists, stat, etc.
-- `process.ts` — exec, execSyncSafe, spawnBackground
+- `process.ts` — exec, execSyncSafe, spawnSyncSafe (now with `input`/`stderr` support), spawnBackground, spawnDetached, buildChildEnv
 - `stdin.ts` — readStdin with timeout
 - `log.ts` — appendHookLog for structured hook logging
+
+All spawn adapters in `process.ts` default their child environment through `buildChildEnv()`, which strips the parent-session markers `CLAUDECODE`, `CLAUDE_CODE`, and `CLAUDE_AGENT_SDK`. This prevents hooks spawned by `spawnAgent` (or any other hook) from inheriting the parent Claude Code session flag and mis-detecting their runtime context. Callers can still override via explicit `env` options. See `adapters/README.md §Child-process Environment Policy` for the full rationale and examples.
 
 ## Quality Scorer (`quality-scorer.ts`)
 
