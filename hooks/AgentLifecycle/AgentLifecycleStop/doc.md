@@ -61,6 +61,7 @@ cleanupOrphans(deps, input.session_id);
 | --- | --- | --- |
 | `result` | core | `ok()` and `tryCatch` for Result-based returns |
 | `error` | core | `jsonParseFailed` error constructor |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` union type for execute return |
 | `AgentLifecycle/shared` | shared | `AgentFileData` type, `AgentLifecycleDeps`, `defaultDeps`, `agentFilePath`, `cleanupOrphans` |
 | `paths` | lib | Resolves PAI directory for agent state storage (via shared deps) |
 | `fs` | adapter | File operations: read, write, exists, ensureDir, readDir, removeFile (via shared deps) |

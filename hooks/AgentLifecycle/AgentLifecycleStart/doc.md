@@ -53,6 +53,7 @@ deps.writeFile(agentFilePath(deps, input.session_id), JSON.stringify(data));
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `result` | core | `ok()` for Result-based returns |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` union type for execute return |
 | `AgentLifecycle/shared` | shared | `AgentFileData` type, `AgentLifecycleDeps`, `defaultDeps`, `agentFilePath` |
 | `paths` | lib | Resolves PAI directory for agent state storage (via shared deps) |
 | `fs` | adapter | File operations: writeFile, ensureDir (via shared deps) |
