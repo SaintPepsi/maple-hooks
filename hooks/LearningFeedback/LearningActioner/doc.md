@@ -44,10 +44,10 @@ It does **not** fire when:
 const creditResult = evaluateCredit(deps.baseDir, deps);
 deps.writeFile(creditPath, JSON.stringify({ credit: creditResult.newCredit, ... }));
 
-if (!creditResult.shouldSpawn) return ok({ type: "silent" });
+if (!creditResult.shouldSpawn) return ok({});
 
 // Gate: learning sources must exist
-if (!hasLearningSources(deps.baseDir, deps)) return ok({ type: "silent" });
+if (!hasLearningSources(deps.baseDir, deps)) return ok({});
 
 // Spawn analysis agent via shared infrastructure
 deps.runLearningAgent();

@@ -60,7 +60,7 @@ describe("LearningActioner contract", () => {
     const deps = makeDeps({ fileExists: () => false });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
   });
 
   it("returns silent when .analyzing lock file exists and is fresh", () => {
@@ -70,7 +70,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
   });
 
   it("cleans up stale .analyzing lock file (>45 min old)", () => {
@@ -109,7 +109,6 @@ describe("LearningActioner contract", () => {
     expect(called).toBe(true);
   });
 
-
   it("returns silent when credit is below threshold", () => {
     const deps = makeDeps({
       fileExists: (path: string) => path.endsWith("algorithm-reflections.jsonl"),
@@ -128,7 +127,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
   });
 
   it("spawns when credit crosses threshold of 10", () => {
@@ -208,7 +207,7 @@ describe("LearningActioner contract", () => {
     });
     const result = LearningActioner.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
     expect(spawned).toBe(false);
   });
 

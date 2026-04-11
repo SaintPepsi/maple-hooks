@@ -51,7 +51,7 @@ describe("LearningActioner integration", () => {
     const result = LearningActioner.execute({ session_id: "int-test" }, deps);
 
     expect(result.ok).toBe(true);
-    expect(result.value!.type).toBe("silent");
+    expect(result.value).toEqual({});
     expect(called).toBe(true);
   });
 

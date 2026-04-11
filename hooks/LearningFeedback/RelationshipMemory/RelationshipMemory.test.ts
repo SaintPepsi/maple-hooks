@@ -79,7 +79,7 @@ describe("RelationshipMemory", () => {
       const result = RelationshipMemory.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
     });
 
@@ -103,7 +103,7 @@ describe("RelationshipMemory", () => {
       const result = RelationshipMemory.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
     });
 
@@ -386,10 +386,7 @@ describe("RelationshipMemory", () => {
         {
           type: "user",
           message: {
-            content: [
-              { type: "image" },
-              { type: "tool_result" },
-            ],
+            content: [{ type: "image" }, { type: "tool_result" }],
           },
         },
       ];
@@ -488,8 +485,7 @@ describe("RelationshipMemory", () => {
         {
           type: "assistant",
           message: {
-            content:
-              "All tests passed. Finally the CI pipeline is green. We can ship now.",
+            content: "All tests passed. Finally the CI pipeline is green. We can ship now.",
           },
         },
       ];
