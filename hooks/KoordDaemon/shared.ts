@@ -12,10 +12,7 @@
  */
 
 import { readFile } from "@hooks/core/adapters/fs";
-import {} from "@hooks/core/error";
-import {} from "@hooks/core/result";
 import { readHookConfig } from "@hooks/lib/hook-config";
-import {} from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
