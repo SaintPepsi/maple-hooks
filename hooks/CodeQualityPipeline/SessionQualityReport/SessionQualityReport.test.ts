@@ -119,12 +119,12 @@ describe("SessionQualityReport", () => {
       expect(lastWrittenContent).toContain("clean.ts");
     });
 
-    test("returns SilentOutput", () => {
+    test("returns silent output", () => {
       const deps = makeDeps();
       const result = SessionQualityReport.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("silent");
+        expect(result.value).toEqual({});
       }
     });
   });

@@ -9,6 +9,7 @@ import {
   CodeQualityGuard,
   type CodeQualityGuardDeps,
 } from "@hooks/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -162,7 +163,6 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
       }
     });
@@ -174,10 +174,10 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
-        expect(result.value.additionalContext).toBeDefined();
-        expect(result.value.additionalContext).toContain("SOLID quality:");
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        expect(ctx).toBeDefined();
+        expect(ctx).toContain("SOLID quality:");
       }
     });
   });
@@ -190,7 +190,7 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
   });
@@ -204,8 +204,8 @@ describe("CodeQualityGuard", () => {
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.continue).toBe(true);
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
   });
@@ -225,8 +225,9 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).toContain("improved");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) expect(ctx).toContain("improved");
       }
     });
 
@@ -237,21 +238,23 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).not.toContain("improved");
-        expect(result.value.additionalContext).not.toContain("degraded");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) {
+          expect(ctx).not.toContain("improved");
+          expect(ctx).not.toContain("degraded");
+        }
       }
     });
   });
 
   describe("never blocks or asks", () => {
-    test("always returns ContinueOutput type", () => {
+    test("always returns continue output", () => {
       const deps = makeDeps({ readFile: () => ok(BLOATED_TS) });
       const result = CodeQualityGuard.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        // ContinueOutput has no decision property
+        expect(result.value.continue).toBe(true);
         expect("decision" in result.value).toBe(false);
       }
     });
@@ -265,9 +268,12 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).not.toContain("Type import ratio");
-        expect(result.value.additionalContext).not.toContain("Options object has");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) {
+          expect(ctx).not.toContain("Type import ratio");
+          expect(ctx).not.toContain("Options object has");
+        }
       }
     });
 
@@ -278,9 +284,12 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).not.toContain("Type import ratio");
-        expect(result.value.additionalContext).not.toContain("Options object has");
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) {
+          expect(ctx).not.toContain("Type import ratio");
+          expect(ctx).not.toContain("Options object has");
+        }
       }
     });
 
@@ -291,8 +300,9 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok && result.value.additionalContext) {
-        expect(result.value.additionalContext).toBeDefined();
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) expect(ctx).toBeDefined();
       }
     });
   });
@@ -305,7 +315,7 @@ describe("CodeQualityGuard", () => {
       });
       const result = CodeQualityGuard.execute(input, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("continue");
+      if (result.ok) expect(result.value.continue).toBe(true);
     });
 
     test("scores script block from .svelte file", () => {
@@ -339,7 +349,7 @@ describe("CodeQualityGuard", () => {
       const result2 = CodeQualityGuard.execute(input, deps);
       expect(result2.ok).toBe(true);
       if (result2.ok) {
-        expect(result2.value.type).toBe("continue");
+        expect(result2.value.continue).toBe(true);
       }
     });
   });

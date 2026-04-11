@@ -45,9 +45,28 @@ if (baseline) {
 
 const hash = violationHash(result.violations);
 if (hash === prevHash && !deltaMessage) {
-  return ok({ type: "continue", continue: true }); // deduped
+  return ok({ continue: true }); // deduped
 }
+
+// Advisory path (previously dropped — see History)
+return ok({
+  continue: true,
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: parts.join("\n"),
+  },
+});
 ```
+
+## History
+
+**Phase 1 Task 1O (2026-04-11)** — Latent bug #14 fixed. The R2 advisory site at
+`CodeQualityGuard.contract.ts:237` was emitting `ok(continueOk(parts.join("\n")))` which became
+a silent drop after Phase 0 Task 0C (commit `3705810`) deleted the runner's `formatOutput()`
+translation layer. `validateHookOutput` fail-opened on the legacy shape, so SOLID quality
+violations and delta advisories were never surfaced to the editor session. Fixed by migrating to
+`hookSpecificOutput.additionalContext` per recipe R2 in
+`/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77`.
 
 ## Examples
 

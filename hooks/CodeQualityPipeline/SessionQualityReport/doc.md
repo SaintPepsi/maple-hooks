@@ -56,5 +56,6 @@ deps.writeFile(join(qualityDir, filename), report);
 
 | Dependency | Type | Purpose |
 | --- | --- | --- |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` union type for execute return |
 | `time` | lib | Provides local date/time components for report filenames and timestamps |
 | `fs` | adapter | Reads baseline store and writes the report file |

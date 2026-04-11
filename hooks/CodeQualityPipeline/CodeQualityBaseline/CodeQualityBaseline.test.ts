@@ -8,6 +8,7 @@ import {
   CodeQualityBaseline,
   type CodeQualityBaselineDeps,
 } from "@hooks/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -177,7 +178,7 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
+        expect(result.value.continue).toBe(true);
       }
       // Should NOT have written a baseline since we couldn't score
       expect(lastWrittenJson).toBeNull();
@@ -220,10 +221,11 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeDefined();
-        expect(result.value.additionalContext).toContain("quality concerns");
-        expect(result.value.additionalContext).toContain("SOLID quality:");
+        expect(result.value.continue).toBe(true);
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        expect(ctx).toBeDefined();
+        expect(ctx).toContain("quality concerns");
+        expect(ctx).toContain("SOLID quality:");
       }
     });
 
@@ -241,8 +243,8 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(result.value.continue).toBe(true);
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
 
@@ -251,7 +253,7 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.additionalContext).toBeUndefined();
+        expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
       }
     });
   });
@@ -268,12 +270,11 @@ describe("CodeQualityBaseline", () => {
   });
 
   describe("never blocks or asks", () => {
-    test("always returns ContinueOutput", () => {
+    test("always returns continue output", () => {
       const deps = makeDeps({ readFile: () => ok(LONG_DIRTY) });
       const result = CodeQualityBaseline.execute(makeInput(), deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
       }
     });
@@ -299,7 +300,7 @@ describe("CodeQualityBaseline", () => {
       const deps = makeDeps({ readFile: () => ok(svelteContent) });
       const result = CodeQualityBaseline.execute(svelteInput, deps);
       expect(result.ok).toBe(true);
-      if (result.ok) expect(result.value.type).toBe("continue");
+      if (result.ok) expect(result.value.continue).toBe(true);
     });
 
     test("continues when .svelte file has no script block", () => {
@@ -308,7 +309,6 @@ describe("CodeQualityBaseline", () => {
       const result = CodeQualityBaseline.execute(svelteInput, deps);
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.value.type).toBe("continue");
         expect(result.value.continue).toBe(true);
       }
     });
