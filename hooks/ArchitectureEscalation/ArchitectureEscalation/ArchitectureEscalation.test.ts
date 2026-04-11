@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getInjectedContextFor } from "@hooks/lib/test-helpers";
 import {
   type ArchEscalationDeps,
   ArchitectureEscalation,
@@ -67,9 +68,8 @@ describe("ArchitectureEscalation", () => {
     expect(result).not.toBeInstanceOf(Promise);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.type).toBe("continue");
     expect(result.value.continue).toBe(true);
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
   it("warns after WARN_THRESHOLD failures", () => {
@@ -83,7 +83,9 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toContain("ARCHITECTURE ESCALATION WARNING");
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toContain(
+      "ARCHITECTURE ESCALATION WARNING",
+    );
   });
 
   it("escalates to STOP after STOP_THRESHOLD failures", () => {
@@ -97,7 +99,7 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toContain("STOP CURRENT APPROACH");
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toContain("STOP CURRENT APPROACH");
   });
 
   it("returns continue for non-in_progress status", () => {
@@ -106,7 +108,7 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
   it("returns continue when taskId is empty string", () => {
@@ -115,7 +117,7 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
   it("returns continue when taskId is not a string", () => {
@@ -124,7 +126,7 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
   it("output shape matches Claude Code expectations", () => {
@@ -151,7 +153,7 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(inputC2, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.value.additionalContext).toBeUndefined();
+    expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
   it("persists state across execute calls via deps.writeJson", () => {
@@ -211,7 +213,8 @@ describe("saveState", () => {
   it("logs error when writeJson fails", () => {
     const stderrMessages: string[] = [];
     const deps = makeDeps({
-      writeJson: () => err({ code: "WRITE_FAILED", message: "disk full" } as unknown as ResultError),
+      writeJson: () =>
+        err({ code: "WRITE_FAILED", message: "disk full" } as unknown as ResultError),
       ensureDir: () => ok(undefined),
       stderr: (msg: string) => {
         stderrMessages.push(msg);
