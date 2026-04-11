@@ -71,3 +71,4 @@ deps.spawnBackground("git", ["push", "origin", "main"], { cwd: deps.claudeDir })
 | `time` | lib | Provides local timestamps for commit messages |
 | `fs` | adapter | File operations for backups, lock detection, and stale file cleanup |
 | `process` | adapter | Executes git commands and spawns background push |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; SessionEnd silent no-op `ok({})` (R8 shape, post-SDK-refactor 1D) |

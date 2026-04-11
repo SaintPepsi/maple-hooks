@@ -58,3 +58,4 @@ if (BLOCKED_SKILLS.includes(skillName)) {
 | Dependency | Type | Purpose |
 | --- | --- | --- |
 | `narrative-reader` | lib | Picks contextual narrative openers for block messages |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"` (R4 shape, post-SDK-refactor bug #12 fix) |

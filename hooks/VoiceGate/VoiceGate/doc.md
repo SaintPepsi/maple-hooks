@@ -59,3 +59,4 @@ actually suppressed rather than silently passing through. -->
 | --- | --- | --- |
 | `fs` | adapter | Provides `fileExists` for dependency injection |
 | `result` | core | Provides `ok` and `Result` type for error handling |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"` (R4 shape, bug #11 fix) |

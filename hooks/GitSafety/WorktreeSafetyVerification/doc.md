@@ -58,3 +58,4 @@ return ok({ type: "continue", continue: true });
 | --- | --- | --- |
 | `fs` | adapter | Checks file existence, appends to `.gitignore`, creates directories |
 | `process` | adapter | Executes git commands, spawns background dependency installs and test runs |
+| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` return type; PostToolUse continue (R1 shape, post-SDK-refactor 1D) |
