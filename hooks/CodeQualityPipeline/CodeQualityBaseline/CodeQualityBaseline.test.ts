@@ -102,27 +102,37 @@ describe("CodeQualityBaseline", () => {
     });
 
     test("rejects test files", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/app.test.ts" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/app.test.ts" },
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects spec files", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/app.spec.ts" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/app.spec.ts" },
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects files in __tests__ directory", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/__tests__/app.ts" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/__tests__/app.ts" },
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is a string", () => {
-      const input = makeInput({ tool_input: "/src/app.ts" as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: "/src/app.ts" as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is null", () => {
-      const input = makeInput({ tool_input: null as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: null as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityBaseline.accepts(input)).toBe(false);
     });
   });
@@ -147,7 +157,12 @@ describe("CodeQualityBaseline", () => {
 
     test("merges with existing baselines", () => {
       const existing = {
-        "/other/file.ts": { score: 8, violations: 0, checkResults: [], timestamp: "old" },
+        "/other/file.ts": {
+          score: 8,
+          violations: 0,
+          checkResults: [],
+          timestamp: "old",
+        },
       };
       const deps = makeDeps({
         readFile: () => ok(LONG_CLEAN),

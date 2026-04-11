@@ -15,10 +15,10 @@ import { jsonParseFailed } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
-import { getCommand, getFilePath } from "@hooks/lib/tool-input";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { readHookConfig } from "@hooks/lib/hook-config";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getCommand, getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,7 +75,6 @@ export function extractTestedSourceFiles(command: string): string[] | null {
 export function pendingMatchesSource(pendingFile: string, sourceFile: string): boolean {
   return pendingFile.endsWith(sourceFile) || pendingFile.endsWith(`/${sourceFile}`);
 }
-
 
 export function pendingPath(stateDir: string, sessionId: string): string {
   return join(stateDir, `tests-pending-${sessionId}.json`);
@@ -139,7 +138,11 @@ export function hasTestFile(sourcePath: string, fileExists: (path: string) => bo
 
 /** Read excludePatterns from settings.json hookConfig.testObligation.excludePatterns. */
 export function readTestExcludePatterns(settingsPath?: string): string[] {
-  const cfg = readHookConfig<{ excludePatterns?: string[] }>("testObligation", undefined, settingsPath);
+  const cfg = readHookConfig<{ excludePatterns?: string[] }>(
+    "testObligation",
+    undefined,
+    settingsPath,
+  );
   return Array.isArray(cfg?.excludePatterns) ? cfg.excludePatterns : [];
 }
 

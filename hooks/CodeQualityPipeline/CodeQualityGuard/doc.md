@@ -84,10 +84,10 @@ violations and delta advisories were never surfaced to the editor session. Fixed
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `language-profiles` | core | Determines scorable files and provides check profiles |
-| `quality-scorer` | core | Scores content, formats advisories and quality deltas |
-| `signal-logger` | lib | Logs execution data to `quality-violations.jsonl` for analysis |
-| `svelte-utils` | lib | Extracts `<script>` blocks from Svelte files |
-| `fs` | adapter | Reads file content and baseline store |
+| Dependency          | Type    | Purpose                                                        |
+| ------------------- | ------- | -------------------------------------------------------------- |
+| `language-profiles` | core    | Determines scorable files and provides check profiles          |
+| `quality-scorer`    | core    | Scores content, formats advisories and quality deltas          |
+| `signal-logger`     | lib     | Logs execution data to `quality-violations.jsonl` for analysis |
+| `svelte-utils`      | lib     | Extracts `<script>` blocks from Svelte files                   |
+| `fs`                | adapter | Reads file content and baseline store                          |

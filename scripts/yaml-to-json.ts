@@ -1,11 +1,12 @@
 #!/usr/bin/env bun
+
 /**
  * One-time migration script: converts patterns.yaml to patterns.json.
  * Handles the YAML escaping bug in the auto-hardened pattern.
  */
 
-import { readFile, writeFile } from "@hooks/core/adapters/fs";
 import { join } from "node:path";
+import { readFile, writeFile } from "@hooks/core/adapters/fs";
 
 const yamlPath = join(import.meta.dir, "..", "hooks", "SecurityValidator", "patterns.yaml");
 const jsonPath = join(import.meta.dir, "..", "hooks", "SecurityValidator", "patterns.json");

@@ -22,16 +22,18 @@ Per-session JSON at `MEMORY/STATE/crons/{sessionId}.json`:
 ```json
 {
   "sessionId": "fb745fc0-...",
-  "crons": [{
-    "id": "cron_abc",
-    "name": "Every 2 minutes",
-    "schedule": "*/2 * * * *",
-    "recurring": true,
-    "prompt": "Full cron prompt text",
-    "createdAt": 1711234567,
-    "fireCount": 47,
-    "lastFired": 1711234800
-  }]
+  "crons": [
+    {
+      "id": "cron_abc",
+      "name": "Every 2 minutes",
+      "schedule": "*/2 * * * *",
+      "recurring": true,
+      "prompt": "Full cron prompt text",
+      "createdAt": 1711234567,
+      "fireCount": 47,
+      "lastFired": 1711234800
+    }
+  ]
 }
 ```
 

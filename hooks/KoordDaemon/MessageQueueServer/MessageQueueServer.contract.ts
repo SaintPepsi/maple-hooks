@@ -19,15 +19,15 @@
 
 import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   defaultReadFileOrNull,
   getQueueDir,
   readKoordConfig,
 } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -61,7 +61,10 @@ const defaultDeps: MessageQueueServerDeps = {
     return { ok: result.ok };
   },
   fileExists: (path) => {
-    const result = tryCatch(() => Bun.file(path).size > 0, () => null);
+    const result = tryCatch(
+      () => Bun.file(path).size > 0,
+      () => null,
+    );
     return result.ok ? result.value : false;
   },
   stderr: defaultStderr,

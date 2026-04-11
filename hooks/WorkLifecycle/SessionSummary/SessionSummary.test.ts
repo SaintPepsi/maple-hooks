@@ -38,7 +38,10 @@ function makeDeps(overrides: Partial<SessionSummaryDeps> = {}): SessionSummaryDe
     },
     readFile: (path: string) => {
       if (path.includes("META.yaml")) return ok(MOCK_META_YAML);
-      return err({ code: "FILE_NOT_FOUND", message: `Not found: ${path}` } as ResultError);
+      return err({
+        code: "FILE_NOT_FOUND",
+        message: `Not found: ${path}`,
+      } as ResultError);
     },
     readJson: <T = unknown>(_path: string) => ok(MOCK_WORK_STATE) as Result<T, ResultError>,
     writeFile: (path: string, content: string) => {
@@ -77,7 +80,9 @@ describe("SessionSummary", () => {
 
     test("accepts with undefined session_id", () => {
       expect(
-        SessionSummary.accepts({ session_id: undefined as unknown as string } as SessionEndInput),
+        SessionSummary.accepts({
+          session_id: undefined as unknown as string,
+        } as SessionEndInput),
       ).toBe(true);
     });
   });
@@ -172,10 +177,10 @@ describe("SessionSummary", () => {
     test("skips state update when session_id does not match state file", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(_path: string) =>
-          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
-            T,
-            ResultError
-          >,
+          ok({
+            session_id: "different-session-999",
+            session_dir: "2026-02-27-other",
+          }) as Result<T, ResultError>,
       });
       SessionSummary.execute(makeInput({ session_id: "test-session-123" }), deps);
       expect(lastWrittenPath).toBe("");
@@ -185,10 +190,10 @@ describe("SessionSummary", () => {
     test("still returns ok result when session ID mismatches", () => {
       const deps = makeDeps({
         readJson: <T = unknown>(_path: string) =>
-          ok({ session_id: "different-session-999", session_dir: "2026-02-27-other" }) as Result<
-            T,
-            ResultError
-          >,
+          ok({
+            session_id: "different-session-999",
+            session_dir: "2026-02-27-other",
+          }) as Result<T, ResultError>,
       });
       const result = SessionSummary.execute(makeInput(), deps);
       expect(result.ok).toBe(true);

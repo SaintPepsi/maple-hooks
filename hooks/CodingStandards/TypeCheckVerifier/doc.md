@@ -39,7 +39,12 @@ It does **not** fire when:
 ```typescript
 // Core type-check flow
 const typeCheck = discoverTypeCheck(filePath, deps);
-const result = deps.execWithTimeout(typeCheck.cmd, typeCheck.args, typeCheck.cwd, 10_000);
+const result = deps.execWithTimeout(
+  typeCheck.cmd,
+  typeCheck.args,
+  typeCheck.cwd,
+  10_000,
+);
 markChecked(filePath);
 
 const errors = parseTypeErrors(combinedOutput, filePath);
@@ -70,11 +75,11 @@ if (errors.length > 0) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `fs` | adapter | `fileExists`, `readFile` for project discovery |
-| `process` | adapter | `spawnSyncSafe` for running type-check commands |
-| `signal-logger` | lib | Logs execution outcomes to JSONL for analysis |
-| `svelte-utils` | lib | `isSvelteFile` for Svelte file detection |
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                                                                                                                             |
+| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                                                                                                                                                                     |
+| `fs`                             | adapter   | `fileExists`, `readFile` for project discovery                                                                                                                                                                                                                                                                      |
+| `process`                        | adapter   | `spawnSyncSafe` for running type-check commands                                                                                                                                                                                                                                                                     |
+| `signal-logger`                  | lib       | Logs execution outcomes to JSONL for analysis                                                                                                                                                                                                                                                                       |
+| `svelte-utils`                   | lib       | `isSvelteFile` for Svelte file detection                                                                                                                                                                                                                                                                            |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"` is the PostToolUse-compatible advisory channel (post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from `continueOk(advisory)` was silently dropped for PostToolUse events) |

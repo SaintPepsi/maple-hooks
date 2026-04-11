@@ -1,15 +1,21 @@
 import { describe, expect, it } from "bun:test";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, SubagentStartInput, StopInput, ToolHookInput, UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import type {
+  SessionStartInput,
+  StopInput,
+  SubagentStartInput,
+  ToolHookInput,
+  UserPromptSubmitInput,
+} from "@hooks/core/types/hook-inputs";
 import type { ContextOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
 import {
   type InjectionTracker,
-  type SteeringRuleConfig,
-  type SteeringRuleInjectorDeps,
-  SteeringRuleInjector,
   matchesKeywords,
   parseFrontmatter,
+  type SteeringRuleConfig,
+  SteeringRuleInjector,
+  type SteeringRuleInjectorDeps,
 } from "./SteeringRuleInjector.contract";
 
 describe("parseFrontmatter", () => {
@@ -195,19 +201,39 @@ function makePromptInput(prompt: string): UserPromptSubmitInput {
 }
 
 function makeToolInput(toolName: string, filePath: string): ToolHookInput {
-  return { session_id: "test-session-123", hook_type: "PreToolUse", tool_name: toolName, tool_input: { file_path: filePath } };
+  return {
+    session_id: "test-session-123",
+    hook_type: "PreToolUse",
+    tool_name: toolName,
+    tool_input: { file_path: filePath },
+  };
 }
 
 function makePostToolInput(toolName: string, filePath: string): ToolHookInput {
-  return { session_id: "test-session-123", hook_type: "PostToolUse", tool_name: toolName, tool_input: { file_path: filePath }, tool_response: {} };
+  return {
+    session_id: "test-session-123",
+    hook_type: "PostToolUse",
+    tool_name: toolName,
+    tool_input: { file_path: filePath },
+    tool_response: {},
+  };
 }
 
 function makeSubagentInput(): SubagentStartInput {
-  return { session_id: "test-session-123", hook_type: "SubagentStart", transcript_path: "/tmp/transcript.jsonl" };
+  return {
+    session_id: "test-session-123",
+    hook_type: "SubagentStart",
+    transcript_path: "/tmp/transcript.jsonl",
+  };
 }
 
 function makeStopInput(lastMessage?: string): StopInput {
-  return { session_id: "test-session-123", hook_type: "Stop", last_assistant_message: lastMessage, stop_hook_active: true };
+  return {
+    session_id: "test-session-123",
+    hook_type: "Stop",
+    last_assistant_message: lastMessage,
+    stop_hook_active: true,
+  };
 }
 
 describe("SteeringRuleInjector contract", () => {
@@ -261,7 +287,9 @@ describe("SteeringRuleInjector contract", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Always inject this content.",
+    );
   });
 
   it("does NOT inject UserPromptSubmit-only rules on SessionStart", () => {
@@ -287,7 +315,9 @@ describe("SteeringRuleInjector contract", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Deploy safety guidelines.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Deploy safety guidelines.",
+    );
   });
 
   it("returns silent when no keywords match prompt", () => {
@@ -398,7 +428,9 @@ describe("SteeringRuleInjector contract", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Always inject this content.",
+    );
     expect((result.value as ContinueOutput).additionalContext).toContain("Git workflow rules.");
     expect((result.value as ContinueOutput).additionalContext).toContain("\n\n---\n\n");
   });
@@ -418,7 +450,9 @@ describe("SteeringRuleInjector contract", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Always inject this content.",
+    );
   });
 
   it("skips files that cannot be read", () => {
@@ -436,7 +470,9 @@ describe("SteeringRuleInjector contract", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Always inject this content.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Always inject this content.",
+    );
   });
 
   it("injects matched rules on PreToolUse (keyword matches file path)", () => {
@@ -450,7 +486,9 @@ describe("SteeringRuleInjector contract", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Browser-mandatory for CSS changes.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Browser-mandatory for CSS changes.",
+    );
   });
 
   it("returns bare continue on PreToolUse when no keywords match", () => {
@@ -506,7 +544,9 @@ describe("SteeringRuleInjector contract", () => {
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Least privilege for sub-agents.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Least privilege for sub-agents.",
+    );
   });
 
   it("injects keyword-matched rules on Stop (matches last_assistant_message)", () => {
@@ -571,7 +611,9 @@ Matched on tool or path.`;
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");
     if (result.value.type !== "continue") return;
-    expect((result.value as ContinueOutput).additionalContext).toContain("Matched on tool or path.");
+    expect((result.value as ContinueOutput).additionalContext).toContain(
+      "Matched on tool or path.",
+    );
   });
 
   it("matches keywords against tool_input.skill for Skill tool calls", () => {
@@ -625,7 +667,6 @@ Dogfood every task.`;
     expect(result.value.type).toBe("continue");
     expect((result.value as ContinueOutput).additionalContext).toBeUndefined();
   });
-
 });
 
 describe("SteeringRuleInjector defaultDeps", () => {

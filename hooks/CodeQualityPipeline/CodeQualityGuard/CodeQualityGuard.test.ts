@@ -74,7 +74,11 @@ const TEST_FILE_WITH_SUPPRESSABLE = [
 ].join("\n");
 
 interface BaselineStore {
-  [filePath: string]: { score: number; violations: number; checkResults: unknown[] };
+  [filePath: string]: {
+    score: number;
+    violations: number;
+    checkResults: unknown[];
+  };
 }
 
 function makeDeps(overrides: Partial<CodeQualityGuardDeps> = {}): CodeQualityGuardDeps {
@@ -132,7 +136,9 @@ describe("CodeQualityGuard", () => {
     });
 
     test("rejects non-source files", () => {
-      const input = makeInput({ tool_input: { file_path: "/src/config.json" } });
+      const input = makeInput({
+        tool_input: { file_path: "/src/config.json" },
+      });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
 
@@ -147,12 +153,16 @@ describe("CodeQualityGuard", () => {
     });
 
     test("rejects when tool_input is a string", () => {
-      const input = makeInput({ tool_input: "/src/app.ts" as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: "/src/app.ts" as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
 
     test("rejects when tool_input is null", () => {
-      const input = makeInput({ tool_input: null as unknown as Record<string, unknown> });
+      const input = makeInput({
+        tool_input: null as unknown as Record<string, unknown>,
+      });
       expect(CodeQualityGuard.accepts(input)).toBe(false);
     });
   });
@@ -262,7 +272,9 @@ describe("CodeQualityGuard", () => {
 
   describe("execute — test file relaxation", () => {
     test("suppresses type-import-ratio for .test.ts files", () => {
-      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const deps = makeDeps({
+        readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE),
+      });
       const input = makeInput({
         tool_input: { file_path: "/src/components/MyComponent.test.ts" },
       });
@@ -278,7 +290,9 @@ describe("CodeQualityGuard", () => {
     });
 
     test("suppresses type-import-ratio for .spec.tsx files", () => {
-      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const deps = makeDeps({
+        readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE),
+      });
       const input = makeInput({
         tool_input: { file_path: "/src/components/MyComponent.spec.tsx" },
       });
@@ -294,7 +308,9 @@ describe("CodeQualityGuard", () => {
     });
 
     test("does NOT suppress type-import-ratio for production files", () => {
-      const deps = makeDeps({ readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE) });
+      const deps = makeDeps({
+        readFile: () => ok(TEST_FILE_WITH_SUPPRESSABLE),
+      });
       const input = makeInput({
         tool_input: { file_path: "/src/components/MyComponent.ts" },
       });

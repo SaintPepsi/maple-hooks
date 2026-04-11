@@ -57,8 +57,8 @@ return ok({
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `process` | adapter | Provides `execSyncSafe` for running `git branch --show-current` |
-| `result` | core | Provides `ok` and `Result` type for error handling |
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                            |
+| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `process`                        | adapter   | Provides `execSyncSafe` for running `git branch --show-current`                                                                                                                                                    |
+| `result`                         | core      | Provides `ok` and `Result` type for error handling                                                                                                                                                                 |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `hookSpecificOutput.additionalContext` with `hookEventName: "SessionStart"` is the context-injection channel (post-SDK-refactor, replaces legacy `ContextOutput`/`SilentOutput`) |

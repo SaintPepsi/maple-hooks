@@ -68,9 +68,9 @@ return ok({
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | Provides `fileExists` and `readFile` for reading settings files |
-| `error` | core | Provides `fileReadFailed` for JSON parse error wrapping |
-| `result` | core | Provides `ok`, `Result`, and `tryCatch` for error handling |
-| `@anthropic-ai/claude-agent-sdk` | sdk | Provides `SyncHookJSONOutput` — the contract output shape (migrated from `@hooks/core/types/hook-outputs` in the SDK Type Foundation refactor). `additionalContext` now lives under `hookSpecificOutput` per the SessionStart discriminator. |
+| Dependency                       | Type    | Purpose                                                                                                                                                                                                                                      |
+| -------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fs`                             | adapter | Provides `fileExists` and `readFile` for reading settings files                                                                                                                                                                              |
+| `error`                          | core    | Provides `fileReadFailed` for JSON parse error wrapping                                                                                                                                                                                      |
+| `result`                         | core    | Provides `ok`, `Result`, and `tryCatch` for error handling                                                                                                                                                                                   |
+| `@anthropic-ai/claude-agent-sdk` | sdk     | Provides `SyncHookJSONOutput` — the contract output shape (migrated from `@hooks/core/types/hook-outputs` in the SDK Type Foundation refactor). `additionalContext` now lives under `hookSpecificOutput` per the SessionStart discriminator. |

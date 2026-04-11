@@ -116,7 +116,11 @@ function defaultAnalyzeForRelationship(entries: TranscriptEntry[]): Relationship
 
   if (sessionSummary.length > 0) {
     for (const summary of [...new Set(sessionSummary)].slice(0, 3)) {
-      notes.push({ type: "B", entities: [`@${getDAName()}`], content: summary });
+      notes.push({
+        type: "B",
+        entities: [`@${getDAName()}`],
+        content: summary,
+      });
     }
   }
 

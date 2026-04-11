@@ -162,7 +162,10 @@ export const SpotCheckReview: SyncHookContract<StopInput, SpotCheckReviewDeps> =
     );
 
     // R5: Stop is a NonHookSpecificEvent — block via top-level decision/reason.
-    return ok({ decision: "block", reason: buildBlockMessage(unreviewedFiles) });
+    return ok({
+      decision: "block",
+      reason: buildBlockMessage(unreviewedFiles),
+    });
   },
 
   defaultDeps,

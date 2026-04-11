@@ -58,7 +58,11 @@ function makeDeps(overrides: Partial<LoadContextDeps> = {}): LoadContextDeps {
     stat: (_path: string) => ok({ mtimeMs: 1000 }),
     execSyncSafe: (
       _cmd: string,
-      _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+      _opts?: {
+        cwd?: string;
+        timeout?: number;
+        stdio?: "pipe" | "ignore" | "inherit";
+      },
     ) => ok("rebuilt"),
     getDAName: () => "Maple",
     recordSessionStart: () => {},
@@ -310,7 +314,11 @@ describe("LoadContext — needsSkillRebuild", () => {
       readJson: <T = unknown>(_path: string) => ok({ contextFiles: [] }) as Result<T, ResultError>,
       execSyncSafe: (
         _cmd: string,
-        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+        _opts?: {
+          cwd?: string;
+          timeout?: number;
+          stdio?: "pipe" | "ignore" | "inherit";
+        },
       ) => {
         rebuiltCalled = true;
         return ok("rebuilt");
@@ -351,7 +359,11 @@ describe("LoadContext — needsSkillRebuild", () => {
       },
       execSyncSafe: (
         _cmd: string,
-        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+        _opts?: {
+          cwd?: string;
+          timeout?: number;
+          stdio?: "pipe" | "ignore" | "inherit";
+        },
       ) => {
         rebuiltCalled = true;
         return ok("rebuilt");
@@ -391,7 +403,11 @@ describe("LoadContext — needsSkillRebuild", () => {
       },
       execSyncSafe: (
         _cmd: string,
-        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+        _opts?: {
+          cwd?: string;
+          timeout?: number;
+          stdio?: "pipe" | "ignore" | "inherit";
+        },
       ) => {
         rebuiltCalled = true;
         return ok("rebuilt");
@@ -412,7 +428,11 @@ describe("LoadContext — needsSkillRebuild", () => {
       readJson: <T = unknown>(_path: string) => ok({ contextFiles: [] }) as Result<T, ResultError>,
       execSyncSafe: (
         _cmd: string,
-        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+        _opts?: {
+          cwd?: string;
+          timeout?: number;
+          stdio?: "pipe" | "ignore" | "inherit";
+        },
       ) => ok("done"),
       stderr: (msg: string) => {
         stderrMessages.push(msg);
@@ -433,7 +453,11 @@ describe("LoadContext — needsSkillRebuild", () => {
       readJson: <T = unknown>(_path: string) => ok({ contextFiles: [] }) as Result<T, ResultError>,
       execSyncSafe: (
         _cmd: string,
-        _opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" },
+        _opts?: {
+          cwd?: string;
+          timeout?: number;
+          stdio?: "pipe" | "ignore" | "inherit";
+        },
       ) => err(new ResultError(ErrorCode.ProcessExecFailed, "exec failed")),
       stderr: (msg: string) => {
         stderrMessages.push(msg);

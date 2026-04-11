@@ -34,7 +34,10 @@ interface SecurityEvent {
 }
 
 type PathAction = "read" | "write" | "delete";
-type ValidationResult = { action: "allow" | "block" | "confirm" | "alert"; reason?: string };
+type ValidationResult = {
+  action: "allow" | "block" | "confirm" | "alert";
+  reason?: string;
+};
 
 export interface SecurityValidatorDeps {
   fileExists: (path: string) => boolean;
@@ -52,7 +55,10 @@ export interface SecurityValidatorDeps {
 
 const EMPTY_PATTERNS: PatternsConfig = {
   version: "0.0",
-  philosophy: { mode: "permissive", principle: "No patterns loaded - fail open" },
+  philosophy: {
+    mode: "permissive",
+    principle: "No patterns loaded - fail open",
+  },
   bash: { blocked: [], confirm: [], alert: [] },
   paths: { zeroAccess: [], readOnly: [], confirmWrite: [], noDelete: [] },
   projects: {},
@@ -323,7 +329,10 @@ function validatePath(
   if (action === "delete") {
     for (const p of patterns.paths.noDelete) {
       if (matchesPathPattern(filePath, p, home, deps))
-        return { action: "block", reason: `Cannot delete protected path: ${p}` };
+        return {
+          action: "block",
+          reason: `Cannot delete protected path: ${p}`,
+        };
     }
   }
 

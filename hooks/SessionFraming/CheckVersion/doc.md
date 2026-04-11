@@ -36,8 +36,11 @@ const [currentResult, latestResult] = await Promise.all([
   deps.getLatestVersion(),
 ]);
 
-if (currentVersion !== "unknown" && latestVersion !== "unknown" &&
-    currentVersion !== latestVersion) {
+if (
+  currentVersion !== "unknown" &&
+  latestVersion !== "unknown" &&
+  currentVersion !== latestVersion
+) {
   deps.stderr(`Update available: CC ${currentVersion} -> ${latestVersion}`);
 }
 
@@ -56,8 +59,8 @@ return ok({});
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `process` | adapter | Provides `exec` for running `claude --version` and `npm view` commands |
-| `result` | core | Provides `ok` and `Result` type for error handling |
+| Dependency                       | Type      | Purpose                                                                                                                                                       |
+| -------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `process`                        | adapter   | Provides `exec` for running `claude --version` and `npm view` commands                                                                                        |
+| `result`                         | core      | Provides `ok` and `Result` type for error handling                                                                                                            |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; CheckVersion always returns `{}` (no `hookSpecificOutput`, no `continue` override) — stderr is the only user-facing channel |

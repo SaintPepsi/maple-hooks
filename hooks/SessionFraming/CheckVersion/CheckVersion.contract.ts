@@ -33,7 +33,9 @@ async function defaultGetCurrentVersion(): Promise<Result<string, ResultError>> 
 }
 
 async function defaultGetLatestVersion(): Promise<Result<string, ResultError>> {
-  const result = await exec("npm view @anthropic-ai/claude-code version", { timeout: 10000 });
+  const result = await exec("npm view @anthropic-ai/claude-code version", {
+    timeout: 10000,
+  });
   if (!result.ok) return result;
   const trimmed = result.value.stdout.trim();
   return ok(trimmed || "unknown");

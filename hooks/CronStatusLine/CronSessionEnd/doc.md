@@ -33,9 +33,14 @@ It does **not** fire when:
 const path = cronFilePath(sessionId, deps);
 if (!deps.fileExists(path)) return ok({});
 
-const cronCount = readResult.ok && readResult.value ? readResult.value.crons.length : 0;
+const cronCount =
+  readResult.ok && readResult.value ? readResult.value.crons.length : 0;
 deps.removeFile(path);
-appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_ended" }, deps, deps);
+appendCronLog(
+  { type: "pruned", sessionId, cronCount, reason: "session_ended" },
+  deps,
+  deps,
+);
 ```
 
 ## Examples
@@ -50,8 +55,8 @@ appendCronLog({ type: "pruned", sessionId, cronCount, reason: "session_ended" },
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | File I/O operations including `removeFile` for cron file cleanup |
-| `shared` | shared | `readCronFile`, `appendCronLog`, `cronFilePath` for cron state management |
-| `result` | core | `ok` wrapper for Result type returns |
+| Dependency | Type    | Purpose                                                                   |
+| ---------- | ------- | ------------------------------------------------------------------------- |
+| `fs`       | adapter | File I/O operations including `removeFile` for cron file cleanup          |
+| `shared`   | shared  | `readCronFile`, `appendCronLog`, `cronFilePath` for cron state management |
+| `result`   | core    | `ok` wrapper for Result type returns                                      |

@@ -65,9 +65,9 @@ return ok({ decision: "block", reason });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `narrative-reader` | lib | Picks escalating narrative tone for block messages |
-| `TestObligationStateMachine.shared` | shared | Provides `pendingPath`, `blockCountPath`, `MAX_BLOCKS`, `buildBlockLimitReview`, `hasTestFile` |
-| `result` | core | `ok` wrapper for Result type returns |
-| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |
+| Dependency                          | Type      | Purpose                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `narrative-reader`                  | lib       | Picks escalating narrative tone for block messages                                                                                                                                                                                                                                                                                    |
+| `TestObligationStateMachine.shared` | shared    | Provides `pendingPath`, `blockCountPath`, `MAX_BLOCKS`, `buildBlockLimitReview`, `hasTestFile`                                                                                                                                                                                                                                        |
+| `result`                            | core      | `ok` wrapper for Result type returns                                                                                                                                                                                                                                                                                                  |
+| `@anthropic-ai/claude-agent-sdk`    | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |

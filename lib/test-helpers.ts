@@ -38,7 +38,11 @@ export function makeEditInput(filePath: string, oldString = "a", newString = "b"
   return {
     session_id: "test-sess",
     tool_name: "Edit",
-    tool_input: { file_path: filePath, old_string: oldString, new_string: newString },
+    tool_input: {
+      file_path: filePath,
+      old_string: oldString,
+      new_string: newString,
+    },
   };
 }
 

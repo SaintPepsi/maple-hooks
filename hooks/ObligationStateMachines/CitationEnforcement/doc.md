@@ -68,8 +68,8 @@ return ok({
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `narrative-reader` | lib | Picks narrative opener text for the reminder message |
+| Dependency                   | Type   | Purpose                                                                     |
+| ---------------------------- | ------ | --------------------------------------------------------------------------- |
+| `narrative-reader`           | lib    | Picks narrative opener text for the reminder message                        |
 | `CitationEnforcement.shared` | shared | Provides deps type, flag/reminded path helpers, and `getFilePath` extractor |
-| `result` | core | `ok` wrapper for Result type returns |
+| `result`                     | core   | `ok` wrapper for Result type returns                                        |

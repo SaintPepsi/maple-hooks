@@ -183,7 +183,7 @@ describe("agent-runner / session resumption", () => {
     const calls: string[][] = [];
     const deps = makeDeps({
       env: {},
-      readFile: (p) => p.endsWith(".session") ? ok("prev-session-123") : err(fileNotFound(p)),
+      readFile: (p) => (p.endsWith(".session") ? ok("prev-session-123") : err(fileNotFound(p))),
       spawnSyncSafe: (_cmd, args) => {
         calls.push(args);
         return ok({ stdout: '{"session_id":"new-session-456"}', exitCode: 0 });
@@ -216,7 +216,10 @@ describe("agent-runner / session resumption", () => {
     const deps = makeDeps({
       env: {},
       spawnSyncSafe: () => ok({ stdout: '{"session_id":"saved-session-789"}', exitCode: 0 }),
-      writeFile: (p, c) => { written.push({ path: p, content: c }); return ok(undefined); },
+      writeFile: (p, c) => {
+        written.push({ path: p, content: c });
+        return ok(undefined);
+      },
     });
     const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
     runAgent(config, false, deps);
@@ -231,7 +234,7 @@ describe("agent-runner / session resumption", () => {
     let callCount = 0;
     const deps = makeDeps({
       env: {},
-      readFile: (p) => p.endsWith(".session") ? ok("stale-session") : err(fileNotFound(p)),
+      readFile: (p) => (p.endsWith(".session") ? ok("stale-session") : err(fileNotFound(p))),
       spawnSyncSafe: (_cmd, args) => {
         calls.push(args);
         callCount++;
@@ -251,9 +254,12 @@ describe("agent-runner / session resumption", () => {
     const logged: Array<{ path: string; content: string }> = [];
     const deps = makeDeps({
       env: {},
-      readFile: (p) => p.endsWith(".session") ? ok("prev-id") : err(fileNotFound(p)),
+      readFile: (p) => (p.endsWith(".session") ? ok("prev-id") : err(fileNotFound(p))),
       spawnSyncSafe: () => ok({ stdout: '{"session_id":"new-id"}', exitCode: 0 }),
-      appendFile: (p, content) => { logged.push({ path: p, content }); return ok(undefined); },
+      appendFile: (p, content) => {
+        logged.push({ path: p, content });
+        return ok(undefined);
+      },
     });
     const config = makeConfig({ sessionStatePath: "/tmp/test.session" });
     runAgent(config, false, deps);

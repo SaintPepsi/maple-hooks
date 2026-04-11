@@ -56,8 +56,8 @@ function containsWhileLoop(strippedCode: string): boolean {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | `readFile` for reading existing file content during Edit state-checking |
-| `core/result` | core | `ok()` for Result-based returns |
+| Dependency                       | Type      | Purpose                                                                                                                                                               |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | `readFile` for reading existing file content during Edit state-checking                                                                                               |
+| `core/result`                    | core      | `ok()` for Result-based returns                                                                                                                                       |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |

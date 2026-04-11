@@ -35,6 +35,6 @@ execute(_input, _deps): Result<SyncHookJSONOutput, E> {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | Provides `ok` and `Result` type for error handling |
+| Dependency | Type | Purpose                                            |
+| ---------- | ---- | -------------------------------------------------- |
+| `result`   | core | Provides `ok` and `Result` type for error handling |

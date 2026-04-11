@@ -18,12 +18,12 @@
 
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import { continueOk } from "@hooks/core/types/hook-outputs";
 import { MQ_WATCHER_MARKER } from "@hooks/hooks/KoordDaemon/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,10 @@ function extractSessionFromCommand(command: string): string | null {
 
 /** Parse message JSON from watcher stdout, with fallback to raw text. */
 function parseWatcherOutput(raw: string): { from?: string; body: string; [key: string]: unknown } {
-  const result = tryCatch(() => JSON.parse(raw) as Record<string, unknown>, () => null);
+  const result = tryCatch(
+    () => JSON.parse(raw) as Record<string, unknown>,
+    () => null,
+  );
   if (!result.ok) return { body: raw.trim() };
   const parsed = result.value;
   return {

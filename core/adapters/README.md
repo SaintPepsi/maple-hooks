@@ -6,13 +6,13 @@ Contracts never import Node builtins directly — all I/O goes through these ada
 
 ## Files
 
-| Adapter | Wraps | Key exports |
-|---------|-------|-------------|
-| `fs.ts` | `fs` (readFileSync, writeFileSync, etc.) | `readFile`, `writeFile`, `writeFileExclusive`, `readJson`, `writeJson`, `fileExists`, `stat`, `ensureDir`, `removeFile`, `copyFile`, `readDir`, `appendFile`, `symlink`, `lstat` |
-| `process.ts` | `child_process` (execSync, spawnSync, spawn) | `exec`, `execSyncSafe`, `spawnSyncSafe`, `spawnBackground`, `shellForPlatform`, `getEnv` |
-| `stdin.ts` | `process.stdin` | `readStdin(timeoutMs)` — reads stdin with timeout, returns `Result<string, E>` |
-| `log.ts` | `fs.appendFileSync` | `appendHookLog(entry: HookLogEntry)` — structured JSON logging for hook execution. `HookLogEntry` = `{ ts, hook, event, status, duration_ms, session_id?, error? }` (7 fields post-SDK-Type-Foundation refactor) |
-| `fetch.ts` | `globalThis.fetch` | `fetchJson`, `fetchText` — HTTP requests with timeout, returns `Result<T, E>` |
+| Adapter      | Wraps                                        | Key exports                                                                                                                                                                                                      |
+| ------------ | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fs.ts`      | `fs` (readFileSync, writeFileSync, etc.)     | `readFile`, `writeFile`, `writeFileExclusive`, `readJson`, `writeJson`, `fileExists`, `stat`, `ensureDir`, `removeFile`, `copyFile`, `readDir`, `appendFile`, `symlink`, `lstat`                                 |
+| `process.ts` | `child_process` (execSync, spawnSync, spawn) | `exec`, `execSyncSafe`, `spawnSyncSafe`, `spawnBackground`, `shellForPlatform`, `getEnv`                                                                                                                         |
+| `stdin.ts`   | `process.stdin`                              | `readStdin(timeoutMs)` — reads stdin with timeout, returns `Result<string, E>`                                                                                                                                   |
+| `log.ts`     | `fs.appendFileSync`                          | `appendHookLog(entry: HookLogEntry)` — structured JSON logging for hook execution. `HookLogEntry` = `{ ts, hook, event, status, duration_ms, session_id?, error? }` (7 fields post-SDK-Type-Foundation refactor) |
+| `fetch.ts`   | `globalThis.fetch`                           | `fetchJson`, `fetchText` — HTTP requests with timeout, returns `Result<T, E>`                                                                                                                                    |
 
 ## Pattern
 

@@ -165,7 +165,12 @@ describe("TypeCheckVerifier contract", () => {
     const deps: TypeCheckVerifierDeps = {
       fileExists: () => false,
       readFile: () => null,
-      execWithTimeout: () => ({ stdout: "", stderr: "", exitCode: 0, timedOut: false }),
+      execWithTimeout: () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+        timedOut: false,
+      }),
       signal: {
         baseDir: "/tmp",
         ensureDir: () => ({ ok: true, value: undefined }) as const,
@@ -286,7 +291,12 @@ describe("TypeCheckVerifier — debounce", () => {
     const deps: TypeCheckVerifierDeps = {
       fileExists: (p: string) => p === "/project/tsconfig.json",
       readFile: () => null,
-      execWithTimeout: () => ({ stdout: "", stderr: "", exitCode: 0, timedOut: false }),
+      execWithTimeout: () => ({
+        stdout: "",
+        stderr: "",
+        exitCode: 0,
+        timedOut: false,
+      }),
       signal: {
         baseDir: "/tmp/test",
         ensureDir: () => ({ ok: true, value: undefined }) as const,

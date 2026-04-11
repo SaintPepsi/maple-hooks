@@ -17,6 +17,7 @@
 ## Type System
 
 Contracts use narrowed types from `core/contract.ts`:
+
 - `SyncHookContract<I, D>` — most hooks (execute returns `Result`)
 - `AsyncHookContract<I, D>` — async hooks (execute returns `Promise<Result>`)
 - `HookContract<I, D>` — union type, used by the runner for generic dispatch

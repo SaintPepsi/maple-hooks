@@ -12,10 +12,10 @@
  */
 
 import { readFile } from "@hooks/core/adapters/fs";
-import { } from "@hooks/core/error";
-import { } from "@hooks/core/result";
-import { } from "@hooks/lib/paths";
+import {} from "@hooks/core/error";
+import {} from "@hooks/core/result";
 import { readHookConfig } from "@hooks/lib/hook-config";
+import {} from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,7 +56,11 @@ export function readKoordConfig(
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
 ): KoordDaemonConfig {
-  const cfg = readHookConfig<{ url?: string; prepromptPath?: string }>("koordDaemon", readFileFn ?? undefined, settingsPath);
+  const cfg = readHookConfig<{ url?: string; prepromptPath?: string }>(
+    "koordDaemon",
+    readFileFn ?? undefined,
+    settingsPath,
+  );
   return {
     url: typeof cfg?.url === "string" ? cfg.url : null,
     prepromptPath: typeof cfg?.prepromptPath === "string" ? cfg.prepromptPath : null,

@@ -64,7 +64,7 @@ deps.writePending(flagFile, pending);
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
+| Dependency                         | Type   | Purpose                                                                                                   |
+| ---------------------------------- | ------ | --------------------------------------------------------------------------------------------------------- |
 | `DocObligationStateMachine.shared` | shared | Provides `projectHasHook`, `isDocFile`, `isNonTestCodeFile`, `isRelatedDoc`, `getFilePath`, `pendingPath` |
-| `result` | core | `ok` wrapper for Result type returns |
+| `result`                           | core   | `ok` wrapper for Result type returns                                                                      |

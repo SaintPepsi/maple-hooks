@@ -269,7 +269,10 @@ describe("CodingStandardsEnforcer", () => {
       const input: ToolHookInput = {
         session_id: "test-sess",
         tool_name: "Edit",
-        tool_input: { file_path: "/src/new.ts", new_string: "export const y = 2;" },
+        tool_input: {
+          file_path: "/src/new.ts",
+          new_string: "export const y = 2;",
+        },
       };
       const result = unwrap(CodingStandardsEnforcer.execute(input, deps));
       expect(result.continue).toBe(true);

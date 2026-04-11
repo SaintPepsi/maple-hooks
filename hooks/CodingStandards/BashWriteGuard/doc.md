@@ -37,10 +37,10 @@ It does **not** fire when:
 
 ```typescript
 // Core detection patterns
-if (/>{1,2}\s*\S*\.tsx?\b/.test(command)) return true;  // redirect
-if (/\bsed\b.*-i\b/.test(command) && TS_FILE_PATTERN.test(command)) return true;  // sed -i
-if (/\btee\b/.test(command) && TS_FILE_PATTERN.test(teeTarget)) return true;  // tee
-if (/\b(?:cp|mv)\b/.test(command) && TS_FILE_PATTERN.test(lastArg)) return true;  // cp/mv
+if (/>{1,2}\s*\S*\.tsx?\b/.test(command)) return true; // redirect
+if (/\bsed\b.*-i\b/.test(command) && TS_FILE_PATTERN.test(command)) return true; // sed -i
+if (/\btee\b/.test(command) && TS_FILE_PATTERN.test(teeTarget)) return true; // tee
+if (/\b(?:cp|mv)\b/.test(command) && TS_FILE_PATTERN.test(lastArg)) return true; // cp/mv
 ```
 
 ## Examples
@@ -59,8 +59,8 @@ if (/\b(?:cp|mv)\b/.test(command) && TS_FILE_PATTERN.test(lastArg)) return true;
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `narrative-reader` | lib | `pickNarrative` for block message opener |
+| Dependency                       | Type      | Purpose                                                                                                                                                               |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                       |
+| `narrative-reader`               | lib       | `pickNarrative` for block message opener                                                                                                                              |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |

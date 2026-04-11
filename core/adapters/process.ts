@@ -3,7 +3,12 @@
  */
 
 import { execSync, spawnSync } from "node:child_process";
-import { envVarMissing, type ResultError, processExecFailed, processSpawnFailed } from "@hooks/core/error";
+import {
+  envVarMissing,
+  processExecFailed,
+  processSpawnFailed,
+  type ResultError,
+} from "@hooks/core/error";
 import { err, ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 
 export interface ExecResult {
@@ -95,7 +100,11 @@ export function spawnBackground(
 
 export function execSyncSafe(
   cmd: string,
-  opts: { cwd?: string; timeout?: number; stdio?: "pipe" | "inherit" | "ignore" } = {},
+  opts: {
+    cwd?: string;
+    timeout?: number;
+    stdio?: "pipe" | "inherit" | "ignore";
+  } = {},
 ): Result<string, ResultError> {
   return tryCatch(
     () => {

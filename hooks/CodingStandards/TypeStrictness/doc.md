@@ -79,11 +79,10 @@ if (unknownWarnings.length > 0) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `signal-logger` | lib | Logs violations and outcomes to JSONL for analysis |
-| `narrative-reader` | lib | `pickNarrative` for escalating block message tone |
-| `svelte-utils` | lib | `isSvelteFile`, `extractSvelteScript` for Svelte support |
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                                                                                                                                             |
+| -------------------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                                                                                                                                                                                     |
+| `signal-logger`                  | lib       | Logs violations and outcomes to JSONL for analysis                                                                                                                                                                                                                                                                                  |
+| `narrative-reader`               | lib       | `pickNarrative` for escalating block message tone                                                                                                                                                                                                                                                                                   |
+| `svelte-utils`                   | lib       | `isSvelteFile`, `extractSvelteScript` for Svelte support                                                                                                                                                                                                                                                                            |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput.permissionDecision: "deny"`, R2 PreToolUse advisory via `hookSpecificOutput.additionalContext` (post-SDK-refactor, fixes a bug where the legacy top-level `additionalContext` from `continueOk(advisory)` was silently dropped for PreToolUse events) |
-

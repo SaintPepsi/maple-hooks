@@ -103,10 +103,7 @@ describe("IssueCreateGate", () => {
   // ── Passes through unrelated commands ──
 
   it("passes through git status", () => {
-    const result = IssueCreateGate.execute(
-      makeBashInput("git status"),
-      makeDeps(),
-    ) as GateResult;
+    const result = IssueCreateGate.execute(makeBashInput("git status"), makeDeps()) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");

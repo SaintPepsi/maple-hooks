@@ -83,7 +83,10 @@ const ANY_TYPE_PATTERNS: Array<{ regex: RegExp; description: string }> = [
 ];
 
 /** Scan a single line (already stripped of comments/strings) for any-type usage. */
-export function detectAnyOnLine(strippedLine: string): { found: boolean; pattern: string } {
+export function detectAnyOnLine(strippedLine: string): {
+  found: boolean;
+  pattern: string;
+} {
   for (const p of ANY_TYPE_PATTERNS) {
     if (p.regex.test(strippedLine)) {
       return { found: true, pattern: p.description };

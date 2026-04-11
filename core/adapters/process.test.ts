@@ -1,6 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import {
+  exec,
+  execSyncSafe,
+  getEnv,
+  shellForPlatform,
+  spawnDetached,
+  spawnSyncSafe,
+} from "@hooks/core/adapters/process";
 import { ErrorCode } from "@hooks/core/error";
-import { exec, execSyncSafe, getEnv, shellForPlatform, spawnDetached, spawnSyncSafe } from "@hooks/core/adapters/process";
 
 // ─── shellForPlatform ────────────────────────────────────────────────────────
 

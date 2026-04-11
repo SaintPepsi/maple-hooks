@@ -53,7 +53,11 @@ export interface LoadContextDeps {
   stat: (path: string) => Result<{ mtimeMs: number }, ResultError>;
   execSyncSafe: (
     cmd: string,
-    opts?: { cwd?: string; timeout?: number; stdio?: "pipe" | "ignore" | "inherit" | undefined },
+    opts?: {
+      cwd?: string;
+      timeout?: number;
+      stdio?: "pipe" | "ignore" | "inherit" | undefined;
+    },
   ) => Result<string, ResultError>;
   getDAName: typeof getDAName;
   recordSessionStart: typeof recordSessionStart;

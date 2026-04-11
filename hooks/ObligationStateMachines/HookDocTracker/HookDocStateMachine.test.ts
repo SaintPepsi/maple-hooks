@@ -260,7 +260,12 @@ describe("buildDocSuggestions", () => {
       requiredSections: ["## Overview"],
       docFileName: "doc.md",
       watchPatterns: [],
-      additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] }],
+      additionalDocs: [
+        {
+          fileName: "IDEA.md",
+          requiredSections: ["## Problem", "## Solution"],
+        },
+      ],
       mode: "independent" as const,
     };
 
@@ -330,7 +335,10 @@ describe("readHookDocSettings", () => {
       hookConfig: {
         hookDocEnforcer: {
           additionalDocs: [
-            { fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution"] },
+            {
+              fileName: "IDEA.md",
+              requiredSections: ["## Problem", "## Solution"],
+            },
           ],
         },
       },

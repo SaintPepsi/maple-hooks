@@ -54,10 +54,10 @@ for (const match of deps.scanHookJsons(deps.hooksDir)) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `tool-input` | lib | `getCommand()` to extract Bash command string |
-| `fs` | adapter | `fileExists` to check for doc files on disk |
-| `Glob` | bun | Scans `*/*/hook.json` patterns in hooks directory |
+| Dependency                       | Type      | Purpose                                                                                                                                                               |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                       |
+| `tool-input`                     | lib       | `getCommand()` to extract Bash command string                                                                                                                         |
+| `fs`                             | adapter   | `fileExists` to check for doc files on disk                                                                                                                           |
+| `Glob`                           | bun       | Scans `*/*/hook.json` patterns in hooks directory                                                                                                                     |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |

@@ -59,17 +59,19 @@ return ok({ decision: "block", reason });
 > You edit `FooBar/FooBar.contract.ts` during a session. When you try to end the session, HookDocEnforcer blocks with:
 >
 > "Hook source files modified without documentation:
->   - /hooks/MyGroup/FooBar/FooBar.contract.ts
+>
+> - /hooks/MyGroup/FooBar/FooBar.contract.ts
 >
 > Create or update `/hooks/MyGroup/FooBar/doc.md`
 >
 > Required sections in `doc.md`:
->   - ## Overview
->   - ## Event
->   - ## When It Fires
->   - ## What It Does
->   - ## Examples
->   - ## Dependencies"
+>
+> - ## Overview
+> - ## Event
+> - ## When It Fires
+> - ## What It Does
+> - ## Examples
+> - ## Dependencies"
 
 ### Example 2: Doc written, session proceeds
 
@@ -81,14 +83,14 @@ return ok({ decision: "block", reason });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `obligation-machine` | lib | Generic state machine (checkObligation, createDefaultDeps) |
-| `narrative-reader` | lib | Picks escalating narrative tone for block messages |
-| `paths` | lib | Resolves settings.json path |
-| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication |
-| `HookDocStateMachine.shared` | shared | Settings reader, config, doc suggestions builder |
-| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |
+| Dependency                         | Type      | Purpose                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `obligation-machine`               | lib       | Generic state machine (checkObligation, createDefaultDeps)                                                                                                                                                                                                                                                                            |
+| `narrative-reader`                 | lib       | Picks escalating narrative tone for block messages                                                                                                                                                                                                                                                                                    |
+| `paths`                            | lib       | Resolves settings.json path                                                                                                                                                                                                                                                                                                           |
+| `DocObligationStateMachine.shared` | shared    | Provides `projectHasHook` for deduplication                                                                                                                                                                                                                                                                                           |
+| `HookDocStateMachine.shared`       | shared    | Settings reader, config, doc suggestions builder                                                                                                                                                                                                                                                                                      |
+| `@anthropic-ai/claude-agent-sdk`   | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |
 
 ## Configuration
 
@@ -121,15 +123,15 @@ Settings are read from `~/.claude/settings.json` under `hookConfig.hookDocEnforc
 }
 ```
 
-| Setting | Default | Description |
-| --- | --- | --- |
-| `enabled` | `true` | Enable or disable the enforcer entirely |
-| `blocking` | `true` | Whether to block (true) or just log (false) |
-| `docFileName` | `"doc.md"` | Name of the documentation file to look for |
-| `requiredSections` | 6 headings | Markdown headings that must appear in the doc |
-| `watchPatterns` | 5 patterns | Regex patterns for files that trigger the obligation |
-| `additionalDocs` | `[]` | Array of `{ fileName, requiredSections }` for extra doc files |
-| `mode` | `"independent"` | How obligations clear: `"independent"` or `"linked"` |
+| Setting            | Default         | Description                                                   |
+| ------------------ | --------------- | ------------------------------------------------------------- |
+| `enabled`          | `true`          | Enable or disable the enforcer entirely                       |
+| `blocking`         | `true`          | Whether to block (true) or just log (false)                   |
+| `docFileName`      | `"doc.md"`      | Name of the documentation file to look for                    |
+| `requiredSections` | 6 headings      | Markdown headings that must appear in the doc                 |
+| `watchPatterns`    | 5 patterns      | Regex patterns for files that trigger the obligation          |
+| `additionalDocs`   | `[]`            | Array of `{ fileName, requiredSections }` for extra doc files |
+| `mode`             | `"independent"` | How obligations clear: `"independent"` or `"linked"`          |
 
 ## Multi-Doc Support
 
@@ -145,5 +147,6 @@ The enforcer can track multiple documentation files per hook via `additionalDocs
 ### Example
 
 With `additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem", "## Solution", "## How It Works", "## Signals"] }]`, modifying `TypeStrictness.contract.ts` creates two obligations:
+
 1. Update `doc.md` with required sections (Overview, Event, etc.)
 2. Update `IDEA.md` with required sections (Problem, Solution, etc.)

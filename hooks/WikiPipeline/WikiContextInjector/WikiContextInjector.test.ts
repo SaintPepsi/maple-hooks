@@ -95,7 +95,13 @@ describe("buildDomainIndex", () => {
 describe("matchDomain", () => {
   it("matches file path to domain via project directory", () => {
     const index: DomainIndex = {
-      koord: [{ title: "Koord", path: "entities/koord.md", summary: "Multi-agent system." }],
+      koord: [
+        {
+          title: "Koord",
+          path: "entities/koord.md",
+          summary: "Multi-agent system.",
+        },
+      ],
     };
     const result = matchDomain("/Users/hogers/Projects/koord/src/agent.ts", index);
     expect(result).toBeDefined();
@@ -110,7 +116,13 @@ describe("matchDomain", () => {
 
   it("matches case-insensitively", () => {
     const index: DomainIndex = {
-      koord: [{ title: "Koord", path: "entities/koord.md", summary: "Multi-agent system." }],
+      koord: [
+        {
+          title: "Koord",
+          path: "entities/koord.md",
+          summary: "Multi-agent system.",
+        },
+      ],
     };
     const result = matchDomain("/Users/hogers/Projects/Koord/src/agent.ts", index);
     expect(result).toBeDefined();

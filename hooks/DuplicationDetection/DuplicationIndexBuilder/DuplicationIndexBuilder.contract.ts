@@ -18,16 +18,23 @@ import {
 } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
-import { ok, tryCatch, type Result } from "@hooks/core/result";
+import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
-import { buildIndex, updateIndexForFile } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
+import {
+  buildIndex,
+  updateIndexForFile,
+} from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
+import {
+  getArtifactsDir,
+  getCurrentBranch,
+  PROJECT_MARKERS,
+} from "@hooks/hooks/DuplicationDetection/shared";
+import { defaultStderr } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
-import { getArtifactsDir, getCurrentBranch, PROJECT_MARKERS } from "@hooks/hooks/DuplicationDetection/shared";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -69,7 +76,6 @@ function defaultFindProjectRoot(filePath: string): string | null {
   }
   return null;
 }
-
 
 // ─── Default Deps ───────────────────────────────────────────────────────────
 
@@ -167,7 +173,10 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
     const existingJson = deps.readFile(indexPath);
 
     const parseResult = existingJson
-      ? tryCatch(() => JSON.parse(existingJson) as ReturnType<typeof buildIndex>, () => null)
+      ? tryCatch(
+          () => JSON.parse(existingJson) as ReturnType<typeof buildIndex>,
+          () => null,
+        )
       : null;
     const existing = parseResult?.ok ? parseResult.value : null;
 

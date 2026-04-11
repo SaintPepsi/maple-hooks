@@ -267,13 +267,19 @@ describe("buildArticlePrompt", () => {
   });
 
   test("uses principal name from context", () => {
-    const ctx: ArticlePromptContext = { ...defaultCtx, principalName: "Jane Doe" };
+    const ctx: ArticlePromptContext = {
+      ...defaultCtx,
+      principalName: "Jane Doe",
+    };
     const prompt = buildArticlePrompt(ctx, "test-1");
     expect(prompt).toContain("Jane Doe's AI collaborator");
   });
 
   test("uses website repo path from context", () => {
-    const ctx: ArticlePromptContext = { ...defaultCtx, websiteRepo: "/custom/repo" };
+    const ctx: ArticlePromptContext = {
+      ...defaultCtx,
+      websiteRepo: "/custom/repo",
+    };
     const prompt = buildArticlePrompt(ctx, "test-1");
     expect(prompt).toContain("WORKING DIRECTORY: /custom/repo");
   });

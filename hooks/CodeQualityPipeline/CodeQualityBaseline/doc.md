@@ -81,9 +81,9 @@ Fixed by migrating to `hookSpecificOutput.additionalContext` per recipe R2 in
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `language-profiles` | core | Determines if a file is scorable and provides language-specific check profiles |
-| `quality-scorer` | core | Scores file content and formats advisory messages |
-| `svelte-utils` | lib | Extracts `<script>` blocks from Svelte files for scoring |
-| `fs` | adapter | File read/write operations for baseline persistence |
+| Dependency          | Type    | Purpose                                                                        |
+| ------------------- | ------- | ------------------------------------------------------------------------------ |
+| `language-profiles` | core    | Determines if a file is scorable and provides language-specific check profiles |
+| `quality-scorer`    | core    | Scores file content and formats advisory messages                              |
+| `svelte-utils`      | lib     | Extracts `<script>` blocks from Svelte files for scoring                       |
+| `fs`                | adapter | File read/write operations for baseline persistence                            |

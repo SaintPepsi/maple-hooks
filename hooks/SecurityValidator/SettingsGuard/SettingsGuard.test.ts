@@ -116,7 +116,9 @@ describe("SettingsGuard.accepts", () => {
   it("accepts Write targeting settings.local.json", () => {
     expect(
       SettingsGuard.accepts(
-        settingsInput("Write", { file_path: `${HOME}/.claude/settings.local.json` }),
+        settingsInput("Write", {
+          file_path: `${HOME}/.claude/settings.local.json`,
+        }),
       ),
     ).toBe(true);
   });
@@ -162,7 +164,9 @@ describe("SettingsGuard.execute — Edit/Write", () => {
   it("returns ask for Write targeting ~/.claude/settings.local.json", () => {
     const fs: FakeFS = new Map();
     const result = SettingsGuard.execute(
-      settingsInput("Write", { file_path: `${HOME}/.claude/settings.local.json` }),
+      settingsInput("Write", {
+        file_path: `${HOME}/.claude/settings.local.json`,
+      }),
       protectorDeps(fs),
     );
     expect(result.ok).toBe(true);
@@ -179,7 +183,9 @@ describe("SettingsGuard.execute — Edit/Write", () => {
   it("returns continue for Edit targeting project-level settings.json", () => {
     const fs: FakeFS = new Map();
     const result = SettingsGuard.execute(
-      settingsInput("Edit", { file_path: "/some/project/.claude/settings.json" }),
+      settingsInput("Edit", {
+        file_path: "/some/project/.claude/settings.json",
+      }),
       protectorDeps(fs),
     );
     expect(result.ok).toBe(true);

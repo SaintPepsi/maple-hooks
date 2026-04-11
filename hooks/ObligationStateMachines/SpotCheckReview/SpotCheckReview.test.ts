@@ -349,7 +349,10 @@ describe("SpotCheckReview", () => {
           ["src/new.ts", "hash-new"],
         ]),
       readBlockCount: () => 1,
-      readReviewedHashes: () => ({ "src/kept.ts": "hash-kept", "src/gone.ts": "hash-gone" }),
+      readReviewedHashes: () => ({
+        "src/kept.ts": "hash-kept",
+        "src/gone.ts": "hash-gone",
+      }),
       writeReviewedHashes: (_path: string, hashes: Record<string, string>) => {
         writtenHashes = hashes;
       },
@@ -435,7 +438,9 @@ describe("SpotCheckReview defaultDeps", () => {
   it("defaultDeps.writeReviewedHashes writes without throwing", () => {
     const tmpPath = `/tmp/pai-test-rh-${Date.now()}.json`;
     expect(() =>
-      SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, { "test.ts": "abc" }),
+      SpotCheckReview.defaultDeps.writeReviewedHashes(tmpPath, {
+        "test.ts": "abc",
+      }),
     ).not.toThrow();
   });
 

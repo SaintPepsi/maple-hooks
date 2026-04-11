@@ -114,7 +114,10 @@ export function parseFrontmatter(content: string): PRDFrontmatter | null {
  * Count criteria checkboxes in the document body.
  * Matches lines of the form: `- [x] ...` (done) or `- [ ] ...` (todo).
  */
-export function parseCriteriaCounts(content: string): { total: number; done: number } {
+export function parseCriteriaCounts(content: string): {
+  total: number;
+  done: number;
+} {
   const checkedPattern = /^\s*-\s+\[x\]/gim;
   const uncheckedPattern = /^\s*-\s+\[ \]/gim;
 

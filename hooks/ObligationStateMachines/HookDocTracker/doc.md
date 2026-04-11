@@ -63,9 +63,9 @@ for (const docName of allDocFileNames(settings)) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `obligation-machine` | lib | Generic `addPending` and `clearMatching` state machine operations |
-| `paths` | lib | Path resolution utilities |
-| `HookDocStateMachine.shared` | shared | Provides `defaultDeps`, `pendingPath`, `getFilePath`, `isHookSourceFile`, `isHookDocFile`, `getHookDirFromPath`, `readHookDocSettings` |
-| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks |
+| Dependency                         | Type   | Purpose                                                                                                                                |
+| ---------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `obligation-machine`               | lib    | Generic `addPending` and `clearMatching` state machine operations                                                                      |
+| `paths`                            | lib    | Path resolution utilities                                                                                                              |
+| `HookDocStateMachine.shared`       | shared | Provides `defaultDeps`, `pendingPath`, `getFilePath`, `isHookSourceFile`, `isHookDocFile`, `getHookDirFromPath`, `readHookDocSettings` |
+| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks                                                                   |

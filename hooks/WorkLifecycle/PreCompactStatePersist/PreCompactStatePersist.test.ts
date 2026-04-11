@@ -214,7 +214,12 @@ describe("buildContextSummary", () => {
   });
 
   it("includes the PreCompact prefix label", () => {
-    const state: PRDState = { task: "T", slug: "S", phase: "P", progress: "1/1" };
+    const state: PRDState = {
+      task: "T",
+      slug: "S",
+      phase: "P",
+      progress: "1/1",
+    };
     expect(buildContextSummary(state)).toContain("[PreCompact]");
   });
 });

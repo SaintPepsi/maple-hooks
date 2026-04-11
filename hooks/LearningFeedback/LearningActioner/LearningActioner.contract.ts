@@ -394,7 +394,10 @@ export const LearningActioner: SyncHookContract<SessionEndInput, LearningActione
       deps.writeFile(
         creditPath,
         JSON.stringify(
-          { credit: creditResult.newCredit, last_updated: deps.getISOTimestamp() },
+          {
+            credit: creditResult.newCredit,
+            last_updated: deps.getISOTimestamp(),
+          },
           null,
           2,
         ),

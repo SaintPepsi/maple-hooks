@@ -260,11 +260,19 @@ describe("DocObligationTracker", () => {
     });
 
     DocObligationTracker.execute(
-      { session_id: "session-aaa", tool_name: "Edit", tool_input: { file_path: "/src/a.ts" } },
+      {
+        session_id: "session-aaa",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/a.ts" },
+      },
       deps,
     );
     DocObligationTracker.execute(
-      { session_id: "session-bbb", tool_name: "Edit", tool_input: { file_path: "/src/b.ts" } },
+      {
+        session_id: "session-bbb",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/b.ts" },
+      },
       deps,
     );
 

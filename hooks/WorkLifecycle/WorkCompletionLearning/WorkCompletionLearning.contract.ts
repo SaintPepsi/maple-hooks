@@ -206,7 +206,12 @@ export const WorkCompletionLearning: SyncHookContract<SessionEndInput, WorkCompl
       const iscPath = join(workPath, "ISC.json");
       interface IscData {
         current?: { criteria?: string[]; antiCriteria?: string[] };
-        satisfaction?: { satisfied: number; total: number; partial: number; failed: number };
+        satisfaction?: {
+          satisfied: number;
+          total: number;
+          partial: number;
+          failed: number;
+        };
       }
       const iscResult = deps.readJson<IscData>(iscPath);
       if (iscResult.ok) {

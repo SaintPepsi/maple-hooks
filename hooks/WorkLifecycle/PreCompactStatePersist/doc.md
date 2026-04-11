@@ -51,8 +51,8 @@ return ok({ continue: true, systemMessage: summary });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `core/adapters/fs` | adapter | Directory listing, file reading, stat for modification times |
-| `core/result` | core | Result type for error handling |
+| Dependency                       | Type      | Purpose                                                                                                                                                                                                                    |
+| -------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `core/adapters/fs`               | adapter   | Directory listing, file reading, stat for modification times                                                                                                                                                               |
+| `core/result`                    | core      | Result type for error handling                                                                                                                                                                                             |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; `systemMessage` is the PreCompact-compatible context injection channel (post-SDK-refactor, fixes a bug where `additionalContext` was silently dropped for non-hookSpecificOutput events) |

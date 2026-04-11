@@ -36,7 +36,11 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
     })),
     captureFailure: mock(async () => null),
     getPrincipalName: mock(() => "TestUser"),
-    getPrincipal: mock(() => ({ name: "TestUser", pronunciation: "", timezone: "UTC" })),
+    getPrincipal: mock(() => ({
+      name: "TestUser",
+      pronunciation: "",
+      timezone: "UTC",
+    })),
     getIdentity: mock(() => ({
       name: "TestBot",
       fullName: "TestBot",
@@ -316,7 +320,10 @@ describe("RatingCapture.execute — implicit sentiment", () => {
 describe("RatingCapture.execute — explicit low rating learning capture", () => {
   const transcriptContent = [
     JSON.stringify({ type: "user", message: { content: "What is this?" } }),
-    JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Explained the feature" } }),
+    JSON.stringify({
+      type: "assistant",
+      message: { content: "SUMMARY: Explained the feature" },
+    }),
   ].join("\n");
 
   it("calls writeFile with LEARNING path when explicit rating < 5 and transcript context present", async () => {
@@ -362,7 +369,10 @@ describe("RatingCapture.execute — explicit low rating learning capture", () =>
 describe("RatingCapture.execute — explicit rating <= 3 calls captureFailure", () => {
   const transcriptContent = [
     JSON.stringify({ type: "user", message: { content: "What is this?" } }),
-    JSON.stringify({ type: "assistant", message: { content: "SUMMARY: Explained the feature" } }),
+    JSON.stringify({
+      type: "assistant",
+      message: { content: "SUMMARY: Explained the feature" },
+    }),
   ].join("\n");
 
   it("calls captureFailure for rating <= 3", async () => {
@@ -548,7 +558,10 @@ describe("RatingCapture.execute — implicit sentiment low rating learning captu
 describe("RatingCapture.execute — transcript context passed to inference", () => {
   it("calls inference with a prompt containing 'CONTEXT:' when transcript is available", async () => {
     const transcriptContent = [
-      JSON.stringify({ type: "user", message: { content: "previous question" } }),
+      JSON.stringify({
+        type: "user",
+        message: { content: "previous question" },
+      }),
       JSON.stringify({
         type: "assistant",
         message: { content: "SUMMARY: did the thing" },
@@ -561,7 +574,9 @@ describe("RatingCapture.execute — transcript context passed to inference", () 
     });
 
     await RatingCapture.execute(
-      makeInput("great job on that", { transcript_path: "/tmp/transcript.jsonl" }),
+      makeInput("great job on that", {
+        transcript_path: "/tmp/transcript.jsonl",
+      }),
       deps,
     );
 
@@ -614,7 +629,9 @@ describe("RatingCapture.execute — array ContentBlock transcript entries", () =
     });
 
     await RatingCapture.execute(
-      makeInput("good response thanks", { transcript_path: "/tmp/transcript.jsonl" }),
+      makeInput("good response thanks", {
+        transcript_path: "/tmp/transcript.jsonl",
+      }),
       deps,
     );
 

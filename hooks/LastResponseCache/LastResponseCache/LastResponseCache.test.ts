@@ -115,7 +115,10 @@ describe("LastResponseCache.execute() — empty and malformed transcripts", () =
     const messages: string[] = [];
     const transcript = [
       "not valid json",
-      JSON.stringify({ type: "assistant", message: { role: "assistant", content: "Hello" } }),
+      JSON.stringify({
+        type: "assistant",
+        message: { role: "assistant", content: "Hello" },
+      }),
     ].join("\n");
     const deps = makeDeps({
       readFile: () => ok(transcript),
@@ -134,7 +137,10 @@ describe("LastResponseCache.execute() — empty and malformed transcripts", () =
 describe("LastResponseCache.execute() — no assistant messages", () => {
   it("returns silent when transcript has only user messages", () => {
     const messages: string[] = [];
-    const transcript = JSON.stringify({ type: "user", message: { role: "user", content: "Hi" } });
+    const transcript = JSON.stringify({
+      type: "user",
+      message: { role: "user", content: "Hi" },
+    });
     const deps = makeDeps({
       readFile: () => ok(transcript),
       stderr: (msg) => messages.push(msg),
@@ -247,7 +253,10 @@ describe("LastResponseCache.execute() — content types", () => {
     // text is undefined so c.text ?? "" yields "", which is empty after trim
     // so lastAssistant stays "" and we get "No assistant message"
     const messages: string[] = [];
-    const depsWithStderr = { ...deps, stderr: (msg: string) => messages.push(msg) };
+    const depsWithStderr = {
+      ...deps,
+      stderr: (msg: string) => messages.push(msg),
+    };
     LastResponseCache.execute(makeInput("/tmp/t.jsonl"), depsWithStderr);
     expect(messages.some((m) => m.includes("No assistant message"))).toBe(true);
   });
@@ -255,9 +264,18 @@ describe("LastResponseCache.execute() — content types", () => {
   it("uses the last assistant message when multiple exist", () => {
     let writtenContent = "";
     const transcript = [
-      JSON.stringify({ type: "assistant", message: { role: "assistant", content: "First" } }),
-      JSON.stringify({ type: "user", message: { role: "user", content: "Ok" } }),
-      JSON.stringify({ type: "assistant", message: { role: "assistant", content: "Second" } }),
+      JSON.stringify({
+        type: "assistant",
+        message: { role: "assistant", content: "First" },
+      }),
+      JSON.stringify({
+        type: "user",
+        message: { role: "user", content: "Ok" },
+      }),
+      JSON.stringify({
+        type: "assistant",
+        message: { role: "assistant", content: "Second" },
+      }),
     ].join("\n");
     const deps = makeDeps({
       readFile: () => ok(transcript),

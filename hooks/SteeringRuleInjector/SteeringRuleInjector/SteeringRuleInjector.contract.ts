@@ -12,19 +12,39 @@ import { fileExists, readFile, readJson, writeJson } from "@hooks/core/adapters/
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
-import type { SessionStartInput, UserPromptSubmitInput, ToolHookInput, SubagentStartInput, StopInput } from "@hooks/core/types/hook-inputs";
-import { getEventType as schemaGetEventType, parseHookInput } from "@hooks/core/types/hook-input-schema";
-import { block, continueOk, silent } from "@hooks/core/types/hook-outputs";
+import {
+  parseHookInput,
+  getEventType as schemaGetEventType,
+} from "@hooks/core/types/hook-input-schema";
+import type {
+  SessionStartInput,
+  StopInput,
+  SubagentStartInput,
+  ToolHookInput,
+  UserPromptSubmitInput,
+} from "@hooks/core/types/hook-inputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { block, continueOk, silent } from "@hooks/core/types/hook-outputs";
 import { isSubagent } from "@hooks/lib/environment";
 import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-type SteeringRuleInput = SessionStartInput | UserPromptSubmitInput | ToolHookInput | SubagentStartInput | StopInput;
+type SteeringRuleInput =
+  | SessionStartInput
+  | UserPromptSubmitInput
+  | ToolHookInput
+  | SubagentStartInput
+  | StopInput;
 
-type SteeringEventType = "SessionStart" | "UserPromptSubmit" | "PreToolUse" | "PostToolUse" | "SubagentStart" | "Stop";
+type SteeringEventType =
+  | "SessionStart"
+  | "UserPromptSubmit"
+  | "PreToolUse"
+  | "PostToolUse"
+  | "SubagentStart"
+  | "Stop";
 
 export interface RuleFrontmatter {
   name: string;
@@ -55,7 +75,6 @@ export interface SteeringRuleInjectorDeps {
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
-
 
 const DEFAULT_CONFIG: SteeringRuleConfig = {
   enabled: true,
@@ -116,7 +135,8 @@ function getMatchText(input: SteeringRuleInput): string {
   switch (p.hook_type) {
     case "PreToolUse":
     case "PostToolUse": {
-      const filePath = typeof p.tool_input["file_path"] === "string" ? p.tool_input["file_path"] : "";
+      const filePath =
+        typeof p.tool_input["file_path"] === "string" ? p.tool_input["file_path"] : "";
       const skill = typeof p.tool_input["skill"] === "string" ? p.tool_input["skill"] : "";
       return `${p.tool_name} ${filePath} ${skill}`.trim();
     }
@@ -158,14 +178,22 @@ const defaultDeps: SteeringRuleInjectorDeps = {
   },
 
   readTracker: (sessionId: string): InjectionTracker => {
-    const trackerPath = join(getPaiDir(), DEFAULT_CONFIG.trackerDir, `injections-${sessionId}.json`);
+    const trackerPath = join(
+      getPaiDir(),
+      DEFAULT_CONFIG.trackerDir,
+      `injections-${sessionId}.json`,
+    );
     if (!fileExists(trackerPath)) return { sessionId, injected: {} };
     const result = readJson<InjectionTracker>(trackerPath);
     return result.ok ? result.value : { sessionId, injected: {} };
   },
 
   writeTracker: (tracker: InjectionTracker): void => {
-    const trackerPath = join(getPaiDir(), DEFAULT_CONFIG.trackerDir, `injections-${tracker.sessionId}.json`);
+    const trackerPath = join(
+      getPaiDir(),
+      DEFAULT_CONFIG.trackerDir,
+      `injections-${tracker.sessionId}.json`,
+    );
     writeJson(trackerPath, tracker);
   },
 
@@ -217,7 +245,9 @@ export const SteeringRuleInjector: SyncHookContract<
     if (eventType === "Stop") {
       const keys = Object.keys(input);
       deps.stderr(`[SteeringRuleInjector] DEBUG Stop input keys: ${keys.join(", ")}`);
-      deps.stderr(`[SteeringRuleInjector] DEBUG Stop matchText (first 100): ${matchText.slice(0, 100)}`);
+      deps.stderr(
+        `[SteeringRuleInjector] DEBUG Stop matchText (first 100): ${matchText.slice(0, 100)}`,
+      );
     }
 
     // Resolve glob patterns to file paths
@@ -245,7 +275,11 @@ export const SteeringRuleInjector: SyncHookContract<
       if (tracker.injected[rule.name]) continue;
 
       // For always-events (SessionStart, SubagentStart, PreCompact), only inject empty-keyword rules
-      if ((eventType === "SessionStart" || eventType === "SubagentStart") && rule.keywords.length > 0) continue;
+      if (
+        (eventType === "SessionStart" || eventType === "SubagentStart") &&
+        rule.keywords.length > 0
+      )
+        continue;
 
       // For keyword-events (UserPromptSubmit, PreToolUse, PostToolUse, Stop), require a keyword match
       if (eventType === "UserPromptSubmit" || eventType === "Stop" || isToolEventType) {

@@ -75,7 +75,11 @@ describe("SettingsRevert.accepts", () => {
   });
 
   it("rejects non-Bash tools", () => {
-    const input: ToolHookInput = { session_id: SESSION, tool_name: "Edit", tool_input: {} };
+    const input: ToolHookInput = {
+      session_id: SESSION,
+      tool_name: "Edit",
+      tool_input: {},
+    };
     expect(SettingsRevert.accepts(input)).toBe(false);
   });
 });

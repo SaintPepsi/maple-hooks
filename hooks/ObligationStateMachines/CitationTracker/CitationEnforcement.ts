@@ -11,16 +11,16 @@
  */
 
 import { join } from "node:path";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists as fsFileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -79,11 +79,7 @@ const defaultDeps: CitationEnforcementDeps = {
 
 // ─── Contract 1: CitationTracker ─────────────────────────────────────────────
 
-export const CitationTracker: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  CitationEnforcementDeps
-> = {
+export const CitationTracker: SyncHookContract<ToolHookInput, CitationEnforcementDeps> = {
   name: "CitationTracker",
   event: "PostToolUse",
 
@@ -93,11 +89,14 @@ export const CitationTracker: SyncHookContract<
     return false;
   },
 
-  execute(_input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, ResultError> {
+  execute(
+    _input: ToolHookInput,
+    deps: CitationEnforcementDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const flag = flagPath(deps.stateDir);
     deps.writeFlag(flag);
     deps.stderr("[CitationTracker] Research tool detected — citation enforcement active");
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,
@@ -106,7 +105,11 @@ export const CitationTracker: SyncHookContract<
 // ─── Contract 2: CitationEnforcement ─────────────────────────────────────────
 
 function buildCitationReminder(): string {
-  const opener = pickNarrative("CitationEnforcement", 1, join(import.meta.dir, "../CitationEnforcement"));
+  const opener = pickNarrative(
+    "CitationEnforcement",
+    1,
+    join(import.meta.dir, "../CitationEnforcement"),
+  );
   return [
     opener,
     "Ensure every factual claim in your written content includes a citation:",
@@ -117,11 +120,7 @@ function buildCitationReminder(): string {
   ].join("\n");
 }
 
-export const CitationEnforcement: SyncHookContract<
-  ToolHookInput,
-  ContinueOutput,
-  CitationEnforcementDeps
-> = {
+export const CitationEnforcement: SyncHookContract<ToolHookInput, CitationEnforcementDeps> = {
   name: "CitationEnforcement",
   event: "PostToolUse",
 
@@ -129,20 +128,23 @@ export const CitationEnforcement: SyncHookContract<
     return input.tool_name === "Write" || input.tool_name === "Edit";
   },
 
-  execute(input: ToolHookInput, deps: CitationEnforcementDeps): Result<ContinueOutput, ResultError> {
+  execute(
+    input: ToolHookInput,
+    deps: CitationEnforcementDeps,
+  ): Result<SyncHookJSONOutput, ResultError> {
     const flag = flagPath(deps.stateDir);
     if (!deps.fileExists(flag)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const filePath = getFilePath(input);
     if (!filePath) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const reminded = deps.readReminded(remindedPath(deps.stateDir));
     if (reminded.includes(filePath)) {
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     reminded.push(filePath);

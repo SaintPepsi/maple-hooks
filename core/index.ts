@@ -16,7 +16,12 @@ export {
   writeFile,
   writeJson,
 } from "@hooks/core/adapters/fs";
-export { type ExecResult, exec, getEnv, spawnDetached } from "@hooks/core/adapters/process";
+export {
+  type ExecResult,
+  exec,
+  getEnv,
+  spawnDetached,
+} from "@hooks/core/adapters/process";
 // Adapters
 export { readStdin } from "@hooks/core/adapters/stdin";
 // Contract interface

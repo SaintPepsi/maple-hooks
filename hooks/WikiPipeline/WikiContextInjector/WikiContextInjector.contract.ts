@@ -53,7 +53,11 @@ export function buildDomainIndex(
 ): DomainIndex {
   const index: DomainIndex = {};
   for (const [path, meta] of Object.entries(pages)) {
-    const entry: WikiPageMeta = { title: meta.title, path, summary: meta.summary };
+    const entry: WikiPageMeta = {
+      title: meta.title,
+      path,
+      summary: meta.summary,
+    };
     const addedKeys = new Set<string>();
     for (const domain of meta.domain) {
       const key = domain.toLowerCase();

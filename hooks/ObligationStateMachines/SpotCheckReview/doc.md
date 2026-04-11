@@ -63,9 +63,9 @@ return ok({ decision: "block", reason: buildBlockMessage(unreviewedFiles) });
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | File read/write/exists/remove operations for state persistence |
-| `process` | adapter | `execSyncSafe` for running git commands to find unpushed files |
-| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks |
-| `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |
+| Dependency                         | Type      | Purpose                                                                                                                                                                                                                                                                                                                               |
+| ---------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fs`                               | adapter   | File read/write/exists/remove operations for state persistence                                                                                                                                                                                                                                                                        |
+| `process`                          | adapter   | `execSyncSafe` for running git commands to find unpushed files                                                                                                                                                                                                                                                                        |
+| `DocObligationStateMachine.shared` | shared    | Provides `projectHasHook` for deduplication with project-level hooks                                                                                                                                                                                                                                                                  |
+| `@anthropic-ai/claude-agent-sdk`   | SDK types | `SyncHookJSONOutput` return type. R5 block path uses top-level `decision: "block"` + `reason` because Stop is a NonHookSpecificEvent and has no `hookSpecificOutput` wrapping (contrast with PreToolUse where deny goes through `hookSpecificOutput.permissionDecision`). R8 silent path is a bare `{}`. Post-SDK-refactor migration. |

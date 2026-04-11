@@ -13,20 +13,20 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { getCommand } from "@hooks/lib/tool-input";
 import {
   type BlockOutput,
   block,
   type ContinueOutput,
   continueOk,
 } from "@hooks/core/types/hook-outputs";
-import { defaultStderr } from "@hooks/lib/paths";
 import {
   checkCiStatus,
   extractPrNumber,
   resolvePrFromBranch,
   type SharedDeps,
 } from "@hooks/hooks/GitSafety/shared";
+import { defaultStderr } from "@hooks/lib/paths";
+import { getCommand } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

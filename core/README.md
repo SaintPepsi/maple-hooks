@@ -6,11 +6,11 @@ Shared types, patterns, and adapters for the PAI hook system.
 
 Three exported types for hook contracts:
 
-| Type | `execute()` returns | Use when |
-|------|-------------------|----------|
-| `SyncHookContract<I,D>` | `Result<SyncHookJSONOutput, ResultError>` | Most hooks (34 of 40) |
-| `AsyncHookContract<I,D>` | `Promise<Result<SyncHookJSONOutput, ResultError>>` | Hooks with async I/O (6 hooks) |
-| `HookContract<I,D>` | Union of both | Runner only — contracts should use the narrowed type |
+| Type                     | `execute()` returns                                | Use when                                             |
+| ------------------------ | -------------------------------------------------- | ---------------------------------------------------- |
+| `SyncHookContract<I,D>`  | `Result<SyncHookJSONOutput, ResultError>`          | Most hooks (34 of 40)                                |
+| `AsyncHookContract<I,D>` | `Promise<Result<SyncHookJSONOutput, ResultError>>` | Hooks with async I/O (6 hooks)                       |
+| `HookContract<I,D>`      | Union of both                                      | Runner only — contracts should use the narrowed type |
 
 All three share a common base: `name`, `event`, `accepts()`, `defaultDeps`.
 
@@ -50,6 +50,7 @@ Exports: `isDuplicate(hookName, sessionId, input, deps?)`, `stableHash(hookName,
 ## Adapters (`adapters/`)
 
 Boundary layer wrapping Node builtins in `Result`:
+
 - `fs.ts` — readFile, writeFile, writeFileExclusive, readJson, writeJson, fileExists, stat, etc.
 - `process.ts` — exec, execSyncSafe, spawnBackground
 - `stdin.ts` — readStdin with timeout

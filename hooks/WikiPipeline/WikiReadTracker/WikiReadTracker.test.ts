@@ -170,7 +170,9 @@ describe("WikiReadTracker.execute()", () => {
     const input: ToolHookInput = {
       session_id: "",
       tool_name: "Read",
-      tool_input: { file_path: "/Users/hogers/.claude/MEMORY/WIKI/entities/koord.md" },
+      tool_input: {
+        file_path: "/Users/hogers/.claude/MEMORY/WIKI/entities/koord.md",
+      },
     };
     const result = WikiReadTracker.execute(input, deps);
 

@@ -48,7 +48,11 @@ describe("CitationEnforcement", () => {
         session_id: "test",
         hook_type: "PostToolUse",
         tool_name: "Edit",
-        tool_input: { file_path: "/tmp/file.ts", old_string: "a", new_string: "b" },
+        tool_input: {
+          file_path: "/tmp/file.ts",
+          old_string: "a",
+          new_string: "b",
+        },
       };
       expect(CitationEnforcement.accepts(input)).toBe(true);
     });

@@ -48,14 +48,14 @@ PostToolUse { tool_name: "Edit", ... }
 
 Every comparison result is logged to `MEMORY/SECURITY/settings-audit.jsonl`:
 
-| Field | Description |
-|-------|-------------|
-| `ts` | ISO timestamp |
-| `session_id` | Claude Code session ID |
-| `tool` | Always `Bash` |
-| `target` | Reverted filename(s) or `settings.json` if unchanged |
-| `action` | `reverted` (change detected and undone) or `unchanged` (no modification) |
-| `command` | First 500 chars of the Bash command |
+| Field        | Description                                                              |
+| ------------ | ------------------------------------------------------------------------ |
+| `ts`         | ISO timestamp                                                            |
+| `session_id` | Claude Code session ID                                                   |
+| `tool`       | Always `Bash`                                                            |
+| `target`     | Reverted filename(s) or `settings.json` if unchanged                     |
+| `action`     | `reverted` (change detected and undone) or `unchanged` (no modification) |
+| `command`    | First 500 chars of the Bash command                                      |
 
 ## Hardening Loop
 

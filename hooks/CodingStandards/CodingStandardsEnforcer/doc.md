@@ -40,7 +40,11 @@ It does **not** fire when:
 ```typescript
 // Core enforcement flow (Edit simulation)
 const currentFile = deps.readFile(filePath);
-const contentToCheck = applyEdit(currentFile, editParts.oldStr, editParts.newStr);
+const contentToCheck = applyEdit(
+  currentFile,
+  editParts.oldStr,
+  editParts.newStr,
+);
 const violations = findAllViolations(contentToCheck, filePath);
 
 if (violations.length > 0) {
@@ -70,12 +74,12 @@ if (violations.length > 0) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()` for Result-based returns |
-| `fs` | adapter | `readFile` for reading current file content on Edit |
-| `coding-standards-checks` | lib | `findAllViolations`, file classification helpers |
-| `signal-logger` | lib | Logs violations to JSONL for pattern analysis |
-| `narrative-reader` | lib | `pickNarrative` for escalating block message tone |
-| `svelte-utils` | lib | `isSvelteFile`, `extractSvelteScript` for Svelte support |
+| Dependency                       | Type      | Purpose                                                                                                                                                               |
+| -------------------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core      | `ok()` for Result-based returns                                                                                                                                       |
+| `fs`                             | adapter   | `readFile` for reading current file content on Edit                                                                                                                   |
+| `coding-standards-checks`        | lib       | `findAllViolations`, file classification helpers                                                                                                                      |
+| `signal-logger`                  | lib       | Logs violations to JSONL for pattern analysis                                                                                                                         |
+| `narrative-reader`               | lib       | `pickNarrative` for escalating block message tone                                                                                                                     |
+| `svelte-utils`                   | lib       | `isSvelteFile`, `extractSvelteScript` for Svelte support                                                                                                              |
 | `@anthropic-ai/claude-agent-sdk` | SDK types | `SyncHookJSONOutput` return type; R4 PreToolUse block via `hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason }` |

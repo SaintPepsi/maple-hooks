@@ -259,7 +259,9 @@ export async function runHook<I extends HookInput, D>(
       return;
     }
 
-    await executePipeline(contract, input, io, safeExit, { handleSecurityBlock: true });
+    await executePipeline(contract, input, io, safeExit, {
+      handleSecurityBlock: true,
+    });
   };
 
   await runStdinPipeline().catch((e) => {

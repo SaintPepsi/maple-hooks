@@ -43,7 +43,11 @@ describe("DocCommitGuard", () => {
   // ─── accepts() ──────────────────────────────────────────────────────────
 
   it("rejects non-Bash tools", () => {
-    const input: ToolHookInput = { session_id: "s", tool_name: "Edit", tool_input: {} };
+    const input: ToolHookInput = {
+      session_id: "s",
+      tool_name: "Edit",
+      tool_input: {},
+    };
     expect(DocCommitGuard.accepts(input)).toBe(false);
   });
 

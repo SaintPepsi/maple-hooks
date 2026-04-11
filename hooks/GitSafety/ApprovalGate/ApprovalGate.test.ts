@@ -227,10 +227,7 @@ describe("ApprovalGate", () => {
         stderrMessages.push(msg);
       },
     };
-    const result = ApprovalGate.execute(
-      makeInput("gh pr review --approve"),
-      deps,
-    ) as GateResult;
+    const result = ApprovalGate.execute(makeInput("gh pr review --approve"), deps) as GateResult;
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");

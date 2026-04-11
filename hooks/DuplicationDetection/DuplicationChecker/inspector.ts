@@ -6,7 +6,7 @@
  */
 
 import { PaihError, PaihErrorCode } from "@hooks/cli/core/error";
-import { type Result, err, ok } from "@hooks/cli/core/result";
+import { err, ok, type Result } from "@hooks/cli/core/result";
 import { tryCatch } from "@hooks/core/result";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
 import { getArtifactsDir } from "@hooks/hooks/DuplicationDetection/shared";

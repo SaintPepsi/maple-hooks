@@ -21,15 +21,19 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
-import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import type { SilentOutput } from "@hooks/core/types/hook-outputs";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getLocalTimestamp } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface GitAutoSyncDeps {
   execSync: (cmd: string, opts?: { cwd?: string; timeout?: number }) => Result<string, ResultError>;
-  spawnBackground: (cmd: string, args: string[], opts?: { cwd?: string }) => Result<void, ResultError>;
+  spawnBackground: (
+    cmd: string,
+    args: string[],
+    opts?: { cwd?: string },
+  ) => Result<void, ResultError>;
   fileExists: (path: string) => boolean;
   readFile: (path: string) => Result<string, ResultError>;
   readDir: (path: string) => Result<string[], ResultError>;

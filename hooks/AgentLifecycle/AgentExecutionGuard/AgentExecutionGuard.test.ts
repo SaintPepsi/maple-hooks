@@ -9,7 +9,11 @@ function makeInput(overrides: Record<string, unknown> = {}): ToolHookInput {
   return {
     session_id: "test",
     tool_name: "Task",
-    tool_input: { subagent_type: "general-purpose", description: "test task", ...overrides },
+    tool_input: {
+      subagent_type: "general-purpose",
+      description: "test task",
+      ...overrides,
+    },
   };
 }
 

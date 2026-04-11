@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { ok, err } from "@hooks/core/result";
 import { processSpawnFailed } from "@hooks/core/error";
-import { runArticleWriter, type RunArticleWriterDeps } from "@hooks/hooks/WorkLifecycle/ArticleWriter/run-article-writer";
+import { err, ok } from "@hooks/core/result";
+import {
+  type RunArticleWriterDeps,
+  runArticleWriter,
+} from "@hooks/hooks/WorkLifecycle/ArticleWriter/run-article-writer";
 import type { SpawnAgentConfig } from "@hooks/lib/spawn-agent";
 
 // ─── Fake Deps ─────────────────────────────────────────────────────────────
@@ -12,9 +15,10 @@ interface SpawnCall {
   opts?: Record<string, unknown>;
 }
 
-function fakeDeps(
-  overrides: Partial<RunArticleWriterDeps> = {},
-): RunArticleWriterDeps & { _captured: SpawnAgentConfig[]; _spawnCalls: SpawnCall[] } {
+function fakeDeps(overrides: Partial<RunArticleWriterDeps> = {}): RunArticleWriterDeps & {
+  _captured: SpawnAgentConfig[];
+  _spawnCalls: SpawnCall[];
+} {
   const captured: SpawnAgentConfig[] = [];
   const spawnCalls: SpawnCall[] = [];
 

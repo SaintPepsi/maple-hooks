@@ -41,14 +41,14 @@ Bash { command: "python3 -c \"...writeFileSync('settings.json')...\"" }
 
 Every action is logged to `MEMORY/SECURITY/settings-audit.jsonl` as structured JSONL:
 
-| Field | Description |
-|-------|-------------|
-| `ts` | ISO timestamp |
-| `session_id` | Claude Code session ID |
-| `tool` | Tool name (Edit, Write, Bash) |
-| `target` | File path or settings filename |
-| `action` | `asked` (Edit/Write prompt) or `snapshotted` (Bash pre-command) |
-| `command` | First 500 chars of Bash command (Bash only) |
+| Field        | Description                                                     |
+| ------------ | --------------------------------------------------------------- |
+| `ts`         | ISO timestamp                                                   |
+| `session_id` | Claude Code session ID                                          |
+| `tool`       | Tool name (Edit, Write, Bash)                                   |
+| `target`     | File path or settings filename                                  |
+| `action`     | `asked` (Edit/Write prompt) or `snapshotted` (Bash pre-command) |
+| `command`    | First 500 chars of Bash command (Bash only)                     |
 
 ## Dependencies
 

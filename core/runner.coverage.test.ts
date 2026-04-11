@@ -144,7 +144,10 @@ describe("runHook — SecurityBlock exit code 2", () => {
       defaultDeps: {},
     };
     const io = createMockIO();
-    await runHook(securityContract, { ...io, stdinOverride: validToolInputJson });
+    await runHook(securityContract, {
+      ...io,
+      stdinOverride: validToolInputJson,
+    });
     expect(io.exitCode).toBe(2);
     expect(io.stderrLines.some((l) => l.includes("blocked for security"))).toBe(true);
   });
@@ -176,7 +179,10 @@ describe("runHook — tool_name validation for tool events", () => {
     };
     const inputMissingToolName = JSON.stringify({ session_id: "s" });
     const io = createMockIO();
-    await runHook(preToolContract, { ...io, stdinOverride: inputMissingToolName });
+    await runHook(preToolContract, {
+      ...io,
+      stdinOverride: inputMissingToolName,
+    });
     expect(io.stderrLines.some((l) => l.includes("missing tool_name"))).toBe(true);
     expect(io.exitCode).toBe(0);
   });
@@ -191,7 +197,10 @@ describe("runHook — tool_name validation for tool events", () => {
     };
     const inputMissingToolName = JSON.stringify({ session_id: "s" });
     const io = createMockIO();
-    await runHook(postToolContract, { ...io, stdinOverride: inputMissingToolName });
+    await runHook(postToolContract, {
+      ...io,
+      stdinOverride: inputMissingToolName,
+    });
     expect(io.stderrLines.some((l) => l.includes("missing tool_name"))).toBe(true);
   });
 

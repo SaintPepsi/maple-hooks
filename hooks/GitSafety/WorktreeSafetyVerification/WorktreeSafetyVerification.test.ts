@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { type ResultError, processExecFailed } from "@hooks/core/error";
+import { processExecFailed, type ResultError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ContinueOutput } from "@hooks/core/types/hook-outputs";

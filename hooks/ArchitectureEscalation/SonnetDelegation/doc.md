@@ -53,9 +53,9 @@ return ok({
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| (none) | -- | This hook has no external dependencies beyond core types |
+| Dependency | Type | Purpose                                                  |
+| ---------- | ---- | -------------------------------------------------------- |
+| (none)     | --   | This hook has no external dependencies beyond core types |
 
 ## History
 

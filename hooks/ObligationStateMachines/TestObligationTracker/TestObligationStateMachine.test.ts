@@ -123,7 +123,9 @@ describe("TestObligationTracker", () => {
   it("accepts Edit with PHP production file (not a test)", () => {
     expect(
       TestObligationTracker.accepts(
-        makeToolInput("Edit", { file_path: "/app/Console/Commands/SeedTestIneligibleMatter.php" }),
+        makeToolInput("Edit", {
+          file_path: "/app/Console/Commands/SeedTestIneligibleMatter.php",
+        }),
       ),
     ).toBe(true);
   });
@@ -240,7 +242,9 @@ describe("TestObligationTracker", () => {
     });
 
     TestObligationTracker.execute(
-      makeToolInput("Bash", { command: "sail phpunit --filter SeedTestIneligibleMatterTest" }),
+      makeToolInput("Bash", {
+        command: "sail phpunit --filter SeedTestIneligibleMatterTest",
+      }),
       deps,
     );
 
@@ -429,11 +433,19 @@ describe("TestObligationTracker", () => {
     });
 
     TestObligationTracker.execute(
-      { session_id: "session-aaa", tool_name: "Edit", tool_input: { file_path: "/src/a.ts" } },
+      {
+        session_id: "session-aaa",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/a.ts" },
+      },
       deps,
     );
     TestObligationTracker.execute(
-      { session_id: "session-bbb", tool_name: "Edit", tool_input: { file_path: "/src/b.ts" } },
+      {
+        session_id: "session-bbb",
+        tool_name: "Edit",
+        tool_input: { file_path: "/src/b.ts" },
+      },
       deps,
     );
 

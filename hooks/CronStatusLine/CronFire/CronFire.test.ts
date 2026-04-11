@@ -184,7 +184,12 @@ describe("CronFireContract.execute() — matching cron", () => {
   it("increments fireCount and sets lastFired on matched cron", () => {
     const deps = makeDeps({ now: () => 9999999 });
     seedCronFile(deps, [
-      makeCron({ id: "cron-1", prompt: "run the tests", fireCount: 2, lastFired: 1500000 }),
+      makeCron({
+        id: "cron-1",
+        prompt: "run the tests",
+        fireCount: 2,
+        lastFired: 1500000,
+      }),
     ]);
 
     const result = CronFireContract.execute(makeInput("run the tests"), deps);
@@ -201,7 +206,12 @@ describe("CronFireContract.execute() — matching cron", () => {
   it("appends a 'fired' event to the JSONL log", () => {
     const deps = makeDeps();
     seedCronFile(deps, [
-      makeCron({ id: "cron-1", name: "Test Cron", prompt: "run the tests", fireCount: 0 }),
+      makeCron({
+        id: "cron-1",
+        name: "Test Cron",
+        prompt: "run the tests",
+        fireCount: 0,
+      }),
     ]);
 
     CronFireContract.execute(makeInput("run the tests"), deps);
@@ -236,9 +246,24 @@ describe("CronFireContract.execute() — selective update", () => {
   it("only updates the matched cron, leaves others unchanged", () => {
     const deps = makeDeps({ now: () => 9999999 });
     seedCronFile(deps, [
-      makeCron({ id: "cron-1", prompt: "deploy to production", fireCount: 5, lastFired: 100 }),
-      makeCron({ id: "cron-2", prompt: "run the tests", fireCount: 0, lastFired: null }),
-      makeCron({ id: "cron-3", prompt: "check logs", fireCount: 3, lastFired: 200 }),
+      makeCron({
+        id: "cron-1",
+        prompt: "deploy to production",
+        fireCount: 5,
+        lastFired: 100,
+      }),
+      makeCron({
+        id: "cron-2",
+        prompt: "run the tests",
+        fireCount: 0,
+        lastFired: null,
+      }),
+      makeCron({
+        id: "cron-3",
+        prompt: "check logs",
+        fireCount: 3,
+        lastFired: 200,
+      }),
     ]);
 
     CronFireContract.execute(makeInput("run the tests"), deps);
@@ -265,7 +290,12 @@ describe("CronFireContract.execute() — selective update", () => {
     const deps = makeDeps({ now: () => 5000000 });
     seedCronFile(deps, [
       makeCron({ id: "cron-1", prompt: "run", fireCount: 0, lastFired: null }),
-      makeCron({ id: "cron-2", prompt: "run the tests", fireCount: 0, lastFired: null }),
+      makeCron({
+        id: "cron-2",
+        prompt: "run the tests",
+        fireCount: 0,
+        lastFired: null,
+      }),
     ]);
 
     CronFireContract.execute(makeInput("run the tests now"), deps);

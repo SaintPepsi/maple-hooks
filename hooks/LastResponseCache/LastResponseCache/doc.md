@@ -51,7 +51,7 @@ deps.writeFile(cachePath, lastResponse.slice(0, 2000));
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | `ok()`, `tryCatch()` for Result wrapping and safe JSON parsing |
-| `fs` | adapter | `readFile`, `writeFile` for transcript reading and cache writing |
+| Dependency | Type    | Purpose                                                          |
+| ---------- | ------- | ---------------------------------------------------------------- |
+| `result`   | core    | `ok()`, `tryCatch()` for Result wrapping and safe JSON parsing   |
+| `fs`       | adapter | `readFile`, `writeFile` for transcript reading and cache writing |

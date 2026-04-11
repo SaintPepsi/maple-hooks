@@ -650,7 +650,7 @@ describe("DestructiveDeleteGuard Edit/Write non-rm allowed", () => {
   });
 
   test("allows edits to core/adapters/fs.ts even with destructive patterns", () => {
-    const code = 'rmSync(path, { recursive: true, force: true });';
+    const code = "rmSync(path, { recursive: true, force: true });";
     const result = DestructiveDeleteGuard.execute(
       editInput(code, "/project/core/adapters/fs.ts"),
       mockDeps,

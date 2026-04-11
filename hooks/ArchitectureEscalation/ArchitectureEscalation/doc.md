@@ -37,14 +37,20 @@ if (failedAttempts >= STOP_THRESHOLD) {
   // "STOP CURRENT APPROACH" — recommends FirstPrinciples + Council skills
   return ok({
     continue: true,
-    hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: message },
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: message,
+    },
   });
 }
 if (failedAttempts >= WARN_THRESHOLD) {
   // "WARNING" — suggests pausing and questioning the approach
   return ok({
     continue: true,
-    hookSpecificOutput: { hookEventName: "PostToolUse", additionalContext: message },
+    hookSpecificOutput: {
+      hookEventName: "PostToolUse",
+      additionalContext: message,
+    },
   });
 }
 ```
@@ -61,9 +67,9 @@ if (failedAttempts >= WARN_THRESHOLD) {
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `fs` | adapter | Reads and writes per-session escalation state JSON |
+| Dependency | Type    | Purpose                                            |
+| ---------- | ------- | -------------------------------------------------- |
+| `fs`       | adapter | Reads and writes per-session escalation state JSON |
 
 ## History
 

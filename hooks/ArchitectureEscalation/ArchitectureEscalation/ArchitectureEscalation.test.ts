@@ -104,7 +104,9 @@ describe("ArchitectureEscalation", () => {
 
   it("returns continue for non-in_progress status", () => {
     const deps = makeDeps();
-    const input = makeInput({ tool_input: { taskId: "C1", status: "completed" } });
+    const input = makeInput({
+      tool_input: { taskId: "C1", status: "completed" },
+    });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -113,7 +115,9 @@ describe("ArchitectureEscalation", () => {
 
   it("returns continue when taskId is empty string", () => {
     const deps = makeDeps();
-    const input = makeInput({ tool_input: { taskId: "", status: "in_progress" } });
+    const input = makeInput({
+      tool_input: { taskId: "", status: "in_progress" },
+    });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -122,7 +126,9 @@ describe("ArchitectureEscalation", () => {
 
   it("returns continue when taskId is not a string", () => {
     const deps = makeDeps();
-    const input = makeInput({ tool_input: { taskId: 42, status: "in_progress" } });
+    const input = makeInput({
+      tool_input: { taskId: 42, status: "in_progress" },
+    });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -141,8 +147,12 @@ describe("ArchitectureEscalation", () => {
 
   it("tracks different criteria independently", () => {
     const deps = makeDeps();
-    const inputC1 = makeInput({ tool_input: { taskId: "C1", status: "in_progress" } });
-    const inputC2 = makeInput({ tool_input: { taskId: "C2", status: "in_progress" } });
+    const inputC1 = makeInput({
+      tool_input: { taskId: "C1", status: "in_progress" },
+    });
+    const inputC2 = makeInput({
+      tool_input: { taskId: "C2", status: "in_progress" },
+    });
 
     // Push C1 past warn threshold
     for (let i = 0; i <= WARN_THRESHOLD; i++) {
@@ -202,7 +212,10 @@ describe("loadState", () => {
     const deps = makeDeps({
       fileExists: () => true,
       readJson: <T>(_path: string): Result<T, ResultError> =>
-        ok({ sessionId: "test", criteria: { C1: { inProgressCount: 3, lastSeenAt: 100 } } } as T),
+        ok({
+          sessionId: "test",
+          criteria: { C1: { inProgressCount: 3, lastSeenAt: 100 } },
+        } as T),
     });
     const state = loadState("test", deps);
     expect(state.criteria.C1.inProgressCount).toBe(3);
@@ -214,7 +227,10 @@ describe("saveState", () => {
     const stderrMessages: string[] = [];
     const deps = makeDeps({
       writeJson: () =>
-        err({ code: "WRITE_FAILED", message: "disk full" } as unknown as ResultError),
+        err({
+          code: "WRITE_FAILED",
+          message: "disk full",
+        } as unknown as ResultError),
       ensureDir: () => ok(undefined),
       stderr: (msg: string) => {
         stderrMessages.push(msg);
@@ -234,7 +250,10 @@ describe("saveState", () => {
       ensureDir: () => ok(undefined),
     });
     saveState(
-      { sessionId: "test", criteria: { C1: { inProgressCount: 1, lastSeenAt: 100 } } },
+      {
+        sessionId: "test",
+        criteria: { C1: { inProgressCount: 1, lastSeenAt: 100 } },
+      },
       deps,
     );
     expect(writtenData).not.toBeNull();

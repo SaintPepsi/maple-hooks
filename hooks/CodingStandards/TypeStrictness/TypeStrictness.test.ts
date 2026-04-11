@@ -203,7 +203,10 @@ describe("TypeStrictness.accepts", () => {
   it("accepts Edit on .ts files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.ts", new_string: "" } }),
+        makeInput({
+          tool_name: "Edit",
+          tool_input: { file_path: "/src/foo.ts", new_string: "" },
+        }),
       ),
     ).toBe(true);
   });
@@ -211,7 +214,10 @@ describe("TypeStrictness.accepts", () => {
   it("accepts Write on .tsx files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Write", tool_input: { file_path: "/src/App.tsx", content: "" } }),
+        makeInput({
+          tool_name: "Write",
+          tool_input: { file_path: "/src/App.tsx", content: "" },
+        }),
       ),
     ).toBe(true);
   });
@@ -219,7 +225,10 @@ describe("TypeStrictness.accepts", () => {
   it("rejects Edit on .js files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.js", new_string: "" } }),
+        makeInput({
+          tool_name: "Edit",
+          tool_input: { file_path: "/src/foo.js", new_string: "" },
+        }),
       ),
     ).toBe(false);
   });
@@ -227,7 +236,10 @@ describe("TypeStrictness.accepts", () => {
   it("rejects Edit on .py files", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Edit", tool_input: { file_path: "/src/foo.py", new_string: "" } }),
+        makeInput({
+          tool_name: "Edit",
+          tool_input: { file_path: "/src/foo.py", new_string: "" },
+        }),
       ),
     ).toBe(false);
   });
@@ -246,7 +258,10 @@ describe("TypeStrictness.accepts", () => {
   it("rejects Read tool", () => {
     expect(
       TypeStrictness.accepts(
-        makeInput({ tool_name: "Read", tool_input: { file_path: "/src/foo.ts" } }),
+        makeInput({
+          tool_name: "Read",
+          tool_input: { file_path: "/src/foo.ts" },
+        }),
       ),
     ).toBe(false);
   });
@@ -282,7 +297,10 @@ describe("TypeStrictness.accepts", () => {
 describe("TypeStrictness.execute", () => {
   it("blocks Edit with type annotation violation", () => {
     const input = makeInput({
-      tool_input: { file_path: "/src/foo.ts", new_string: `const x${COLON_ANY} = 5;` },
+      tool_input: {
+        file_path: "/src/foo.ts",
+        new_string: `const x${COLON_ANY} = 5;`,
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
@@ -309,7 +327,10 @@ describe("TypeStrictness.execute", () => {
 
   it("continues for clean TypeScript", () => {
     const input = makeInput({
-      tool_input: { file_path: "/src/foo.ts", new_string: "const x: string = 'hello';" },
+      tool_input: {
+        file_path: "/src/foo.ts",
+        new_string: "const x: string = 'hello';",
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
@@ -344,7 +365,10 @@ describe("TypeStrictness.execute", () => {
 
   it("block message includes constructive type guidance", () => {
     const input = makeInput({
-      tool_input: { file_path: "/src/foo.ts", new_string: `const x${COLON_ANY} = 5;` },
+      tool_input: {
+        file_path: "/src/foo.ts",
+        new_string: `const x${COLON_ANY} = 5;`,
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
@@ -497,7 +521,10 @@ describe("TypeStrictness.execute — Svelte files", () => {
     ].join("\n");
     const input = makeInput({
       tool_name: "Write",
-      tool_input: { file_path: "/project/src/Component.svelte", content: svelteContent },
+      tool_input: {
+        file_path: "/project/src/Component.svelte",
+        content: svelteContent,
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);
@@ -507,7 +534,10 @@ describe("TypeStrictness.execute — Svelte files", () => {
   it("continues when .svelte file has no script block", () => {
     const input = makeInput({
       tool_name: "Write",
-      tool_input: { file_path: "/project/src/NoScript.svelte", content: "<div>Just HTML</div>" },
+      tool_input: {
+        file_path: "/project/src/NoScript.svelte",
+        content: "<div>Just HTML</div>",
+      },
     });
     const result = TypeStrictness.execute(input, deps);
     expect(result.ok).toBe(true);

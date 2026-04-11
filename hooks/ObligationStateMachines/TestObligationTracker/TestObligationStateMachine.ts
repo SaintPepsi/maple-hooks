@@ -24,12 +24,11 @@ import type { ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { defaultStderr } from "@hooks/lib/paths";
-import { getPaiDir } from "@hooks/lib/paths";
-import { getCommand, getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
 import { pickNarrative } from "@hooks/lib/narrative-reader";
+import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
+import { getCommand, getFilePath } from "@hooks/lib/tool-input";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -96,7 +95,6 @@ function pendingMatchesSource(pendingFile: string, sourceFile: string): boolean 
   return pendingFile.endsWith(sourceFile) || pendingFile.endsWith(`/${sourceFile}`);
 }
 
-
 function pendingPath(stateDir: string, sessionId: string): string {
   return join(stateDir, `tests-pending-${sessionId}.json`);
 }
@@ -161,8 +159,6 @@ function getStateDir(): string {
   const paiDir = getPaiDir();
   return join(paiDir, "MEMORY", "STATE", "test-obligation");
 }
-
-
 
 const defaultDeps: TestObligationDeps = {
   stateDir: getStateDir(),
@@ -341,7 +337,11 @@ export const TestObligationEnforcer: SyncHookContract<
       }
     }
 
-    const opener = pickNarrative("TestObligationEnforcer", pending.length, join(import.meta.dir, "../TestObligationEnforcer"));
+    const opener = pickNarrative(
+      "TestObligationEnforcer",
+      pending.length,
+      join(import.meta.dir, "../TestObligationEnforcer"),
+    );
     const sections: string[] = [];
 
     if (needsWriting.length > 0) {

@@ -62,12 +62,12 @@ return ok({
 
 ## Dependencies
 
-| Dependency | Type | Purpose |
-| --- | --- | --- |
-| `result` | core | Provides `ok()` for Result-based returns |
-| `contract` | core | `SyncHookContract` type definition |
-| `hook-inputs` | core | `ToolHookInput` type for PreToolUse events |
-| `@anthropic-ai/claude-agent-sdk` | SDK | `SyncHookJSONOutput` union type (replaces local `ContinueOutput`/`ContextOutput` tombstoned in Phase 1 Task 1K) |
+| Dependency                       | Type | Purpose                                                                                                         |
+| -------------------------------- | ---- | --------------------------------------------------------------------------------------------------------------- |
+| `result`                         | core | Provides `ok()` for Result-based returns                                                                        |
+| `contract`                       | core | `SyncHookContract` type definition                                                                              |
+| `hook-inputs`                    | core | `ToolHookInput` type for PreToolUse events                                                                      |
+| `@anthropic-ai/claude-agent-sdk` | SDK  | `SyncHookJSONOutput` union type (replaces local `ContinueOutput`/`ContextOutput` tombstoned in Phase 1 Task 1K) |
 
 ---
 

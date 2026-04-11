@@ -165,7 +165,7 @@ describe("RebaseGuard", () => {
 
   it("continues when rebase appears only in heredoc body", () => {
     const cmd =
-      'git add file.ts && git commit -m "$(cat <<\'EOF\'\nfeat: block git rebase\nEOF\n)"';
+      "git add file.ts && git commit -m \"$(cat <<'EOF'\nfeat: block git rebase\nEOF\n)\"";
     const result = RebaseGuard.execute(makeInput(cmd), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -183,10 +183,7 @@ describe("RebaseGuard", () => {
   });
 
   it("continues on git log mentioning rebase in grep", () => {
-    const result = RebaseGuard.execute(
-      makeInput('git log --grep="rebase" --oneline'),
-      makeDeps(),
-    );
+    const result = RebaseGuard.execute(makeInput('git log --grep="rebase" --oneline'), makeDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.type).toBe("continue");

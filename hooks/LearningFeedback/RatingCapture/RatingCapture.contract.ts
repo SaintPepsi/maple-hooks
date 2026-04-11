@@ -237,7 +237,10 @@ function defaultSpawnTrending(): void {
   const baseDir = getPaiDir();
   const script = join(baseDir, "tools", "TrendingAnalysis.ts");
   if (fileExists(script)) {
-    Bun.spawn(["bun", script, "--force"], { stdout: "ignore", stderr: "ignore" });
+    Bun.spawn(["bun", script, "--force"], {
+      stdout: "ignore",
+      stderr: "ignore",
+    });
   }
 }
 

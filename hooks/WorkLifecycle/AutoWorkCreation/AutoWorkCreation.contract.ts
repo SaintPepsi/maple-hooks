@@ -82,7 +82,12 @@ export function classifyPrompt(prompt: string, hasExistingSession: boolean): Pro
       trimmed,
     )
   ) {
-    return { type: "conversational", title: "", effort: "TRIVIAL", is_new_topic: false };
+    return {
+      type: "conversational",
+      title: "",
+      effort: "TRIVIAL",
+      is_new_topic: false,
+    };
   }
 
   if (!hasExistingSession) {

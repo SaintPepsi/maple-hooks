@@ -24,11 +24,11 @@ import type { ResultError } from "@hooks/core/error";
 import { isScorableFile } from "@hooks/core/language-profiles";
 import { ok, type Result } from "@hooks/core/result";
 import type { StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
+import { continueOk } from "@hooks/core/types/hook-outputs";
+import { pickNarrative } from "@hooks/lib/narrative-reader";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getFilePath } from "@hooks/lib/tool-input";
-import { continueOk } from "@hooks/core/types/hook-outputs";
-import type { BlockOutput, ContinueOutput, SilentOutput } from "@hooks/core/types/hook-outputs";
-import { pickNarrative } from "@hooks/lib/narrative-reader";
 
 // ─── Project Hook Deduplication ──────────────────────────────────────────────
 
@@ -263,7 +263,10 @@ export const DocObligationEnforcer: SyncHookContract<
     return true;
   },
 
-  execute(input: StopInput, deps: DocObligationDeps): Result<BlockOutput | SilentOutput, ResultError> {
+  execute(
+    input: StopInput,
+    deps: DocObligationDeps,
+  ): Result<BlockOutput | SilentOutput, ResultError> {
     const flagFile = pendingPath(deps.stateDir, input.session_id);
 
     if (!deps.fileExists(flagFile)) {
@@ -290,7 +293,11 @@ export const DocObligationEnforcer: SyncHookContract<
       return ok({ type: "silent" });
     }
 
-    const opener = pickNarrative("DocObligationEnforcer", pending.length, join(import.meta.dir, "../DocObligationEnforcer"));
+    const opener = pickNarrative(
+      "DocObligationEnforcer",
+      pending.length,
+      join(import.meta.dir, "../DocObligationEnforcer"),
+    );
     const fileList = pending.map((f) => `  - ${f}`).join("\n");
     const suggestions = buildDocSuggestions(pending, deps);
     const reason = `${opener}\n\nModified files without documentation updates:\n${fileList}\n\n${suggestions}`;

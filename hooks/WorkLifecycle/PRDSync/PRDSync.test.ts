@@ -268,7 +268,10 @@ describe("PRDSync.accepts", () => {
       PRDSync.accepts({
         session_id: "s",
         tool_name: "Write",
-        tool_input: { file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md", content: "" },
+        tool_input: {
+          file_path: "/tmp/.claude/MEMORY/WORK/slug/PRD.md",
+          content: "",
+        },
       }),
     ).toBe(true);
   });
