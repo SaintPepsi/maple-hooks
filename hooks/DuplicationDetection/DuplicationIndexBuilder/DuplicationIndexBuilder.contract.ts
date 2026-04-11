@@ -8,6 +8,7 @@
  * No additionalContext — this is a silent background operation.
  */
 
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import {
   readDir as adapterReadDir,
   readFile as adapterReadFile,
@@ -20,8 +21,6 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
-import type { ContinueOutput } from "@hooks/core/types/hook-outputs";
-import { continueOk } from "@hooks/core/types/hook-outputs";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import {
   buildIndex,
@@ -130,7 +129,6 @@ function isToolInput(input: HookInput): input is ToolHookInput {
 
 export const DuplicationIndexBuilderContract: SyncHookContract<
   HookInput,
-  ContinueOutput,
   DuplicationIndexBuilderDeps
 > = {
   name: "DuplicationIndexBuilder",
@@ -152,13 +150,13 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
   execute(
     input: HookInput,
     deps: DuplicationIndexBuilderDeps,
-  ): Result<ContinueOutput, ResultError> {
+  ): Result<SyncHookJSONOutput, ResultError> {
     // SessionStart: use CWD. PostToolUse: use file path from tool input.
     const anchor = isToolInput(input) ? getFilePath(input)! : deps.cwd();
     const projectRoot = deps.findProjectRoot(anchor);
     if (!projectRoot) {
       deps.stderr("[DuplicationIndexBuilder] No project root found — skipping");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     const branch = getCurrentBranch(projectRoot) ?? null;
@@ -197,7 +195,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
 
     if (index.functionCount === 0 && !existingJson) {
       deps.stderr("[DuplicationIndexBuilder] No functions found — skipping");
-      return ok(continueOk());
+      return ok({ continue: true });
     }
 
     // Write the index
@@ -215,7 +213,7 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
       deps.stderr("[DuplicationIndexBuilder] Failed to write index — continuing without");
     }
 
-    return ok(continueOk());
+    return ok({ continue: true });
   },
 
   defaultDeps,
