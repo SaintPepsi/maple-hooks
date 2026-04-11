@@ -17,9 +17,11 @@ export {
   writeJson,
 } from "@hooks/core/adapters/fs";
 export {
+  buildChildEnv,
   type ExecResult,
   exec,
   getEnv,
+  type SpawnSyncResult,
   spawnDetached,
 } from "@hooks/core/adapters/process";
 // Adapters

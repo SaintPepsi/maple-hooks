@@ -25,11 +25,11 @@ function fakeDeps(overrides: Partial<RunArticleWriterDeps> = {}): RunArticleWrit
   return {
     spawnAgent: (config) => {
       captured.push(config);
-      return ok(undefined as void);
+      return ok(undefined);
     },
     spawnSyncSafe: (cmd, args, opts) => {
       spawnCalls.push({ cmd, args, opts });
-      return ok({ stdout: "", exitCode: 0 });
+      return ok({ stdout: "", stderr: "", exitCode: 0 });
     },
     fileExists: () => false,
     ensureDir: () => ok(undefined),
