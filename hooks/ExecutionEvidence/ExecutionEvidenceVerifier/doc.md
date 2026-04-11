@@ -36,18 +36,20 @@ It does **not** fire when:
 const classification = classifyCommand(command);
 
 if (!classification.isStateChanging) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 if (hasSubstantiveOutput(input.tool_response)) {
-  return ok({ type: "continue", continue: true });
+  return ok({ continue: true });
 }
 
 const reminder = buildReminder(command, classification);
 return ok({
-  type: "continue",
   continue: true,
-  additionalContext: reminder,
+  hookSpecificOutput: {
+    hookEventName: "PostToolUse",
+    additionalContext: reminder,
+  },
 });
 ```
 
