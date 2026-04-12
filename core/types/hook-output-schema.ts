@@ -14,6 +14,68 @@ import type { SyncHookJSONOutput as SDKSyncHookJSONOutput } from "@anthropic-ai/
 import { Schema } from "effect";
 import type { IsEqual } from "type-fest";
 
+// ─── Permission types (from SDK) ────────────────────────────────────────────
+
+const PermissionBehavior = Schema.Literal("allow", "deny", "ask");
+
+const PermissionMode = Schema.Literal(
+  "default",
+  "acceptEdits",
+  "bypassPermissions",
+  "plan",
+  "dontAsk",
+  "auto",
+);
+
+const PermissionUpdateDestination = Schema.Literal(
+  "userSettings",
+  "projectSettings",
+  "localSettings",
+  "session",
+  "cliArg",
+);
+
+const PermissionRuleValue = Schema.Struct({
+  toolName: Schema.String,
+  ruleContent: Schema.optional(Schema.String),
+});
+
+const PermissionUpdate = Schema.Union(
+  Schema.Struct({
+    type: Schema.Literal("addRules"),
+    rules: Schema.Array(PermissionRuleValue),
+    behavior: PermissionBehavior,
+    destination: PermissionUpdateDestination,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("replaceRules"),
+    rules: Schema.Array(PermissionRuleValue),
+    behavior: PermissionBehavior,
+    destination: PermissionUpdateDestination,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("removeRules"),
+    rules: Schema.Array(PermissionRuleValue),
+    behavior: PermissionBehavior,
+    destination: PermissionUpdateDestination,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("setMode"),
+    mode: PermissionMode,
+    destination: PermissionUpdateDestination,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("addDirectories"),
+    directories: Schema.Array(Schema.String),
+    destination: PermissionUpdateDestination,
+  }),
+  Schema.Struct({
+    type: Schema.Literal("removeDirectories"),
+    directories: Schema.Array(Schema.String),
+    destination: PermissionUpdateDestination,
+  }),
+);
+
 // ─── hookSpecificOutput variants (discriminated on hookEventName) ────────────
 
 const PreToolUseSpecific = Schema.Struct({
@@ -69,7 +131,7 @@ const PermissionRequestSpecific = Schema.Struct({
     Schema.Struct({
       behavior: Schema.Literal("allow"),
       updatedInput: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
-      updatedPermissions: Schema.optional(Schema.Array(Schema.Unknown)),
+      updatedPermissions: Schema.optional(Schema.Array(PermissionUpdate)),
     }),
     Schema.Struct({
       behavior: Schema.Literal("deny"),
@@ -161,12 +223,14 @@ export function validateHookOutput(raw: unknown): ReturnType<typeof validateSync
 // ─── SDK Drift Protection ───────────────────────────────────────────────────
 //
 // Compile-time assertion: if the SDK and Effect Schema top-level keys diverge, this fails.
-// We check bidirectional key assignability rather than deep structural equality because:
-// - Effect Schema uses `readonly` modifiers the SDK doesn't
-// - We intentionally use `Schema.Unknown` for some nested types (e.g., PermissionUpdate[])
-//
-// This catches field additions/removals/renames at the top level.
+// We check key equality rather than deep structural equality because Effect Schema uses
+// `readonly` modifiers the SDK doesn't. This catches field additions/removals/renames.
 // hookSpecificOutput variants are checked via HookSpecificEventName in hook-output-helpers.ts.
+//
+// Note: Schema.Unknown is only used where types are genuinely dynamic:
+// - updatedInput: tool input varies per tool
+// - updatedMCPToolOutput: MCP server output varies per server
+// - content: elicitation content based on requestedSchema
 
 type SDKKeys = keyof SDKSyncHookJSONOutput;
 type SchemaKeys = keyof SyncHookJSONOutputType;
