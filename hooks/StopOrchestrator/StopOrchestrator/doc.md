@@ -24,7 +24,7 @@ It does **not** fire when:
 
 1. Waits 150ms for the transcript file to be fully written
 2. Parses the transcript using `TranscriptParser` to extract completion text
-3. Determines if this is a main session (always true after kitty removal in #56)
+3. Determines if this is a main session (always true; subagent filtering is handled upstream)
 4. Runs handlers in parallel via `Promise.allSettled`:
    - **VoiceNotification** (main sessions only): Speaks the completion summary via TTS
    - **RebuildSkill**: Checks if skills need rebuilding
@@ -46,7 +46,7 @@ await Promise.allSettled(handlers);
 
 ### Example 1: Main session with voice
 
-> Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
+> Claude completes a response in the main terminal session. StopOrchestrator parses the transcript and runs all three handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
 
 ### Example 2: Subagent session (no voice)
 

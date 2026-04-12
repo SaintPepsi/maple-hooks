@@ -1,8 +1,7 @@
 /**
- * QuestionAnswered Contract — No-op after kitty tab removal.
+ * QuestionAnswered Contract — No-op after AskUserQuestion.
  *
- * Previously restored terminal tab color after AskUserQuestion.
- * Tab manipulation removed with kitty dependency (#56).
+ * Tab manipulation was removed; this hook returns ok({}) immediately.
  */
 
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";

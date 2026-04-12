@@ -2,11 +2,11 @@
 
 ## Overview
 
-QuestionAnswered is a **PostToolUse** hook that fires after an `AskUserQuestion` tool completes. Following kitty terminal removal in #56, this hook is a no-op that returns `silent` immediately.
+QuestionAnswered is a **PostToolUse** hook that fires after an `AskUserQuestion` tool completes. This hook is a no-op that returns `silent` immediately.
 
 ## Event
 
-`PostToolUse` — fires after an `AskUserQuestion` tool completes. Returns `silent` immediately (no-op after kitty removal).
+`PostToolUse` — fires after an `AskUserQuestion` tool completes. Returns `silent` immediately (no-op).
 
 ## When It Fires
 
@@ -31,7 +31,7 @@ execute(_input, _deps): Result<SyncHookJSONOutput, E> {
 
 ### Example 1: User answers a question
 
-> Claude asks the user a question via `AskUserQuestion`. The user responds. QuestionAnswered fires and returns silent. No tab state changes occur.
+> Claude asks the user a question via `AskUserQuestion`. The user responds. QuestionAnswered fires and returns silent.
 
 ## Dependencies
 

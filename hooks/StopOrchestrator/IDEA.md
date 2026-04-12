@@ -4,7 +4,7 @@
 
 ## Problem
 
-When a session ends, multiple cleanup and bookkeeping tasks need to run: voice notifications, terminal state restoration, skill rebuilding, data enrichment. If each task registers independently on the session-end event, the transcript gets parsed multiple times, ordering is unpredictable, and failures in one task can interfere with others.
+When a session ends, multiple cleanup and bookkeeping tasks need to run: voice notifications, skill rebuilding, data enrichment. If each task registers independently on the session-end event, the transcript gets parsed multiple times, ordering is unpredictable, and failures in one task can interfere with others.
 
 ## Solution
 

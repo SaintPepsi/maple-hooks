@@ -4,7 +4,7 @@
  * Reads and parses the transcript ONCE, then distributes to handlers:
  * - VoiceNotification, RebuildSkill, AlgorithmEnrichment
  *
- * Voice only fires for main terminal sessions (not subagents).
+ * Voice only fires when isMainSession returns true (subagents are filtered upstream).
  */
 
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
