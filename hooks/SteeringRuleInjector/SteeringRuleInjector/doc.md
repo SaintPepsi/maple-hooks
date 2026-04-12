@@ -93,4 +93,3 @@ Rule content injected as context...
 - `core/adapters/fs` — `readFile`, `readJson`, `writeJson`, `fileExists` for rule and tracker I/O
 - `core/types/hook-input-schema` — Effect Schema for discriminated input parsing (replaces field-sniffing)
 - `Bun.Glob` — resolves include patterns to file paths
-- `Bun.Glob` — resolves include patterns to file paths

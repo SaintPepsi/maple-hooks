@@ -2,7 +2,7 @@
  * SteeringRuleInjector Contract — Inject steering rules into session context.
  *
  * Fires on SessionStart, UserPromptSubmit, PreToolUse, PostToolUse,
- * SubagentStart, and PreCompact. Parses YAML frontmatter from .md rule files,
+ * SubagentStart, and Stop. Parses YAML frontmatter from .md rule files,
  * matches keywords case-insensitively, and tracks injections per-session so
  * each rule fires at most once.
  */
@@ -232,15 +232,6 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
     const matchText = getMatchText(input);
     const isToolEventType = eventType === "PreToolUse" || eventType === "PostToolUse";
 
-    // DEBUG: Log Stop input fields to diagnose blocking issue (remove after fix)
-    if (eventType === "Stop") {
-      const keys = Object.keys(input);
-      deps.stderr(`[SteeringRuleInjector] DEBUG Stop input keys: ${keys.join(", ")}`);
-      deps.stderr(
-        `[SteeringRuleInjector] DEBUG Stop matchText (first 100): ${matchText.slice(0, 100)}`,
-      );
-    }
-
     // Resolve glob patterns to file paths
     const filePaths = deps.resolveGlobs(config.includes);
     if (filePaths.length === 0) {
@@ -265,7 +256,7 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
       // Skip already-injected rules
       if (tracker.injected[rule.name]) continue;
 
-      // For always-events (SessionStart, SubagentStart, PreCompact), only inject empty-keyword rules
+      // For always-events (SessionStart, SubagentStart), only inject empty-keyword rules
       if (
         (eventType === "SessionStart" || eventType === "SubagentStart") &&
         rule.keywords.length > 0
