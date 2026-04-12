@@ -4,7 +4,17 @@ import type { HookContract } from "@hooks/core/contract";
 import { ErrorCode, invalidInput, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import { type RunHookOptions, runHook, runHookWith } from "@hooks/core/runner";
-import type { PermissionRequestInput, SessionStartInput, StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type {
+  PermissionRequestInput,
+  PreCompactInput,
+  SessionEndInput,
+  SessionStartInput,
+  StopInput,
+  SubagentStartInput,
+  SubagentStopInput,
+  ToolHookInput,
+  UserPromptSubmitInput,
+} from "@hooks/core/types/hook-inputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -507,5 +517,497 @@ describe("runHook — stdin and dedup branches", () => {
     expect(io.exitCode).toBe(0);
     // Dedup skip for tool events emits continue:true via safeExit
     expect(io.stdoutLines.some((s) => s.includes("continue"))).toBe(true);
+  });
+});
+
+// ─── runHookWith — event output matrix ───────────────────────────────────────
+
+describe("runHookWith — event output matrix", () => {
+  // ── SessionStart ──────────────────────────────────────────────────────────
+
+  it("SessionStart: additionalContext flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestSessionStartContext",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "SessionStart" as const,
+            additionalContext: "hello from session",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s1" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("SessionStart");
+    expect(output.hookSpecificOutput.additionalContext).toBe("hello from session");
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("SessionStart: watchPaths flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestSessionStartWatch",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "SessionStart" as const,
+            watchPaths: ["/tmp/foo", "/tmp/bar"],
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s1" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.watchPaths).toEqual(["/tmp/foo", "/tmp/bar"]);
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("SessionStart: initialUserMessage flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestSessionStartMsg",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "SessionStart" as const,
+            initialUserMessage: "start here",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s1" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.initialUserMessage).toBe("start here");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── UserPromptSubmit ──────────────────────────────────────────────────────
+
+  it("UserPromptSubmit: sessionTitle flows through hookSpecificOutput", async () => {
+    const input: UserPromptSubmitInput = { session_id: "s2", prompt: "do the thing" };
+    const contract: HookContract<UserPromptSubmitInput, {}> = {
+      name: "TestUPSTitle",
+      event: "UserPromptSubmit",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit" as const,
+            sessionTitle: "My Session",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
+    expect(output.hookSpecificOutput.sessionTitle).toBe("My Session");
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("UserPromptSubmit: additionalContext flows through hookSpecificOutput", async () => {
+    const input: UserPromptSubmitInput = { session_id: "s2", prompt: "do the thing" };
+    const contract: HookContract<UserPromptSubmitInput, {}> = {
+      name: "TestUPSContext",
+      event: "UserPromptSubmit",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "UserPromptSubmit" as const,
+            additionalContext: "injected context",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.additionalContext).toBe("injected context");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── Stop: top-level block ─────────────────────────────────────────────────
+
+  it("Stop: decision:block at top level (no hookSpecificOutput)", async () => {
+    const contract: HookContract<StopInput, {}> = {
+      name: "TestStopBlock",
+      event: "Stop",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          decision: "block" as const,
+          reason: "not yet done",
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s3" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.decision).toBe("block");
+    expect(output.reason).toBe("not yet done");
+    expect(output.hookSpecificOutput).toBeUndefined();
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── PermissionRequest ─────────────────────────────────────────────────────
+
+  it("PermissionRequest: allow + updatedPermissions flows through", async () => {
+    const input: PermissionRequestInput = {
+      session_id: "s4",
+      tool_name: "Bash",
+      tool_input: { command: "ls -la" },
+    };
+    const contract: HookContract<PermissionRequestInput, {}> = {
+      name: "TestPermAllow",
+      event: "PermissionRequest",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "PermissionRequest" as const,
+            decision: {
+              behavior: "allow" as const,
+              updatedPermissions: [
+                {
+                  type: "addRules" as const,
+                  rules: [{ toolName: "Bash", ruleContent: "ls" }],
+                  behavior: "allow" as const,
+                  destination: "session" as const,
+                },
+              ],
+            },
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("PermissionRequest");
+    expect(output.hookSpecificOutput.decision.behavior).toBe("allow");
+    expect(output.hookSpecificOutput.decision.updatedPermissions[0].type).toBe("addRules");
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("PermissionRequest: deny + message flows through", async () => {
+    const input: PermissionRequestInput = {
+      session_id: "s4",
+      tool_name: "Bash",
+      tool_input: { command: "dangerous-command" },
+    };
+    const contract: HookContract<PermissionRequestInput, {}> = {
+      name: "TestPermDeny",
+      event: "PermissionRequest",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "PermissionRequest" as const,
+            decision: {
+              behavior: "deny" as const,
+              message: "dangerous command blocked",
+            },
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.decision.behavior).toBe("deny");
+    expect(output.hookSpecificOutput.decision.message).toBe("dangerous command blocked");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── Setup / SubagentStart / Notification: additionalContext ───────────────
+
+  it("Setup: additionalContext flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestSetupContext",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "Setup" as const,
+            additionalContext: "setup context",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s5" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("Setup");
+    expect(output.hookSpecificOutput.additionalContext).toBe("setup context");
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("SubagentStart: additionalContext flows through hookSpecificOutput", async () => {
+    const input: SubagentStartInput = { session_id: "s6" };
+    const contract: HookContract<SubagentStartInput, {}> = {
+      name: "TestSubagentStartContext",
+      event: "SubagentStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "SubagentStart" as const,
+            additionalContext: "subagent ctx",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("SubagentStart");
+    expect(output.hookSpecificOutput.additionalContext).toBe("subagent ctx");
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("Notification: additionalContext flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestNotificationContext",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "Notification" as const,
+            additionalContext: "notify context",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s7" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("Notification");
+    expect(output.hookSpecificOutput.additionalContext).toBe("notify context");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── PostToolUseFailure ────────────────────────────────────────────────────
+
+  it("PostToolUseFailure: hookSpecificOutput flows through on tool event", async () => {
+    const contract: HookContract<ToolHookInput, {}> = {
+      name: "TestPostToolUseFailure",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "PostToolUseFailure" as const,
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, validToolInput, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("PostToolUseFailure");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── PermissionDenied ──────────────────────────────────────────────────────
+
+  it("PermissionDenied: retry:true flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestPermDeniedRetry",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "PermissionDenied" as const,
+            retry: true,
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s8" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("PermissionDenied");
+    expect(output.hookSpecificOutput.retry).toBe(true);
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── Elicitation ───────────────────────────────────────────────────────────
+
+  it("Elicitation: action:accept + content flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestElicitationAccept",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "Elicitation" as const,
+            action: "accept" as const,
+            content: { name: "Maple" },
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s9" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("Elicitation");
+    expect(output.hookSpecificOutput.action).toBe("accept");
+    expect(output.hookSpecificOutput.content.name).toBe("Maple");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── ElicitationResult ─────────────────────────────────────────────────────
+
+  it("ElicitationResult: action:decline flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestElicitationResultDecline",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "ElicitationResult" as const,
+            action: "decline" as const,
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s10" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("ElicitationResult");
+    expect(output.hookSpecificOutput.action).toBe("decline");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── CwdChanged / FileChanged: watchPaths ─────────────────────────────────
+
+  it("CwdChanged: watchPaths flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestCwdChanged",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "CwdChanged" as const,
+            watchPaths: ["/new/cwd"],
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s11" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("CwdChanged");
+    expect(output.hookSpecificOutput.watchPaths).toEqual(["/new/cwd"]);
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("FileChanged: watchPaths flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestFileChanged",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "FileChanged" as const,
+            watchPaths: ["/some/file.ts"],
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s12" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("FileChanged");
+    expect(output.hookSpecificOutput.watchPaths).toEqual(["/some/file.ts"]);
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── WorktreeCreate ────────────────────────────────────────────────────────
+
+  it("WorktreeCreate: worktreePath flows through hookSpecificOutput", async () => {
+    const contract: HookContract<SessionStartInput, {}> = {
+      name: "TestWorktreeCreate",
+      event: "SessionStart",
+      accepts: () => true,
+      execute: () =>
+        ok({
+          hookSpecificOutput: {
+            hookEventName: "WorktreeCreate" as const,
+            worktreePath: "/worktrees/feat-x",
+          },
+        }),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, { session_id: "s13" }, io);
+    const output = JSON.parse(io.stdoutLines[0]);
+    expect(output.hookSpecificOutput.hookEventName).toBe("WorktreeCreate");
+    expect(output.hookSpecificOutput.worktreePath).toBe("/worktrees/feat-x");
+    expect(io.exitCode).toBe(0);
+  });
+
+  // ── Silent events: SessionEnd, PreCompact, SubagentStop ───────────────────
+
+  it("SessionEnd: ok({}) produces no stdout (silent)", async () => {
+    const input: SessionEndInput = { session_id: "s14" };
+    const contract: HookContract<SessionEndInput, {}> = {
+      name: "TestSessionEndSilent",
+      event: "SessionEnd",
+      accepts: () => true,
+      execute: () => ok({}),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    expect(io.stdoutLines.length).toBe(0);
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("PreCompact: ok({}) produces no stdout (silent)", async () => {
+    const input: PreCompactInput = { session_id: "s15" };
+    const contract: HookContract<PreCompactInput, {}> = {
+      name: "TestPreCompactSilent",
+      event: "PreCompact",
+      accepts: () => true,
+      execute: () => ok({}),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    expect(io.stdoutLines.length).toBe(0);
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("SubagentStop: ok({}) produces no stdout (silent)", async () => {
+    const input: SubagentStopInput = { session_id: "s16" };
+    const contract: HookContract<SubagentStopInput, {}> = {
+      name: "TestSubagentStopSilent",
+      event: "SubagentStop",
+      accepts: () => true,
+      execute: () => ok({}),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHookWith(contract, input, io);
+    expect(io.stdoutLines.length).toBe(0);
+    expect(io.exitCode).toBe(0);
   });
 });
