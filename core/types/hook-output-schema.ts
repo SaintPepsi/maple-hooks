@@ -67,6 +67,7 @@ const PermissionRequestSpecific = Schema.Struct({
     Schema.Struct({
       behavior: Schema.Literal("allow"),
       updatedInput: Schema.optional(Schema.Record({ key: Schema.String, value: Schema.Unknown })),
+      updatedPermissions: Schema.optional(Schema.Array(Schema.Unknown)),
     }),
     Schema.Struct({
       behavior: Schema.Literal("deny"),
