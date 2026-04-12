@@ -6,8 +6,9 @@
  */
 
 import { join } from "node:path";
-import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import type { HookEvent, SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { removeDir } from "@hooks/core/adapters/fs";
+import { buildChildEnv } from "@hooks/core/adapters/process";
 import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 /**
@@ -17,7 +18,7 @@ import type { SessionStartInput, ToolHookInput } from "@hooks/core/types/hook-in
  */
 export function getInjectedContextFor(
   output: SyncHookJSONOutput,
-  eventName: string,
+  eventName: HookEvent,
 ): string | undefined {
   const hs = output.hookSpecificOutput;
   if (!hs || hs.hookEventName !== eventName) return undefined;
@@ -80,7 +81,7 @@ export async function runHookScript(
     stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
-    env: { ...Bun.env, PAI_DIR: tmpDir },
+    env: buildChildEnv({ PAI_DIR: tmpDir }),
   });
   const writer = proc.stdin!;
   writer.write(JSON.stringify(input));
