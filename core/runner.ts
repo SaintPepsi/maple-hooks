@@ -164,7 +164,7 @@ async function executePipeline<I extends HookInput, D>(
   } else if ("tool_name" in input) {
     io.write(JSON.stringify({ continue: true }));
   }
-  emitLog("ok", undefined, hasOutput ? "output" : "silent");
+  emitLog("ok", undefined, hasOutput || "tool_name" in input ? "output" : "silent");
   io.exit(0);
 }
 
@@ -196,7 +196,12 @@ export async function runHookWith<I extends HookInput, D>(
   options: Omit<RunHookOptions, "stdinOverride" | "stdinTimeout"> = {},
 ): Promise<void> {
   const io = createPipelineIO(options);
-  const safeExit = () => io.exit(0);
+  const safeExit = () => {
+    if ("tool_name" in input) {
+      io.write(JSON.stringify({ continue: true }));
+    }
+    io.exit(0);
+  };
 
   await executePipeline(contract, input, io, safeExit).catch((e) => {
     io.writeErr(`[${contract.name}] uncaught: ${e instanceof Error ? e.message : e}`);

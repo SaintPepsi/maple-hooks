@@ -4,7 +4,7 @@ import type { HookContract } from "@hooks/core/contract";
 import { ErrorCode, invalidInput, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import { type RunHookOptions, runHook, runHookWith } from "@hooks/core/runner";
-import type { SessionStartInput, StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type { PermissionRequestInput, SessionStartInput, StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ describe("runHookWith — pre-built input pipeline", () => {
     expect(io.exitCode).toBe(0);
   });
 
-  it("exits 0 when accepts() returns false", async () => {
+  it("exits 0 and emits { continue: true } when accepts() returns false for tool events", async () => {
     const contract: HookContract<ToolHookInput, {}> = {
       name: "TestReject",
       event: "PostToolUse",
@@ -82,7 +82,8 @@ describe("runHookWith — pre-built input pipeline", () => {
     };
     const io = createMockIO();
     await runHookWith(contract, validToolInput, io);
-    expect(io.stdoutLines.length).toBe(0);
+    expect(io.stdoutLines.length).toBe(1);
+    expect(JSON.parse(io.stdoutLines[0])).toEqual({ continue: true });
     expect(io.exitCode).toBe(0);
   });
 
@@ -325,7 +326,7 @@ describe("runHookWith — output edge cases", () => {
     expect(parsed.hookSpecificOutput.updatedInput.command).toBe("ls -la");
   });
 
-  it("skips duplicate in runHookWith", async () => {
+  it("skips duplicate in runHookWith and emits { continue: true } for tool events", async () => {
     const contract: HookContract<ToolHookInput, {}> = {
       name: "TestDedupWith",
       event: "PostToolUse",
@@ -337,7 +338,32 @@ describe("runHookWith — output edge cases", () => {
     (io as RunHookOptions).isDuplicate = () => true;
     await runHookWith(contract, validToolInput, io);
     expect(io.exitCode).toBe(0);
-    expect(io.stdoutLines.length).toBe(0);
+    expect(io.stdoutLines.length).toBe(1);
+    expect(JSON.parse(io.stdoutLines[0])).toEqual({ continue: true });
+  });
+});
+
+// ─── PermissionRequest Normalization Tests ───────────────────────────────────
+
+describe("runHookWith — PermissionRequest ok({}) normalization", () => {
+  it("PermissionRequest ok({}) normalizes to { continue: true }", async () => {
+    const permContract: HookContract<PermissionRequestInput, {}> = {
+      name: "TestPermissionRequest",
+      event: "PermissionRequest",
+      accepts: () => true,
+      execute: () => ok({}),
+      defaultDeps: {},
+    };
+    const validPermInput: PermissionRequestInput = {
+      session_id: "test-sess",
+      tool_name: "Bash",
+      tool_input: { command: "ls" },
+    };
+    const io = createMockIO();
+    await runHookWith(permContract, validPermInput, io);
+    expect(io.stdoutLines.length).toBe(1);
+    expect(JSON.parse(io.stdoutLines[0])).toEqual({ continue: true });
+    expect(io.exitCode).toBe(0);
   });
 });
 
