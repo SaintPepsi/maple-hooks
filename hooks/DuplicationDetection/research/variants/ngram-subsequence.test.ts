@@ -20,7 +20,8 @@ async function runCLI(
   const stdoutFile = Bun.file(stdoutPath);
   const stderrFile = Bun.file(stderrPath);
 
-  const proc = Bun.spawn(["/Users/ian.hogers/.bun/bin/bun", SCRIPT_PATH, ...args], {
+  const bunPath = Bun.which("bun") ?? "bun";
+  const proc = Bun.spawn([bunPath, SCRIPT_PATH, ...args], {
     cwd: import.meta.dir,
     stdout: stdoutFile,
     stderr: stderrFile,

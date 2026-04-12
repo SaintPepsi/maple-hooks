@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, test } from "bun:test";
+import { resolve } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, writeFile } from "@hooks/core/adapters/fs";
 import type { ResultError } from "@hooks/core/error";
@@ -20,7 +21,7 @@ import { makeEditInput, makeToolInput, makeWriteInput } from "@hooks/lib/test-he
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const PAI_HOOKS_ROOT = "/Users/ian.hogers/.claude/pai-hooks";
+const PAI_HOOKS_ROOT = resolve(import.meta.dir, "../../..");
 const BRANCH = getCurrentBranch(PAI_HOOKS_ROOT) ?? "default";
 const INDEX_DIR = getArtifactsDir(PAI_HOOKS_ROOT, BRANCH);
 const INDEX_PATH = `${INDEX_DIR}/index.json`;
