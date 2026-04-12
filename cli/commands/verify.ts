@@ -193,10 +193,26 @@ function validateHookManifest(
     return { diagnostics, fixed: false };
   }
 
+  // E3: Guard against non-object JSON values (null, array, number, etc.)
+  if (
+    parsed.value === null ||
+    typeof parsed.value !== "object" ||
+    Array.isArray(parsed.value)
+  ) {
+    diagnostics.push({
+      hookName,
+      code: "MANIFEST_PARSE_ERROR",
+      message: "hook.json is not a JSON object",
+    });
+    return { diagnostics, fixed: false };
+  }
+
   // Detect stale keys not in the HookManifest schema
   const staleKeys = Object.keys(parsed.value).filter(
     (k) => !(MANIFEST_VALID_KEYS as readonly string[]).includes(k),
   );
+
+  let fixed = false;
 
   if (staleKeys.length > 0) {
     diagnostics.push({
@@ -213,8 +229,31 @@ function validateHookManifest(
           cleaned[key] = parsed.value[key];
         }
       }
-      deps.writeFile(manifestPath, `${JSON.stringify(cleaned, null, 2)}\n`);
-      return { diagnostics, fixed: true };
+
+      // E5: Refuse to write if no valid keys would remain
+      if (Object.keys(cleaned).length === 0) {
+        diagnostics.push({
+          hookName,
+          code: "EMPTY_MANIFEST",
+          message: "Cannot fix: no valid keys would remain after removing stale fields",
+        });
+      } else {
+        // E1: Check writeFile result — do not report fixed:true on failure
+        const writeResult = deps.writeFile(
+          manifestPath,
+          `${JSON.stringify(cleaned, null, 2)}\n`,
+        );
+        if (!writeResult.ok) {
+          diagnostics.push({
+            hookName,
+            code: "WRITE_FAILED",
+            message: `Failed to rewrite hook.json: ${writeResult.error.message}`,
+          });
+        } else {
+          fixed = true;
+        }
+      }
+      // E2: Do NOT return early — fall through to CONTRACT_MISSING check below
     }
   }
 
@@ -228,7 +267,7 @@ function validateHookManifest(
     });
   }
 
-  return { diagnostics, fixed: false };
+  return { diagnostics, fixed };
 }
 
 // ─── Installed Mode ─────────────────────────────────────────────────────────
