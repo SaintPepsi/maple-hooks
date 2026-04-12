@@ -177,7 +177,7 @@ describe("defaultDedupDeps", () => {
     const lockPath = `/tmp/pai-dedup-test-${Date.now()}-${Math.random().toString(36).slice(2)}.lock`;
     expect(deps.tryClaimLock(lockPath)).toBe(true);
     // Cleanup
-    require("fs").unlinkSync(lockPath);
+    require("node:fs").unlinkSync(lockPath);
   });
 
   it("tryClaimLock returns false for an existing lock file", () => {
@@ -185,6 +185,6 @@ describe("defaultDedupDeps", () => {
     const lockPath = `/tmp/pai-dedup-test-dup-${Date.now()}.lock`;
     deps.tryClaimLock(lockPath); // first claim
     expect(deps.tryClaimLock(lockPath)).toBe(false); // duplicate
-    require("fs").unlinkSync(lockPath);
+    require("node:fs").unlinkSync(lockPath);
   });
 });

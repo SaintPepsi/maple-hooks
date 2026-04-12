@@ -23,15 +23,6 @@ export interface KoordDaemonConfig {
   prepromptPath: string | null;
 }
 
-interface SettingsJson {
-  hookConfig?: {
-    koordDaemon?: {
-      url?: string;
-      prepromptPath?: string;
-    };
-  };
-}
-
 /** Discord snowflake ID pattern (17-20 digits). */
 const DISCORD_ID_PATTERN = /^\d{17,20}$/;
 

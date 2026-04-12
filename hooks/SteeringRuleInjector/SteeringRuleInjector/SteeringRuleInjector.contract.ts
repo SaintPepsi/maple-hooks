@@ -134,9 +134,8 @@ function getMatchText(input: SteeringRuleInput): string {
   switch (p.hook_type) {
     case "PreToolUse":
     case "PostToolUse": {
-      const filePath =
-        typeof p.tool_input["file_path"] === "string" ? p.tool_input["file_path"] : "";
-      const skill = typeof p.tool_input["skill"] === "string" ? p.tool_input["skill"] : "";
+      const filePath = typeof p.tool_input.file_path === "string" ? p.tool_input.file_path : "";
+      const skill = typeof p.tool_input.skill === "string" ? p.tool_input.skill : "";
       return `${p.tool_name} ${filePath} ${skill}`.trim();
     }
     case "UserPromptSubmit":

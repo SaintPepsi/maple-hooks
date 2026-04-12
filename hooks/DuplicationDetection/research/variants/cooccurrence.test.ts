@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const SCRIPT_PATH = import.meta.dir + "/cooccurrence.ts";
+const SCRIPT_PATH = `${import.meta.dir}/cooccurrence.ts`;
 const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 async function runCLI(

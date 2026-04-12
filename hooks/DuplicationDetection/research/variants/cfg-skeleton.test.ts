@@ -4,9 +4,9 @@ import type { ParsedFile } from "@tools/pattern-detector/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const SCRIPT_PATH = import.meta.dir + "/cfg-skeleton.ts";
-const DETECTORS_DIR = import.meta.dir + "/../detectors";
-const PATTERN_DETECTOR_DIR = import.meta.dir + "/..";
+const SCRIPT_PATH = `${import.meta.dir}/cfg-skeleton.ts`;
+const DETECTORS_DIR = `${import.meta.dir}/../detectors`;
+const PATTERN_DETECTOR_DIR = `${import.meta.dir}/..`;
 const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 async function runCLI(

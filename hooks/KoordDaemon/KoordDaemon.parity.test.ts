@@ -131,7 +131,7 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
   test("updatedInput output matches original JSON shape via runner", async () => {
     // Original JS hook outputs (AgentPrepromptInjector.hook.js:75-82):
     //   { hookSpecificOutput: { hookEventName: "PreToolUse", updatedInput: { prompt: "..." } } }
-    // The runner's formatOutput for UpdatedInputOutput produces the same structure.
+    // The runner's formatOutput for hookSpecificOutput with updatedInput produces the same structure.
 
     // Import runner's formatOutput indirectly by checking the output structure
     const { AgentPrepromptInjector } = await import(

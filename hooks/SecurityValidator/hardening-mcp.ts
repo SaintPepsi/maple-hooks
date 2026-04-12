@@ -109,7 +109,7 @@ function insertBlockedEntry(
 
   config.bash.blocked.push({ pattern, reason, group });
 
-  const writeResult = writeFile(PATTERNS_PATH, JSON.stringify(config, null, 2) + "\n");
+  const writeResult = writeFile(PATTERNS_PATH, `${JSON.stringify(config, null, 2)}\n`);
   if (!writeResult.ok) return writeResult;
 
   return ok(`Inserted blocked pattern: ${pattern} (group: ${group})`);
@@ -229,7 +229,7 @@ async function main(): Promise<void> {
       const result = handleRequest(parsed);
       if (result === null) continue;
       const response = { jsonrpc: "2.0", id: parsed.id, result };
-      process.stdout.write(JSON.stringify(response) + "\n");
+      process.stdout.write(`${JSON.stringify(response)}\n`);
     }
   }
 }

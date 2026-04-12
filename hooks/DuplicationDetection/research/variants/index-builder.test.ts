@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from "bun:test";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const SCRIPT_PATH = import.meta.dir + "/index-builder.ts";
+const SCRIPT_PATH = `${import.meta.dir}/index-builder.ts`;
 const PAI_HOOKS_DIR = "/Users/ian.hogers/.claude/pai-hooks";
 
 const UNIQUE_ID = Math.random().toString(36).slice(2);

@@ -14,7 +14,7 @@ import { join, relative } from "node:path";
 import { install } from "@hooks/cli/commands/install";
 import type { ParsedArgs } from "@hooks/cli/core/args";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
-import { stat as adapterStat, fileExists, readDir, readFile } from "@hooks/core/adapters/fs";
+import { fileExists, readDir, readFile } from "@hooks/core/adapters/fs";
 
 // ─── Source Tree Loader ────────────────────────────────────────────────────
 

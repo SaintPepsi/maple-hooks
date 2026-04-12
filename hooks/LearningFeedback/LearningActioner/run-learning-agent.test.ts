@@ -11,7 +11,7 @@ function fakeDeps(
   return {
     spawnAgent: (config) => {
       captured.push(config);
-      return ok(undefined as void);
+      return ok(undefined as undefined);
     },
     stderr: () => {},
     baseDir: "/fake/pai",

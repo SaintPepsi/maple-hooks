@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
   isSettingsPath,
@@ -28,14 +28,14 @@ function protectorDeps(fs: FakeFS, overrides: Partial<SettingsGuardDeps> = {}): 
     },
     writeFile: (p, c) => {
       fs.set(p, c);
-      return ok(undefined as void);
+      return ok(undefined as undefined);
     },
     appendFile: (p, c) => {
       const prev = fs.get(p) || "";
       fs.set(p, prev + c);
-      return ok(undefined as void);
+      return ok(undefined as undefined);
     },
-    ensureDir: () => ok(undefined as void),
+    ensureDir: () => ok(undefined as undefined),
     baseDir: "/fake/pai",
     ...overrides,
   };

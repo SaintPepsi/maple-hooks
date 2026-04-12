@@ -135,7 +135,7 @@ describe("RatingCapture.accepts", () => {
 // ─── execute: explicit rating ─────────────────────────────────────────────────
 
 describe("RatingCapture.execute — explicit rating", () => {
-  it("returns ok ContextOutput containing algorithm reminder", async () => {
+  it("returns ok with additionalContext containing algorithm reminder", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
@@ -186,7 +186,7 @@ describe("RatingCapture.execute — explicit rating", () => {
 // ─── execute: short prompt ────────────────────────────────────────────────────
 
 describe("RatingCapture.execute — short prompt", () => {
-  it("returns ContextOutput for empty prompt without running sentiment", async () => {
+  it("returns additionalContext for empty prompt without running sentiment", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput(""), deps);
 
@@ -196,7 +196,7 @@ describe("RatingCapture.execute — short prompt", () => {
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
-  it("returns ContextOutput for 2-char prompt without running sentiment", async () => {
+  it("returns additionalContext for 2-char prompt without running sentiment", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("hi"), deps);
 
@@ -259,7 +259,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(1);
   });
 
-  it("returns ContextOutput after sentiment analysis", async () => {
+  it("returns additionalContext after sentiment analysis", async () => {
     const deps = makeDeps();
     const result = await RatingCapture.execute(makeInput("great job today"), deps);
 
@@ -301,7 +301,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     expect((deps.appendFile as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
 
-  it("returns ContextOutput even when inference fails", async () => {
+  it("returns additionalContext even when inference fails", async () => {
     const deps = makeDeps({
       inference: mock(async () => {
         throw new Error("inference error");

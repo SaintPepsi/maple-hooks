@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
-import { ensureDir, fileExists, removeDir, setFileTimes, writeFile } from "@hooks/core/adapters/fs";
+import { ensureDir, removeDir, setFileTimes, writeFile } from "@hooks/core/adapters/fs";
 import { LearningActioner, type LearningActionerDeps } from "./LearningActioner.contract";
 
 const TEST_DIR = join(import.meta.dir, "__test-learning-actioner__");

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { ErrorCode, ResultError } from "@hooks/core/error";
-import { ok, type Result } from "@hooks/core/result";
+import { ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { snapshotPath } from "@hooks/hooks/SecurityValidator/SettingsGuard/SettingsGuard.contract";
 import {
@@ -33,11 +33,11 @@ function postDeps(fs: FakeFS, overrides: Partial<SettingsRevertDeps> = {}): Sett
     },
     writeFile: (p, c) => {
       fs.set(p, c);
-      return ok(undefined as void);
+      return ok(undefined as undefined);
     },
     removeFile: (p) => {
       fs.delete(p);
-      return ok(undefined as void);
+      return ok(undefined as undefined);
     },
     readDir: (dir) => {
       // Return keys that look like they're in /tmp
@@ -49,11 +49,11 @@ function postDeps(fs: FakeFS, overrides: Partial<SettingsRevertDeps> = {}): Sett
     appendFile: (p, c) => {
       const prev = fs.get(p) || "";
       fs.set(p, prev + c);
-      return ok(undefined as void);
+      return ok(undefined as undefined);
     },
-    ensureDir: () => ok(undefined as void),
+    ensureDir: () => ok(undefined as undefined),
     baseDir: "/fake/pai",
-    runHardening: () => ok(undefined as void),
+    runHardening: () => ok(undefined as undefined),
     ...overrides,
   };
 }
@@ -243,7 +243,7 @@ describe("SettingsRevert.execute — runHardening", () => {
     const deps = postDeps(fs, {
       runHardening: (cmd: string) => {
         calls.push(cmd);
-        return ok(undefined as void);
+        return ok(undefined as undefined);
       },
     });
 
@@ -262,7 +262,7 @@ describe("SettingsRevert.execute — runHardening", () => {
     const deps = postDeps(fs, {
       runHardening: (cmd: string) => {
         calls.push(cmd);
-        return ok(undefined as void);
+        return ok(undefined as undefined);
       },
     });
 
@@ -280,7 +280,7 @@ describe("SettingsRevert.execute — runHardening", () => {
     const deps = postDeps(fs, {
       runHardening: (cmd: string) => {
         calls.push(cmd);
-        return ok(undefined as void);
+        return ok(undefined as undefined);
       },
     });
 

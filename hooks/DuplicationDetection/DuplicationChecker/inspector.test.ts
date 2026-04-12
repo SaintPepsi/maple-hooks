@@ -9,7 +9,7 @@ import { type InspectorDeps, type InspectResult, inspect } from "./inspector";
 
 const PROJECT_DIR = "/Users/test/my-project";
 const BRANCH = "main";
-const HASH = projectHash(PROJECT_DIR);
+const _HASH = projectHash(PROJECT_DIR);
 const INDEX_PATH = `${getArtifactsDir(PROJECT_DIR, BRANCH)}/index.json`;
 
 function makeIndex(overrides: Partial<DuplicationIndex> = {}): DuplicationIndex {

@@ -150,7 +150,7 @@ console.log("\nTest 3: Simulated worktree path resolution");
 // Test 4: $CLAUDE_PROJECT_DIR is used in existing lib code for environment detection
 console.log("\nTest 4: Existing codebase already depends on CLAUDE_PROJECT_DIR");
 {
-  const fs = await import("fs");
+  const fs = await import("node:fs");
   const file = "lib/environment.ts";
   const content = fs.readFileSync(file, "utf-8");
   assert(content.includes("CLAUDE_PROJECT_DIR"), `${file} references CLAUDE_PROJECT_DIR`);

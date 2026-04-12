@@ -78,7 +78,7 @@ for (const entry of config.bash.alert) {
   entry.group = "Piping remote content to shell";
 }
 
-const writeResult = writeFile(path, JSON.stringify(config, null, 2) + "\n");
+const writeResult = writeFile(path, `${JSON.stringify(config, null, 2)}\n`);
 if (!writeResult.ok) {
   process.stderr.write(`Failed to write: ${writeResult.error.message}\n`);
   process.exit(1);

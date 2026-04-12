@@ -131,7 +131,7 @@ export function spawnAgent(
     source,
     reason,
   });
-  deps.appendFile(logPath, logEntry + "\n");
+  deps.appendFile(logPath, `${logEntry}\n`);
 
   // 4. Build runner config and spawn
   const runnerConfig = {

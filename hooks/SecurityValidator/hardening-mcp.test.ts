@@ -76,7 +76,7 @@ describe("hardening-mcp patterns.json integration", () => {
       pattern: existingPattern,
       reason: "test duplicate",
     });
-    writeFile(PATTERNS_PATH, JSON.stringify(config, null, 2) + "\n");
+    writeFile(PATTERNS_PATH, `${JSON.stringify(config, null, 2)}\n`);
 
     // Re-read and count occurrences
     const reread = readFile(PATTERNS_PATH);

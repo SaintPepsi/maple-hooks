@@ -36,7 +36,7 @@ describe("hook input types", () => {
       tool_input: { file_path: "foo.ts" },
     };
     expect(input.tool_name).toBe("Edit");
-    expect(input.tool_input["file_path"]).toBe("foo.ts");
+    expect(input.tool_input.file_path).toBe("foo.ts");
   });
 
   it("ToolHookInput accepts optional tool_response for PostToolUse", () => {

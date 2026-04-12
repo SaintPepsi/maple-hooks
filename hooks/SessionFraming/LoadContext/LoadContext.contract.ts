@@ -80,7 +80,7 @@ function loadSettings(baseDir: string, deps: LoadContextDeps): Settings {
 }
 
 function loadContextFiles(baseDir: string, settings: Settings, deps: LoadContextDeps): string {
-  const defaultFiles = ["PAI/SKILL.md", "PAI/AISTEERINGRULES.md", "PAI/USER/AISTEERINGRULES.md"];
+  const defaultFiles = ["PAI/SKILL.md"];
 
   const contextFiles = settings.contextFiles || defaultFiles;
   let combined = "";

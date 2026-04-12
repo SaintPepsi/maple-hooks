@@ -28,7 +28,7 @@ const parsed = parse(raw);
 
 if (!parsed.projects) parsed.projects = {};
 
-const writeResult = writeFile(jsonPath, JSON.stringify(parsed, null, 2) + "\n");
+const writeResult = writeFile(jsonPath, `${JSON.stringify(parsed, null, 2)}\n`);
 if (!writeResult.ok) {
   process.stderr.write(`Failed to write ${jsonPath}: ${writeResult.error.message}\n`);
   process.exit(1);

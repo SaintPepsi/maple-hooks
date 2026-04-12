@@ -235,7 +235,7 @@ describe("CitationEnforcement shared defaultDeps", () => {
   it("writeFlag writes without throwing", () => {
     const tmpPath = `/tmp/pai-test-cite-flag-${Date.now()}.txt`;
     expect(() => defaultDeps.writeFlag(tmpPath)).not.toThrow();
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("readReminded returns empty array for missing file", () => {
@@ -244,15 +244,15 @@ describe("CitationEnforcement shared defaultDeps", () => {
 
   it("readReminded parses valid JSON array", () => {
     const tmpPath = `/tmp/pai-test-cite-rem-${Date.now()}.json`;
-    require("fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
+    require("node:fs").writeFileSync(tmpPath, JSON.stringify(["/src/a.ts"]));
     expect(defaultDeps.readReminded(tmpPath)).toEqual(["/src/a.ts"]);
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("writeReminded writes without throwing", () => {
     const tmpPath = `/tmp/pai-test-cite-wr-${Date.now()}.json`;
     expect(() => defaultDeps.writeReminded(tmpPath, ["/src/b.ts"])).not.toThrow();
-    require("fs").unlinkSync(tmpPath);
+    require("node:fs").unlinkSync(tmpPath);
   });
 
   it("stderr writes without throwing", () => {

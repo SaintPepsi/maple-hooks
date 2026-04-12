@@ -4,9 +4,9 @@ import type { ParsedFile } from "@tools/pattern-detector/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-const SCRIPT_PATH = import.meta.dir + "/ngram-subsequence.ts";
-const DETECTORS_DIR = import.meta.dir + "/../detectors";
-const PATTERN_DETECTOR_DIR = import.meta.dir + "/..";
+const SCRIPT_PATH = `${import.meta.dir}/ngram-subsequence.ts`;
+const DETECTORS_DIR = `${import.meta.dir}/../detectors`;
+const PATTERN_DETECTOR_DIR = `${import.meta.dir}/..`;
 
 async function runCLI(
   args: string[],
