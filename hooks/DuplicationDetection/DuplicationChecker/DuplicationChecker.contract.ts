@@ -214,12 +214,15 @@ export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, Duplica
       const reason = [
         opener,
         "",
-        ...blockMatches.map(
-          (m) =>
+        ...blockMatches.flatMap((m) => {
+          const guidance = m.targetIsSource
+            ? `  → Import it from ${m.targetFile}`
+            : `  → Consider extracting a shared abstraction`;
+          return [
             `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
-        ),
-        "",
-        "Reuse the existing function instead of duplicating it.",
+            guidance,
+          ];
+        }),
       ].join("\n");
 
       if (deps.blocking) {
