@@ -1815,7 +1815,7 @@ A single orchestrator claims the session-stop event, parses the transcript once,
 1. Accept the session stop event and wait a short interval for the transcript to finish writing.
 2. Parse the transcript into a structured object (messages, roles, plain text summary).
 3. Check whether the current session is a primary session or a sub-session.
-4. Build the handler list: always include state restoration, skill rebuilding, and data enrichment; include voice notification only for the primary session.
+4. Build the handler list: always include skill rebuilding and data enrichment; include voice notification only for the primary session.
 5. Run all handlers concurrently using settled-promise semantics so failures are logged but do not propagate.
 6. Return silently after all handlers complete or fail.
 
@@ -1936,7 +1936,7 @@ await Promise.allSettled(handlers);</div>
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Main session with voice</h3>
       
       <div class="uc-example">
-        <div>Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.</div>
+        <div>Claude completes a response in the main terminal session. StopOrchestrator parses the transcript and runs all three handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">

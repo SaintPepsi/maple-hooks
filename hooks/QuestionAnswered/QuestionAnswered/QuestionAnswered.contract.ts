@@ -1,8 +1,7 @@
 /**
- * QuestionAnswered Contract — No-op; previously restored terminal tab color.
+ * QuestionAnswered Contract — No-op after AskUserQuestion.
  *
- * Previously restored terminal tab color after AskUserQuestion.
- * Tab manipulation removed; no longer applicable.
+ * Tab manipulation was removed; this hook returns ok({}) immediately.
  */
 
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";

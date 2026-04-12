@@ -31,7 +31,7 @@ execute(_input, _deps): Result<SyncHookJSONOutput, E> {
 
 ### Example 1: User answers a question
 
-> Claude asks the user a question via `AskUserQuestion`. The user responds. QuestionAnswered fires and returns silent. No tab state changes occur.
+> Claude asks the user a question via `AskUserQuestion`. The user responds. QuestionAnswered fires and returns silent.
 
 ## Dependencies
 

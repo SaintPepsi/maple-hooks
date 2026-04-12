@@ -140,7 +140,6 @@ function isValidTitleBase(text: string): { valid: boolean; firstWord: string } {
 
 /**
  * Working-phase title: MUST start with gerund (-ing verb).
- * Used by UpdateTabTitle for 🧠/⚙️ titles.
  */
 export function isValidWorkingTitle(text: string): boolean {
   const { valid, firstWord } = isValidTitleBase(text);
@@ -154,7 +153,6 @@ export const isValidTabSummary = isValidWorkingTitle;
 /**
  * Completion-phase title: must NOT start with gerund.
  * Past tense or other non-gerund verb forms.
- * Used by TabState for ✓ titles.
  */
 export function isValidCompletionTitle(text: string): boolean {
   const { valid, firstWord } = isValidTitleBase(text);

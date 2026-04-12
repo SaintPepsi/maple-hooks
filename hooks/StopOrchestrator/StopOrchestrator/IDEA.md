@@ -15,7 +15,7 @@ A single orchestrator claims the session-stop event, parses the transcript once,
 1. Accept the session stop event and wait a short interval for the transcript to finish writing.
 2. Parse the transcript into a structured object (messages, roles, plain text summary).
 3. Check whether the current session is a primary session or a sub-session.
-4. Build the handler list: always include state restoration, skill rebuilding, and data enrichment; include voice notification only for the primary session.
+4. Build the handler list: always include skill rebuilding and data enrichment; include voice notification only for the primary session.
 5. Run all handlers concurrently using settled-promise semantics so failures are logged but do not propagate.
 6. Return silently after all handlers complete or fail.
 

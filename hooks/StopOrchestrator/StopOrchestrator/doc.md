@@ -46,7 +46,7 @@ await Promise.allSettled(handlers);
 
 ### Example 1: Main session with voice
 
-> Claude completes a response in the main terminal tab. StopOrchestrator parses the transcript and runs all four handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", TabState updates the tab title, RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
+> Claude completes a response in the main terminal session. StopOrchestrator parses the transcript and runs all three handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.
 
 ### Example 2: Subagent session (no voice)
 
