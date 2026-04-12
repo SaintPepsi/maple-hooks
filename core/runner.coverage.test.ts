@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import type { HookContract } from "@hooks/core/contract";
 import { ErrorCode, invalidInput, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
@@ -321,6 +322,46 @@ describe("runHookWith — output edge cases", () => {
     await runHookWith(contract, validToolInput, io);
     expect(io.exitCode).toBe(0);
     expect(io.stdoutLines.length).toBe(0);
+  });
+});
+
+// ─── Output Validation Failure Tests ────────────────────────────────────────
+
+// Construct an output that is structurally invalid per the Effect schema
+// (unrecognized hookEventName fails the hookSpecificOutput union) but passes
+// TypeScript by casting through the SDK's SyncHookJSONOutput type.
+// This is the correct intermediate-type cast pattern per TypeStrictness guidance.
+const invalidSchemaOutput = {
+  hookSpecificOutput: { hookEventName: "UnknownEvent" },
+} as unknown as SyncHookJSONOutput;
+
+describe("runHook — output validation failure (fail-open path)", () => {
+  it("writes { continue: true } to stdout when validateHookOutput fails", async () => {
+    const badOutputContract: HookContract<ToolHookInput, {}> = {
+      name: "TestBadOutput",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok(invalidSchemaOutput),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(badOutputContract, { ...io, stdinOverride: validToolInputJson });
+    expect(io.stdoutLines.length).toBe(1);
+    expect(JSON.parse(io.stdoutLines[0])).toEqual({ continue: true });
+    expect(io.exitCode).toBe(0);
+  });
+
+  it("emits stderr warning when validateHookOutput fails", async () => {
+    const badOutputContract: HookContract<ToolHookInput, {}> = {
+      name: "TestBadOutputWarn",
+      event: "PostToolUse",
+      accepts: () => true,
+      execute: () => ok(invalidSchemaOutput),
+      defaultDeps: {},
+    };
+    const io = createMockIO();
+    await runHook(badOutputContract, { ...io, stdinOverride: validToolInputJson });
+    expect(io.stderrLines.some((l) => l.includes("output validation failed"))).toBe(true);
   });
 });
 

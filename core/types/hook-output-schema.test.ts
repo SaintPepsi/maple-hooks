@@ -53,6 +53,77 @@ describe("hook-output-schema", () => {
     expect(result._tag).toBe("Right");
   });
 
+  it("validates defer as a valid permissionDecision (PreToolUse)", () => {
+    const result = validateHookOutput({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "defer",
+      },
+    });
+    expect(result._tag).toBe("Right");
+  });
+
+  it("validates PermissionDenied hookSpecificOutput round-trip", () => {
+    const result = validateHookOutput({
+      hookSpecificOutput: {
+        hookEventName: "PermissionDenied",
+        retry: true,
+      },
+    });
+    expect(result._tag).toBe("Right");
+  });
+
+  it("validates Elicitation hookSpecificOutput round-trip", () => {
+    const result = validateHookOutput({
+      hookSpecificOutput: {
+        hookEventName: "Elicitation",
+        action: "accept",
+        content: { confirmed: true },
+      },
+    });
+    expect(result._tag).toBe("Right");
+  });
+
+  it("validates ElicitationResult hookSpecificOutput round-trip", () => {
+    const result = validateHookOutput({
+      hookSpecificOutput: {
+        hookEventName: "ElicitationResult",
+        action: "decline",
+      },
+    });
+    expect(result._tag).toBe("Right");
+  });
+
+  it("validates CwdChanged hookSpecificOutput round-trip", () => {
+    const result = validateHookOutput({
+      hookSpecificOutput: {
+        hookEventName: "CwdChanged",
+        watchPaths: ["/tmp/project"],
+      },
+    });
+    expect(result._tag).toBe("Right");
+  });
+
+  it("validates FileChanged hookSpecificOutput round-trip", () => {
+    const result = validateHookOutput({
+      hookSpecificOutput: {
+        hookEventName: "FileChanged",
+        watchPaths: ["/tmp/project/src/main.ts"],
+      },
+    });
+    expect(result._tag).toBe("Right");
+  });
+
+  it("validates WorktreeCreate hookSpecificOutput round-trip", () => {
+    const result = validateHookOutput({
+      hookSpecificOutput: {
+        hookEventName: "WorktreeCreate",
+        worktreePath: "/tmp/worktrees/feat-branch",
+      },
+    });
+    expect(result._tag).toBe("Right");
+  });
+
   it("HOOK_SPECIFIC_EVENTS contains all 15 SDK events", () => {
     expect(HOOK_SPECIFIC_EVENTS.size).toBe(15);
     expect(HOOK_SPECIFIC_EVENTS.has("PreToolUse")).toBe(true);
