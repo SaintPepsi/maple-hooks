@@ -237,7 +237,7 @@ export function validateOutputSemantics(output: SyncHookJSONOutputType): string 
   }
 
   // 2. decision:block requires a reason
-  if (decision === "block" && !reason) {
+  if (decision === "block" && !reason?.trim()) {
     return "decision:block requires a reason";
   }
 

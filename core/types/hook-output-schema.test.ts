@@ -192,6 +192,12 @@ describe("validateOutputSemantics", () => {
     expect(validateOutputSemantics({ decision: "block", reason: "dangerous" })).toBeNull();
   });
 
+  it("flags decision:block with whitespace-only reason", () => {
+    expect(validateOutputSemantics({ decision: "block", reason: "   " })).toBe(
+      "decision:block requires a reason",
+    );
+  });
+
   // ── Contradiction 3: continue:true + stopReason ──────────────────────────
   it("flags continue:true with stopReason present", () => {
     expect(validateOutputSemantics({ continue: true, stopReason: "done" })).toBe(
