@@ -62,7 +62,7 @@ function logEvent(
   deps: AgentRunnerDeps,
 ): void {
   const entry = { ts: new Date().toISOString(), ...data };
-  deps.appendFile(logPath, JSON.stringify(entry) + "\n");
+  deps.appendFile(logPath, `${JSON.stringify(entry)}\n`);
 }
 
 // ─── Runner ────────────────────────────────────────────────────────────────
@@ -132,6 +132,10 @@ export function runAgent(
   if (result.ok && result.value.stdout) {
     const output: ClaudeJsonOutput = JSON.parse(result.value.stdout);
     sessionId = output.session_id ?? "";
+  }
+
+  if (result.ok && result.value.stderr) {
+    deps.stderr(`[agent-runner] claude stderr: ${result.value.stderr}`);
   }
 
   // Persist session ID for next run

@@ -160,6 +160,29 @@ describe("agent-runner / real execution", () => {
     expect(removed).toContain("/tmp/real-test.lock");
   });
 
+  test("forwards claude stderr to deps.stderr when non-empty", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      env: {},
+      spawnSyncSafe: () => ok({ stdout: "", stderr: "Error: rate limit exceeded", exitCode: 1 }),
+      stderr: (msg) => stderrMessages.push(msg),
+    });
+    runAgent(makeConfig(), false, deps);
+    expect(stderrMessages.some((m) => m.includes("rate limit exceeded"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("[agent-runner]"))).toBe(true);
+  });
+
+  test("does not call deps.stderr when claude stderr is empty", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      env: {},
+      spawnSyncSafe: () => ok({ stdout: "", stderr: "", exitCode: 0 }),
+      stderr: (msg) => stderrMessages.push(msg),
+    });
+    runAgent(makeConfig(), false, deps);
+    expect(stderrMessages).toHaveLength(0);
+  });
+
   test("removes lock file even when execution fails", () => {
     const removed: string[] = [];
     const config = makeConfig({ lockPath: "/tmp/fail-test.lock" });
