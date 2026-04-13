@@ -10,7 +10,7 @@
  * - agent-runner.ts cleans up lock in finally block (no prompt-based cleanup)
  * - Lock persists during child claude's SessionEnd hooks, preventing recursion
  * - Agent reads pending/ proposals to avoid duplicates
- * - max-turns (25) and model (opus) cap agent cost
+ * - max-turns (25) and model (OPUS_MODEL) cap agent cost
  */
 
 import { join } from "node:path";
