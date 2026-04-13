@@ -2,7 +2,7 @@
 
 Injects individual steering rule files into context based on event type and keyword matching. Rules are `.md` files with YAML frontmatter declaring when they should fire. Each rule injects at most once per session, tracked via a gitignored JSON file.
 
-Registered for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStart`, and `Stop`. Skips subagent sessions (except on `SubagentStart` itself).
+Registered for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `SubagentStart`, and `Stop`. Skips subagent sessions.
 
 ## Event
 
@@ -92,5 +92,4 @@ Rule content injected as context...
 - `lib/paths` — `getPaiDir()` for tracker file location
 - `core/adapters/fs` — `readFile`, `readJson`, `writeJson`, `fileExists` for rule and tracker I/O
 - `core/types/hook-input-schema` — Effect Schema for discriminated input parsing (replaces field-sniffing)
-- `Bun.Glob` — resolves include patterns to file paths
 - `Bun.Glob` — resolves include patterns to file paths
