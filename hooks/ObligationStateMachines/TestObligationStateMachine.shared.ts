@@ -184,7 +184,7 @@ export function findImportingTestFile(
   // Use the final path component as the import basename to match against.
   const importBasename = basename(stem).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const importPattern = new RegExp(
-    `from\\s+['"][^'"]*${importBasename}['"]|require\\(['"][^'"]*${importBasename}['"]\\)`,
+    `from\\s+['"](?:[^'"]*\\/)?${importBasename}['"]|require\\(['"](?:[^'"]*\\/)?${importBasename}['"]\\)`,
   );
 
   const testFilePattern = /\.(?:test|spec)\.\w+$/;
