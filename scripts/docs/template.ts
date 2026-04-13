@@ -176,7 +176,8 @@ function esc(str: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /** Escape for code blocks — only escape HTML-meaningful chars, preserve quotes. */
@@ -184,12 +185,26 @@ function escCode(str: string): string {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/** Safe URL allowlist — reject javascript:, data:, vbscript: and anything else not on the list. */
+function safeLinkUrl(url: string): string {
+  const trimmed = url.trim();
+  if (/^(javascript|data|vbscript):/i.test(trimmed)) return "#";
+  if (/^(https?:|mailto:|\/|#)/.test(trimmed)) return trimmed;
+  // Relative paths (no scheme) are fine
+  if (!/^[a-z][a-z0-9+\-.]*:/i.test(trimmed)) return trimmed;
+  // Unknown scheme — reject
+  return "#";
+}
+
 function inlineMd(text: string): string {
   return text
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
     .replace(/\*([^*]+)\*/g, "<em>$1</em>")
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+    .replace(
+      /\[([^\]]+)\]\(([^)]+)\)/g,
+      (_, linkText, url) => `<a href="${safeLinkUrl(url)}">${linkText}</a>`,
+    );
 }
 
 // ─── Block-level Markdown → HTML ──────────────────────────────────────────────
