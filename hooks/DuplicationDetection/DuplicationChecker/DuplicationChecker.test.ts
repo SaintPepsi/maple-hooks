@@ -46,6 +46,7 @@ const mockDeps: DuplicationCheckerDeps = {
   readFile: (path) => require("node:fs").readFileSync(path, "utf-8") as string,
   exists: (path) => require("node:fs").existsSync(path) as boolean,
   appendFile: () => {},
+  writeFile: () => {},
   ensureDir: () => {},
   stderr: () => {},
   now: () => Date.now(),
@@ -440,6 +441,129 @@ function superUniqueSpecialFunction123(): string {
       if (hs && hs.hookEventName === "PreToolUse") {
         expect(hs.permissionDecision).toBe("deny");
       }
+    });
+
+    test("uncertain verdict — falls through to block with deny (F4)", async () => {
+      const { input } = makeBlockingInput();
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "uncertain", reason: "could not determine" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+      const output = unwrap(await DuplicationCheckerContract.execute(input, deps));
+      const hs = output.hookSpecificOutput;
+      expect(hs?.hookEventName).toBe("PreToolUse");
+      if (hs && hs.hookEventName === "PreToolUse") {
+        expect(hs.permissionDecision).toBe("deny");
+      }
+    });
+  });
+
+  // ─── false-positive reporting ───────────────────────────────────────────────
+
+  describe("false-positive reporting", () => {
+    function makeBlockingInput() {
+      const realContent = require("node:fs").readFileSync(
+        `${PAI_HOOKS_ROOT}/cli/commands/install.test.ts`,
+        "utf-8",
+      ) as string;
+      return {
+        input: makeWriteInput(
+          `${PAI_HOOKS_ROOT}/hooks/DuplicationDetection/SomeNewHook.ts`,
+          realContent,
+        ),
+      };
+    }
+
+    test("createFalsePositiveReport writes lock and report when issueReporting is true (F3)", async () => {
+      const { input } = makeBlockingInput();
+      const written: Array<{ path: string; content: string }> = [];
+      const overwritten: Array<{ path: string; content: string }> = [];
+
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        issueReporting: true,
+        exists: (path) => {
+          // Pretend lock file does not exist so reporting runs
+          if (path.endsWith(".lock")) return false;
+          return (require("node:fs").existsSync(path) as boolean);
+        },
+        appendFile: (path, content) => {
+          written.push({ path, content });
+        },
+        writeFile: (path, content) => {
+          overwritten.push({ path, content });
+        },
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "false_positive", reason: "distinct purpose" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+
+      await DuplicationCheckerContract.execute(input, deps);
+
+      // Lock file must be written (overwrite, not append)
+      const lockWrite = overwritten.find((w) => w.path.endsWith(".lock"));
+      expect(lockWrite).toBeDefined();
+      expect(Number(lockWrite!.content)).toBeGreaterThan(0);
+
+      // Report JSON must be appended
+      const reportAppend = written.find((w) => w.path.endsWith(".report.json"));
+      expect(reportAppend).toBeDefined();
+      const report = JSON.parse(reportAppend!.content) as {
+        ts: string;
+        file: string;
+        matches: Array<{ fn: string; target: string; signals: string[] }>;
+      };
+      expect(report.file).toContain("SomeNewHook.ts");
+      expect(Array.isArray(report.matches)).toBe(true);
+    });
+
+    test("createFalsePositiveReport skips when lock is fresh (F3)", async () => {
+      const { input } = makeBlockingInput();
+      const written: Array<{ path: string }> = [];
+
+      const freshTs = String(Date.now()); // within 7-day window
+
+      const deps: DuplicationCheckerDeps = {
+        ...mockDeps,
+        inferenceEnabled: true,
+        issueReporting: true,
+        exists: (path) => {
+          if (path.endsWith(".lock")) return true;
+          return (require("node:fs").existsSync(path) as boolean);
+        },
+        readFile: (path) => {
+          if (path.endsWith(".lock")) return freshTs;
+          return (require("node:fs").readFileSync(path, "utf-8") as string);
+        },
+        appendFile: (path) => {
+          written.push({ path });
+        },
+        writeFile: (path) => {
+          written.push({ path });
+        },
+        inference: async (): Promise<InferenceResult> => ({
+          success: true,
+          output: JSON.stringify({ verdict: "false_positive", reason: "distinct purpose" }),
+          latencyMs: 50,
+          level: "fast" as const,
+        }),
+      };
+
+      await DuplicationCheckerContract.execute(input, deps);
+
+      // No lock or report writes should happen — fresh lock suppresses reporting
+      const reportWrites = written.filter((w) => w.path.includes("fp-reports"));
+      expect(reportWrites).toHaveLength(0);
     });
   });
 });

@@ -16,6 +16,7 @@ import {
   appendFile as adapterAppendFile,
   ensureDir as adapterEnsureDir,
   readFile as adapterReadFile,
+  writeFile as adapterWriteFile,
   fileExists,
 } from "@hooks/core/adapters/fs";
 import type { AsyncHookContract } from "@hooks/core/contract";
@@ -47,6 +48,8 @@ export interface DuplicationCheckerDeps {
   readFile: (path: string) => string | null;
   exists: (path: string) => boolean;
   appendFile: (path: string, content: string) => void;
+  /** Overwrite a file with new content (used for lock files to prevent corruption). */
+  writeFile: (path: string, content: string) => void;
   ensureDir: (path: string) => void;
   stderr: (msg: string) => void;
   now: () => number;
@@ -76,33 +79,49 @@ function readInferenceConfig(): boolean {
 
 type TriageVerdict = "true_positive" | "false_positive" | "uncertain";
 
+// Content truncation limit — large enough to cover most functions, but bounded.
+// Duplicates beyond this limit are not seen by inference; the checker still blocks them.
+const CONTENT_TRIAGE_LIMIT = 8000;
+
 async function classifyMatches(
   blockMatches: DuplicationMatch[],
   content: string,
   filePath: string,
   deps: DuplicationCheckerDeps,
 ): Promise<TriageVerdict> {
-  const matchDescriptions = blockMatches
-    .map(
-      (m) =>
-        `Function "${m.functionName}" in ${filePath} duplicates "${m.targetName}" in ${m.targetFile} (line ${m.targetLine}, signals: ${m.signals.join(", ")})`,
-    )
-    .join("\n");
+  // Build structured match data — paths/names go into JSON fields, not interpolated strings,
+  // preventing prompt injection via malicious function names or file paths (E8).
+  const matchData = blockMatches.map((m) => ({
+    sourceFunction: m.functionName,
+    sourceFile: filePath,
+    targetFunction: m.targetName,
+    targetFile: m.targetFile,
+    targetLine: m.targetLine,
+    signals: m.signals,
+    // Read target file content so inference can compare both sides (F2)
+    targetContent: (() => {
+      const raw = deps.readFile(m.targetFile);
+      return raw ? raw.slice(0, CONTENT_TRIAGE_LIMIT) : null;
+    })(),
+  }));
 
-  const prompt = [
-    "You are a code duplication triage assistant.",
-    "Determine if the following duplication detection result is a true positive (real duplicate that should be refactored) or a false positive (legitimate code that appears similar but serves a distinct purpose).",
-    "",
-    "Duplication findings:",
-    matchDescriptions,
-    "",
-    "File being written:",
-    "```typescript",
-    content.slice(0, 2000),
-    "```",
-    "",
-    'Respond with JSON only: { "verdict": "true_positive" | "false_positive" | "uncertain", "reason": "brief explanation" }',
-  ].join("\n");
+  // Structured payload — file content is placed in a clearly delimited JSON field,
+  // not interpolated into the instruction text, so injected instructions in the
+  // content cannot escape the data boundary (E1).
+  const payload = JSON.stringify(
+    {
+      task: "duplication_triage",
+      instruction:
+        "Determine if the duplication findings are true positives (real duplicates that should be refactored) or false positives (legitimate code that appears similar but serves a distinct purpose). Respond with the JSON schema specified in responseSchema only.",
+      responseSchema: { verdict: "true_positive | false_positive | uncertain", reason: "string" },
+      findings: matchData,
+      sourceContent: content.slice(0, CONTENT_TRIAGE_LIMIT),
+    },
+    null,
+    2,
+  );
+
+  const prompt = payload;
 
   const result = await tryCatchAsync(
     () => deps.inference({ prompt, level: "fast", timeout: 4000 }),
@@ -156,7 +175,8 @@ function createFalsePositiveReport(
     }
   }
 
-  deps.appendFile(lockPath, String(deps.now()));
+  // Overwrite (not append) so expiry re-check reads only the latest timestamp
+  deps.writeFile(lockPath, String(deps.now()));
 
   const report = {
     ts: new Date(deps.now()).toISOString(),
@@ -180,6 +200,9 @@ const defaultDeps: DuplicationCheckerDeps = {
   exists: (path: string): boolean => fileExists(path),
   appendFile: (path: string, content: string): void => {
     adapterAppendFile(path, content);
+  },
+  writeFile: (path: string, content: string): void => {
+    adapterWriteFile(path, content);
   },
   ensureDir: (path: string): void => {
     adapterEnsureDir(path);
@@ -365,7 +388,6 @@ export const DuplicationCheckerContract: AsyncHookContract<ToolHookInput, Duplic
           `[DuplicationChecker] ${filePath}: BLOCKED — ${blockMatches.length} exact duplicate(s)`,
         );
         return ok({
-          continue: true,
           hookSpecificOutput: {
             hookEventName: "PreToolUse",
             permissionDecision: "deny",
