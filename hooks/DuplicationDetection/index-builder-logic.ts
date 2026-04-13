@@ -39,9 +39,17 @@ export interface IndexBuilderDeps {
 const SOURCE_DIRS = new Set(["lib", "core", "utils", "shared"]);
 
 /**
+ * Convert kebab-case to camelCase: "hook-config" → "hookConfig"
+ */
+export function kebabToCamel(str: string): string {
+  return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
+/**
  * Returns true when a file is likely a canonical source (not a consumer).
  * Criteria: lives in a source directory (lib/core/utils/shared), has exactly
- * one exported function, and the function name matches the filename stem.
+ * one function in the file, and the function name matches the filename stem
+ * (with kebab-case → camelCase normalization).
  */
 export function isSourceFile(relPath: string, fnName: string, fileEntryCount: number): boolean {
   if (fileEntryCount !== 1) return false;
@@ -49,7 +57,8 @@ export function isSourceFile(relPath: string, fnName: string, fileEntryCount: nu
   const inSourceDir = parts.some((p) => SOURCE_DIRS.has(p));
   if (!inSourceDir) return false;
   const stem = basename(relPath, extname(relPath));
-  return stem === fnName;
+  // Match exact (e.g., "pipe" === "pipe") or kebab-to-camel (e.g., "hook-config" → "hookConfig")
+  return stem === fnName || kebabToCamel(stem) === fnName;
 }
 
 // ─── File Scanning ──────────────────────────────────────────────────────────

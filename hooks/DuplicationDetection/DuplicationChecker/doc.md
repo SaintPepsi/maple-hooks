@@ -51,7 +51,7 @@ It does **not** fire when:
 5. Extracts function signatures from the content using SWC parser
 6. Compares extracted functions against the index using `checkFunctions`
 7. Logs all checks to `checker.jsonl` with branch metadata
-8. At 4/4 signals and blocking enabled: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Consider extracting a shared abstraction" otherwise
+8. At 4/4 signals and blocking enabled: returns block with per-match guidance — "Import it from X" when the target is a canonical source file, "Reuse the existing function from X or extract both to a shared module" otherwise
 9. At 2-3/4 signals: logs finding, returns continue
 
 ```typescript

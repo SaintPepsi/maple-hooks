@@ -217,7 +217,7 @@ export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, Duplica
         ...blockMatches.flatMap((m) => {
           const guidance = m.targetIsSource
             ? `  → Import it from ${m.targetFile}`
-            : `  → Consider extracting a shared abstraction`;
+            : `  → Reuse the existing function from ${m.targetFile} or extract both to a shared module`;
           return [
             `  ${m.functionName} duplicates ${m.targetFile}:${m.targetName} (line ${m.targetLine})`,
             guidance,
