@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { OPUS_MODEL } from "@hooks/core/constants";
 import { fileNotFound, processSpawnFailed } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { AgentRunnerDeps, RunnerConfig } from "@hooks/runners/agent-runner";
@@ -9,7 +10,7 @@ import { runAgent } from "@hooks/runners/agent-runner";
 function makeConfig(overrides: Partial<RunnerConfig> = {}): RunnerConfig {
   return {
     prompt: "test prompt",
-    model: "claude-opus-4-5-20251101",
+    model: OPUS_MODEL,
     maxTurns: 5,
     timeout: 60000,
     lockPath: "/tmp/test.lock",
@@ -104,7 +105,7 @@ describe("agent-runner / real execution", () => {
         return ok({ stdout: "", stderr: "", exitCode: 0 });
       },
     });
-    runAgent(makeConfig({ prompt: "do the thing", model: "claude-opus-4-5-20251101", maxTurns: 5 }), false, deps);
+    runAgent(makeConfig({ prompt: "do the thing", model: OPUS_MODEL, maxTurns: 5 }), false, deps);
     expect(calledWith).not.toBeNull();
     expect(calledWith!.cmd).toBe("claude");
     expect(calledWith!.args).toContain("-p");
@@ -112,7 +113,7 @@ describe("agent-runner / real execution", () => {
     expect(calledWith!.args).toContain("--max-turns");
     expect(calledWith!.args).toContain("5");
     expect(calledWith!.args).toContain("--model");
-    expect(calledWith!.args).toContain("claude-opus-4-5-20251101");
+    expect(calledWith!.args).toContain(OPUS_MODEL);
   });
 
   test("logs completed event with exitCode", () => {
