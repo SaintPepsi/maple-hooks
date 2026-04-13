@@ -6,6 +6,8 @@
 
 // SDK output type (source of truth)
 export type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+// Model constants
+export * from "@hooks/core/constants";
 export { type FetchResult, safeFetch } from "@hooks/core/adapters/fetch";
 export {
   appendFile,

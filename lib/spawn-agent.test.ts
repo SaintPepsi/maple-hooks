@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
+import { OPUS_MODEL } from "@hooks/core/constants";
 import { ErrorCode, ResultError } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import type { SpawnAgentConfig, SpawnAgentDeps } from "@hooks/lib/spawn-agent";
@@ -89,7 +90,7 @@ describe("spawnAgent", () => {
     // Second arg should be valid JSON with config
     const parsed = JSON.parse(spawnCalls[0].args[1]);
     expect(parsed.prompt).toBe("Analyze things");
-    expect(parsed.model).toBe("opus");
+    expect(parsed.model).toBe(OPUS_MODEL);
     expect(parsed.maxTurns).toBe(5);
     expect(parsed.timeout).toBe(300_000);
     expect(parsed.lockPath).toBe(config.lockPath);
@@ -249,7 +250,7 @@ describe("spawnAgent", () => {
 
   // ─── Uses defaults when not specified ──────────────────────────────────────
 
-  it("uses default model/maxTurns/timeout when not specified (opus, 5, 300000)", () => {
+  it("uses default model/maxTurns/timeout when not specified (claude-opus-4-5-20251101, 5, 300000)", () => {
     const spawnCalls: Array<{ args: string[] }> = [];
     const deps = makeFakeDeps({
       spawnBackground: (_cmd, args) => {
@@ -263,7 +264,7 @@ describe("spawnAgent", () => {
 
     expect(spawnCalls).toHaveLength(1);
     const parsed = JSON.parse(spawnCalls[0].args[1]);
-    expect(parsed.model).toBe("opus");
+    expect(parsed.model).toBe(OPUS_MODEL);
     expect(parsed.maxTurns).toBe(5);
     expect(parsed.timeout).toBe(300_000);
   });

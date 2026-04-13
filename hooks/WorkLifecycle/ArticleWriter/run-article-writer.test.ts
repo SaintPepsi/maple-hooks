@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { OPUS_MODEL } from "@hooks/core/constants";
 import { processSpawnFailed } from "@hooks/core/error";
 import { err, ok } from "@hooks/core/result";
 import {
@@ -148,11 +149,11 @@ describe("runArticleWriter", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("uses model opus", () => {
+  it("uses model claude-opus-4-5-20251101", () => {
     const deps = fakeDeps();
     runArticleWriter("session-123", deps);
 
-    expect(deps._captured[0].model).toBe("opus");
+    expect(deps._captured[0].model).toBe(OPUS_MODEL);
   });
 
   it("calls ensureDir for cacheDir before cloning", () => {
