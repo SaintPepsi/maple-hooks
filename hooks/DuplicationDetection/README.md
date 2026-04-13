@@ -8,7 +8,7 @@ Detects duplicated functions across the codebase and warns before writing code t
 
 **Output:** `SyncHookJSONOutput` — silent continue (`ok({ continue: true })`).
 
-Fires after any Write or Edit to a `.ts` file, and eagerly on SessionStart. Scans the project root and builds `index.json` — a compact lookup structure of all functions with their body hashes, names, parameter signatures, and fingerprints. Skips rebuild if the index was written within the last 30 minutes.
+Fires after any Write or Edit to a file handled by a registered language adapter (currently `.ts`/`.tsx`, excluding `.d.ts`), and eagerly on SessionStart. Scans the project root and builds `index.json` — a compact lookup structure of all functions with their body hashes, names, parameter signatures, and fingerprints. Skips rebuild if the index was written within the last 30 minutes.
 
 See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for details.
 
@@ -16,7 +16,7 @@ See [`DuplicationIndexBuilder/README.md`](DuplicationIndexBuilder/README.md) for
 
 **Output:** `SyncHookJSONOutput` — tiered response via `hookSpecificOutput`: advisory via `additionalContext` (pattern + derivation) or block via `permissionDecision: "deny"` (R4 shape) for 4/4 or hash matches.
 
-Fires before any Write or Edit to a `.ts` file. Parses the incoming content, extracts functions, and checks them against the index. Tiered response: 2-3/4 signal matches are logged silently, 4/4 matches or hash matches block the operation (configurable via `hookConfig.duplicationChecker.blocking`).
+Fires before any Write or Edit to a file handled by a registered language adapter (currently `.ts`/`.tsx`, excluding `.d.ts`). Parses the incoming content using the adapter, extracts functions, and checks them against the index. Tiered response: 2-3/4 signal matches are logged silently, 4/4 matches or hash matches block the operation (configurable via `hookConfig.duplicationChecker.blocking`).
 
 **Derivation detection**: when body hash matches but type signatures differ, the checker emits an advisory warning ("possible derivation issue") instead of blocking. This identifies functions with identical implementations but different type contracts — a different class than duplication.
 
@@ -58,10 +58,15 @@ For monorepos without a root `package.json`, the first PostToolUse event on a su
 ```
 DuplicationDetection/
 ├── README.md                          — this file
-├── shared.ts                          — index types, loading, cache, check logic, formatting, PROJECT_MARKERS, getArtifactsDir, getCurrentBranch
-├── parser.ts                          — TypeScript function extraction (serializeType for actual type names)
+├── shared.ts                          — index types, LanguageAdapter interface, loading, cache, check logic, formatting
+├── parser.ts                          — TypeScript function extraction via SWC (serializeType for actual type names)
 ├── parser.test.ts                     — Parser tests including serializeType coverage
-├── index-builder-logic.ts             — file scanning and index construction
+├── adapter-registry.ts                — getAdapterFor/hasAdapterFor/getRegisteredExtensions; single registration point
+├── adapter-registry.test.ts           — Registry tests for extension matching and exclusion
+├── index-builder-logic.ts             — file scanning (findSourceFiles) and index construction
+├── adapters/
+│   ├── typescript.ts                  — LanguageAdapter wrapping parser.ts; handles .ts/.tsx, excludes .d.ts
+│   └── typescript.test.ts             — Adapter parity and metadata tests
 ├── DuplicationIndexBuilder/
 │   ├── README.md
 │   ├── DuplicationIndexBuilder.contract.ts
@@ -76,6 +81,12 @@ DuplicationDetection/
     ├── hook.json
     └── settings.hooks.json
 ```
+
+## Adding a New Language Adapter
+
+1. Create `adapters/{language}.ts` exporting a `LanguageAdapter` (see `shared.ts` for the interface).
+2. Register it in `adapter-registry.ts` by adding it to the `ADAPTERS` array.
+3. The builder (`findSourceFiles`) and both contracts automatically pick up files for the new extension.
 
 ## Manually Building the Index
 

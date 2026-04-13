@@ -5,9 +5,9 @@ import {
   stat as adapterStat,
   fileExists,
 } from "@hooks/core/adapters/fs";
+import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import { updateIndexForFile } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
-import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
 
 function makeRealIndexBuilderDeps(): IndexBuilderDeps {
@@ -31,7 +31,7 @@ function makeRealIndexBuilderDeps(): IndexBuilderDeps {
     },
     join: (...parts: string[]): string => require("node:path").join(...parts) as string,
     resolve: (path: string): string => require("node:path").resolve(path) as string,
-    parserDeps: defaultParserDeps,
+    getAdapter: getAdapterFor,
   };
 }
 
