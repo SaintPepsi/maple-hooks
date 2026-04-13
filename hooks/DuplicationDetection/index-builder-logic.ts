@@ -9,8 +9,8 @@
  */
 
 import { basename, extname } from "node:path";
-import type { ParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
-import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
+import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
+import type { LanguageAdapter } from "@hooks/hooks/DuplicationDetection/shared";
 import {
   type DuplicationIndex,
   getCurrentBranch,
@@ -31,7 +31,7 @@ export interface IndexBuilderDeps {
   stat: (path: string) => { mtimeMs: number } | null;
   join: (...parts: string[]) => string;
   resolve: (path: string) => string;
-  parserDeps: ParserDeps;
+  getAdapter: (filePath: string) => LanguageAdapter | null;
 }
 
 // ─── Source Heuristic ───────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ export function isSourceFile(relPath: string, fnName: string, fileEntryCount: nu
 
 // ─── File Scanning ──────────────────────────────────────────────────────────
 
-export function findTsFiles(dir: string, deps: IndexBuilderDeps): string[] {
+export function findSourceFiles(dir: string, deps: IndexBuilderDeps): string[] {
   const results: string[] = [];
   const absDir = deps.resolve(dir);
 
@@ -81,7 +81,7 @@ export function findTsFiles(dir: string, deps: IndexBuilderDeps): string[] {
       const full = deps.join(d, entry);
       if (deps.isDirectory(full)) {
         walk(full);
-      } else if (entry.endsWith(".ts") && !entry.endsWith(".d.ts")) {
+      } else if (deps.getAdapter(full) !== null) {
         results.push(full);
       }
     }
@@ -109,7 +109,7 @@ function groupByField(
 
 export function buildIndex(directory: string, deps: IndexBuilderDeps): DuplicationIndex {
   const root = deps.resolve(directory);
-  const files = findTsFiles(directory, deps);
+  const files = findSourceFiles(directory, deps);
   const entries: IndexEntry[] = [];
 
   for (const filePath of files) {
@@ -117,8 +117,9 @@ export function buildIndex(directory: string, deps: IndexBuilderDeps): Duplicati
     if (!content) continue;
 
     const relPath = filePath.startsWith(root) ? filePath.slice(root.length + 1) : filePath;
-    const isTsx = filePath.endsWith(".tsx");
-    const functions = extractFunctions(content, isTsx, deps.parserDeps);
+    const adapter = deps.getAdapter(filePath);
+    if (!adapter) continue;
+    const functions = adapter.extractFunctions(content, filePath);
 
     for (const fn of functions) {
       const source = isSourceFile(relPath, fn.name, functions.length) || undefined;
@@ -274,8 +275,8 @@ export function updateIndexForFile(
   const keptEntries = existingIndex.entries.filter((e) => e.f !== relPath);
 
   // Extract new functions from the updated content
-  const isTsx = filePath.endsWith(".tsx");
-  const functions = extractFunctions(content, isTsx, deps.parserDeps);
+  const adapter = deps.getAdapter(filePath);
+  const functions = adapter ? adapter.extractFunctions(content, filePath) : [];
 
   for (const fn of functions) {
     const source = isSourceFile(relPath, fn.name, functions.length) || undefined;

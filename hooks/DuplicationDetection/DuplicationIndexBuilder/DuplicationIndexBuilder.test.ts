@@ -15,8 +15,8 @@ import {
   DuplicationIndexBuilderContract,
   type DuplicationIndexBuilderDeps,
 } from "@hooks/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.contract";
+import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
-import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
 import type { DuplicationIndex } from "@hooks/hooks/DuplicationDetection/shared";
 import {
   makeEditInput,
@@ -60,7 +60,7 @@ function makeRealIndexBuilderDeps(): IndexBuilderDeps {
     },
     join: (...parts: string[]): string => require("node:path").join(...parts) as string,
     resolve: (path: string): string => require("node:path").resolve(path) as string,
-    parserDeps: defaultParserDeps,
+    getAdapter: getAdapterFor,
   };
 }
 

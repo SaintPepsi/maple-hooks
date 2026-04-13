@@ -21,12 +21,12 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { HookInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import type { IndexBuilderDeps } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
 import {
   buildIndex,
   updateIndexForFile,
 } from "@hooks/hooks/DuplicationDetection/index-builder-logic";
-import { defaultParserDeps } from "@hooks/hooks/DuplicationDetection/parser";
 import {
   getArtifactsDir,
   getCurrentBranch,
@@ -99,7 +99,7 @@ const defaultDeps: DuplicationIndexBuilderDeps = {
     },
     join: (...parts: string[]): string => require("node:path").join(...parts) as string,
     resolve: (path: string): string => require("node:path").resolve(path) as string,
-    parserDeps: defaultParserDeps,
+    getAdapter: getAdapterFor,
   },
   writeFile: (path: string, content: string): boolean => {
     const result = adapterWriteFile(path, content);
@@ -138,13 +138,11 @@ export const DuplicationIndexBuilderContract: SyncHookContract<
     // SessionStart — always accept (eager pre-warming)
     if (!isToolInput(input)) return true;
 
-    // PostToolUse — only Write/Edit on .ts files
+    // PostToolUse — only Write/Edit on files handled by a registered adapter
     if (input.tool_name !== "Write" && input.tool_name !== "Edit") return false;
     const filePath = getFilePath(input);
     if (!filePath) return false;
-    if (!filePath.endsWith(".ts")) return false;
-    if (filePath.endsWith(".d.ts")) return false;
-    return true;
+    return getAdapterFor(filePath) !== null;
   },
 
   execute(

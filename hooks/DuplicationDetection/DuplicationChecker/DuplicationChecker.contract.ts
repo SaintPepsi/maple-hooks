@@ -22,7 +22,7 @@ import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
-import { extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
+import { getAdapterFor } from "@hooks/hooks/DuplicationDetection/adapter-registry";
 import {
   BLOCK_THRESHOLD,
   checkFunctions,
@@ -85,9 +85,7 @@ export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, Duplica
     if (input.tool_name !== "Write" && input.tool_name !== "Edit") return false;
     const filePath = getFilePath(input);
     if (!filePath) return false;
-    if (!filePath.endsWith(".ts")) return false;
-    if (filePath.endsWith(".d.ts")) return false;
-    return true;
+    return getAdapterFor(filePath) !== null;
   },
 
   execute(
@@ -95,6 +93,9 @@ export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, Duplica
     deps: DuplicationCheckerDeps,
   ): Result<SyncHookJSONOutput, ResultError> {
     const filePath = getFilePath(input)!;
+
+    const adapter = getAdapterFor(filePath);
+    if (!adapter) return ok({ continue: true });
 
     const indexPath = findIndexPath(filePath, deps);
     if (!indexPath) {
@@ -118,14 +119,14 @@ export const DuplicationCheckerContract: SyncHookContract<ToolHookInput, Duplica
       if (currentContent) {
         content = simulateEdit(currentContent, input);
         // Build set of body hashes present before this edit so we only flag new/changed functions
-        const preFunctions = extractFunctions(currentContent, filePath.endsWith(".tsx"));
+        const preFunctions = adapter.extractFunctions(currentContent, filePath);
         preEditHashes = new Set(preFunctions.map((f) => f.bodyHash));
       }
     }
 
     if (!content) return ok({ continue: true });
 
-    const allFunctions = extractFunctions(content, filePath.endsWith(".tsx"));
+    const allFunctions = adapter.extractFunctions(content, filePath);
     // For edits, exclude functions whose body was already present before the edit
     const functions = preEditHashes
       ? allFunctions.filter((f) => !preEditHashes!.has(f.bodyHash))

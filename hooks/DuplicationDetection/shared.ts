@@ -12,6 +12,23 @@ import { tryCatch } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { ExtractedFunction } from "@hooks/hooks/DuplicationDetection/parser";
 
+// ─── Language Adapter ───────────────────────────────────────────────────────
+
+/**
+ * Pluggable language adapter interface. Each adapter handles a set of file
+ * extensions and delegates extraction to a language-specific parser.
+ */
+export interface LanguageAdapter {
+  /** Human-readable adapter name (e.g. "typescript"). */
+  name: string;
+  /** File extensions this adapter handles (e.g. [".ts", ".tsx"]). */
+  extensions: string[];
+  /** File path patterns to exclude (e.g. [".d.ts"]). Checked before extensions. */
+  excludePatterns?: string[];
+  /** Extract functions from file content. */
+  extractFunctions: (content: string, filePath: string) => ExtractedFunction[];
+}
+
 // ─── Index Types ────────────────────────────────────────────────────────────
 
 export interface IndexEntry {
