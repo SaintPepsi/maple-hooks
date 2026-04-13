@@ -53,6 +53,11 @@ export function _setViolationCacheEntry(filePath: string, entry: ViolationCacheE
   reportedViolations.set(filePath, entry);
 }
 
+/** Test-only: read a cache entry to retrieve the hash the contract stored. */
+export function _getViolationCacheEntry(filePath: string): ViolationCacheEntry | undefined {
+  return reportedViolations.get(filePath);
+}
+
 function violationHash(violations: Array<{ check: string }>): string {
   return violations
     .map((v) => v.check)
