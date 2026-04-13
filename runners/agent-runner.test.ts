@@ -96,7 +96,7 @@ describe("agent-runner / dry-run mode", () => {
 // ─── Real Execution (stubbed) ──────────────────────────────────────────────
 
 describe("agent-runner / real execution", () => {
-  test("calls claude with correct args (-p, prompt, --max-turns, 5, --model, opus)", () => {
+  test("calls claude with correct args (-p, prompt, --max-turns, 5, --model, claude-opus-4-5-20251101)", () => {
     let calledWith: { cmd: string; args: string[] } | null = null;
     const deps = makeDeps({
       env: {},

@@ -46,7 +46,7 @@ describe("runLearningAgent", () => {
     expect(deps._captured[0].reason).toBe("credit-threshold-reached");
   });
 
-  it("uses model opus, maxTurns 25, timeout 1800000", () => {
+  it("uses model claude-opus-4-5-20251101, maxTurns 25, timeout 1800000", () => {
     const deps = fakeDeps();
     runLearningAgent(deps);
 

@@ -250,7 +250,7 @@ describe("spawnAgent", () => {
 
   // ─── Uses defaults when not specified ──────────────────────────────────────
 
-  it("uses default model/maxTurns/timeout when not specified (opus, 5, 300000)", () => {
+  it("uses default model/maxTurns/timeout when not specified (claude-opus-4-5-20251101, 5, 300000)", () => {
     const spawnCalls: Array<{ args: string[] }> = [];
     const deps = makeFakeDeps({
       spawnBackground: (_cmd, args) => {

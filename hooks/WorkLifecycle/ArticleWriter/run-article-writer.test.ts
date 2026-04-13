@@ -149,7 +149,7 @@ describe("runArticleWriter", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("uses model opus", () => {
+  it("uses model claude-opus-4-5-20251101", () => {
     const deps = fakeDeps();
     runArticleWriter("session-123", deps);
 
