@@ -5,7 +5,9 @@ import { formatAdvisory, formatDelta, scoreFile } from "@hooks/core/quality-scor
 import { err, ok } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import {
+  _getViolationCacheEntry,
   _resetViolationCache,
+  _setViolationCacheEntry,
   CodeQualityGuard,
   type CodeQualityGuardDeps,
 } from "@hooks/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract";
@@ -98,6 +100,11 @@ function makeDeps(overrides: Partial<CodeQualityGuardDeps> = {}): CodeQualityGua
       baseDir: "/tmp/test",
     },
     stderr: (msg) => logs.push(msg),
+    dedup: {
+      halfLifeEdits: 5,
+      halfLifeMs: 300_000,
+      countCrossSessionViolations: () => 0,
+    },
     ...overrides,
   };
 }
@@ -366,6 +373,142 @@ describe("CodeQualityGuard", () => {
       expect(result2.ok).toBe(true);
       if (result2.ok) {
         expect(result2.value.continue).toBe(true);
+      }
+    });
+  });
+
+  describe("dedup half-life", () => {
+    test("resurfaces violations after edit count threshold", () => {
+      _resetViolationCache();
+      const deps = makeDeps({
+        readFile: () => ok(BLOATED_TS),
+        dedup: { halfLifeEdits: 3, halfLifeMs: 300_000, countCrossSessionViolations: () => 0 },
+      });
+      const input = makeInput({ tool_input: { file_path: "/src/half-life-edits.ts" } });
+
+      // Call 1: fresh report, editCount resets to 0
+      CodeQualityGuard.execute(input, deps);
+      // Calls 2 & 3: suppressed (editCount increments to 1, then 2)
+      CodeQualityGuard.execute(input, deps);
+      CodeQualityGuard.execute(input, deps);
+      // Call 4: editCount would be 3 >= halfLifeEdits(3) — resurfaces
+      const result = CodeQualityGuard.execute(input, deps);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        expect(ctx).toBeDefined();
+        expect(ctx).toContain("SOLID quality:");
+      }
+    });
+
+    test("resurfaces violations after time threshold", () => {
+      _resetViolationCache();
+      const filePath = "/src/half-life-time.ts";
+      // Set halfLifeEdits very high so only time can trigger resurfacing
+      const deps = makeDeps({
+        readFile: () => ok(BLOATED_TS),
+        dedup: { halfLifeEdits: 100, halfLifeMs: 300_000, countCrossSessionViolations: () => 0 },
+      });
+      const input = makeInput({ tool_input: { file_path: filePath } });
+
+      // Call 1: fresh report — stores entry with correct hash and timestamp=now
+      CodeQualityGuard.execute(input, deps);
+      // Call 2: suppressed (editCount=1, time fresh)
+      CodeQualityGuard.execute(input, deps);
+
+      // Read back the actual hash the contract stored so we can inject an expired
+      // entry with the *same* hash. This forces the code into the hash=match branch
+      // where it evaluates halfLifeExpired — specifically the elapsed >= halfLifeMs path.
+      const stored = _getViolationCacheEntry(filePath);
+      expect(stored).toBeDefined();
+      const SIX_MINUTES_MS = 6 * 60 * 1000;
+      _setViolationCacheEntry(filePath, {
+        hash: stored!.hash,
+        timestamp: Date.now() - SIX_MINUTES_MS,
+        editCount: 1,
+      });
+
+      // Next call: hash matches, but elapsed (6 min) >= halfLifeMs (5 min) → resurfaces
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        expect(ctx).toBeDefined();
+        expect(ctx).toContain("SOLID quality:");
+      }
+    });
+
+    test("cross-session: prepends REPEAT OFFENDER when 3+ prior sessions flagged file", () => {
+      _resetViolationCache();
+      const filePath = "/src/repeat-offender.ts";
+      const deps = makeDeps({
+        readFile: () => ok(BLOATED_TS),
+        dedup: {
+          halfLifeEdits: 5,
+          halfLifeMs: 300_000,
+          countCrossSessionViolations: () => 3,
+        },
+      });
+      const input = makeInput({ tool_input: { file_path: filePath } });
+
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        expect(ctx).toBeDefined();
+        expect(ctx).toContain("REPEAT OFFENDER");
+      }
+    });
+
+    test("cross-session: no REPEAT OFFENDER when fewer than 3 prior sessions", () => {
+      _resetViolationCache();
+      const filePath = "/src/not-repeat.ts";
+      const deps = makeDeps({
+        readFile: () => ok(BLOATED_TS),
+        dedup: {
+          halfLifeEdits: 5,
+          halfLifeMs: 300_000,
+          countCrossSessionViolations: () => 2,
+        },
+      });
+      const input = makeInput({ tool_input: { file_path: filePath } });
+
+      const result = CodeQualityGuard.execute(input, deps);
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        const ctx = getInjectedContextFor(result.value, "PostToolUse");
+        if (ctx) expect(ctx).not.toContain("REPEAT OFFENDER");
+      }
+    });
+
+    test("deltaMessage bypasses dedup: always resurfaces when baseline delta exists", () => {
+      // When formatDelta returns a non-null message, the dedup guard is intentionally
+      // skipped (contract line: `if (prevEntry && prevEntry.hash === hash && !deltaMessage)`).
+      // This pins that behavior: a file with an improving/degrading score always reports,
+      // even if the violation set is identical to the previous call.
+      _resetViolationCache();
+      const filePath = "/src/delta-bypass.ts";
+      const baseline: BaselineStore = {
+        [filePath]: { score: 4.0, violations: 3, checkResults: [] },
+      };
+      const deps = makeDeps({
+        readFile: () => ok(BLOATED_TS),
+        readJson: <T>(_path: string) => ok(baseline as T),
+        dedup: { halfLifeEdits: 100, halfLifeMs: 999_999_999, countCrossSessionViolations: () => 0 },
+      });
+      const input = makeInput({ tool_input: { file_path: filePath } });
+
+      // Call 1: fresh report, cache entry stored
+      CodeQualityGuard.execute(input, deps);
+
+      // Call 2: same violations (same hash), but deltaMessage is non-null because baseline
+      // exists — dedup must NOT suppress, context must still be injected
+      const result2 = CodeQualityGuard.execute(input, deps);
+      expect(result2.ok).toBe(true);
+      if (result2.ok) {
+        const ctx = getInjectedContextFor(result2.value, "PostToolUse");
+        expect(ctx).toBeDefined();
       }
     });
   });
