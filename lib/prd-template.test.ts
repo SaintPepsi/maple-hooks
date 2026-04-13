@@ -136,9 +136,14 @@ describe("generatePRDTemplate", () => {
     expect(result).toContain("mode: loop");
   });
 
-  it("uses today's date in ISO format for created and updated fields", () => {
+  it("uses today's local date for created and updated fields", () => {
     const result = generatePRDTemplate(baseOpts);
-    const today = new Date().toISOString().split("T")[0];
+    // Use local date to match implementation (avoids timezone issues with toISOString)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const today = `${year}-${month}-${day}`;
     expect(result).toContain(`created: ${today}`);
     expect(result).toContain(`updated: ${today}`);
   });
