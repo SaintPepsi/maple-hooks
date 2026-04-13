@@ -801,7 +801,7 @@ export function renderIndexPage(groups: GroupMeta[]): string {
         <div class="card-header">
           <div class="card-icon">&#x1F4C1;</div>
           <h3>${esc(g.name)}</h3>
-          <span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">${g.hooks.length} hooks</span>
+          <div class="card-badges"><span class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright);">${g.hooks.length} hooks</span></div>
         </div>
         <p>${esc(g.description || `${g.hooks.length} hooks`)}</p>
       </div>`,
