@@ -10,9 +10,9 @@ import { err, ok, type Result } from "@hooks/core/result";
 /**
  * Parse a JSON string, returning a Result instead of throwing.
  */
-export function safeJsonParse(content: string): Result<Record<string, unknown>, ResultError> {
+export function safeJsonParse(content: string): Result<unknown, ResultError> {
   try {
-    const parsed = JSON.parse(content) as Record<string, unknown>;
+    const parsed = JSON.parse(content);
     return ok(parsed);
   } catch (e) {
     return err(invalidInput(`Invalid JSON: ${e instanceof Error ? e.message : "parse error"}`));
