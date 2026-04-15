@@ -7,6 +7,7 @@ const HOOK_PATH = join(import.meta.dir, "WikiContextInjector.hook.ts");
 describe("WikiContextInjector hook shell", () => {
   it("exits 0 and produces valid JSON for a Write tool input", async () => {
     const result = await runHookScript(HOOK_PATH, {
+      session_id: "test-sess",
       tool_name: "Write",
       tool_input: { file_path: "/tmp/test-file.ts", content: "test" },
     });
@@ -19,6 +20,7 @@ describe("WikiContextInjector hook shell", () => {
 
   it("exits 0 for an Edit tool input", async () => {
     const result = await runHookScript(HOOK_PATH, {
+      session_id: "test-sess",
       tool_name: "Edit",
       tool_input: {
         file_path: "/tmp/test-file.ts",
@@ -31,12 +33,13 @@ describe("WikiContextInjector hook shell", () => {
 
   it("does not crash with minimal input", async () => {
     // accepts() should reject non-Write/Edit tools, hook exits cleanly
-    const result = await runHookScript(HOOK_PATH, {});
+    const result = await runHookScript(HOOK_PATH, { session_id: "test-sess" });
     expect(result.exitCode).toBe(0);
   });
 
   it("exits 0 for a rejected tool name", async () => {
     const result = await runHookScript(HOOK_PATH, {
+      session_id: "test-sess",
       tool_name: "Read",
       tool_input: { file_path: "/tmp/test-file.ts" },
     });
