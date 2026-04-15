@@ -491,7 +491,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -507,7 +507,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -523,7 +523,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect(reason ?? "").toContain("/src/handler.ts");
@@ -541,7 +541,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("test");
@@ -562,7 +562,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("write");
@@ -586,7 +586,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     expect((reason ?? "").toLowerCase()).toContain("run");
@@ -611,7 +611,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     // Has a test (FooTest.php), so should say run, not write
@@ -635,7 +635,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
     // Has a test (.spec.), so should say run, not write
@@ -659,7 +659,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const reason = getReasonFromBlock(result.value) ?? "";
     expect(reason).not.toBe("");
     // handler.ts has a test → run instruction
@@ -687,7 +687,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -706,7 +706,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
@@ -726,7 +726,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 
@@ -800,7 +800,7 @@ describe("TestObligationEnforcer", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilentNoOp(result.value)).toBe(true);
   });
 });

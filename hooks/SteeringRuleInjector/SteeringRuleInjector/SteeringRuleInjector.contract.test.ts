@@ -266,7 +266,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -275,7 +275,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -287,7 +287,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
@@ -299,7 +299,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -311,7 +311,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("let's deploy this"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Deploy safety guidelines.");
   });
 
@@ -323,7 +323,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("refactor the parser"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -335,7 +335,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("anything here"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -353,7 +353,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -380,7 +380,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -392,7 +392,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePromptInput("deploy now"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -403,7 +403,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isBareContinue(result.value)).toBe(true);
   });
 
@@ -419,7 +419,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
     expect(getInjectedContext(result.value)).toContain("Git workflow rules.");
     expect(getInjectedContext(result.value)).toContain("\n\n---\n\n");
@@ -437,7 +437,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
@@ -453,7 +453,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSessionStartInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Always inject this content.");
   });
 
@@ -465,7 +465,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/main.css"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Browser-mandatory for CSS changes.");
   });
 
@@ -477,7 +477,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/middleware.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isBareContinue(result.value)).toBe(true);
   });
 
@@ -489,7 +489,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePostToolInput("Edit", "src/foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Verify after editing.");
   });
 
@@ -501,7 +501,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makePostToolInput("Read", "src/foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isBareContinue(result.value)).toBe(true);
   });
 
@@ -513,7 +513,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeSubagentInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Least privilege for sub-agents.");
   });
 
@@ -528,7 +528,7 @@ describe("SteeringRuleInjector contract", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getBlockReason(result.value)).toContain("Always go with the proper fix.");
   });
 
@@ -543,7 +543,7 @@ describe("SteeringRuleInjector contract", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -555,7 +555,7 @@ describe("SteeringRuleInjector contract", () => {
     const result = SteeringRuleInjector.execute(makeStopInput(), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isSilent(result.value)).toBe(true);
   });
 
@@ -574,7 +574,7 @@ Matched on tool or path.`;
     const result = SteeringRuleInjector.execute(makeToolInput("Edit", "src/foo.ts"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Matched on tool or path.");
   });
 
@@ -599,7 +599,7 @@ Dogfood every task.`;
     const result = SteeringRuleInjector.execute(input, deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(getInjectedContext(result.value)).toContain("Dogfood every task.");
   });
 
@@ -624,7 +624,7 @@ Dogfood every task.`;
     const result = SteeringRuleInjector.execute(input, deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(isBareContinue(result.value)).toBe(true);
   });
 });

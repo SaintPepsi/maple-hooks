@@ -106,7 +106,7 @@ describe("CronCreateContract.execute() -- new session file", () => {
     const result = CronCreateContract.execute(input, deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value).toEqual({});
 
     const sessionPath = "/tmp/test-pai/MEMORY/STATE/crons/test-session-001.json";

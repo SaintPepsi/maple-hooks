@@ -78,7 +78,7 @@ describe("SonnetDelegation", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeDefined();
   });
@@ -90,7 +90,7 @@ describe("SonnetDelegation", () => {
       deps,
     ) as Result<SyncHookJSONOutput, ResultError>;
 
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("sonnet");
     expect(ctx).toContain("mechanical");
@@ -103,7 +103,7 @@ describe("SonnetDelegation", () => {
       deps,
     ) as Result<SyncHookJSONOutput, ResultError>;
 
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("NEVER");
     expect(ctx).toContain("ISC");

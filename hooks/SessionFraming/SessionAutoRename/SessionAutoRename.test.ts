@@ -216,7 +216,7 @@ describe("SessionAutoRename.execute — disabled", () => {
     const result = SessionAutoRename.execute(makeInput("implement a new feature"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value.continue).toBe(true);
     expect(result.value.hookSpecificOutput).toBeUndefined();
   });
@@ -239,7 +239,7 @@ describe("SessionAutoRename.execute — first prompt rename", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value.hookSpecificOutput?.hookEventName).toBe("UserPromptSubmit");
     // Type narrowing — sessionTitle is on UserPromptSubmit specific output
     const hs = result.value.hookSpecificOutput;
@@ -290,7 +290,7 @@ describe("SessionAutoRename.execute — interval guard", () => {
     const result = SessionAutoRename.execute(makeInput("check it out"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value.hookSpecificOutput).toBeUndefined();
   });
 
@@ -354,7 +354,7 @@ describe("SessionAutoRename.execute — convergence", () => {
     const result = SessionAutoRename.execute(makeInput("more work here please"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value.hookSpecificOutput).toBeUndefined();
   });
 });
@@ -373,7 +373,7 @@ describe("SessionAutoRename.execute — customName guard", () => {
     const result = SessionAutoRename.execute(makeInput("work on typescript feature"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value.hookSpecificOutput).toBeUndefined();
   });
 });
@@ -391,7 +391,7 @@ describe("SessionAutoRename.execute — resilience", () => {
 
     expect(result.ok).toBe(true);
     // Should still attempt a rename with fresh state
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     const hs = result.value.hookSpecificOutput;
     if (hs && "sessionTitle" in hs) {
       expect(hs.sessionTitle).toBeDefined();
@@ -417,7 +417,7 @@ describe("SessionAutoRename.execute — empty prompt", () => {
     const result = SessionAutoRename.execute(makeInput(""), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(result.error.message);
     expect(result.value.hookSpecificOutput).toBeUndefined();
   });
 
