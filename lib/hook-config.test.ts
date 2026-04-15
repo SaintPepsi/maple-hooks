@@ -126,19 +126,19 @@ describe("readHookConfig (with Schema)", () => {
     }
   });
 
-  it("returns err(ConfigValidationFailed) when file cannot be read", () => {
+  it("returns err(FileReadFailed) when file cannot be read", () => {
     const result = readHookConfig("myHook", TestSchema, makeFailReader());
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.code).toBe(ErrorCode.ConfigValidationFailed);
+      expect(result.error.code).toBe(ErrorCode.FileReadFailed);
     }
   });
 
-  it("returns err(ConfigValidationFailed) when JSON is invalid", () => {
+  it("returns err(JsonParseFailed) when JSON is invalid", () => {
     const result = readHookConfig("myHook", TestSchema, makeInvalidJsonReader());
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error.code).toBe(ErrorCode.ConfigValidationFailed);
+      expect(result.error.code).toBe(ErrorCode.JsonParseFailed);
     }
   });
 
@@ -177,5 +177,81 @@ describe("readHookConfig overload resolution", () => {
     const reader = makeReader({ hookConfig: { h: { blocking: true } } });
     const result = readHookConfig("h", TestSchema, reader);
     expect(result).toHaveProperty("ok");
+  });
+});
+
+// ─── stderr logging ───────────────────────────────────────────────────────────
+
+describe("readHookConfig stderr logging", () => {
+  it("typed overload calls logStderr on file read failure", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    readHookConfig("myHook", TestSchema, makeFailReader(), undefined, log);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]).toContain("FILE_READ_FAILED");
+  });
+
+  it("typed overload calls logStderr on JSON parse failure", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    readHookConfig("myHook", TestSchema, makeInvalidJsonReader(), undefined, log);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]).toContain("JSON_PARSE_FAILED");
+  });
+
+  it("typed overload calls logStderr on missing config key", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    readHookConfig("myHook", TestSchema, makeReader({ hookConfig: {} }), undefined, log);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]).toContain("CONFIG_VALIDATION_FAILED");
+  });
+
+  it("typed overload calls logStderr on schema validation failure", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    const reader = makeReader({ hookConfig: { myHook: { blocking: "not-a-boolean" } } });
+    readHookConfig("myHook", TestSchema, reader, undefined, log);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]).toContain("CONFIG_VALIDATION_FAILED");
+  });
+
+  it("typed overload does not call logStderr on success", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    const reader = makeReader({ hookConfig: { myHook: { blocking: true } } });
+    readHookConfig("myHook", TestSchema, reader, undefined, log);
+    expect(messages.length).toBe(0);
+  });
+
+  it("untyped overload calls logStderr on file read failure", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    readHookConfig("myHook", makeFailReader(), undefined, log);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]).toContain("FILE_READ_FAILED");
+  });
+
+  it("untyped overload calls logStderr on JSON parse failure", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    readHookConfig("myHook", makeInvalidJsonReader(), undefined, log);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]).toContain("JSON_PARSE_FAILED");
+  });
+
+  it("untyped overload calls logStderr on missing config key", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    readHookConfig("myHook", makeReader({ hookConfig: {} }), undefined, log);
+    expect(messages.length).toBeGreaterThan(0);
+    expect(messages[0]).toContain("CONFIG_VALIDATION_FAILED");
+  });
+
+  it("untyped overload does not call logStderr on success", () => {
+    const messages: string[] = [];
+    const log = (msg: string): void => { messages.push(msg); };
+    readHookConfig("myHook", makeReader({ hookConfig: { myHook: { x: 1 } } }), undefined, log);
+    expect(messages.length).toBe(0);
   });
 });
