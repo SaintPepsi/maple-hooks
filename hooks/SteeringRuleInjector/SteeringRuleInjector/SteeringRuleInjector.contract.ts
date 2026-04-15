@@ -119,16 +119,20 @@ export function matchesKeywords(prompt: string, keywords: string[]): boolean {
 
 // ─── Event Detection (Effect Schema) ────────────────────────────────────────
 
-function resolveEvent(input: SteeringRuleInput): SteeringEventType {
+function resolveEvent(input: SteeringRuleInput, stderr: (msg: string) => void): SteeringEventType {
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right) as SteeringEventType;
   // Schema requires hook_type — should always be present from Claude Code
+  stderr(`[SteeringRuleInjector] resolveEvent: schema parse failed, falling back to SessionStart`);
   return "SessionStart";
 }
 
-function getMatchText(input: SteeringRuleInput): string {
+function getMatchText(input: SteeringRuleInput, stderr: (msg: string) => void): string {
   const parsed = parseHookInput(input);
-  if (parsed._tag !== "Right") return "";
+  if (parsed._tag !== "Right") {
+    stderr(`[SteeringRuleInjector] getMatchText: schema parse failed, keyword matching will be skipped`);
+    return "";
+  }
   const p = parsed.right;
 
   switch (p.hook_type) {
@@ -183,7 +187,11 @@ const defaultDeps: SteeringRuleInjectorDeps = {
     );
     if (!fileExists(trackerPath)) return { sessionId, injected: {} };
     const result = readJson<InjectionTracker>(trackerPath);
-    return result.ok ? result.value : { sessionId, injected: {} };
+    if (!result.ok) {
+      process.stderr.write(`[SteeringRuleInjector] readTracker: failed to parse tracker, resetting to empty\n`);
+      return { sessionId, injected: {} };
+    }
+    return result.value;
   },
 
   writeTracker: (tracker: InjectionTracker): void => {
@@ -228,8 +236,8 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
       return ok({});
     }
 
-    const eventType = resolveEvent(input);
-    const matchText = getMatchText(input);
+    const eventType = resolveEvent(input, deps.stderr);
+    const matchText = getMatchText(input, deps.stderr);
     const isToolEventType = eventType === "PreToolUse" || eventType === "PostToolUse";
 
     // Resolve glob patterns to file paths
