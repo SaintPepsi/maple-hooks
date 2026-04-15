@@ -75,14 +75,27 @@ export {
 export { type RunHookOptions, runHook } from "@hooks/core/runner";
 // Input types
 export type {
+  AgentToolInput,
+  BashToolInput,
+  EditToolInput,
+  GenericToolInput,
+  GlobToolInput,
+  GrepToolInput,
   HookEventType,
   HookInput,
   HookInputBase,
+  MultiEditToolInput,
+  ReadToolInput,
   SessionEndInput,
   SessionStartInput,
+  SkillToolInput,
   StopInput,
+  TaskCreateToolInput,
+  TaskUpdateToolInput,
   ToolHookInput,
+  ToolInput,
   UserPromptSubmitInput,
+  WriteToolInput,
 } from "@hooks/core/types/hook-inputs";
 // Type helpers derived from SDK
 export type {
