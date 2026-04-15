@@ -15,7 +15,7 @@
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { fileExists, readDir, readFile, removeFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ResultError } from "@hooks/core/error";
+import { envVarMissing, type ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { runHardening } from "@hooks/hooks/SecurityValidator/run-hardening";
@@ -126,7 +126,11 @@ function compareAndRevert(sessionId: string, home: string, deps: SettingsRevertD
 import { appendFile, ensureDir } from "@hooks/core/adapters/fs";
 
 const defaultDeps: SettingsRevertDeps = {
-  homedir: () => process.env.HOME || "/",
+  homedir: () => {
+    const h = process.env.HOME;
+    if (!h) throw envVarMissing("HOME");
+    return h;
+  },
   stderr: defaultStderr,
   readFile,
   writeFile,

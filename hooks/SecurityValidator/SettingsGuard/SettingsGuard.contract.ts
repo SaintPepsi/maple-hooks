@@ -20,7 +20,7 @@ import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import type { ResultError } from "@hooks/core/error";
+import { envVarMissing, type ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -123,7 +123,11 @@ function snapshotSettings(sessionId: string, home: string, deps: SettingsGuardDe
 // ─── Contract ───────────────────────────────────────────────────────────────
 
 const defaultDeps: SettingsGuardDeps = {
-  homedir: () => process.env.HOME || "/",
+  homedir: () => {
+    const h = process.env.HOME;
+    if (!h) throw envVarMissing("HOME");
+    return h;
+  },
   stderr: defaultStderr,
   readFile,
   writeFile,

@@ -11,7 +11,7 @@ import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { createRegex, safeRegexTest } from "@hooks/core/adapters/regex";
 import type { SyncHookContract } from "@hooks/core/contract";
-import { type ResultError, securityBlock as securityBlockError } from "@hooks/core/error";
+import { envVarMissing, type ResultError, securityBlock as securityBlockError } from "@hooks/core/error";
 import { err, ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
 import type { PatternsConfig } from "@hooks/hooks/SecurityValidator/patterns-schema";
@@ -388,7 +388,11 @@ const defaultDeps: SecurityValidatorDeps = {
   ensureDir,
   safeRegexTest,
   createRegex,
-  homedir: () => process.env.HOME || "/",
+  homedir: () => {
+    const h = process.env.HOME;
+    if (!h) throw envVarMissing("HOME");
+    return h;
+  },
   baseDir: getPaiDir(),
   stderr: defaultStderr,
 };
