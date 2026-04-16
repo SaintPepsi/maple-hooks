@@ -310,20 +310,20 @@ describe("ArchitectureEscalation defaultDeps", () => {
     );
   });
 
-  it("defaultDeps.readJson returns a Result", () => {
+  it("defaultDeps.readJson returns err for nonexistent file", () => {
     const result = ArchitectureEscalation.defaultDeps.readJson("/tmp/nonexistent-pai-12345.json");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(false);
   });
 
-  it("defaultDeps.writeJson returns a Result", () => {
+  it("defaultDeps.writeJson succeeds for valid path", () => {
     const result = ArchitectureEscalation.defaultDeps.writeJson("/tmp/pai-test-write-12345.json", {
       test: true,
     });
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.ensureDir returns a Result", () => {
+  it("defaultDeps.ensureDir succeeds for existing directory", () => {
     const result = ArchitectureEscalation.defaultDeps.ensureDir("/tmp");
-    expect(typeof result.ok).toBe("boolean");
+    expect(result.ok).toBe(true);
   });
 });
