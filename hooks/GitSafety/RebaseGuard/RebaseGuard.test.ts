@@ -154,7 +154,7 @@ describe("RebaseGuard", () => {
   it("continues silently on git rebase --abort", () => {
     const result = RebaseGuard.execute(makeInput("git rebase --abort"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getPreToolUseAdvisory(result.value)).toBeUndefined();
   });
@@ -162,7 +162,7 @@ describe("RebaseGuard", () => {
   it("continues silently on git rebase --continue", () => {
     const result = RebaseGuard.execute(makeInput("git rebase --continue"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getPreToolUseAdvisory(result.value)).toBeUndefined();
   });
@@ -170,7 +170,7 @@ describe("RebaseGuard", () => {
   it("continues silently on git pull --rebase", () => {
     const result = RebaseGuard.execute(makeInput("git pull --rebase origin main"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getPreToolUseAdvisory(result.value)).toBeUndefined();
   });
@@ -178,7 +178,7 @@ describe("RebaseGuard", () => {
   it("continues silently on git pull -r", () => {
     const result = RebaseGuard.execute(makeInput("git pull -r origin main"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getPreToolUseAdvisory(result.value)).toBeUndefined();
   });
@@ -188,7 +188,7 @@ describe("RebaseGuard", () => {
   it("warns on plain rebase on unpublished branch", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(isPreToolUseDeny(result.value)).toBe(false);
     const advisory = getPreToolUseAdvisory(result.value);
@@ -199,7 +199,7 @@ describe("RebaseGuard", () => {
   it("warns on interactive rebase on unpublished branch", () => {
     const result = RebaseGuard.execute(makeInput("git rebase -i HEAD~3"), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     const advisory = getPreToolUseAdvisory(result.value);
     expect(advisory).toBeDefined();
@@ -209,7 +209,7 @@ describe("RebaseGuard", () => {
   it("warn advisory mentions git merge as alternative", () => {
     const result = RebaseGuard.execute(makeInput("git rebase origin/main"), makeDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const advisory = getPreToolUseAdvisory(result.value);
     expect(advisory).toContain("git merge");
   });
@@ -226,14 +226,14 @@ describe("RebaseGuard", () => {
   it("blocks plain rebase on published branch", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("blocks interactive rebase on published branch", () => {
     const result = RebaseGuard.execute(makeInput("git rebase -i HEAD~3"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -243,21 +243,21 @@ describe("RebaseGuard", () => {
       publishedDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
   it("block message recommends git merge as alternative", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getPreToolUseDenyReason(result.value)).toContain("git merge");
   });
 
   it("block message mentions published branch prohibition", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getPreToolUseDenyReason(result.value)).toContain("published branch");
   });
 
@@ -267,7 +267,7 @@ describe("RebaseGuard", () => {
       publishedDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
@@ -292,7 +292,7 @@ describe("RebaseGuard", () => {
     const safeDeps = makeDeps({ hasUpstream: () => false });
     const result = RebaseGuard.execute(makeInput("git rebase main"), safeDeps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     // Unpublished → warn, not block
     expect(isPreToolUseDeny(result.value)).toBe(false);
     expect(result.value.continue).toBe(true);
@@ -303,28 +303,28 @@ describe("RebaseGuard", () => {
   it("continues on git commit", () => {
     const result = RebaseGuard.execute(makeInput("git commit -m 'test'"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   it("continues on git push", () => {
     const result = RebaseGuard.execute(makeInput("git push origin feature"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   it("continues on git merge", () => {
     const result = RebaseGuard.execute(makeInput("git merge origin/main"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   it("continues on git pull without rebase flag", () => {
     const result = RebaseGuard.execute(makeInput("git pull origin main"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -334,7 +334,7 @@ describe("RebaseGuard", () => {
       publishedDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -343,7 +343,7 @@ describe("RebaseGuard", () => {
       "git add file.ts && git commit -m \"$(cat <<'EOF'\nfeat: block git rebase\nEOF\n)\"";
     const result = RebaseGuard.execute(makeInput(cmd), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -353,7 +353,7 @@ describe("RebaseGuard", () => {
       publishedDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
@@ -363,14 +363,14 @@ describe("RebaseGuard", () => {
       publishedDeps(),
     );
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 
   it("continues on non-git commands", () => {
     const result = RebaseGuard.execute(makeInput("ls -la"), publishedDeps());
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
   });
 });

@@ -118,7 +118,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -133,7 +133,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeDefined();
     expect(getInjectedContext(result.value) ?? "").toContain("citation");
   });
@@ -149,7 +149,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -177,7 +177,7 @@ describe("CitationEnforcement", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -196,7 +196,7 @@ describe("CitationEnforcement", () => {
     >;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeUndefined();
   });
 
@@ -211,7 +211,7 @@ describe("CitationEnforcement", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContext(result.value)).toBeDefined();
   });
 });

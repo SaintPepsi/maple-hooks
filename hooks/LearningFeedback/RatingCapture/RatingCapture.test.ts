@@ -140,7 +140,7 @@ describe("RatingCapture.execute — explicit rating", () => {
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContextFor(result.value, "UserPromptSubmit");
     expect(typeof ctx).toBe("string");
     expect((ctx ?? "").length).toBeGreaterThan(0);
@@ -191,7 +191,7 @@ describe("RatingCapture.execute — short prompt", () => {
     const result = await RatingCapture.execute(makeInput(""), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
@@ -201,7 +201,7 @@ describe("RatingCapture.execute — short prompt", () => {
     const result = await RatingCapture.execute(makeInput("hi"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
     expect((deps.inference as ReturnType<typeof mock>).mock.calls.length).toBe(0);
   });
@@ -222,7 +222,7 @@ describe("RatingCapture algorithm reminder", () => {
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain("v1.8.0");
   });
 
@@ -231,7 +231,7 @@ describe("RatingCapture algorithm reminder", () => {
     const result = await RatingCapture.execute(makeInput("8"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toContain(
       "ALGORITHM FORMAT REQUIRED",
     );
@@ -245,7 +245,7 @@ describe("RatingCapture algorithm reminder", () => {
     );
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContextFor(result.value, "UserPromptSubmit") ?? "";
     expect(ctx).toContain("<user-prompt-submit-hook>");
     expect(ctx).toContain("</user-prompt-submit-hook>");
@@ -267,7 +267,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     const result = await RatingCapture.execute(makeInput("great job today"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
   });
 
@@ -313,7 +313,7 @@ describe("RatingCapture.execute — implicit sentiment", () => {
     const result = await RatingCapture.execute(makeInput("something happened"), deps);
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "UserPromptSubmit")).toBeDefined();
   });
 });

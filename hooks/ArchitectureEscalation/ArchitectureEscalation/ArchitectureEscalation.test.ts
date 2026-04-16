@@ -67,7 +67,7 @@ describe("ArchitectureEscalation", () => {
     const result = ArchitectureEscalation.execute(makeInput(), deps);
     expect(result).not.toBeInstanceOf(Promise);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
@@ -82,7 +82,7 @@ describe("ArchitectureEscalation", () => {
 
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toContain(
       "ARCHITECTURE ESCALATION WARNING",
     );
@@ -98,7 +98,7 @@ describe("ArchitectureEscalation", () => {
 
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toContain("STOP CURRENT APPROACH");
   });
 
@@ -109,7 +109,7 @@ describe("ArchitectureEscalation", () => {
     });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
@@ -120,7 +120,7 @@ describe("ArchitectureEscalation", () => {
     });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
@@ -131,7 +131,7 @@ describe("ArchitectureEscalation", () => {
     });
     const result = ArchitectureEscalation.execute(input, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 
@@ -139,7 +139,7 @@ describe("ArchitectureEscalation", () => {
     const deps = makeDeps();
     const result = ArchitectureEscalation.execute(makeInput(), deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const output = result.value;
     const json = JSON.stringify(output);
     const parsed = JSON.parse(json);
@@ -163,7 +163,7 @@ describe("ArchitectureEscalation", () => {
     // C2 should still be clean
     const result = ArchitectureEscalation.execute(inputC2, deps);
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeUndefined();
   });
 

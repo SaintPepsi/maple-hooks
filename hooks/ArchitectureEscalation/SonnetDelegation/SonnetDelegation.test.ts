@@ -78,7 +78,7 @@ describe("SonnetDelegation", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
     expect(getInjectedContextFor(result.value, "PostToolUse")).toBeDefined();
   });
@@ -91,7 +91,7 @@ describe("SonnetDelegation", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("sonnet");
     expect(ctx).toContain("mechanical");
@@ -105,7 +105,7 @@ describe("SonnetDelegation", () => {
     ) as Result<SyncHookJSONOutput, ResultError>;
 
     expect(result.ok).toBe(true);
-    if (!result.ok) return;
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const ctx = getInjectedContextFor(result.value, "PostToolUse") ?? "";
     expect(ctx).toContain("NEVER");
     expect(ctx).toContain("ISC");
