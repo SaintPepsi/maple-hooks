@@ -4,19 +4,18 @@ import { err, ok, type Result } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
 
 /** Wrap a state value so its readJson mock satisfies the generic dep signature. */
-function mockReadJson(
-  value: SessionRenameState,
-): SessionAutoRenameDeps["readJson"] {
+function mockReadJson(value: SessionRenameState): SessionAutoRenameDeps["readJson"] {
   return mock(() => ok(value)) as unknown as SessionAutoRenameDeps["readJson"];
 }
+
 import {
   buildTitle,
   extractKeywords,
   getStatePath,
   isConverged,
   mergeKeywords,
-  type SessionAutoRenameDeps,
   SessionAutoRename,
+  type SessionAutoRenameDeps,
   type SessionRenameState,
   shouldRename,
 } from "./SessionAutoRename.contract";
@@ -139,8 +138,13 @@ describe("buildTitle", () => {
 
   it("picks top 5 by frequency", () => {
     const kws = {
-      alpha: 10, beta: 9, gamma: 8, delta: 7, epsilon: 6,
-      zeta: 1, eta: 1,
+      alpha: 10,
+      beta: 9,
+      gamma: 8,
+      delta: 7,
+      epsilon: 6,
+      zeta: 1,
+      eta: 1,
     };
     const title = buildTitle(kws);
     expect(title).not.toContain("Zeta");
@@ -267,7 +271,7 @@ describe("SessionAutoRename.execute — first prompt rename", () => {
 
     const calls = (deps.ensureDir as ReturnType<typeof mock>).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
-    expect((calls[0][0] as string)).toContain("MEMORY/STATE");
+    expect(calls[0][0] as string).toContain("MEMORY/STATE");
   });
 });
 

@@ -168,10 +168,7 @@ describe("RebaseGuard", () => {
   });
 
   it("continues silently on git pull --rebase", () => {
-    const result = RebaseGuard.execute(
-      makeInput("git pull --rebase origin main"),
-      publishedDeps(),
-    );
+    const result = RebaseGuard.execute(makeInput("git pull --rebase origin main"), publishedDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.value.continue).toBe(true);

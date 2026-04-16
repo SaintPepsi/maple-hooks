@@ -17,13 +17,13 @@ import {
   validateDocSections,
 } from "@hooks/hooks/ObligationStateMachines/HookDocStateMachine.shared";
 import { HookDocTracker } from "@hooks/hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.contract";
+import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 import {
   getReasonFromBlock,
   isSilentNoOp,
   buildStopInput as makeStopInput,
   buildToolInput as makeToolInput,
 } from "@hooks/lib/test-helpers";
-import type { ObligationDeps } from "@hooks/lib/obligation-machine";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

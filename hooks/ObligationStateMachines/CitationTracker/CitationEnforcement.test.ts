@@ -7,8 +7,8 @@ import { CitationEnforcement } from "@hooks/hooks/ObligationStateMachines/Citati
 import type { CitationEnforcementDeps } from "@hooks/hooks/ObligationStateMachines/CitationEnforcement.shared";
 import { CitationTracker } from "@hooks/hooks/ObligationStateMachines/CitationTracker/CitationTracker.contract";
 import {
-  buildToolInput as makeToolInput,
   getPostToolUseAdvisory as getInjectedContext,
+  buildToolInput as makeToolInput,
 } from "@hooks/lib/test-helpers";
 
 const TEST_STATE_DIR = "/tmp/pai-citation-test";

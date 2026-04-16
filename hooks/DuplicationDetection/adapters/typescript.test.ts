@@ -11,8 +11,8 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { defaultParserDeps, extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 import { typescriptAdapter } from "@hooks/hooks/DuplicationDetection/adapters/typescript";
+import { defaultParserDeps, extractFunctions } from "@hooks/hooks/DuplicationDetection/parser";
 
 // ─── Metadata ────────────────────────────────────────────────────────────────
 

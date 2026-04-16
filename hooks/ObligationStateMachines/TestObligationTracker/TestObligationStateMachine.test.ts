@@ -1081,8 +1081,7 @@ describe("findImportingTestFile", () => {
 
     const deps = {
       readDir: (_dir: string) => ["changelog.test.ts"],
-      readFileContent: (_path: string) =>
-        "import { something } from '@hooks/lib/changelog';\n",
+      readFileContent: (_path: string) => "import { something } from '@hooks/lib/changelog';\n",
     };
 
     const result = findImportingTestFile("/src/log.ts", deps);
@@ -1096,8 +1095,7 @@ describe("findImportingTestFile", () => {
 
     const deps = {
       readDir: (_dir: string) => ["Foo.test.ts"],
-      readFileContent: (_path: string) =>
-        "import { Foo } from '@hooks/hooks/SomeGroup/Foo';\n",
+      readFileContent: (_path: string) => "import { Foo } from '@hooks/hooks/SomeGroup/Foo';\n",
     };
 
     const result = findImportingTestFile("/src/Foo.contract.ts", deps);

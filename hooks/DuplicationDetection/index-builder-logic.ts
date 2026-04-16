@@ -287,13 +287,13 @@ export function updateIndexForFile(
   // Extract new functions from the updated content — fail open if adapter throws.
   const adapter = deps.getAdapter(filePath);
   const functions = adapter
-    ? tryCatch(
+    ? (tryCatch(
         () => adapter.extractFunctions(content, filePath),
         (e) => {
           console.warn(`[DuplicationDetection] extractFunctions failed for ${filePath}, skipping`);
           return e;
         },
-      ).value ?? []
+      ).value ?? [])
     : [];
 
   for (const fn of functions) {
