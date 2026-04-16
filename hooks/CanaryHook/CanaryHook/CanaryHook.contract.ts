@@ -41,8 +41,11 @@ export const CanaryHook: SyncHookContract<SessionStartInput, CanaryHookDeps> = {
     const logDir = join(deps.baseDir, "MEMORY", "STATE", "logs");
     const logFile = join(logDir, "canary-hook.log");
 
-    deps.ensureDir(logDir);
-    deps.appendFile(logFile, `${new Date().toISOString()}\n`);
+    const ensureResult = deps.ensureDir(logDir);
+    if (!ensureResult.ok) return ensureResult;
+
+    const appendResult = deps.appendFile(logFile, `${new Date().toISOString()}\n`);
+    if (!appendResult.ok) return appendResult;
 
     return ok({ continue: true });
   },
