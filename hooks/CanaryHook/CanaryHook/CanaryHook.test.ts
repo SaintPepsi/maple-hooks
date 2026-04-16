@@ -5,7 +5,7 @@ import type { SessionStartInput } from "@hooks/core/types/hook-inputs";
 import { CanaryHook, type CanaryHookDeps } from "./CanaryHook.contract";
 
 const mockInput: SessionStartInput = {
-  hook_type: "SessionStart",
+  hook_event_name: "SessionStart",
   session_id: "test-session",
 };
 

@@ -20,7 +20,7 @@ export type HookEventType =
 
 export interface HookInputBase {
   session_id: string;
-  hook_type?: string;
+  hook_event_name?: string;
 }
 
 // ─── Tool Inputs (Pre/PostToolUse) ───────────────────────────────────────────

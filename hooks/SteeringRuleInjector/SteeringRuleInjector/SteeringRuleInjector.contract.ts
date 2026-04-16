@@ -122,7 +122,7 @@ export function matchesKeywords(prompt: string, keywords: string[]): boolean {
 function resolveEvent(input: SteeringRuleInput): SteeringEventType {
   const parsed = parseHookInput(input);
   if (parsed._tag === "Right") return schemaGetEventType(parsed.right) as SteeringEventType;
-  // Schema requires hook_type — should always be present from Claude Code
+  // Schema requires hook_event_name — should always be present from Claude Code
   return "SessionStart";
 }
 
@@ -131,7 +131,7 @@ function getMatchText(input: SteeringRuleInput): string {
   if (parsed._tag !== "Right") return "";
   const p = parsed.right;
 
-  switch (p.hook_type) {
+  switch (p.hook_event_name) {
     case "PreToolUse":
     case "PostToolUse": {
       const filePath = typeof p.tool_input.file_path === "string" ? p.tool_input.file_path : "";

@@ -196,17 +196,17 @@ function makeDeps(overrides: Partial<SteeringRuleInjectorDeps> = {}): SteeringRu
 }
 
 function makeSessionStartInput(): SessionStartInput {
-  return { session_id: "test-session-123", hook_type: "SessionStart" };
+  return { session_id: "test-session-123", hook_event_name: "SessionStart" };
 }
 
 function makePromptInput(prompt: string): UserPromptSubmitInput {
-  return { session_id: "test-session-123", hook_type: "UserPromptSubmit", prompt };
+  return { session_id: "test-session-123", hook_event_name: "UserPromptSubmit", prompt };
 }
 
 function makeToolInput(toolName: string, filePath: string): ToolHookInput {
   return {
     session_id: "test-session-123",
-    hook_type: "PreToolUse",
+    hook_event_name: "PreToolUse",
     tool_name: toolName,
     tool_input: { file_path: filePath },
   };
@@ -215,7 +215,7 @@ function makeToolInput(toolName: string, filePath: string): ToolHookInput {
 function makePostToolInput(toolName: string, filePath: string): ToolHookInput {
   return {
     session_id: "test-session-123",
-    hook_type: "PostToolUse",
+    hook_event_name: "PostToolUse",
     tool_name: toolName,
     tool_input: { file_path: filePath },
     tool_response: {},
@@ -225,7 +225,7 @@ function makePostToolInput(toolName: string, filePath: string): ToolHookInput {
 function makeSubagentInput(): SubagentStartInput {
   return {
     session_id: "test-session-123",
-    hook_type: "SubagentStart",
+    hook_event_name: "SubagentStart",
     transcript_path: "/tmp/transcript.jsonl",
   };
 }
@@ -233,7 +233,7 @@ function makeSubagentInput(): SubagentStartInput {
 function makeStopInput(lastMessage?: string): StopInput {
   return {
     session_id: "test-session-123",
-    hook_type: "Stop",
+    hook_event_name: "Stop",
     last_assistant_message: lastMessage,
     stop_hook_active: true,
   };
@@ -592,7 +592,7 @@ Dogfood every task.`;
     });
     const input: ToolHookInput = {
       session_id: "test-session-123",
-      hook_type: "PreToolUse",
+      hook_event_name: "PreToolUse",
       tool_name: "Skill",
       tool_input: { skill: "superpowers:brainstorming", args: "some topic" },
     };
@@ -617,7 +617,7 @@ Dogfood every task.`;
     });
     const input: ToolHookInput = {
       session_id: "test-session-123",
-      hook_type: "PreToolUse",
+      hook_event_name: "PreToolUse",
       tool_name: "Skill",
       tool_input: { skill: "commit" },
     };
