@@ -11,10 +11,9 @@ describe("WikiContextInjector hook shell", () => {
       tool_input: { file_path: "/tmp/test-file.ts", content: "test" },
     });
     expect(result.exitCode).toBe(0);
-    // Output should be parseable JSON ({ continue: true } or empty)
-    if (result.stdout.length > 0) {
-      expect(() => JSON.parse(result.stdout)).not.toThrow();
-    }
+    // Output must be valid JSON — hook always produces output
+    expect(result.stdout.length).toBeGreaterThan(0);
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
   });
 
   it("exits 0 for an Edit tool input", async () => {
