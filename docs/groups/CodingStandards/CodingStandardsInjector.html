@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CodingStandards — Hook Group</title>
+  <title>CodingStandardsInjector — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1742,133 +1742,304 @@ section[id] {
 }
 </style>
 </head>
-<body>
+<body class="has-sidebar">
 
+<nav class="wiki-nav" id="wikiNav">
+  <div class="wiki-nav-header">
+    <h4>CodingStandardsInjector</h4>
+    <p>CodingStandards / PreToolUse</p>
+  </div>
+  <ul class="wiki-nav-list">
+    <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
+    <li class="wiki-nav-item"><a href="#event"><span class="nav-num">02</span> Event</a></li>
+    <li class="wiki-nav-item"><a href="#when-it-fires"><span class="nav-num">03</span> When It Fires</a></li>
+    <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
+    <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
+    <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+  </ul>
+  <div class="wiki-nav-progress">
+    <div class="wiki-nav-progress-bar">
+      <div class="wiki-nav-progress-fill" id="navProgress"></div>
+    </div>
+    <div class="wiki-nav-progress-text" id="navProgressText">0% read</div>
+  </div>
+</nav>
+<div class="wiki-nav-overlay" id="navOverlay"></div>
+<button class="wiki-nav-toggle" id="navToggle" aria-label="Toggle navigation">&#9776;</button>
+<button class="back-to-top" id="backToTop" aria-label="Back to top">&#8593;</button>
 
 
 <div class="hero">
   <div class="hero-orb orb-1"></div>
   <div class="hero-orb orb-2"></div>
   <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Hook Group</div>
-    <h1>CodingStandards</h1>
-    <p>TypeScript quality enforcement hooks</p>
+    <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
+    <h1>CodingStandardsInjector</h1>
+    <p>Injects coding standards files as context on first Write/Edit</p>
     <div class="hero-meta">
-      <span>8 hooks</span>
+      <span>CodingStandards</span>
+      <span>PreToolUse</span>
       <span>pai-hooks</span>
     </div>
   </div>
 </div>
 
 <div class="container">
-  <div style="margin-bottom: var(--sp-lg);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodingStandards" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
-      <span style="font-size: 15px;">&#x1F4C2;</span>
-      <code style="color: var(--cyan); font-size: 12px;">hooks/CodingStandards/</code>
+  <div class="tags" style="margin-bottom: var(--sp-md);">
+    <span class="tag orange">PreToolUse</span>
+    <span class="tag green">CodingStandards</span>
+  </div>
+  <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodingStandards/CodingStandardsInjector/CodingStandardsInjector.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <span style="font-size: 15px;">&#x1F4C4;</span>
+      <code style="color: var(--cyan); font-size: 12px;">CodingStandardsInjector.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
-  </div>
+    <button class="copy-idea-btn" onclick="copyIdea()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <span>Copy Idea</span>
+      </button>
+      <script type="text/plain" id="ideaContent">## Problem
 
-  <div class="summary-grid">
-    <div class="summary-item"><div class="num" style="color:var(--orange);">6</div><div class="label">PreToolUse</div></div>
-    <div class="summary-item"><div class="num" style="color:var(--blue);">2</div><div class="label">PostToolUse</div></div>
-  </div>
+When AI assistants modify code, they lack awareness of project-specific conventions. Each project has its own patterns, naming conventions, and architectural rules that aren't captured in the language specification or general best practices.
 
-  <div class="section-label">Hooks</div>
-  <h2>All Hooks in CodingStandards</h2>
+## Solution
+
+Inject configured documentation files as context before the first code modification. The assistant sees the standards before writing any code, not after violations occur.
+
+## How It Works
+
+1. Configuration declares a list of standards file paths
+2. On first code-modifying action, read all configured files
+3. Inject combined content as additional context for the assistant
+4. Skip injection on subsequent actions (session dedup)
+
+## Signals
+
+**Input:**
+- Tool use event (code modification tools only)
+- Configuration: array of file paths
+- Session state: whether injection already occurred
+
+**Output:**
+- Additional context containing standards content
+- Or silent pass-through if already injected / not configured
+
+## Context
+
+This differs from enforcement hooks that block violations. Injection is proactive — the assistant has the information before acting, reducing the need for correction cycles.
+
+Size limits prevent context bloat. Session deduplication prevents redundant injection on every tool call.
+</script>
+  </div>
 
   
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='BashWriteGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>BashWriteGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Prevents bypassing Edit/Write via Bash sed/echo</p>
-      </div>
 
-      <div class="card blue" style="cursor:pointer;" onclick="location.href='CodingStandardsAdvisor.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>CodingStandardsAdvisor</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
-          </div>
-        </div>
-        <p>Suggests improvements post-Read</p>
+  
+  <section id="overview">
+    <div class="section-label accent">Overview</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4CB;</div>
+        <h3>Overview</h3>
       </div>
+      <p>Injects configured coding standards files as context on the first Write or Edit tool use in a session. Ensures Claude has access to project-specific conventions before making code changes.</p>
+    </div>
+  </section>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='CodingStandardsEnforcer.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>CodingStandardsEnforcer</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Enforces coding standards on Write/Edit</p>
+  <section id="event">
+    <div class="section-label cyan">Event</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Event</h3>
       </div>
+      <p>PreToolUse</p>
+    </div>
+  </section>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='CodingStandardsInjector.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>CodingStandardsInjector</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Injects coding standards files as context on first Write/Edit</p>
+  <section id="when-it-fires">
+    <div class="section-label orange">When It Fires</div>
+    <div class="card orange">
+      <div class="card-header">
+        <div class="card-icon">&#x1F3AF;</div>
+        <h3>When It Fires</h3>
       </div>
+      <div class="reason"><span class="ri">&#x2022;</span> Tool is Write or Edit</div>
+<div class="reason"><span class="ri">&#x2022;</span> First Write/Edit in the session (subsequent calls are skipped)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>codingStandards</code> array is configured in settings.json</div>
+    </div>
+  </section>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='DocCommitGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>DocCommitGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
-        </div>
-        <p>Blocks git commit when hooks are missing doc.md or IDEA.md</p>
+  <section id="what-it-does">
+    <div class="section-label blue">What It Does</div>
+    <div class="card blue">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>What It Does</h3>
       </div>
-
-      <div class="card blue" style="cursor:pointer;" onclick="location.href='TypeCheckVerifier.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>TypeCheckVerifier</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--blue-dim);color:var(--blue);">PostToolUse</span>
-          </div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>Checks if already injected this session (skip if so)</p></div>
         </div>
-        <p>Runs TypeScript type checking on code changes</p>
-      </div>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='TypeStrictness.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>TypeStrictness</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
+        <div class="flow-step">
+          <div class="step-dot">2</div>
+          <div class="step-content"><p>Reads <code>codingStandards</code> array from top-level settings.json</p></div>
         </div>
-        <p>Hard-blocks any types in TypeScript</p>
-      </div>
 
-      <div class="card orange" style="cursor:pointer;" onclick="location.href='WhileLoopGuard.html'">
-        <div class="card-header">
-          <div class="card-icon">&#x1F517;</div>
-          <h3>WhileLoopGuard</h3>
-          <div class="card-badges">
-            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
-          </div>
+        <div class="flow-step">
+          <div class="step-dot">3</div>
+          <div class="step-content"><p>For each configured path:</p></div>
         </div>
-        <p>Blocks while and do...while loops in code files. State-checks the full file after edit.</p>
-      </div>
+</div>
+      <div class="reason"><span class="ri">&#x2022;</span> Resolves relative paths against PAI_DIR</div>
+<div class="reason"><span class="ri">&#x2022;</span> Skips files over 50KB</div>
+<div class="reason"><span class="ri">&#x2022;</span> Deduplicates by content hash</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-dot">1</div>
+          <div class="step-content"><p>Injects combined content as <code>additionalContext</code></p></div>
+        </div>
+</div>
+    </div>
+  </section>
 
-  <footer><p>pai-hooks documentation</p></footer>
+  <section id="examples">
+    <div class="section-label green">Examples</div>
+    <div class="card green">
+      <div class="card-header">
+        <div class="card-icon">&#x1F4A1;</div>
+        <h3>Examples</h3>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>Injecting TypeScript standards</strong></div>
+        <div>Configure in settings.json:</div>
+        <div>```json</div>
+        <div>{</div>
+        <div>  "codingStandards": [</div>
+        <div>    "standards/typescript.md",</div>
+        <div>    "standards/testing.md"</div>
+        <div>  ]</div>
+        <div>}</div>
+        <div>```</div>
+        <div>On first Write/Edit, both files are injected as context.</div>
+      </div>
+      
+      <div class="uc-example">
+        <div><strong>Absolute path standards</strong></div>
+        <div>```json</div>
+        <div>{</div>
+        <div>  "codingStandards": [</div>
+        <div>    "/shared/company-standards.md"</div>
+        <div>  ]</div>
+        <div>}</div>
+        <div>```</div>
+        <div>Absolute paths are used as-is without PAI_DIR prefix.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="dependencies">
+    <div class="section-label cyan">Dependencies</div>
+    <div class="card cyan">
+      <div class="card-header">
+        <div class="card-icon">&#x1F517;</div>
+        <h3>Dependencies</h3>
+      </div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/core/adapters/fs</code> — File reading</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/core/adapters/json</code> — Safe JSON parsing</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>@hooks/lib/paths</code> — PAI_DIR and settings path resolution</div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Generated from <code>CodingStandardsInjector/doc.md</code> &mdash; pai-hooks documentation</p>
+  </footer>
 </div>
 
+<script>
+function copyIdea() {
+  var tpl = document.getElementById('ideaContent');
+  if (!tpl) return;
+  var text = tpl.textContent;
+  if (!text.trim()) return;
+  var done = function() {
+    var btn = document.querySelector('.copy-idea-btn span');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(function() { btn.textContent = 'Copy Idea'; }, 2000); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(function() {
+      fallbackCopy(text); done();
+    });
+  } else { fallbackCopy(text); done(); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+}
+</script>
 
+<script>
+(function() {
+  var nav = document.getElementById('wikiNav');
+  var toggle = document.getElementById('navToggle');
+  var overlay = document.getElementById('navOverlay');
+  var backToTop = document.getElementById('backToTop');
+  var progressFill = document.getElementById('navProgress');
+  var progressText = document.getElementById('navProgressText');
+  var navItems = document.querySelectorAll('.wiki-nav-item');
+  var sections = document.querySelectorAll('section[id]');
+
+  if (toggle) toggle.addEventListener('click', function() {
+    nav.classList.toggle('open');
+    overlay.classList.toggle('open');
+  });
+  if (overlay) overlay.addEventListener('click', function() {
+    nav.classList.remove('open');
+    overlay.classList.remove('open');
+  });
+  if (nav) nav.querySelectorAll('a').forEach(function(link) {
+    link.addEventListener('click', function() {
+      if (window.innerWidth <= 1200) {
+        nav.classList.remove('open');
+        overlay.classList.remove('open');
+      }
+    });
+  });
+
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var scrollTop = window.scrollY;
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? Math.min(100, Math.round((scrollTop / docHeight) * 100)) : 0;
+        if (progressFill) progressFill.style.width = progress + '%';
+        if (progressText) progressText.textContent = progress + '% read';
+        if (backToTop) backToTop.classList.toggle('visible', scrollTop > 400);
+        var current = '';
+        for (var i = 0; i < sections.length; i++) {
+          if (sections[i].getBoundingClientRect().top <= 120) current = sections[i].id;
+        }
+        navItems.forEach(function(item) {
+          var link = item.querySelector('a');
+          item.classList.toggle('active', link && link.getAttribute('href') === '#' + current);
+        });
+        ticking = false;
+      });
+      ticking = true;
+    }
+  });
+
+  if (backToTop) backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
 </body>
 </html>
