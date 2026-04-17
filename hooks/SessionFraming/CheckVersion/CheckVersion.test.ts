@@ -131,14 +131,16 @@ describe("CheckVersion defaultDeps", () => {
     const result = await CheckVersion.defaultDeps.getLatestVersion();
     // Result depends on network availability - either outcome is valid
     if (result.ok) {
-      expect(typeof result.value).toBe("string");
+      // Version should match semver pattern
+      expect(result.value).toMatch(/^\d+\.\d+\.\d+/);
     } else {
       expect(result.error.code).toBeDefined();
     }
   });
 
-  test("isSubagent returns a boolean", () => {
-    expect(typeof CheckVersion.defaultDeps.isSubagent()).toBe("boolean");
+  test("isSubagent returns false in test environment", () => {
+    // In test environment, CLAUDE_AGENT_ID is not set
+    expect(CheckVersion.defaultDeps.isSubagent()).toBe(false);
   });
 
   test("stderr writes without throwing", () => {
