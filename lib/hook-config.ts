@@ -63,8 +63,7 @@ export function readHookConfig<T>(
   // Detect which overload was called by checking if second arg is an Effect Schema.
   // Schemas are functions (not plain functions) — Schema.isSchema correctly distinguishes
   // them from the readFileFn option in the untyped overload.
-  const isSchemaOverload =
-    schemaOrReadFileFn !== undefined && Schema.isSchema(schemaOrReadFileFn);
+  const isSchemaOverload = schemaOrReadFileFn !== undefined && Schema.isSchema(schemaOrReadFileFn);
 
   if (isSchemaOverload) {
     const schema = schemaOrReadFileFn as Schema.Schema<T>;
@@ -89,11 +88,13 @@ export function readHookConfig<T>(
 /**
  * Internal helper: reads and extracts the raw hookConfig.{hookName} object.
  * Returns the raw value (unknown object) or null on any error.
+ * Logs distinct failure modes to stderr if provided (#171).
  */
 function readRaw(
   hookName: string,
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
+  stderr?: (msg: string) => void,
 ): Record<string, unknown> | null {
   const path = settingsPath ?? getSettingsPath();
   const reader =
@@ -103,15 +104,24 @@ function readRaw(
       return r.ok ? r.value : null;
     });
   const raw = reader(path);
-  if (!raw) return null;
+  if (!raw) {
+    stderr?.(`[hook-config] file read failed: ${path}`);
+    return null;
+  }
 
   const parseResult = tryCatch(
     () => JSON.parse(raw) as SettingsWithHookConfig,
     (cause) => jsonParseFailed(raw.slice(0, 100), cause),
   );
-  if (!parseResult.ok) return null;
+  if (!parseResult.ok) {
+    stderr?.(`[hook-config] JSON parse failed: ${parseResult.error.message}`);
+    return null;
+  }
 
   const cfg = parseResult.value?.hookConfig?.[hookName];
-  if (!cfg || typeof cfg !== "object") return null;
+  if (!cfg || typeof cfg !== "object") {
+    // Not an error — hook simply has no config entry
+    return null;
+  }
   return cfg as Record<string, unknown>;
 }
