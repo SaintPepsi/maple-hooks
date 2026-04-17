@@ -285,6 +285,11 @@ function validateBashCommand(
   patterns: PatternsConfig,
   deps: SecurityValidatorDeps,
 ): ValidationResult {
+  // Clipboard-only commands: safe regardless of piped content (fixes #240)
+  // Match: "... | pbcopy", "... | pbpaste", or commands starting with "pbpaste ..."
+  if (/\|\s*pb(?:copy|paste)\s*$|^pb(?:copy|paste)(?:\s|$)/.test(command))
+    return { action: "allow" };
+
   for (const p of patterns.bash.blocked) {
     if (matchesPattern(command, p.pattern, deps)) return { action: "block", reason: p.reason };
   }
