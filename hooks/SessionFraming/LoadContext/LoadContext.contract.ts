@@ -67,6 +67,12 @@ export interface LoadContextDeps {
   stderr: (msg: string) => void;
 }
 
+/** Narrowed deps for loadPendingProposals — only what that function actually uses. */
+export type LoadContextProposalDeps = Pick<
+  LoadContextDeps,
+  "fileExists" | "readFile" | "readDir" | "stat"
+>;
+
 // ─── Pure Logic ──────────────────────────────────────────────────────────────
 
 function loadSettings(baseDir: string, deps: LoadContextDeps): Settings {
@@ -323,7 +329,10 @@ function buildActiveWorkSummary(baseDir: string, deps: LoadContextDeps): string 
   return summary;
 }
 
-export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): string | null {
+export function loadPendingProposals(
+  baseDir: string,
+  deps: LoadContextProposalDeps,
+): string | null {
   const proposalsDir = join(baseDir, "MEMORY/LEARNING/PROPOSALS/pending");
   const lockPath = join(baseDir, "MEMORY/LEARNING/PROPOSALS/.analyzing");
 
@@ -364,7 +373,7 @@ export function loadPendingProposals(baseDir: string, deps: LoadContextDeps): st
       }
     }
     if (summaries.length > 0) {
-      summarySection = summaries.join("\n") + "\n\n";
+      summarySection = `${summaries.join("\n")}\n\n`;
     }
   }
 

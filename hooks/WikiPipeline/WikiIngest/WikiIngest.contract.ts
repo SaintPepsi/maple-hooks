@@ -137,6 +137,7 @@ export function hasExistingExtraction(sessionId: string, deps: WikiIngestDeps): 
 
 /**
  * Parse JSON output from filter.ts CLI.
+ * Validates all required FilterResultJson fields before returning.
  */
 export function parseFilterOutput(stdout: string): FilterResultJson | null {
   const trimmed = stdout.trim();
@@ -144,12 +145,22 @@ export function parseFilterOutput(stdout: string): FilterResultJson | null {
   const parsed = safeJsonParse(trimmed);
   if (!parsed.ok) return null;
   const result = parsed.value;
-  if (typeof result.sessionId !== "string") return null;
-  return result as unknown as FilterResultJson;
+  if (typeof result !== "object" || result === null) return null;
+  const obj = result as Record<string, unknown>;
+  // Validate required fields (#159)
+  if (typeof obj.sessionId !== "string") return null;
+  if (typeof obj.classification !== "string") return null;
+  if (typeof obj.messageCount !== "number") return null;
+  if (typeof obj.keptMessageCount !== "number") return null;
+  if (typeof obj.decisionsFound !== "number") return null;
+  if (!Array.isArray(obj.entitiesFound)) return null;
+  if (typeof obj.confidence !== "string") return null;
+  return obj as unknown as FilterResultJson;
 }
 
 /**
  * Parse JSON extraction file.
+ * Validates all required ExtractionJson fields before returning.
  */
 export function parseExtractionFile(content: string): ExtractionJson | null {
   const trimmed = content.trim();
@@ -157,8 +168,16 @@ export function parseExtractionFile(content: string): ExtractionJson | null {
   const parsed = safeJsonParse(trimmed);
   if (!parsed.ok) return null;
   const result = parsed.value;
-  if (typeof result.sessionId !== "string") return null;
-  return result as unknown as ExtractionJson;
+  if (typeof result !== "object" || result === null) return null;
+  const obj = result as Record<string, unknown>;
+  // Validate required fields (#159)
+  if (typeof obj.sessionId !== "string") return null;
+  if (!Array.isArray(obj.entities)) return null;
+  if (!Array.isArray(obj.decisions)) return null;
+  if (!Array.isArray(obj.concepts)) return null;
+  if (typeof obj.confidence !== "string") return null;
+  if (typeof obj.cost !== "object" || obj.cost === null) return null;
+  return obj as unknown as ExtractionJson;
 }
 
 /**

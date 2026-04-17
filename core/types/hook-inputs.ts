@@ -35,6 +35,12 @@ export interface ToolHookInput extends HookInputBase {
    * Use typeof check before accessing properties.
    */
   tool_response?: string | object;
+  /**
+   * Legacy alias for tool_response in raw Claude Code JSON (#161).
+   * Some runtime versions emit tool_output instead of tool_response.
+   * Hooks should check both fields.
+   */
+  tool_output?: string | object;
 }
 
 // ─── Session Inputs ──────────────────────────────────────────────────────────

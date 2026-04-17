@@ -11,7 +11,12 @@ import { removeDir } from "@hooks/core/adapters/fs";
 import { buildChildEnv } from "@hooks/core/adapters/process";
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
-import type { SessionStartInput, StopInput, ToolHookInput } from "@hooks/core/types/hook-inputs";
+import type {
+  HookInput,
+  SessionStartInput,
+  StopInput,
+  ToolHookInput,
+} from "@hooks/core/types/hook-inputs";
 
 /**
  * Assert that a Result is ok, throwing if it's an error.
@@ -124,7 +129,7 @@ export function uniqueSessionId(base: string): string {
  *  Sets PAI_DIR to a temp directory so hooks don't pollute the real filesystem. */
 export async function runHookScript(
   hookPath: string,
-  input: Record<string, unknown>,
+  input: HookInput,
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const tmpDir = join(import.meta.dir, `__hook-test-${Date.now()}-${++_hookRunId}__`);
   const proc = Bun.spawn(["bun", hookPath], {

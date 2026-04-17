@@ -20,14 +20,25 @@ interface SettingsWithHookConfig {
 }
 
 /**
- * Read a hook's config section from settings.json.
+ * Read a hook's config section from settings.json (untyped, fail-open).
+ *
+ * **ESCAPE HATCH**: This overload returns unvalidated data. Prefer the
+ * schema-validated overload for type safety at the config boundary.
  *
  * Navigates to `hookConfig.{hookName}` and returns the value,
  * or null if not configured / on any read or parse error.
+ * Callers must validate the returned shape before use.
  *
  * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
+ * @returns T | null — caller is responsible for validating shape
+ *
+ * @example
+ * // Prefer schema-validated version:
+ * const result = readHookConfig("myHook", MyConfigSchema);
+ * if (!result.ok) return handleError(result.error);
+ * const config = result.value; // typed and validated
  */
 export function readHookConfig<T = Record<string, unknown>>(
   hookName: string,
@@ -36,16 +47,20 @@ export function readHookConfig<T = Record<string, unknown>>(
 ): T | null;
 
 /**
- * Read and validate a hook's config section from settings.json.
+ * Read and validate a hook's config section from settings.json (PREFERRED).
  *
- * Like the untyped overload but validates against `schema` using Effect Schema.
- * Returns `Result<T, ResultError>` — ok on success, err with
+ * Validates against `schema` using Effect Schema and returns
+ * `Result<T, ResultError>` — ok on success, err with
  * `ConfigValidationFailed` if the config is missing or fails validation.
+ *
+ * This is the recommended API: validation happens at the config boundary,
+ * ensuring type safety without caller-side casts.
  *
  * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
  * @param schema - Effect Schema to validate against
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
+ * @returns Result<T, ResultError> — validated config or typed error
  */
 export function readHookConfig<T>(
   hookName: string,
