@@ -1104,6 +1104,65 @@ describe("deriveTestPaths", () => {
     } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
     expect(deriveTestPaths("/abs/path/README")).toEqual([]);
   });
+
+  it("derives Svelte test pattern (Component.svelte.test.ts)", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/src/components/Button.svelte");
+    expect(paths).toContain("/src/components/Button.svelte.test.ts");
+    expect(paths).toContain("/src/components/Button.svelte.spec.ts");
+  });
+
+  it("derives Vue test pattern (Component.vue.test.ts)", () => {
+    const {
+      deriveTestPaths,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const paths = deriveTestPaths("/src/components/Modal.vue");
+    expect(paths).toContain("/src/components/Modal.vue.test.ts");
+    expect(paths).toContain("/src/components/Modal.vue.spec.ts");
+  });
+});
+
+// ─── findTestFile ───────────────────────────────────────────────────────────
+
+describe("findTestFile", () => {
+  it("returns first matching test file path", () => {
+    const {
+      findTestFile,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const fileExists = (path: string) => path === "/src/handler.test.ts";
+    const result = findTestFile("/src/handler.ts", fileExists);
+    expect(result).toBe("/src/handler.test.ts");
+  });
+
+  it("returns null when no test file exists", () => {
+    const {
+      findTestFile,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const fileExists = () => false;
+    const result = findTestFile("/src/orphan.ts", fileExists);
+    expect(result).toBeNull();
+  });
+
+  it("finds Svelte test file pattern", () => {
+    const {
+      findTestFile,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const fileExists = (path: string) => path === "/src/Button.svelte.test.ts";
+    const result = findTestFile("/src/Button.svelte", fileExists);
+    expect(result).toBe("/src/Button.svelte.test.ts");
+  });
+
+  it("prefers .test.ts over .spec.ts when both exist", () => {
+    const {
+      findTestFile,
+    } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
+    const fileExists = (path: string) =>
+      path === "/src/handler.test.ts" || path === "/src/handler.spec.ts";
+    const result = findTestFile("/src/handler.ts", fileExists);
+    expect(result).toBe("/src/handler.test.ts");
+  });
 });
 
 // ─── findImportingTestFile ──────────────────────────────────────────────────
