@@ -9,19 +9,15 @@ import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
 import { appendFile, ensureDir, fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import type { SyncHookContract } from "@hooks/core/contract";
-import { jsonParseFailed, type ResultError } from "@hooks/core/error";
+import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch } from "@hooks/core/result";
 import type { StopInput } from "@hooks/core/types/hook-inputs";
+import { parseTranscriptEntry, type TranscriptEntry } from "@hooks/core/types/transcript-schema";
 import { getDAName, getPrincipalName } from "@hooks/lib/identity";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getLocalComponents } from "@hooks/lib/time";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface TranscriptEntry {
-  type: "user" | "assistant";
-  message?: { content: string | Array<{ type: string; text?: string }> };
-}
 
 interface RelationshipNote {
   type: "W" | "B" | "O";
@@ -57,25 +53,16 @@ export function safeParseTranscriptLine(line: string): TranscriptEntry | null {
   if (firstBrace === -1) return null;
   const trimmed = line.slice(firstBrace);
   if (!trimmed.startsWith("{")) return null;
-  // Quick structural check before attempting parse
   if (!trimmed.includes('"type"')) return null;
-  const parseResult = tryCatch(
+
+  const jsonResult = tryCatch(
     () => JSON.parse(trimmed) as unknown,
-    (e) => jsonParseFailed(trimmed, e),
+    () => null,
   );
-  if (!parseResult.ok) return null;
-  const parsed = parseResult.value;
-  if (typeof parsed !== "object" || parsed === null) return null;
-  const obj = parsed as Record<string, unknown>;
-  if (obj.type !== "user" && obj.type !== "assistant") return null;
-  // Validate message shape if present
-  if (obj.message !== undefined) {
-    if (typeof obj.message !== "object" || obj.message === null) return null;
-    const msg = obj.message as Record<string, unknown>;
-    if (msg.content !== undefined && typeof msg.content !== "string" && !Array.isArray(msg.content))
-      return null;
-  }
-  return { type: obj.type, message: obj.message as TranscriptEntry["message"] };
+  if (!jsonResult.ok) return null;
+
+  const result = parseTranscriptEntry(jsonResult.value);
+  return result.ok ? result.value : null;
 }
 
 function defaultReadTranscript(path: string): TranscriptEntry[] {

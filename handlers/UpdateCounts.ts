@@ -16,6 +16,26 @@ import { join } from "node:path";
 import { ensureDir, fileExists, readDir, readFile, stat, writeFile } from "@hooks/core/adapters/fs";
 import { safeJsonParse } from "@hooks/core/adapters/json";
 import { getPaiDir, getSettingsPath } from "@hooks/lib/paths";
+import { Schema } from "effect";
+
+// ─── Settings Schema (minimal, for hook counting) ──────────────────────────
+
+const HookEntrySchema = Schema.Struct({
+  type: Schema.optional(Schema.String),
+  command: Schema.optional(Schema.String),
+});
+
+const HookGroupSchema = Schema.Struct({
+  hooks: Schema.optional(Schema.Array(HookEntrySchema)),
+});
+
+const SettingsHooksSchema = Schema.Struct({
+  hooks: Schema.optional(
+    Schema.Record({ key: Schema.String, value: Schema.Array(HookGroupSchema) }),
+  ),
+});
+
+const decodeSettingsHooks = Schema.decodeUnknownEither(SettingsHooksSchema);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -85,21 +105,18 @@ function countHooksFromSettings(settingsPath: string): number {
 
   const parsed = safeJsonParse(content.value);
   if (!parsed.ok) return 0;
-  if (typeof parsed.value !== "object" || parsed.value === null) return 0;
-  const settings = parsed.value as Record<string, unknown>;
-  const hooks = settings.hooks;
-  if (!hooks || typeof hooks !== "object") return 0;
 
-  // Structure: { EventName: [{ hooks: [{type, command}, ...] }, ...] }
+  const decoded = decodeSettingsHooks(parsed.value);
+  if (decoded._tag === "Left") return 0;
+
+  const hooks = decoded.right.hooks;
+  if (!hooks) return 0;
+
   let count = 0;
-  for (const eventGroups of Object.values(hooks as Record<string, unknown>)) {
-    if (!Array.isArray(eventGroups)) continue;
+  for (const eventGroups of Object.values(hooks)) {
     for (const group of eventGroups) {
-      if (group && typeof group === "object" && "hooks" in group) {
-        const innerHooks = (group as Record<string, unknown>).hooks;
-        if (Array.isArray(innerHooks)) {
-          count += innerHooks.length;
-        }
+      if (group.hooks) {
+        count += group.hooks.length;
       }
     }
   }

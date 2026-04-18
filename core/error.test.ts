@@ -26,9 +26,9 @@ import {
 // ─── ErrorCode Enum ──────────────────────────────────────────────────────────
 
 describe("ErrorCode", () => {
-  it("has 19 error codes", () => {
+  it("has 20 error codes", () => {
     const codes = Object.keys(ErrorCode).filter((k) => Number.isNaN(Number(k)));
-    expect(codes.length).toBe(19);
+    expect(codes.length).toBe(20);
   });
 
   it("all codes are unique string values", () => {

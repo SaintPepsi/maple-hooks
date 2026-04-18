@@ -20,11 +20,12 @@ import {
 import { safeJsonParse } from "@hooks/core/adapters/json";
 import { exec } from "@hooks/core/adapters/process";
 import type { AsyncHookContract } from "@hooks/core/contract";
-import type { ResultError } from "@hooks/core/error";
+import { type ResultError, schemaDecodeFailed } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { SessionEndInput } from "@hooks/core/types/hook-inputs";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 import { getISOTimestamp } from "@hooks/lib/time";
+import { Schema } from "effect";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,6 +58,67 @@ export interface AuditEntry {
   pagesCreated: number;
   skipped?: boolean;
   skipReason?: string;
+}
+
+// ─── Effect Schemas ─────────────────────────────────────────────────────────
+
+const FilterResultSchema = Schema.Struct({
+  sessionId: Schema.String,
+  classification: Schema.String,
+  digestPath: Schema.NullOr(Schema.String),
+  messageCount: Schema.Number,
+  keptMessageCount: Schema.Number,
+  decisionsFound: Schema.Number,
+  entitiesFound: Schema.mutable(Schema.Array(Schema.String)),
+  confidence: Schema.String,
+});
+
+const CostSchema = Schema.Struct({
+  inputTokens: Schema.Number,
+  outputTokens: Schema.Number,
+  totalCost: Schema.Number,
+});
+
+const EntitySchema = Schema.Struct({
+  name: Schema.String,
+  type: Schema.String,
+  description: Schema.String,
+});
+
+const ConceptSchema = Schema.Struct({
+  name: Schema.String,
+  description: Schema.String,
+});
+
+const ExtractionSchema = Schema.Struct({
+  sessionId: Schema.String,
+  entities: Schema.mutable(Schema.Array(EntitySchema)),
+  decisions: Schema.mutable(Schema.Array(Schema.String)),
+  concepts: Schema.mutable(Schema.Array(ConceptSchema)),
+  confidence: Schema.String,
+  skipReason: Schema.optional(Schema.String),
+  cost: CostSchema,
+});
+
+const decodeFilterResult = Schema.decodeUnknownEither(FilterResultSchema);
+const decodeExtraction = Schema.decodeUnknownEither(ExtractionSchema);
+
+function parseFilterResult(json: unknown): Result<FilterResultJson, ResultError> {
+  const result = decodeFilterResult(json);
+  if (result._tag === "Right") return { ok: true, value: result.right };
+  return {
+    ok: false,
+    error: schemaDecodeFailed("FilterResultJson", result.left),
+  };
+}
+
+function parseExtraction(json: unknown): Result<ExtractionJson, ResultError> {
+  const result = decodeExtraction(json);
+  if (result._tag === "Right") return { ok: true, value: result.right };
+  return {
+    ok: false,
+    error: schemaDecodeFailed("ExtractionJson", result.left),
+  };
 }
 
 export interface WikiIngestDeps {
@@ -137,52 +199,28 @@ export function hasExistingExtraction(sessionId: string, deps: WikiIngestDeps): 
 
 /**
  * Parse JSON output from filter.ts CLI.
- * Validates all required FilterResultJson fields before returning.
+ * Uses Effect Schema for validation.
  */
 export function parseFilterOutput(stdout: string): FilterResultJson | null {
   const trimmed = stdout.trim();
   if (!trimmed.startsWith("{")) return null;
   const parsed = safeJsonParse(trimmed);
   if (!parsed.ok) return null;
-  const result = parsed.value;
-  if (typeof result !== "object" || result === null) return null;
-  const obj = result as Record<string, unknown>;
-  // Validate required fields (#159)
-  if (typeof obj.sessionId !== "string") return null;
-  if (typeof obj.classification !== "string") return null;
-  if (obj.digestPath !== null && typeof obj.digestPath !== "string") return null;
-  if (typeof obj.messageCount !== "number") return null;
-  if (typeof obj.keptMessageCount !== "number") return null;
-  if (typeof obj.decisionsFound !== "number") return null;
-  if (!Array.isArray(obj.entitiesFound)) return null;
-  if (typeof obj.confidence !== "string") return null;
-  return obj as unknown as FilterResultJson;
+  const result = parseFilterResult(parsed.value);
+  return result.ok ? result.value : null;
 }
 
 /**
  * Parse JSON extraction file.
- * Validates all required ExtractionJson fields before returning.
+ * Uses Effect Schema for validation.
  */
 export function parseExtractionFile(content: string): ExtractionJson | null {
   const trimmed = content.trim();
   if (!trimmed.startsWith("{")) return null;
   const parsed = safeJsonParse(trimmed);
   if (!parsed.ok) return null;
-  const result = parsed.value;
-  if (typeof result !== "object" || result === null) return null;
-  const obj = result as Record<string, unknown>;
-  // Validate required fields (#159)
-  if (typeof obj.sessionId !== "string") return null;
-  if (!Array.isArray(obj.entities)) return null;
-  if (!Array.isArray(obj.decisions)) return null;
-  if (!Array.isArray(obj.concepts)) return null;
-  if (typeof obj.confidence !== "string") return null;
-  if (typeof obj.cost !== "object" || obj.cost === null) return null;
-  const cost = obj.cost as Record<string, unknown>;
-  if (typeof cost.inputTokens !== "number") return null;
-  if (typeof cost.outputTokens !== "number") return null;
-  if (typeof cost.totalCost !== "number") return null;
-  return obj as unknown as ExtractionJson;
+  const result = parseExtraction(parsed.value);
+  return result.ok ? result.value : null;
 }
 
 /**

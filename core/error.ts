@@ -34,6 +34,7 @@ export enum ErrorCode {
   ContractViolation = "CONTRACT_VIOLATION",
   StateCorrupted = "STATE_CORRUPTED",
   ConfigValidationFailed = "CONFIG_VALIDATION_FAILED",
+  SchemaDecodeFailed = "SCHEMA_DECODE_FAILED",
 
   // System
   Unknown = "UNKNOWN",
@@ -139,6 +140,15 @@ export function configValidationFailed(hookName: string, cause: unknown): Result
   return new ResultError(
     ErrorCode.ConfigValidationFailed,
     `Config validation failed for "${hookName}": ${msg}`,
+    cause,
+  );
+}
+
+export function schemaDecodeFailed(schemaName: string, cause: unknown): ResultError {
+  const msg = cause instanceof Error ? cause.message : String(cause);
+  return new ResultError(
+    ErrorCode.SchemaDecodeFailed,
+    `Failed to decode ${schemaName}: ${msg}`,
     cause,
   );
 }

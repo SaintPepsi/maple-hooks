@@ -13,6 +13,11 @@ import type { AsyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result, tryCatch, tryCatchAsync } from "@hooks/core/result";
 import type { UserPromptSubmitInput } from "@hooks/core/types/hook-inputs";
+import {
+  type ContentBlock,
+  parseTranscriptEntry,
+  type TranscriptEntry,
+} from "@hooks/core/types/transcript-schema";
 import { getIdentity, getPrincipal, getPrincipalName } from "@hooks/lib/identity";
 import { getLearningCategory } from "@hooks/lib/learning-utils";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -38,20 +43,6 @@ interface SentimentResult {
   confidence: number;
   summary: string;
   detailed_context: string;
-}
-
-interface ContentBlock {
-  type: string;
-  text?: string;
-}
-
-interface TranscriptMessage {
-  content?: string | ContentBlock[];
-}
-
-interface TranscriptEntry {
-  type?: string;
-  message?: TranscriptMessage;
 }
 
 export interface RatingCaptureDeps {
@@ -127,18 +118,21 @@ WHEN TO RETURN null FOR RATING:
 - Emotion unrelated to ${assistantName}'s work`;
 }
 
-/** Parse a single JSONL line, returning null on invalid JSON. */
+/** Parse a single JSONL line, returning null on invalid JSON or schema mismatch. */
 function parseJsonlEntry(
   line: string,
   onError?: (line: string, err: Error) => void,
 ): TranscriptEntry | null {
-  const result = tryCatch(
-    () => JSON.parse(line) as TranscriptEntry,
+  const jsonResult = tryCatch(
+    () => JSON.parse(line) as unknown,
     (e) => {
       if (onError && e instanceof Error) onError(line.slice(0, 100), e);
       return null;
     },
   );
+  if (!jsonResult.ok) return null;
+
+  const result = parseTranscriptEntry(jsonResult.value);
   return result.ok ? result.value : null;
 }
 
