@@ -10,9 +10,7 @@ import {
   stat,
   writeFile,
 } from "@hooks/core/adapters/fs";
-import { ErrorCode, ResultError } from "@hooks/core/error";
-import { err, ok, type Result } from "@hooks/core/result";
-import type { LoadContextDeps } from "./LoadContext.contract";
+import type { LoadContextProposalDeps } from "./LoadContext.contract";
 import { loadPendingProposals } from "./LoadContext.contract";
 
 const TEST_DIR = join(import.meta.dir, "__test-load-context-proposals__");
@@ -63,41 +61,34 @@ describe("Proposal format parsing", () => {
       );
     }
     const filesResult = readDir(join(TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending"));
-    const files = filesResult.ok
-      ? filesResult.value.filter((f: string) => f.endsWith(".md") && f !== ".gitkeep")
-      : [];
+    expect(filesResult.ok).toBe(true);
+    if (!filesResult.ok) return;
+    const files = filesResult.value.filter((f: string) => f.endsWith(".md") && f !== ".gitkeep");
     expect(files.length).toBe(8);
   });
 });
 
-// ─── Section 2: Integration tests ────────────────────────────────────────────
+// ─── Section 2: Integration tests (red until Task 3 modifies LoadContext) ────
 
 const INT_TEST_DIR = join(import.meta.dir, "__test-lc-proposals-integration__");
 
-type ProposalDeps = Pick<LoadContextDeps, "fileExists" | "readFile" | "readDir" | "stat">;
-
-function makeProposalDeps(overrides: Partial<ProposalDeps> = {}): ProposalDeps {
+function makeProposalDeps(): LoadContextProposalDeps {
   return {
-    fileExists: (path: string) => fileExists(path),
-    readFile: (path: string): Result<string, ResultError> => readFile(path),
-    readDir: (
-      path: string,
-      opts?: { withFileTypes: true },
-    ): Result<{ name: string; isDirectory(): boolean }[], ResultError> => {
-      if (opts?.withFileTypes) {
-        return readDir(path, { withFileTypes: true }) as Result<
-          { name: string; isDirectory(): boolean }[],
-          ResultError
-        >;
-      }
-      return err(new ResultError(ErrorCode.FileReadFailed, "withFileTypes required"));
+    fileExists,
+    readFile,
+    readDir: (path: string, _opts?: { withFileTypes: true }) => {
+      const result = readDir(path, { withFileTypes: true });
+      if (!result.ok) return result;
+      return {
+        ok: true,
+        value: result.value.map((e) => ({ name: e.name, isDirectory: () => e.isDirectory() })),
+      };
     },
-    stat: (path: string): Result<{ mtimeMs: number }, ResultError> => {
-      const s = stat(path);
-      if (!s.ok) return s;
-      return ok({ mtimeMs: s.value.mtimeMs });
+    stat: (path: string) => {
+      const result = stat(path);
+      if (!result.ok) return result;
+      return { ok: true, value: { mtimeMs: result.value.mtimeMs } };
     },
-    ...overrides,
   };
 }
 
@@ -130,10 +121,7 @@ describe("LoadContext proposals integration", () => {
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test.md"),
       "---\ncategory: memory\n---\n\n# Proposal: Test\n",
     );
-    writeFile(
-      join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
-      new Date().toISOString(),
-    );
+    writeFile(join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"), new Date().toISOString());
 
     const deps = makeProposalDeps();
     const result = loadPendingProposals(INT_TEST_DIR, deps);
@@ -146,13 +134,13 @@ describe("LoadContext proposals integration", () => {
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/pending/20260227-120000-test.md"),
       "---\ncategory: memory\n---\n\n# Proposal: Stale lock test\n",
     );
-    const staleTime = new Date(Date.now() - 11 * 60 * 1000);
     writeFile(
       join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing"),
-      staleTime.toISOString(),
+      new Date(Date.now() - 11 * 60 * 1000).toISOString(),
     );
     // Backdate the lock file mtime
     const lockPath = join(INT_TEST_DIR, "MEMORY/LEARNING/PROPOSALS/.analyzing");
+    const staleTime = new Date(Date.now() - 11 * 60 * 1000);
     setFileTimes(lockPath, staleTime, staleTime);
 
     const deps = makeProposalDeps();
@@ -162,7 +150,7 @@ describe("LoadContext proposals integration", () => {
     expect(result).toContain("Stale lock test");
   });
 
-  it("shows max 5 proposals with overflow count when more exist", () => {
+  it("shows only count when more than 3 proposals exist (#242)", () => {
     for (let i = 0; i < 7; i++) {
       writeFile(
         join(INT_TEST_DIR, `MEMORY/LEARNING/PROPOSALS/pending/20260227-12000${i}-proposal-${i}.md`),
@@ -175,6 +163,7 @@ describe("LoadContext proposals integration", () => {
 
     expect(result).not.toBeNull();
     expect(result).toContain("**7**");
-    expect(result).toContain("...and 2 more");
+    // Per #242: when >3 proposals, only show count, no individual summaries
+    expect(result).not.toContain("Improvement number");
   });
 });
