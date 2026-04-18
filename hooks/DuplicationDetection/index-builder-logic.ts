@@ -75,7 +75,8 @@ export function findSourceFiles(dir: string, deps: IndexBuilderDeps): string[] {
         entry === "node_modules" ||
         entry === ".git" ||
         entry === "coverage" ||
-        entry === ".worktrees"
+        entry === ".worktrees" ||
+        entry === "structural-duplication-patterns"
       )
         continue;
       const full = deps.join(d, entry);

@@ -2,5 +2,5 @@
   "exportDefault": {
     "allowPatterns": ["global-setup\\.ts$", "global-teardown\\.ts$"]
   },
-  "skipFiles": ["result.ts"]
+  "skipFiles": ["result.ts", "structural-duplication-patterns/"]
 }
