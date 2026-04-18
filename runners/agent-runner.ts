@@ -131,12 +131,12 @@ export function runAgent(
 
   let sessionId = "";
   if (result.ok && result.value.stdout) {
-    const parseResult = safeJsonParse(result.value.stdout);
-    if (parseResult.ok) {
-      const output = parseResult.value as ClaudeJsonOutput;
+    const parsed = safeJsonParse(result.value.stdout);
+    if (!parsed.ok) {
+      deps.stderr(`[agent-runner] Failed to parse claude output: ${parsed.error.message}`);
+    } else if (typeof parsed.value === "object" && parsed.value !== null) {
+      const output = parsed.value as ClaudeJsonOutput;
       sessionId = output.session_id ?? "";
-    } else {
-      deps.stderr(`[agent-runner] Failed to parse claude output: ${parseResult.error.message}`);
     }
   }
 
@@ -185,11 +185,15 @@ if (import.meta.main) {
     process.exit(1);
   }
 
-  const parseResult = safeJsonParse(configArg);
-  if (!parseResult.ok) {
-    process.stderr.write(`[agent-runner] Invalid JSON config: ${parseResult.error.message}\n`);
+  const parsed = safeJsonParse(configArg);
+  if (!parsed.ok) {
+    process.stderr.write(`[agent-runner] Invalid JSON config: ${parsed.error.message}\n`);
     process.exit(1);
   }
-  const config = parseResult.value as unknown as RunnerConfig;
+  if (typeof parsed.value !== "object" || parsed.value === null) {
+    process.stderr.write("[agent-runner] JSON config is not an object\n");
+    process.exit(1);
+  }
+  const config = parsed.value as RunnerConfig;
   runAgent(config, dryRun);
 }
