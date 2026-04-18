@@ -82,9 +82,11 @@ function countSkills(paiDir: string): number {
 function countHooksFromSettings(settingsPath: string): number {
   const content = readFile(settingsPath);
   if (!content.ok) return 0;
+
   const parsed = safeJsonParse(content.value);
   if (!parsed.ok) return 0;
-  const settings = parsed.value;
+  if (typeof parsed.value !== "object" || parsed.value === null) return 0;
+  const settings = parsed.value as Record<string, unknown>;
   const hooks = settings.hooks;
   if (!hooks || typeof hooks !== "object") return 0;
 
