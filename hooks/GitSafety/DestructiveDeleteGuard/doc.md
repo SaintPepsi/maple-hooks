@@ -22,6 +22,7 @@ It does **not** fire when:
 - The tool is not Bash, Edit, or Write
 - The Bash command is a single-file `rm` (no recursive flag)
 - The command is `git rm --cached` (only untracks files, does not delete from disk)
+- The command pipes to a clipboard tool (`pbcopy`, `xclip`, `xsel`, `clip.exe`) as the final operation — the destructive text is being copied, not executed
 - The target file is a markdown/documentation file (`.md`, `.mdx`)
 - The target file is a Dockerfile (container cleanup like `rm -rf /var/cache` is normal)
 - The target file is `core/adapters/fs.ts` (the safe wrapper itself)
@@ -89,6 +90,10 @@ return ok({
 ### Example 3: Dockerfile exempted
 
 > Claude edits a Dockerfile that contains `RUN rm -rf /var/lib/apt/lists/*`. DestructiveDeleteGuard recognizes the target is a Dockerfile and allows the edit, since container cleanup commands are normal and do not affect the host filesystem.
+
+### Example 4: Clipboard copy allowed
+
+> Claude runs `echo "rm -rf ~/Library/Caches/*" | pbcopy` to copy cleanup commands to the user's clipboard. DestructiveDeleteGuard allows this because the text is being copied, not executed. However, `echo "safe" | pbcopy && rm -rf /tmp` would still be blocked because the destructive command is chained after the clipboard operation.
 
 ## Dependencies
 

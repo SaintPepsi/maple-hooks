@@ -1868,6 +1868,7 @@ Intercept both shell commands and code writes. For shell commands, detect recurs
       <div class="reason"><span class="ri">&#x2022;</span> The tool is not Bash, Edit, or Write</div>
 <div class="reason"><span class="ri">&#x2022;</span> The Bash command is a single-file <code>rm</code> (no recursive flag)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The command is <code>git rm --cached</code> (only untracks files, does not delete from disk)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The command pipes to a clipboard tool (<code>pbcopy</code>, <code>xclip</code>, <code>xsel</code>, <code>clip.exe</code>) as the final operation — the destructive text is being copied, not executed</div>
 <div class="reason"><span class="ri">&#x2022;</span> The target file is a markdown/documentation file (<code>.md</code>, <code>.mdx</code>)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The target file is a Dockerfile (container cleanup like <code>rm -rf /var/cache</code> is normal)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The target file is <code>core/adapters/fs.ts</code> (the safe wrapper itself)</div>
@@ -1976,6 +1977,13 @@ return ok({
       
       <div class="uc-example">
         <div>Claude edits a Dockerfile that contains <code>RUN rm -rf /var/lib/apt/lists/*</code>. DestructiveDeleteGuard recognizes the target is a Dockerfile and allows the edit, since container cleanup commands are normal and do not affect the host filesystem.</div>
+      </div>
+      </div>
+      <div style="margin-top: 20px;">
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 4: Clipboard copy allowed</h3>
+      
+      <div class="uc-example">
+        <div>Claude runs <code>echo "rm -rf ~/Library/Caches/*" | pbcopy</code> to copy cleanup commands to the user's clipboard. DestructiveDeleteGuard allows this because the text is being copied, not executed. However, <code>echo "safe" | pbcopy && rm -rf /tmp</code> would still be blocked because the destructive command is chained after the clipboard operation.</div>
       </div>
       </div>
     </div>
