@@ -497,6 +497,38 @@ describe("evaluateCredit", () => {
     expect(result.shouldSpawn).toBe(true);
     expect(result.newCredit).toBe(0);
   });
+
+  it("logs stderr when usage-cache.json read fails", () => {
+    const stderrCalls: string[] = [];
+    const deps = {
+      ...makeCreditDeps({ usageMissing: true, credit: 0 }),
+      stderr: (msg: string) => stderrCalls.push(msg),
+    };
+    evaluateCredit("/tmp/test", deps);
+    expect(stderrCalls.length).toBe(1);
+    expect(stderrCalls[0]).toContain("usage-cache read failed");
+  });
+
+  it("logs stderr when learning-agent-credit.json read fails", () => {
+    const stderrCalls: string[] = [];
+    const deps = {
+      ...makeCreditDeps({ utilization: 50, creditMissing: true }),
+      stderr: (msg: string) => stderrCalls.push(msg),
+    };
+    evaluateCredit("/tmp/test", deps);
+    expect(stderrCalls.length).toBe(1);
+    expect(stderrCalls[0]).toContain("credit read failed");
+  });
+
+  it("does not call stderr when both reads succeed", () => {
+    const stderrCalls: string[] = [];
+    const deps = {
+      ...makeCreditDeps({ utilization: 50, credit: 3.0 }),
+      stderr: (msg: string) => stderrCalls.push(msg),
+    };
+    evaluateCredit("/tmp/test", deps);
+    expect(stderrCalls.length).toBe(0);
+  });
 });
 
 describe("LearningActioner defaultDeps", () => {
@@ -504,30 +536,30 @@ describe("LearningActioner defaultDeps", () => {
     expect(typeof LearningActioner.defaultDeps.fileExists("/tmp")).toBe("boolean");
   });
 
-  it("defaultDeps.readDir succeeds on existing directory", () => {
+  it("defaultDeps.readDir succeeds for existing directory", () => {
     const result = LearningActioner.defaultDeps.readDir("/tmp", {
       withFileTypes: true,
     });
     expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.writeFile succeeds and creates file", () => {
+  it("defaultDeps.writeFile succeeds for valid path", () => {
     const tmpPath = `/tmp/pai-test-la-${Date.now()}.txt`;
     const result = LearningActioner.defaultDeps.writeFile(tmpPath, "test");
     expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.removeFile fails on nonexistent file", () => {
+  it("defaultDeps.removeFile returns err for nonexistent file", () => {
     const result = LearningActioner.defaultDeps.removeFile("/tmp/nonexistent-pai-la-12345.txt");
     expect(result.ok).toBe(false);
   });
 
-  it("defaultDeps.ensureDir succeeds on existing directory", () => {
+  it("defaultDeps.ensureDir succeeds for existing directory", () => {
     const result = LearningActioner.defaultDeps.ensureDir("/tmp");
     expect(result.ok).toBe(true);
   });
 
-  it("defaultDeps.stat succeeds on existing path", () => {
+  it("defaultDeps.stat succeeds for existing path", () => {
     const result = LearningActioner.defaultDeps.stat("/tmp");
     expect(result.ok).toBe(true);
   });

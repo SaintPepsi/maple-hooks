@@ -220,17 +220,17 @@ describe("SessionQualityReport defaultDeps", () => {
     expect(typeof SessionQualityReport.defaultDeps.fileExists("/tmp")).toBe("boolean");
   });
 
-  test("defaultDeps.readFile fails on nonexistent file", () => {
+  test("defaultDeps.readFile returns err for nonexistent file", () => {
     const result = SessionQualityReport.defaultDeps.readFile("/tmp/nonexistent-pai-12345.txt");
     expect(result.ok).toBe(false);
   });
 
-  test("defaultDeps.readJson fails on nonexistent file", () => {
+  test("defaultDeps.readJson returns err for nonexistent file", () => {
     const result = SessionQualityReport.defaultDeps.readJson("/tmp/nonexistent-pai-12345.json");
     expect(result.ok).toBe(false);
   });
 
-  test("defaultDeps.writeFile succeeds and creates file", () => {
+  test("defaultDeps.writeFile succeeds for valid path", () => {
     const result = SessionQualityReport.defaultDeps.writeFile(
       "/tmp/pai-test-sqr-12345.txt",
       "test",
@@ -238,7 +238,7 @@ describe("SessionQualityReport defaultDeps", () => {
     expect(result.ok).toBe(true);
   });
 
-  test("defaultDeps.ensureDir succeeds on existing directory", () => {
+  test("defaultDeps.ensureDir succeeds for existing directory", () => {
     const result = SessionQualityReport.defaultDeps.ensureDir("/tmp");
     expect(result.ok).toBe(true);
   });

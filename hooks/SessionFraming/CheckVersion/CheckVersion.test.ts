@@ -117,26 +117,30 @@ describe("CheckVersion", () => {
 // ─── defaultDeps ────────────────────────────────────────────────────────────
 
 describe("CheckVersion defaultDeps", () => {
-  test("getCurrentVersion returns ok:true with a version string or ok:false with an error", async () => {
+  test("getCurrentVersion returns ok or err (depends on claude CLI)", async () => {
     const result = await CheckVersion.defaultDeps.getCurrentVersion();
+    // Result depends on whether claude CLI is installed - either outcome is valid
     if (result.ok) {
       expect(typeof result.value).toBe("string");
     } else {
-      expect(result.error).toBeDefined();
+      expect(result.error.code).toBeDefined();
     }
   });
 
-  test("getLatestVersion returns ok:true with a version string or ok:false with an error", async () => {
+  test("getLatestVersion returns ok or err (depends on network)", async () => {
     const result = await CheckVersion.defaultDeps.getLatestVersion();
+    // Result depends on network availability - either outcome is valid
     if (result.ok) {
-      expect(typeof result.value).toBe("string");
+      // Version should match semver pattern
+      expect(result.value).toMatch(/^\d+\.\d+\.\d+/);
     } else {
-      expect(result.error).toBeDefined();
+      expect(result.error.code).toBeDefined();
     }
   });
 
-  test("isSubagent returns a boolean", () => {
-    expect(typeof CheckVersion.defaultDeps.isSubagent()).toBe("boolean");
+  test("isSubagent returns false in test environment", () => {
+    // In test environment, CLAUDE_AGENT_ID is not set
+    expect(CheckVersion.defaultDeps.isSubagent()).toBe(false);
   });
 
   test("stderr writes without throwing", () => {
