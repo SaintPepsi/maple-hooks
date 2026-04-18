@@ -90,7 +90,11 @@ export function appendHookLog(
 
   if (!dirEnsured || logDir !== undefined) {
     const mkResult = ensureDir(dir);
-    if (!mkResult.ok) return ok(undefined);
+    if (!mkResult.ok) {
+      // Surface failure but don't break hook execution (#170)
+      stderr?.(`[hook-log] ensureDir failed: ${dir} — ${mkResult.error.message}`);
+      return ok(undefined);
+    }
     if (logDir === undefined) dirEnsured = true;
   }
 
