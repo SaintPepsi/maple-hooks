@@ -24,21 +24,18 @@ describe("safeParseYaml", () => {
     expect(safeParseYaml("")).toBeNull();
   });
 
-  it("calls stderr once when YAML is invalid and stderr is provided", () => {
-    const spy = { calls: 0, lastMsg: "" };
-    const stderr = (msg: string) => {
-      spy.calls++;
-      spy.lastMsg = msg;
-    };
-    safeParseYaml("{{{{invalid", stderr);
-    expect(spy.calls).toBe(1);
-    expect(spy.lastMsg).toContain("[safeParseYaml] parse failed:");
+  it("calls onError with Error when YAML is invalid", () => {
+    const errors: Error[] = [];
+    safeParseYaml("{{{{invalid", (err) => errors.push(err));
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(Error);
   });
 
-  it("does not call stderr when YAML is valid and stderr is provided", () => {
+  it("does not call onError when YAML is valid", () => {
     let called = false;
-    const stderr = () => { called = true; };
-    safeParseYaml("name: hello", stderr);
+    safeParseYaml("name: hello", () => {
+      called = true;
+    });
     expect(called).toBe(false);
   });
 
