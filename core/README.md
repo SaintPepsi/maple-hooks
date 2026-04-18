@@ -68,6 +68,19 @@ SOLID heuristic analysis for source files. `scoreFile(content, profile, filePath
 
 Contract-specific checks (missing-deps-interface, contract-pattern, adapter-bypass, throw-count, mixed-error-strategy) only fire on files in `/contracts/` and skip test files (`.test.`/`.spec.`). Language profiles from `language-profiles.ts` provide per-language regex patterns.
 
+## Language Profiles (`language-profiles.ts`)
+
+Maps file extensions to language metadata (name, patterns for functions/imports/interfaces). Used by quality scorer to determine which heuristics apply.
+
+**Skipped from scoring:**
+- Config/data formats: json, yaml, yml, toml, xml, html, css, md, sql, etc.
+- Declaration files: `.d.ts`
+- Specific filenames: `vite.config.ts`, `vitest.config.ts`, test fixture files
+- Config directories: `.storybook/`, `.vscode/`, `.github/`, `.husky/`
+- Story files: `.stories.svelte`, `.stories.ts`, `.stories.tsx`, `.stories.js`, `.stories.jsx`
+
+Exports: `getLanguageProfile(path)`, `isScorableFile(path)`, `getAllProfiles()`, `SKIP_FILENAMES`.
+
 ## Types (`types/`)
 
 - `hook-inputs.ts` — ToolHookInput, SessionStartInput, UserPromptSubmitInput, SubagentStartInput, SubagentStopInput, etc.
