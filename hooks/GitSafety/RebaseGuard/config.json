@@ -1,0 +1,4 @@
+{
+  "protectedBranches": ["main", "master"],
+  "allowOntoRebase": true
+}

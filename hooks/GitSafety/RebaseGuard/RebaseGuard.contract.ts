@@ -14,19 +14,64 @@
  * Pattern: hooks/GitSafety/ProtectedBranchGuard/ProtectedBranchGuard.contract.ts
  */
 
+import { join } from "node:path";
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
+import { readFile } from "@hooks/core/adapters/fs";
 import { execSyncSafe } from "@hooks/core/adapters/process";
 import type { SyncHookContract } from "@hooks/core/contract";
 import type { ResultError } from "@hooks/core/error";
 import { ok, type Result } from "@hooks/core/result";
 import type { ToolHookInput } from "@hooks/core/types/hook-inputs";
+import { readHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr } from "@hooks/lib/paths";
 import { getCommand } from "@hooks/lib/tool-input";
+
+// ─── Config ────────────────────────────────────────────────────────────────
+
+export interface RebaseGuardConfig {
+  protectedBranches: string[];
+  allowOntoRebase: boolean;
+}
+
+const DEFAULT_CONFIG: RebaseGuardConfig = {
+  protectedBranches: ["main", "master"],
+  allowOntoRebase: true,
+};
+
+/** Load config: defaults from config.json, overrides from hookConfig.rebaseGuard */
+function loadConfig(stderr: (msg: string) => void): RebaseGuardConfig {
+  const config = { ...DEFAULT_CONFIG };
+
+  // Load defaults from config.json next to this file
+  const configPath = join(__dirname, "config.json");
+  const localConfig = readFile(configPath);
+  if (localConfig.ok) {
+    try {
+      const parsed = JSON.parse(localConfig.value) as Partial<RebaseGuardConfig>;
+      if (parsed.protectedBranches) config.protectedBranches = parsed.protectedBranches;
+      if (parsed.allowOntoRebase !== undefined) config.allowOntoRebase = parsed.allowOntoRebase;
+    } catch {
+      stderr(`[RebaseGuard] Failed to parse config.json`);
+    }
+  }
+
+  // Override with hookConfig.rebaseGuard from settings.json (untyped overload)
+  const hookConfig = readHookConfig<Partial<RebaseGuardConfig>>("rebaseGuard");
+  if (hookConfig) {
+    if (hookConfig.protectedBranches) config.protectedBranches = hookConfig.protectedBranches;
+    if (hookConfig.allowOntoRebase !== undefined)
+      config.allowOntoRebase = hookConfig.allowOntoRebase;
+  }
+
+  return config;
+}
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface RebaseGuardDeps {
   hasUpstream: () => boolean;
+  getCurrentBranch: () => string | null;
+  getConfig: () => RebaseGuardConfig;
   stderr: (msg: string) => void;
 }
 
@@ -125,13 +170,13 @@ export function classifyRebase(command: string, isPublished: boolean): RebaseCla
   return isPublished ? "block" : "warn";
 }
 
-function formatBlockMessage(command: string, isInteractive: boolean): string {
+function formatBlockMessage(command: string, isInteractive: boolean, branch: string): string {
   const reason = isInteractive
     ? "Interactive rebase rewrites history and produces diverged branches that require force-push."
     : "Rebase rewrites commit history, making the local branch incompatible with the remote and requiring force-push.";
 
   return [
-    "REBASE BLOCKED: Rebase on a published branch is prohibited.",
+    `REBASE BLOCKED: Rebase on protected branch '${branch}' is prohibited.`,
     "",
     `Command: ${command.slice(0, 200)}`,
     "",
@@ -164,6 +209,11 @@ const defaultDeps: RebaseGuardDeps = {
     const result = execSyncSafe("git rev-parse --abbrev-ref @{upstream}");
     return result.ok && result.value.trim().length > 0;
   },
+  getCurrentBranch: () => {
+    const result = execSyncSafe("git rev-parse --abbrev-ref HEAD");
+    return result.ok ? result.value.trim() : null;
+  },
+  getConfig: () => loadConfig(defaultStderr),
   stderr: defaultStderr,
 };
 
@@ -179,12 +229,25 @@ export const RebaseGuard: SyncHookContract<ToolHookInput, RebaseGuardDeps> = {
 
   execute(input: ToolHookInput, deps: RebaseGuardDeps): Result<SyncHookJSONOutput, ResultError> {
     const command = getCommand(input);
+    const currentBranch = deps.getCurrentBranch();
+    const config = deps.getConfig();
 
     // Determine published state — fail open (treat as unpublished) if unknown
     const isPublished = deps.hasUpstream();
     const tier = classifyRebase(command, isPublished);
 
     if (tier === null || tier === "allow") {
+      return ok({ continue: true });
+    }
+
+    // Only block on protected branches (configurable, defaults to main/master)
+    // Feature branches can be rebased even if published
+    const isProtectedBranch = currentBranch && config.protectedBranches.includes(currentBranch);
+
+    if (!isProtectedBranch) {
+      deps.stderr(
+        `[RebaseGuard] ALLOWED: rebase on feature branch '${currentBranch}' — ${command.slice(0, 80)}`,
+      );
       return ok({ continue: true });
     }
 
@@ -201,14 +264,20 @@ export const RebaseGuard: SyncHookContract<ToolHookInput, RebaseGuardDeps> = {
       });
     }
 
-    // tier === "block"
+    // tier === "block" on protected branch
     const isInteractive = INTERACTIVE_FLAG_PATTERN.test(command);
-    deps.stderr(`[RebaseGuard] BLOCK: rebase on published branch — ${command.slice(0, 100)}`);
+    deps.stderr(
+      `[RebaseGuard] BLOCK: rebase on protected branch '${currentBranch}' — ${command.slice(0, 80)}`,
+    );
     return ok({
       hookSpecificOutput: {
         hookEventName: "PreToolUse",
         permissionDecision: "deny",
-        permissionDecisionReason: formatBlockMessage(command, isInteractive),
+        permissionDecisionReason: formatBlockMessage(
+          command,
+          isInteractive,
+          currentBranch || "unknown",
+        ),
       },
     });
   },

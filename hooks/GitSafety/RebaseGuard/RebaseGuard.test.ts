@@ -17,9 +17,13 @@ function makeInput(command: string): ToolHookInput {
   };
 }
 
+const DEFAULT_CONFIG = { protectedBranches: ["main", "master"], allowOntoRebase: true };
+
 function makeDeps(overrides: Partial<RebaseGuardDeps> = {}): RebaseGuardDeps {
   return {
     hasUpstream: () => false,
+    getCurrentBranch: () => "feature-branch",
+    getConfig: () => DEFAULT_CONFIG,
     stderr: () => {},
     ...overrides,
   };
@@ -27,6 +31,10 @@ function makeDeps(overrides: Partial<RebaseGuardDeps> = {}): RebaseGuardDeps {
 
 function publishedDeps(overrides: Partial<RebaseGuardDeps> = {}): RebaseGuardDeps {
   return makeDeps({ hasUpstream: () => true, ...overrides });
+}
+
+function mainBranchDeps(overrides: Partial<RebaseGuardDeps> = {}): RebaseGuardDeps {
+  return makeDeps({ hasUpstream: () => true, getCurrentBranch: () => "main", ...overrides });
 }
 
 // ─── classifyRebase unit tests ───────────────────────────────────────────────
@@ -183,10 +191,14 @@ describe("RebaseGuard", () => {
     expect(getPreToolUseAdvisory(result.value)).toBeUndefined();
   });
 
-  // ── warn tier — continue: true WITH advisory ──
+  // ── warn tier — continue: true WITH advisory (unpublished protected branch) ──
 
-  it("warns on plain rebase on unpublished branch", () => {
-    const result = RebaseGuard.execute(makeInput("git rebase main"), makeDeps());
+  function unpublishedMainDeps(overrides: Partial<RebaseGuardDeps> = {}): RebaseGuardDeps {
+    return makeDeps({ hasUpstream: () => false, getCurrentBranch: () => "main", ...overrides });
+  }
+
+  it("warns on plain rebase on unpublished protected branch", () => {
+    const result = RebaseGuard.execute(makeInput("git rebase origin/main"), unpublishedMainDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
@@ -196,8 +208,8 @@ describe("RebaseGuard", () => {
     expect(advisory).toContain("unpublished");
   });
 
-  it("warns on interactive rebase on unpublished branch", () => {
-    const result = RebaseGuard.execute(makeInput("git rebase -i HEAD~3"), makeDeps());
+  it("warns on interactive rebase on unpublished protected branch", () => {
+    const result = RebaseGuard.execute(makeInput("git rebase -i HEAD~3"), unpublishedMainDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(result.value.continue).toBe(true);
@@ -207,7 +219,7 @@ describe("RebaseGuard", () => {
   });
 
   it("warn advisory mentions git merge as alternative", () => {
-    const result = RebaseGuard.execute(makeInput("git rebase origin/main"), makeDeps());
+    const result = RebaseGuard.execute(makeInput("git rebase origin/main"), unpublishedMainDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const advisory = getPreToolUseAdvisory(result.value);
@@ -216,31 +228,46 @@ describe("RebaseGuard", () => {
 
   it("warn logs advisory to stderr", () => {
     const messages: string[] = [];
-    const deps = makeDeps({ stderr: (m) => messages.push(m) });
-    RebaseGuard.execute(makeInput("git rebase main"), deps);
+    const deps = unpublishedMainDeps({ stderr: (m) => messages.push(m) });
+    RebaseGuard.execute(makeInput("git rebase origin/main"), deps);
     expect(messages.some((m) => m.includes("[RebaseGuard] ADVISORY"))).toBe(true);
   });
 
-  // ── block tier — deny ──
+  it("allows rebase on feature branch without warning", () => {
+    const result = RebaseGuard.execute(makeInput("git rebase origin/main"), makeDeps());
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(result.value.continue).toBe(true);
+    expect(getPreToolUseAdvisory(result.value)).toBeUndefined();
+  });
 
-  it("blocks plain rebase on published branch", () => {
+  // ── block tier — deny (only on protected branches) ──
+
+  it("allows rebase on feature branch even when published", () => {
     const result = RebaseGuard.execute(makeInput("git rebase main"), publishedDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(isPreToolUseDeny(result.value)).toBe(true);
+    expect(result.value.continue).toBe(true);
   });
 
-  it("blocks interactive rebase on published branch", () => {
-    const result = RebaseGuard.execute(makeInput("git rebase -i HEAD~3"), publishedDeps());
+  it("blocks plain rebase on protected branch (main)", () => {
+    const result = RebaseGuard.execute(makeInput("git rebase origin/main"), mainBranchDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(isPreToolUseDeny(result.value)).toBe(true);
   });
 
-  it("blocks --onto rebase on published branch", () => {
+  it("blocks interactive rebase on protected branch", () => {
+    const result = RebaseGuard.execute(makeInput("git rebase -i HEAD~3"), mainBranchDeps());
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
+    expect(isPreToolUseDeny(result.value)).toBe(true);
+  });
+
+  it("blocks --onto rebase on protected branch", () => {
     const result = RebaseGuard.execute(
       makeInput("git rebase --onto main feature"),
-      publishedDeps(),
+      mainBranchDeps(),
     );
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
@@ -248,23 +275,23 @@ describe("RebaseGuard", () => {
   });
 
   it("block message recommends git merge as alternative", () => {
-    const result = RebaseGuard.execute(makeInput("git rebase main"), publishedDeps());
+    const result = RebaseGuard.execute(makeInput("git rebase origin/main"), mainBranchDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     expect(getPreToolUseDenyReason(result.value)).toContain("git merge");
   });
 
-  it("block message mentions published branch prohibition", () => {
-    const result = RebaseGuard.execute(makeInput("git rebase main"), publishedDeps());
+  it("block message mentions protected branch", () => {
+    const result = RebaseGuard.execute(makeInput("git rebase origin/main"), mainBranchDeps());
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
-    expect(getPreToolUseDenyReason(result.value)).toContain("published branch");
+    expect(getPreToolUseDenyReason(result.value)).toContain("protected branch");
   });
 
-  it("blocks rebase chained with && on published branch", () => {
+  it("blocks rebase chained with && on protected branch", () => {
     const result = RebaseGuard.execute(
       makeInput("git fetch origin && git rebase origin/main"),
-      publishedDeps(),
+      mainBranchDeps(),
     );
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
@@ -273,8 +300,8 @@ describe("RebaseGuard", () => {
 
   it("block logs to stderr", () => {
     const messages: string[] = [];
-    const deps = publishedDeps({ stderr: (m) => messages.push(m) });
-    RebaseGuard.execute(makeInput("git rebase main"), deps);
+    const deps = mainBranchDeps({ stderr: (m) => messages.push(m) });
+    RebaseGuard.execute(makeInput("git rebase origin/main"), deps);
     expect(messages.some((m) => m.includes("[RebaseGuard] BLOCK"))).toBe(true);
   });
 
