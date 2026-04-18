@@ -58,6 +58,14 @@ const REVERT_CONTEXT = [
 
 const SNAPSHOT_PREFIX = "pai-settings-snapshot-";
 
+/** Command patterns allowed to modify settings.json without revert. */
+const ALLOWED_PATTERNS = [/\binstall\.ts\b/, /pai-hooks\/install/];
+
+/** Check if command matches an allowed pattern. */
+function isAllowedCommand(command: string): boolean {
+  return ALLOWED_PATTERNS.some((pattern) => pattern.test(command));
+}
+
 /**
  * Remove snapshot files for this session and opportunistically
  * sweep orphaned snapshots from dead sessions (~1 in 20 calls).
@@ -150,6 +158,14 @@ export const SettingsRevert: SyncHookContract<ToolHookInput, SettingsRevertDeps>
   execute(input: ToolHookInput, deps: SettingsRevertDeps): Result<SyncHookJSONOutput, ResultError> {
     const home = deps.homedir();
     const command = getCommand(input).slice(0, 500);
+
+    // Skip revert for trusted commands (e.g., install.ts)
+    if (isAllowedCommand(command)) {
+      cleanupSnapshots(input.session_id, deps);
+      deps.stderr(`[SettingsRevert] Allowed command: ${command.slice(0, 80)}`);
+      return ok({});
+    }
+
     const reverted = compareAndRevert(input.session_id, home, deps);
 
     const action = reverted.length > 0 ? ("reverted" as const) : ("unchanged" as const);
