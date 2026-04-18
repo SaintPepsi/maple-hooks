@@ -1754,7 +1754,7 @@ section[id] {
     <h1>SteeringRuleInjector</h1>
     <p>Contextual steering rule injection based on event type and keyword matching</p>
     <div class="hero-meta">
-      <span>1 hooks</span>
+      <span>2 hooks</span>
       <span>pai-hooks</span>
     </div>
   </div>
@@ -1772,7 +1772,7 @@ section[id] {
   <div class="summary-grid">
     <div class="summary-item"><div class="num" style="color:var(--green);">1</div><div class="label">SessionStart</div></div>
     <div class="summary-item"><div class="num" style="color:var(--accent-bright);">1</div><div class="label">UserPromptSubmit</div></div>
-    <div class="summary-item"><div class="num" style="color:var(--orange);">1</div><div class="label">PreToolUse</div></div>
+    <div class="summary-item"><div class="num" style="color:var(--orange);">2</div><div class="label">PreToolUse</div></div>
     <div class="summary-item"><div class="num" style="color:var(--blue);">1</div><div class="label">PostToolUse</div></div>
     <div class="summary-item"><div class="num" style="color:var(--maple);">1</div><div class="label">SubagentStart</div></div>
     <div class="summary-item"><div class="num" style="color:var(--red);">1</div><div class="label">Stop</div></div>
@@ -1796,6 +1796,17 @@ section[id] {
           </div>
         </div>
         <p>Injects steering rules into context based on event type and keyword matching</p>
+      </div>
+
+      <div class="card orange" style="cursor:pointer;" onclick="location.href='SteeringRuleValidator.html'">
+        <div class="card-header">
+          <div class="card-icon">&#x1F517;</div>
+          <h3>SteeringRuleValidator</h3>
+          <div class="card-badges">
+            <span class="card-badge" style="background:var(--orange-dim);color:var(--orange);">PreToolUse</span>
+          </div>
+        </div>
+        <p>Validates steering rule frontmatter format before writes</p>
       </div>
 
   <footer><p>pai-hooks documentation</p></footer>

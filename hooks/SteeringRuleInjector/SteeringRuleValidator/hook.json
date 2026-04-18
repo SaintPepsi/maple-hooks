@@ -1,0 +1,11 @@
+{
+  "name": "SteeringRuleValidator",
+  "group": "SteeringRuleInjector",
+  "event": "PreToolUse",
+  "description": "Validates steering rule frontmatter format before writes",
+  "type": "contract",
+  "tools": ["Write", "Edit"],
+  "schemaVersion": 1,
+  "tags": [],
+  "presets": []
+}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TestObligationEnforcer — Hook Documentation</title>
+  <title>SteeringRuleValidator — Hook Documentation</title>
   <style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* ═══════════════════════════════════════════════════════
@@ -1746,8 +1746,8 @@ section[id] {
 
 <nav class="wiki-nav" id="wikiNav">
   <div class="wiki-nav-header">
-    <h4>TestObligationEnforcer</h4>
-    <p>ObligationStateMachines / Stop</p>
+    <h4>SteeringRuleValidator</h4>
+    <p>SteeringRuleInjector / PreToolUse</p>
   </div>
   <ul class="wiki-nav-list">
     <li class="wiki-nav-item"><a href="#overview"><span class="nav-num">01</span> Overview</a></li>
@@ -1774,11 +1774,11 @@ section[id] {
   <div class="hero-orb orb-2"></div>
   <div class="container">
     <div class="hero-badge"><span class="dot"></span> Hook Documentation</div>
-    <h1>TestObligationEnforcer</h1>
-    <p>Enforces test obligations</p>
+    <h1>SteeringRuleValidator</h1>
+    <p>Validates steering rule frontmatter format before writes</p>
     <div class="hero-meta">
-      <span>ObligationStateMachines</span>
-      <span>Stop</span>
+      <span>SteeringRuleInjector</span>
+      <span>PreToolUse</span>
       <span>pai-hooks</span>
     </div>
   </div>
@@ -1786,44 +1786,49 @@ section[id] {
 
 <div class="container">
   <div class="tags" style="margin-bottom: var(--sp-md);">
-    <span class="tag red">Stop</span>
-    <span class="tag green">ObligationStateMachines</span>
+    <span class="tag orange">PreToolUse</span>
+    <span class="tag green">SteeringRuleInjector</span>
   </div>
   <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/SteeringRuleInjector/SteeringRuleValidator/SteeringRuleValidator.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
-      <code style="color: var(--cyan); font-size: 12px;">TestObligationEnforcer.contract.ts</code>
+      <code style="color: var(--cyan); font-size: 12px;">SteeringRuleValidator.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
     </a>
     <button class="copy-idea-btn" onclick="copyIdea()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         <span>Copy Idea</span>
       </button>
-      <script type="text/plain" id="ideaContent"># Test Obligation Enforcer
+      <script type="text/plain" id="ideaContent">## Problem
 
-> Block session end if code was changed without writing or running tests.
-
-## Problem
-
-Code changes that ship without test coverage introduce silent regressions. Developers and AI assistants often modify code and forget to write new tests or run existing ones. The gap between "code works when I tried it" and "code is verified by tests" is where bugs hide.
+AI assistants can write steering rules with incorrect YAML syntax. The SteeringRuleInjector uses a simple regex-based frontmatter parser that only understands bracket array syntax (`events: [X, Y]`), not YAML list syntax (`events:\n  - X\n  - Y`). When Claude writes a rule using the wrong format, the rule silently fails to load and inject.
 
 ## Solution
 
-At session end, check whether any code files were modified without their tests being written or run. Distinguish between files that have no test file at all (need tests written) and files that have tests but were not run this session. After a configurable number of blocks, release the session and write a review log.
+A PreToolUse hook that validates steering rule files before Write/Edit completes. It checks that the frontmatter uses the correct bracket array format and blocks with a helpful error message if not.
 
 ## How It Works
 
-1. When the session is ending, check the pending obligations list (maintained by the companion tracker).
-2. If no pending items exist, pass silently.
-3. For each pending file, check whether a corresponding test file exists.
-4. Separate files into "needs tests written" and "needs existing tests run."
-5. Block the session with a categorized list showing what action each file needs.
-6. After the block limit is reached, write a review log and release the session.
+1. Hook fires on PreToolUse for Write and Edit operations
+2. Checks if the file path matches `/steering-rules/*.md`
+3. Extracts content from Write.content or Edit.new_string
+4. Validates frontmatter format:
+   - Must have `name: <value>` field
+   - Must have `events: [Event1, Event2]` in bracket format
+   - Must have `keywords: [word1, word2]` in bracket format
+5. If validation fails, returns block decision with specific errors and example of correct format
+6. If validation passes, allows the write to proceed
 
 ## Signals
 
-- **Input:** Session end attempt, plus pending obligation state from the companion tracker
-- **Output:** Block with categorized list of untested files, or silent release
+**Input:**
+- Tool name (Write or Edit)
+- File path
+- File content (Write) or new_string (Edit)
+
+**Output:**
+- Allow: empty output, write proceeds
+- Block: `{ decision: "block", reason: "..." }` with validation errors and correct format example
 </script>
   </div>
 
@@ -1837,9 +1842,7 @@ At session end, check whether any code files were modified without their tests b
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>TestObligationEnforcer is a <strong>Stop-event</strong> hook that blocks session end when code files have been modified without tests being written or run. It works in tandem with TestObligationTracker (PostToolUse), which tracks which code files still need testing.</p>
-      <p>The hook distinguishes between files that need new tests written (no test file exists) and files that already have tests but need them to be run. It uses an escalating block mechanism with a configurable limit, writing a review document and releasing the session after the limit is reached.</p>
-      <p>Output uses a compact tree format with relative paths grouped by directory, reducing token usage compared to full absolute paths.</p>
+      <p>SteeringRuleValidator is a PreToolUse hook that blocks Write/Edit operations to steering rule files when the frontmatter format is invalid. It ensures steering rules use bracket array syntax which the SteeringRuleInjector parser requires.</p>
     </div>
   </section>
 
@@ -1850,7 +1853,7 @@ At session end, check whether any code files were modified without their tests b
         <div class="card-icon">&#x26A1;</div>
         <h3>Event</h3>
       </div>
-      <p><code>Stop</code> — fires when the user attempts to end a Claude Code session, blocking if test obligations remain unfulfilled.</p>
+      <p><strong>PreToolUse</strong> — fires before Write and Edit tool operations complete.</p>
     </div>
   </section>
 
@@ -1861,13 +1864,8 @@ At session end, check whether any code files were modified without their tests b
         <div class="card-icon">&#x1F3AF;</div>
         <h3>When It Fires</h3>
       </div>
-      <div class="reason"><span class="ri">&#x2022;</span> The TestObligationTracker has recorded one or more code files with pending test obligations</div>
-<div class="reason"><span class="ri">&#x2022;</span> The user attempts to end their session (Stop event)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The block count has not yet reached <code>MAX_BLOCKS</code></div>
-      <p>It does <strong>not</strong> fire when:</p>
-      <div class="reason"><span class="ri">&#x2022;</span> No code files were modified during the session (no pending flag file)</div>
-<div class="reason"><span class="ri">&#x2022;</span> All modified code files have had their tests written and run (pending list is empty)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The block limit has already been reached (session is released with a review document)</div>
+      <div class="reason"><span class="ri">&#x2022;</span> Write or Edit targeting a file matching <code>/steering-rules/*.md</code></div>
+<div class="reason"><span class="ri">&#x2022;</span> Content contains YAML frontmatter markers (<code>---</code>)</div>
     </div>
   </section>
 
@@ -1881,64 +1879,28 @@ At session end, check whether any code files were modified without their tests b
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Reads the pending file list from the session's obligation state file</p></div>
+          <div class="step-content"><p><strong>Path check</strong> — extracts file path from tool input, skips if not a steering rule file</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">2</div>
-          <div class="step-content"><p>If no pending file exists or the list is empty, returns <code>silent</code> (session proceeds)</p></div>
+          <div class="step-content"><p><strong>Content extraction</strong> — gets content from Write or new_string from Edit</p></div>
         </div>
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Reads the current block count for this session</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">4</div>
-          <div class="step-content"><p>If the block limit (<code>MAX_BLOCKS</code>) has been reached, writes a review document and clears the flag files, releasing the session</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">5</div>
-          <div class="step-content"><p>Categorizes pending files into two groups:</p></div>
+          <div class="step-content"><p><strong>Frontmatter validation</strong> — checks for required fields in correct format:</p></div>
         </div>
 </div>
-      <div class="reason"><span class="ri">&#x2022;</span> <strong>Needs writing</strong>: no corresponding test file exists (checked via <code>hasTestFile</code>)</div>
-<div class="reason"><span class="ri">&#x2022;</span> <strong>Needs running</strong>: a test file exists but tests haven't been run yet</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <code>name: rule-name</code> (required)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>events: [Event1, Event2]</code> (bracket array, not YAML list)</div>
+<div class="reason"><span class="ri">&#x2022;</span> <code>keywords: [word1, word2]</code> (bracket array, not YAML list)</div>
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p>Builds a block message with a narrative opener and the categorized file lists</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">2</div>
-          <div class="step-content"><p>Increments the block count and returns a <code>block</code> decision</p></div>
+          <div class="step-content"><p><strong>Block or allow</strong> — returns block decision with detailed error if invalid</p></div>
         </div>
 </div>
-      
-      <div class="code-window">
-        <div class="code-window-header">
-          <div class="code-window-dots"><span></span><span></span><span></span></div>
-          <span class="code-window-title">typescript</span>
-        </div>
-        <div class="code-window-body">
-          <div class="code-block"><span class="code-lang">typescript</span>
-// Categorize pending files
-for (const file of pending) {
-  if (hasTestFile(file, deps.fileExists)) {
-    needsRunning.push(file);
-  } else {
-    needsWriting.push(file);
-  }
-}
-const reason = `${opener}\n\n${sections.join("\n\n")}`;
-// R5 — Stop is a NonHookSpecificEvent, so block decision/reason go at the top level
-// (NOT nested under hookSpecificOutput as PreToolUse permissionDecision would be).
-return ok({ decision: "block", reason });</div>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -1949,26 +1911,34 @@ return ok({ decision: "block", reason });</div>
         <div class="card-icon">&#x1F4A1;</div>
         <h3>Examples</h3>
       </div>
-      <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: New code without tests</h3>
       
       <div class="uc-example">
-        <div>You create <code>src/validator.ts</code> but do not write any tests. When you try to end the session, TestObligationEnforcer blocks with: "Write and run tests for (no test file exists): src/validator.ts"</div>
+        <div>Claude attempts to write a steering rule using YAML list format for events. The hook blocks with an error explaining the required bracket syntax, preventing a rule that would silently fail to load.</div>
       </div>
-      </div>
-      <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Existing tests not run</h3>
       
-      <div class="uc-example">
-        <div>You modify <code>src/parser.ts</code> which already has <code>src/parser.test.ts</code>. TestObligationEnforcer detects the test file exists but hasn't been run, and blocks with: "Run existing tests for: src/parser.ts"</div>
-      </div>
-      </div>
-      <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Block limit reached</h3>
-      
-      <div class="uc-example">
-        <div>After being blocked once without running tests, you attempt to end the session again. The enforcer reaches its block limit, writes a review document, clears pending flags, and releases the session.</div>
-      </div>
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">markdown</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">markdown</span>
+# Invalid format (blocked):
+---
+name: my-rule
+events:
+  - SessionStart
+keywords:
+  - example
+---
+
+# Valid format (allowed):
+---
+name: my-rule
+events: [SessionStart]
+keywords: [example]
+---</div>
+        </div>
       </div>
     </div>
   </section>
@@ -1980,21 +1950,14 @@ return ok({ decision: "block", reason });</div>
         <div class="card-icon">&#x1F517;</div>
         <h3>Dependencies</h3>
       </div>
-      
-      <table class="tbl">
-        <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
-        <tbody>
-          <tr><td><code>narrative-reader</code></td><td>lib</td><td>Picks escalating narrative tone for block messages</td></tr>
-          <tr><td><code>TestObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>pendingPath</code>, <code>blockCountPath</code>, <code>MAX_BLOCKS</code>, <code>buildBlockLimitReview</code>, <code>hasTestFile</code></td></tr>
-          <tr><td><code>result</code></td><td>core</td><td><code>ok</code> wrapper for Result type returns</td></tr>
-          <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK types</td><td><code>SyncHookJSONOutput</code> return type. R5 block path uses top-level <code>decision: "block"</code> + <code>reason</code> because Stop is a NonHookSpecificEvent and has no <code>hookSpecificOutput</code> wrapping (contrast with PreToolUse where deny goes through <code>hookSpecificOutput.permissionDecision</code>). R8 silent path is a bare <code>{}</code>. Post-SDK-refactor migration.</td></tr>
-        </tbody>
-      </table>
+      <div class="reason"><span class="ri">&#x2022;</span> <strong>SteeringRuleInjector parser</strong> — <code>hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.contract.ts:86</code> defines the parseFrontmatter function that only handles bracket array syntax</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>lib/tool-input</strong> — getFilePath for extracting file path from tool input</div>
+<div class="reason"><span class="ri">&#x2022;</span> <strong>lib/narrative-reader</strong> — pickNarrative for varied blocking messages</div>
     </div>
   </section>
 
   <footer>
-    <p>Generated from <code>TestObligationEnforcer/doc.md</code> &mdash; pai-hooks documentation</p>
+    <p>Generated from <code>SteeringRuleValidator/doc.md</code> &mdash; pai-hooks documentation</p>
   </footer>
 </div>
 
