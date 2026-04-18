@@ -34,8 +34,7 @@ describe("RelationshipMemory hook shell", () => {
       transcript_path: "/tmp/nonexistent",
     });
     expect(result.exitCode).toBe(0);
-    // Stop event: ok({}) with no tool_name produces no stdout.
-    // See core/runner.ts lines 169-175 — "{}" is suppressed for non-tool events.
+    // Stop event with nonexistent transcript produces empty output
     expect(result.stdout).toBe("");
   });
 
