@@ -10,7 +10,12 @@
  */
 
 import { readFile } from "@hooks/core/adapters/fs";
-import { configValidationFailed, jsonParseFailed, type ResultError } from "@hooks/core/error";
+import {
+  configValidationFailed,
+  fileReadFailed,
+  jsonParseFailed,
+  type ResultError,
+} from "@hooks/core/error";
 import { err, ok, type Result, tryCatch } from "@hooks/core/result";
 import { getSettingsPath } from "@hooks/lib/paths";
 import { Schema } from "effect";
@@ -32,26 +37,24 @@ interface SettingsWithHookConfig {
  * @param hookName - The key under hookConfig (e.g. "duplicationChecker")
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
+ * @param logStderr - Optional stderr logger called with a message on each failure
  * @returns T | null — caller is responsible for validating shape
- *
- * @example
- * // Prefer schema-validated version:
- * const result = readHookConfig("myHook", MyConfigSchema);
- * if (!result.ok) return handleError(result.error);
- * const config = result.value; // typed and validated
  */
 export function readHookConfig<T = Record<string, unknown>>(
   hookName: string,
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
+  logStderr?: (msg: string) => void,
 ): T | null;
 
 /**
  * Read and validate a hook's config section from settings.json (PREFERRED).
  *
- * Validates against `schema` using Effect Schema and returns
- * `Result<T, ResultError>` — ok on success, err with
- * `ConfigValidationFailed` if the config is missing or fails validation.
+ * Validates against `schema` using Effect Schema. Returns `Result<T, ResultError>`
+ * with distinct error codes per failure mode:
+ *   - `FileReadFailed` — settings.json could not be read
+ *   - `JsonParseFailed` — settings.json contains invalid JSON
+ *   - `ConfigValidationFailed` — key missing, not an object, or schema invalid
  *
  * This is the recommended API: validation happens at the config boundary,
  * ensuring type safety without caller-side casts.
@@ -60,6 +63,7 @@ export function readHookConfig<T = Record<string, unknown>>(
  * @param schema - Effect Schema to validate against
  * @param readFileFn - Optional file reader override (for testing/DI)
  * @param settingsPath - Optional settings path override (for testing)
+ * @param logStderr - Optional stderr logger called with a message on each failure
  * @returns Result<T, ResultError> — validated config or typed error
  */
 export function readHookConfig<T>(
@@ -67,13 +71,15 @@ export function readHookConfig<T>(
   schema: Schema.Schema<T>,
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
+  logStderr?: (msg: string) => void,
 ): Result<T, ResultError>;
 
 export function readHookConfig<T>(
   hookName: string,
   schemaOrReadFileFn?: Schema.Schema<T> | ((path: string) => string | null),
   readFileFnOrSettingsPath?: ((path: string) => string | null) | string,
-  settingsPath?: string,
+  settingsPathOrLogStderr?: string | ((msg: string) => void),
+  logStderr?: (msg: string) => void,
 ): T | null | Result<T, ResultError> {
   // Detect which overload was called by checking if second arg is an Effect Schema.
   // Schemas are functions (not plain functions) — Schema.isSchema correctly distinguishes
@@ -83,34 +89,41 @@ export function readHookConfig<T>(
   if (isSchemaOverload) {
     const schema = schemaOrReadFileFn as Schema.Schema<T>;
     const readFileFn = readFileFnOrSettingsPath as ((path: string) => string | null) | undefined;
-    const resolvedSettingsPath = settingsPath;
-    const raw = readRaw(hookName, readFileFn, resolvedSettingsPath);
-    if (raw === null) {
-      return err(configValidationFailed(hookName, new Error("Hook config not found")));
-    }
+    const resolvedSettingsPath = settingsPathOrLogStderr as string | undefined;
+    const raw = readRaw(hookName, readFileFn, resolvedSettingsPath, logStderr);
+    if (!raw.ok) return raw;
     const decode = Schema.decodeUnknownEither(schema);
-    const result = decode(raw);
+    const result = decode(raw.value);
     if (result._tag === "Right") return ok(result.right);
-    return err(configValidationFailed(hookName, result.left));
+    const validationError = configValidationFailed(hookName, result.left);
+    logStderr?.(validationError.toString());
+    return err(validationError);
   }
 
   // Untyped overload
   const readFileFn = schemaOrReadFileFn as ((path: string) => string | null) | undefined;
   const resolvedSettingsPath = readFileFnOrSettingsPath as string | undefined;
-  return readRaw(hookName, readFileFn, resolvedSettingsPath) as T | null;
+  const resolvedLogStderr = settingsPathOrLogStderr as ((msg: string) => void) | undefined;
+  const raw = readRaw(hookName, readFileFn, resolvedSettingsPath, resolvedLogStderr);
+  return raw.ok ? (raw.value as T) : null;
 }
 
 /**
  * Internal helper: reads and extracts the raw hookConfig.{hookName} object.
- * Returns the raw value (unknown object) or null on any error.
- * Logs distinct failure modes to stderr if provided (#171).
+ *
+ * Returns a Result with distinct error codes per failure mode:
+ *   - `FileReadFailed` — settings.json could not be read
+ *   - `JsonParseFailed` — settings.json contains invalid JSON
+ *   - `ConfigValidationFailed` — hookConfig key missing or not an object
+ *
+ * If `logStderr` is provided it is called with the error message before returning.
  */
 function readRaw(
   hookName: string,
   readFileFn?: (path: string) => string | null,
   settingsPath?: string,
-  stderr?: (msg: string) => void,
-): Record<string, unknown> | null {
+  logStderr?: (msg: string) => void,
+): Result<Record<string, unknown>, ResultError> {
   const path = settingsPath ?? getSettingsPath();
   const reader =
     readFileFn ??
@@ -120,8 +133,9 @@ function readRaw(
     });
   const raw = reader(path);
   if (!raw) {
-    stderr?.(`[hook-config] file read failed: ${path}`);
-    return null;
+    const e = fileReadFailed(path, new Error("File not found or empty"));
+    logStderr?.(e.toString());
+    return err(e);
   }
 
   const parseResult = tryCatch(
@@ -129,14 +143,15 @@ function readRaw(
     (cause) => jsonParseFailed(raw.slice(0, 100), cause),
   );
   if (!parseResult.ok) {
-    stderr?.(`[hook-config] JSON parse failed: ${parseResult.error.message}`);
-    return null;
+    logStderr?.(parseResult.error.toString());
+    return parseResult;
   }
 
   const cfg = parseResult.value?.hookConfig?.[hookName];
   if (!cfg || typeof cfg !== "object") {
-    // Not an error — hook simply has no config entry
-    return null;
+    const e = configValidationFailed(hookName, new Error("Hook config not found or not an object"));
+    logStderr?.(e.toString());
+    return err(e);
   }
-  return cfg as Record<string, unknown>;
+  return ok(cfg as Record<string, unknown>);
 }
