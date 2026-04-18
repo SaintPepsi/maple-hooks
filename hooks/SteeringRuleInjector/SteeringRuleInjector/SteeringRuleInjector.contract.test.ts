@@ -646,3 +646,25 @@ describe("SteeringRuleInjector defaultDeps", () => {
     expect(() => SteeringRuleInjector.defaultDeps.stderr("test message")).not.toThrow();
   });
 });
+
+describe("SteeringRuleInjector fallback stderr logging", () => {
+  it("calls deps.stderr when parseHookInput fails in resolveEvent and getMatchText", () => {
+    const stderrMessages: string[] = [];
+    const deps = makeDeps({
+      resolveGlobs: () => [],
+      stderr: (msg: string) => {
+        stderrMessages.push(msg);
+      },
+    });
+    // SessionStartInput.hook_type is optional in the TS interface — omitting it
+    // satisfies the TypeScript type but fails the Effect schema (which requires
+    // hook_type to be present and equal to a known literal).
+    const inputMissingHookType: SessionStartInput = { session_id: "test-session-123" };
+    SteeringRuleInjector.execute(inputMissingHookType, deps);
+
+    expect(stderrMessages.some((m) => m.includes("event parse failed"))).toBe(true);
+    expect(stderrMessages.some((m) => m.includes("input parse failed for keyword matching"))).toBe(
+      true,
+    );
+  });
+});
