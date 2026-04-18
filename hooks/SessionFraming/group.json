@@ -4,6 +4,7 @@
   "hooks": [
     "BranchAwareness",
     "CheckVersion",
+    "DefaultEffort",
     "GitignoreRecommender",
     "LoadContext",
     "SessionAutoRename"
