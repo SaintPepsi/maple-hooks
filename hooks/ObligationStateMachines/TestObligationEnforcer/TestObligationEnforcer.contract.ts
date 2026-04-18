@@ -8,8 +8,8 @@ import {
   blockCountPath,
   buildBlockLimitReview,
   findImportingTestFile,
+  findTestFile,
   formatAsTree,
-  hasTestFile,
   MAX_BLOCKS,
   pendingPath,
   defaultDeps as sharedDefaultDeps,
@@ -65,12 +65,16 @@ export const TestObligationEnforcer: SyncHookContract<StopInput, TestEnforcerDep
     const needsRunning: string[] = [];
 
     for (const file of pending) {
-      if (hasTestFile(file, deps.fileExists)) {
-        needsRunning.push(file);
-      } else if (findImportingTestFile(file, deps) !== null) {
-        needsRunning.push(file);
+      const colocatedTest = findTestFile(file, deps.fileExists);
+      if (colocatedTest) {
+        needsRunning.push(colocatedTest);
       } else {
-        needsWriting.push(file);
+        const importingTest = findImportingTestFile(file, deps);
+        if (importingTest) {
+          needsRunning.push(importingTest);
+        } else {
+          needsWriting.push(file);
+        }
       }
     }
 

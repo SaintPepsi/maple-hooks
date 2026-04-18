@@ -139,7 +139,7 @@ describe("TestObligationEnforcer", () => {
       const reason = getReasonFromBlock(result.value);
       expect(reason).toBeDefined();
       expect(reason ?? "").toContain("Run existing tests");
-      expect(reason ?? "").toContain("utils.ts");
+      expect(reason ?? "").toContain("utils.test.ts");
     }
   });
 

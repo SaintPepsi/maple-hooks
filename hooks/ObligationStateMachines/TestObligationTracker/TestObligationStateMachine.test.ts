@@ -522,7 +522,7 @@ describe("TestObligationEnforcer", () => {
     expect(getReasonFromBlock(result.value)).toBeDefined();
   });
 
-  it("block reason includes file paths", () => {
+  it("block reason includes test file paths", () => {
     const deps = makeEnforcerDeps({
       fileExists: () => true,
       readPending: () => ["/src/handler.ts"],
@@ -537,7 +537,7 @@ describe("TestObligationEnforcer", () => {
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value);
     expect(reason).toBeDefined();
-    expect(reason ?? "").toContain("handler.ts");
+    expect(reason ?? "").toContain("handler.test.ts");
   });
 
   it("block reason mentions tests", () => {
@@ -697,9 +697,9 @@ describe("TestObligationEnforcer", () => {
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
     const reason = getReasonFromBlock(result.value) ?? "";
     expect(reason).not.toBe("");
-    // handler.ts has a test → run instruction
-    // utils.ts has no test → write instruction
-    expect(reason).toContain("handler.ts");
+    // handler.ts has a test → shows test file path in run instruction
+    // utils.ts has no test → shows source file in write instruction
+    expect(reason).toContain("handler.test.ts");
     expect(reason).toContain("utils.ts");
     expect(reason.toLowerCase()).toContain("write");
     expect(reason.toLowerCase()).toContain("run");

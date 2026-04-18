@@ -163,6 +163,14 @@ export function hasTestFile(sourcePath: string, fileExists: (path: string) => bo
   return deriveTestPaths(sourcePath).some(fileExists);
 }
 
+/** Find the first existing test file for a source file, or null if none exists. */
+export function findTestFile(
+  sourcePath: string,
+  fileExists: (path: string) => boolean,
+): string | null {
+  return deriveTestPaths(sourcePath).find(fileExists) ?? null;
+}
+
 /**
  * Scan the same directory and parent directory for *.test.ts / *.spec.ts files
  * that import the given source file. Returns the path of the first match, or null.
