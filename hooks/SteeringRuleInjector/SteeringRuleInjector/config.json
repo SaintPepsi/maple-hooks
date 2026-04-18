@@ -1,5 +1,7 @@
 {
   "enabled": true,
-  "includes": [],
+  "includes": [
+    "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/*.md"
+  ],
   "trackerDir": "MEMORY/STATE/.injections"
 }

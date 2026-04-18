@@ -1,6 +1,6 @@
 {
   "exportDefault": {
-    "allowPatterns": []
+    "allowPatterns": ["global-setup\\.ts$", "global-teardown\\.ts$"]
   },
-  "skipFiles": []
+  "skipFiles": ["result.ts"]
 }
