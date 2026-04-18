@@ -239,6 +239,14 @@ export const SKIP_FILENAMES = new Set([
   "quality-scorer.test.ts",
 ]);
 
+/** Path patterns for config directories that don't need tests — verified by running the tool, not unit tests. */
+const SKIP_PATH_PATTERNS: readonly RegExp[] = [
+  /(^|\/)\.storybook\//, // Storybook config (main.ts, preview.ts)
+  /(^|\/)\.vscode\//, // VS Code config
+  /(^|\/)\.github\//, // GitHub Actions/workflows
+  /(^|\/)\.husky\//, // Husky git hooks
+];
+
 /**
  * Get the language profile for a file path. Returns null if:
  * - Extension is not recognized as scorable source code
@@ -248,6 +256,9 @@ export const SKIP_FILENAMES = new Set([
 export function getLanguageProfile(filePath: string): LanguageProfile | null {
   const basename = filePath.split("/").pop() ?? "";
   if (SKIP_FILENAMES.has(basename)) return null;
+
+  // Skip config directories that are verified by running the tool, not unit tests
+  if (SKIP_PATH_PATTERNS.some((pattern) => pattern.test(filePath))) return null;
 
   const parts = filePath.split(".");
   const ext = parts.pop()?.toLowerCase();

@@ -119,6 +119,26 @@ describe("language-profiles", () => {
       expect(getLanguageProfile("vite.config.mts")).toBeNull();
       expect(getLanguageProfile("vite.config.mjs")).toBeNull();
     });
+
+    test("returns null for .storybook config files", () => {
+      expect(getLanguageProfile("/project/.storybook/main.ts")).toBeNull();
+      expect(getLanguageProfile("/project/.storybook/preview.ts")).toBeNull();
+      expect(getLanguageProfile(".storybook/main.ts")).toBeNull();
+    });
+
+    test("returns null for .vscode config files", () => {
+      expect(getLanguageProfile("/project/.vscode/settings.json")).toBeNull();
+      expect(getLanguageProfile(".vscode/tasks.json")).toBeNull();
+    });
+
+    test("returns null for .github workflow files", () => {
+      expect(getLanguageProfile("/project/.github/workflows/ci.yml")).toBeNull();
+      expect(getLanguageProfile(".github/CODEOWNERS")).toBeNull();
+    });
+
+    test("returns null for .husky hook files", () => {
+      expect(getLanguageProfile("/project/.husky/pre-commit")).toBeNull();
+    });
   });
 
   describe("isScorableFile", () => {
