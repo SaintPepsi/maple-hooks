@@ -64,3 +64,8 @@ The best way to understand Maple Hooks is to browse the github pages, every hook
 When you're browsing the code look for the `doc.md` files for deep-dives into specific hooks, or check out the `IDEA.md` files to see the "why" behind the code.
 
 **Happy Hooking!**
+
+
+---
+
+p.s. Maple is my bunny, she's the best
