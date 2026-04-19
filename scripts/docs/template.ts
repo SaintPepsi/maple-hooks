@@ -581,6 +581,7 @@ function pageShell(opts: {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="https://github.com/user-attachments/assets/08e4e5de-c220-46c6-968d-1976411654b3">
   <title>${esc(opts.title)}</title>
   <style>${getCSS()}</style>
 </head>
