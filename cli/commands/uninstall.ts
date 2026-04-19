@@ -2,7 +2,7 @@
  * uninstall command — Remove installed hooks from a target project.
  *
  * Supports hook-level and group-level uninstall with modification detection,
- * shared file ref-counting, and pai-hooks/ directory cleanup.
+ * shared file ref-counting, and maple-hooks/ directory cleanup.
  *
  * Pipeline: parseArgs → resolveTarget → readLockfile → detect modifications → remove files → update settings → update lockfile
  *
@@ -123,9 +123,9 @@ export function uninstall(args: ParsedArgs, deps: CliDeps): Result<string, PaihE
   // Step 9: Clean up empty directories
   cleanupEmptyDirs(plan, claudeDir, deps);
 
-  // Step 10: Remove pai-hooks/ subdirectories if no hooks remain (preserve lockfile/tsconfig)
+  // Step 10: Remove maple-hooks/ subdirectories if no hooks remain (preserve lockfile/tsconfig)
   if (plan.removeCoreDir) {
-    const paiHooksPath = `${claudeDir}/hooks/pai-hooks`;
+    const paiHooksPath = `${claudeDir}/hooks/maple-hooks`;
     // Remove core/, lib/, and empty group dirs — but not paih.lock.json or tsconfig.json
     for (const subdir of ["core", "lib"]) {
       const subdirPath = `${paiHooksPath}/${subdir}`;
@@ -178,7 +178,7 @@ function buildUninstallPlan(names: string[], lockfile: Lockfile): Result<Uninsta
   // Determine shared files to remove via ref-counting
   const sharedFilesToRemove = computeSharedFilesToRemove(hooksToRemove, lockfile);
 
-  // Determine if pai-hooks/ should be removed
+  // Determine if maple-hooks/ should be removed
   const remainingHooks = lockfile.hooks.filter((h) => !seenNames.has(h.name));
   const removeCoreDir = remainingHooks.length === 0;
 
@@ -293,7 +293,7 @@ function removeHookFiles(
 function cleanupEmptyDirs(plan: UninstallPlan, claudeDir: string, deps: CliDeps): void {
   // Collect hook directories that may now be empty
   for (const hook of plan.hooksToRemove) {
-    const hookDir = `${claudeDir}/hooks/pai-hooks/${hook.group}/${hook.name}`;
+    const hookDir = `${claudeDir}/hooks/maple-hooks/${hook.group}/${hook.name}`;
     if (deps.fileExists(hookDir)) {
       const entries = deps.readDir(hookDir);
       if (entries.ok && entries.value.length === 0) {
@@ -302,7 +302,7 @@ function cleanupEmptyDirs(plan: UninstallPlan, claudeDir: string, deps: CliDeps)
     }
 
     // Check if group directory is now empty
-    const groupDir = `${claudeDir}/hooks/pai-hooks/${hook.group}`;
+    const groupDir = `${claudeDir}/hooks/maple-hooks/${hook.group}`;
     if (deps.fileExists(groupDir)) {
       const entries = deps.readDir(groupDir);
       if (entries.ok && entries.value.length === 0) {
@@ -329,7 +329,7 @@ function formatDryRun(plan: UninstallPlan): string {
     }
   }
   if (plan.removeCoreDir) {
-    lines.push("  Would remove pai-hooks/ directory (no hooks remaining)");
+    lines.push("  Would remove maple-hooks/ directory (no hooks remaining)");
   }
   return lines.join("\n");
 }

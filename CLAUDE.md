@@ -1,4 +1,4 @@
-# pai-hooks
+# maple-hooks
 
 PAI hook system — TypeScript contracts for Claude Code hooks.
 
@@ -112,7 +112,7 @@ Set `"blocking": false` to get advisory warnings instead of session blocks.
 
 Every hook group and individual hook should have an `IDEA.md` alongside `doc.md`.
 IDEA.md is project-agnostic — no internal paths, no TypeScript references, no
-pai-hooks-specific terms. It describes the concept so anyone can reimplement it.
+maple-hooks-specific terms. It describes the concept so anyone can reimplement it.
 
 Template: Problem, Solution, How It Works (numbered steps), Signals (input/output),
 Context (optional). Keep to 30-80 lines.

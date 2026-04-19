@@ -9,7 +9,7 @@ import { join } from "node:path";
 const PAI_DIR = join(homedir(), ".claude");
 const HOOK_PATH = join(
   PAI_DIR,
-  "pai-hooks",
+  "maple-hooks",
   "hooks",
   "StopOrchestrator",
   "StopOrchestrator",

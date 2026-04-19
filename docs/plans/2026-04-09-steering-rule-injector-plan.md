@@ -6,7 +6,7 @@
 
 **Architecture:** Single SyncHookContract registered for SessionStart and UserPromptSubmit. Rules are `.md` files with YAML frontmatter. Glob patterns in hookConfig resolve rule files. Injection tracked per-session in gitignored JSON files.
 
-**Tech Stack:** TypeScript, Bun (bun:test, Bun.Glob), pai-hooks contract system
+**Tech Stack:** TypeScript, Bun (bun:test, Bun.Glob), maple-hooks contract system
 
 ---
 

@@ -68,7 +68,7 @@ describe("CLI: missing directory argument", () => {
 
 // ─── CLI: Output Header ──────────────────────────────────────────────────────
 
-describe("CLI: output header and structure against pai-hooks", () => {
+describe("CLI: output header and structure against maple-hooks", () => {
   test("exits with code 0 for valid directory", async () => {
     const { exitCode } = await runCLI([PAI_HOOKS_DIR]);
     expect(exitCode).toBe(0);
@@ -126,7 +126,7 @@ describe("CLI: three required output sections", () => {
 
 // ─── CLI: makeDeps Cluster ───────────────────────────────────────────────────
 
-describe("CLI: makeDeps cluster appears in pai-hooks output", () => {
+describe("CLI: makeDeps cluster appears in maple-hooks output", () => {
   test("stdout contains makeDeps function name", async () => {
     const { stdout } = await runCLI([PAI_HOOKS_DIR]);
     expect(stdout).toContain("makeDeps");
@@ -155,7 +155,7 @@ describe("CLI: makeDeps cluster appears in pai-hooks output", () => {
 
 // ─── CLI: makeInput Cluster ──────────────────────────────────────────────────
 
-describe("CLI: makeInput cluster appears in pai-hooks output", () => {
+describe("CLI: makeInput cluster appears in maple-hooks output", () => {
   test("stdout contains makeInput function name", async () => {
     const { stdout } = await runCLI([PAI_HOOKS_DIR]);
     expect(stdout).toContain("makeInput");

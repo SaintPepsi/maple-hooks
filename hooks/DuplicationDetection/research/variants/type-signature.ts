@@ -249,7 +249,9 @@ function formatResults(
       `  Names: ${c.distinctNames.slice(0, 8).join(", ")}${c.distinctNames.length > 8 ? "..." : ""}`,
     );
     for (const m of c.members.slice(0, 6)) {
-      lines.push(`    - ${m.name} (${shortenPath(m.file).replace(/.*pai-hooks\//, "")}:${m.line})`);
+      lines.push(
+        `    - ${m.name} (${shortenPath(m.file).replace(/.*maple-hooks\//, "")}:${m.line})`,
+      );
     }
     if (c.members.length > 6) {
       lines.push(`    ... and ${c.members.length - 6} more`);

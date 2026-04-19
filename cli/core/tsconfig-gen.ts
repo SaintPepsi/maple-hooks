@@ -5,7 +5,7 @@
  * so installed hooks can resolve their core dependencies.
  *
  * Path alias pattern matches the source repo's tsconfig.json
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/tsconfig.json).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/tsconfig.json).
  */
 
 import type { PaihError } from "@hooks/cli/core/error";
@@ -34,10 +34,10 @@ interface TsConfigJson {
 
 /**
  * Generate tsconfig.json at .claude/hooks/ with path aliases pointing
- * to pai-hooks/ for shared dependencies.
+ * to maple-hooks/ for shared dependencies.
  */
 export function generateTsconfig(claudeDir: string, deps: CliDeps): Result<void, PaihError> {
-  const paiHooksDir = `${claudeDir}/hooks/pai-hooks`;
+  const paiHooksDir = `${claudeDir}/hooks/maple-hooks`;
   const tsconfigPath = `${paiHooksDir}/tsconfig.json`;
 
   const config: TsConfigJson = {

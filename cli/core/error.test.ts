@@ -141,11 +141,11 @@ describe("error factories", () => {
   it("lockMissing references correct path", () => {
     const err = lockMissing("/project/.claude");
     expect(err.code).toBe(PaihErrorCode.LockMissing);
-    expect(err.message).toContain("/project/.claude/hooks/pai-hooks/paih.lock.json");
+    expect(err.message).toContain("/project/.claude/hooks/maple-hooks/paih.lock.json");
   });
 
   it("fileModified", () => {
-    const err = fileModified("/project/.claude/hooks/pai-hooks/MyHook/MyHook.hook.ts");
+    const err = fileModified("/project/.claude/hooks/maple-hooks/MyHook/MyHook.hook.ts");
     expect(err.code).toBe(PaihErrorCode.FileModified);
     expect(err.message).toContain("--force");
   });

@@ -67,7 +67,7 @@ concerns detected.\n..."))` which became a silent drop after Phase 0 Task 0C (co
 deleted the runner's `formatOutput()` translation layer. `validateHookOutput` fail-opened on the
 legacy shape, so the pre-existing quality advisory injected into PostToolUse was never delivered.
 Fixed by migrating to `hookSpecificOutput.additionalContext` per recipe R2 in
-`/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77`.
+`/Users/hogers/.claude/maple-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77`.
 
 ## Examples
 

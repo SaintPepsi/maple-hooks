@@ -31,7 +31,7 @@ export interface CatalogResult {
  *
  * @param args - Parsed CLI arguments (from cli/core/args.ts).
  * @param deps - Injectable filesystem dependencies (from cli/types/deps.ts).
- * @param sourceRoot - Root of the pai-hooks repo to scan for manifests.
+ * @param sourceRoot - Root of the maple-hooks repo to scan for manifests.
  */
 export function catalog(
   args: ParsedArgs,

@@ -1,11 +1,11 @@
 # Scripts
 
-Automation scripts for the pai-hooks settings sync workflow.
+Automation scripts for the maple-hooks settings sync workflow.
 
 See also the root-level scripts:
 
 - `install.ts` — Merges hooks into `~/.claude/settings.json` (user-facing entry point)
-- `uninstall.ts` — Removes all pai-hooks entries from `~/.claude/settings.json`
+- `uninstall.ts` — Removes all maple-hooks entries from `~/.claude/settings.json`
 
 ## export-hooks.ts
 
@@ -15,7 +15,7 @@ namespaced env var (`${SAINTPEPSI_PAI_HOOKS_DIR}/`). Only includes hooks whose `
 file exists in the repo, so PAI-specific hooks that aren't implemented here are excluded
 automatically.
 
-The default source prefix is read from `pai-hooks.json` manifest (`${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/`),
+The default source prefix is read from `maple-hooks.json` manifest (`${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/`),
 matching hooks already installed under the repo's own env var. A custom prefix can be passed
 as an argument for initial migration from a different path (e.g., `${PAI_DIR}/hooks/`).
 
@@ -71,16 +71,16 @@ directory paths are stripped from project names and all string fields.
 
 ### Key degradation metrics
 
-| Metric | Description |
-|--------|-------------|
-| `is_after_2pm` | Binary flag: 1 if session started at 14:00 AEST or later |
-| `thinking_depth_ratio` | `avg_thinking_length / avg_output_length` — lower = shallower reasoning |
-| `empty_responses` | Assistant turns with <50 chars text |
-| `abandoned_frustrated` | Session ended frustrated (short + frustration signals) |
-| `tool_success_rate` | `tool_results / tool_uses` — lower = more failures |
-| `tool_loops` | Repeated identical tool calls (model spinning) |
-| `consecutive_corrections` | Correction signals back-to-back (model not learning) |
-| `is_subagent` | Session spawned by parent session (Agent tool), not user-initiated |
+| Metric                    | Description                                                             |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `is_after_2pm`            | Binary flag: 1 if session started at 14:00 AEST or later                |
+| `thinking_depth_ratio`    | `avg_thinking_length / avg_output_length` — lower = shallower reasoning |
+| `empty_responses`         | Assistant turns with <50 chars text                                     |
+| `abandoned_frustrated`    | Session ended frustrated (short + frustration signals)                  |
+| `tool_success_rate`       | `tool_results / tool_uses` — lower = more failures                      |
+| `tool_loops`              | Repeated identical tool calls (model spinning)                          |
+| `consecutive_corrections` | Correction signals back-to-back (model not learning)                    |
+| `is_subagent`             | Session spawned by parent session (Agent tool), not user-initiated      |
 
 ### Output columns
 
@@ -96,6 +96,7 @@ Interactive Plotly dashboard for visualizing the 2pm AEST degradation analysis.
 Drop the `session-analysis.csv` file onto the page to render charts.
 
 **Charts include:**
+
 - Frustration signals by hour (with 2pm threshold marker)
 - Corrections per user message by hour
 - Output tokens per session by hour

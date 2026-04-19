@@ -96,7 +96,7 @@ To build or rebuild the index outside of a hook run:
 bun Tools/pattern-detector/variants/index-builder.ts build <dir>
 ```
 
-For example, from the pai-hooks root:
+For example, from the maple-hooks root:
 
 ```sh
 bun Tools/pattern-detector/variants/index-builder.ts build /path/to/your/project

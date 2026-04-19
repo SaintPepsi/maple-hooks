@@ -3,10 +3,10 @@
  *
  * Scans the hooks/ directory structure to find hook.json and group.json manifests,
  * reads presets.json from the repo root, and builds the ManifestIndex needed
- * by the resolver (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/core/resolver.ts).
+ * by the resolver (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/cli/core/resolver.ts).
  *
  * Directory layout follows the hook structure documented in group.json manifests
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/hooks/CodingStandards/group.json):
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/hooks/CodingStandards/group.json):
  *   hooks/<Group>/group.json
  *   hooks/<Group>/<Hook>/hook.json
  */
@@ -26,7 +26,7 @@ import { tryCatch } from "@hooks/core/result";
 /**
  * Load all manifests from a source repo and build a ManifestIndex.
  *
- * @param sourceRoot - Absolute path to the pai-hooks repo root.
+ * @param sourceRoot - Absolute path to the maple-hooks repo root.
  * @param deps - Injectable filesystem dependencies.
  */
 export function loadManifests(sourceRoot: string, deps: CliDeps): Result<ManifestIndex, PaihError> {

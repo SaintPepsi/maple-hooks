@@ -122,20 +122,20 @@ console.log("\nTest 3: Simulated worktree path resolution");
   // Simulate what happens when the shell expands $CLAUDE_PROJECT_DIR
   const projectRoot = "/Users/hogers/Projects/koord";
   const commandTemplate =
-    'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts';
+    'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts';
 
   // Shell expansion: replace $CLAUDE_PROJECT_DIR with the actual value
   const expandedCommand = commandTemplate.replace('"$CLAUDE_PROJECT_DIR"', projectRoot);
 
   assert(
     expandedCommand ===
-      `bun ${projectRoot}/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts`,
+      `bun ${projectRoot}/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts`,
     `expanded path is absolute: ${expandedCommand}`,
   );
 
   // The old relative path would have resolved against CWD (the worktree)
   const worktreeCwd = "/Users/hogers/Projects/koord/.claude/worktrees/issue-foo";
-  const oldRelativeResolved = `${worktreeCwd}/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts`;
+  const oldRelativeResolved = `${worktreeCwd}/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts`;
 
   assert(
     expandedCommand !== oldRelativeResolved,

@@ -1,6 +1,6 @@
 ## Overview
 
-`core/` is the pai-hooks foundation layer. Everything in this directory is pure logic — no I/O, no try/catch, no side effects. I/O and error recovery live in `core/adapters/` and `core/runner.ts`, which are the only boundary layers.
+`core/` is the maple-hooks foundation layer. Everything in this directory is pure logic — no I/O, no try/catch, no side effects. I/O and error recovery live in `core/adapters/` and `core/runner.ts`, which are the only boundary layers.
 
 ## Files
 

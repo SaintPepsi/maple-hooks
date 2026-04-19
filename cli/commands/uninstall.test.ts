@@ -1,6 +1,6 @@
 /**
  * Uninstall command tests — hook-level, group-level, modification detection,
- * shared file ref-counting, pai-hooks/ cleanup, dry-run, and idempotency.
+ * shared file ref-counting, maple-hooks/ cleanup, dry-run, and idempotency.
  *
  * Uses InMemoryDeps from cli/types/deps.ts.
  * Tests the uninstall function from cli/commands/uninstall.ts.
@@ -134,12 +134,12 @@ describe("uninstall command", () => {
     // Hook files removed
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(false);
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
       ),
     ).toBe(false);
 
@@ -151,7 +151,7 @@ describe("uninstall command", () => {
     expect(commands.filter((c) => c.includes("TypeStrictness"))).toHaveLength(0);
 
     // Lockfile updated
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.hooks.filter((h) => h.name === "TypeStrictness")).toHaveLength(0);
   });
@@ -168,17 +168,17 @@ describe("uninstall command", () => {
     // Both hooks removed
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(false);
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts",
       ),
     ).toBe(false);
 
     // Lockfile empty
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.hooks).toHaveLength(0);
   });
@@ -188,7 +188,7 @@ describe("uninstall command", () => {
 
     // Modify an installed file
     deps.addFile(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       "// MODIFIED by user\n",
     );
 
@@ -205,7 +205,7 @@ describe("uninstall command", () => {
 
     // Modify an installed file
     deps.addFile(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       "// MODIFIED by user\n",
     );
 
@@ -215,7 +215,7 @@ describe("uninstall command", () => {
     const files = deps.getFiles();
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(false);
   });
@@ -234,7 +234,7 @@ describe("uninstall command", () => {
     const files = deps.getFiles();
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(true);
   });
@@ -250,7 +250,7 @@ describe("uninstall command", () => {
 
     const files = deps.getFiles();
     // shared.ts should be removed since no hooks reference it
-    expect(files.has("/project/.claude/hooks/pai-hooks/SharedGroup/shared.ts")).toBe(false);
+    expect(files.has("/project/.claude/hooks/maple-hooks/SharedGroup/shared.ts")).toBe(false);
   });
 
   it("shared.ts ref-counting — kept when hooks remain", () => {
@@ -264,18 +264,18 @@ describe("uninstall command", () => {
 
     const files = deps.getFiles();
     // shared.ts should still exist since HookA still references it
-    expect(files.has("/project/.claude/hooks/pai-hooks/SharedGroup/shared.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/maple-hooks/SharedGroup/shared.ts")).toBe(true);
   });
 
-  it("all hooks removed → pai-hooks/ cleaned", () => {
+  it("all hooks removed → maple-hooks/ cleaned", () => {
     const deps = setupInstalled(["TypeStrictness"]);
 
     const result = uninstall(uninstallArgs(["TypeStrictness"]), deps);
     expect(result.ok).toBe(true);
 
     const files = deps.getFiles();
-    // pai-hooks/ directory contents should be removed
-    expect(files.has("/project/.claude/hooks/pai-hooks/core/result.ts")).toBe(false);
+    // maple-hooks/ directory contents should be removed
+    expect(files.has("/project/.claude/hooks/maple-hooks/core/result.ts")).toBe(false);
   });
 
   it("returns LOCK_MISSING when no lockfile exists", () => {
@@ -309,7 +309,7 @@ describe("uninstall command", () => {
 
     // Manually delete a file that the lockfile references
     deps.deleteFile(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
     );
 
     // Should still succeed (idempotent)

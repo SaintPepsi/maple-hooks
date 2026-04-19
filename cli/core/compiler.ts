@@ -7,13 +7,13 @@
  *
  * Both modes use atomic writes (temp file → rename) and chmod 0o755.
  * The --compiled mode substitutes core/adapters/stdin.ts with node-stdin-shim.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/node-stdin-shim.ts)
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/node-stdin-shim.ts)
  * to eliminate Bun.* globals from Node output.
  *
  * process.env is NOT inlined at build time — hooks read env at runtime.
  *
  * Uses CliDeps for filesystem ops and CompilerDeps.exec for bun build invocation
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/deps.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/deps.ts).
  */
 
 import type { PaihError } from "@hooks/cli/core/error";

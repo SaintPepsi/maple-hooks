@@ -5,7 +5,7 @@
  * removing or reordering existing entries. Identity is by commandString.
  *
  * Settings format follows Claude Code's settings.hooks.json schema
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/settings.hooks.json):
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/settings.hooks.json):
  *   hooks: { [event]: MatcherGroup[] }
  *   where MatcherGroup = { matcher?: string, hooks: HookEntry[] }
  *   and HookEntry = { type: "command", command: string }

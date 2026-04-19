@@ -124,7 +124,7 @@ cannot be ${obligationType === "test" ? "tested with standard tooling" : "docume
 /**
  * Derive candidate test file paths from a source file path.
  *
- * Handles two pai-hooks conventions for `.contract.ts` files:
+ * Handles two maple-hooks conventions for `.contract.ts` files:
  *   1. `Foo.contract.ts` → `Foo.test.ts` (the majority convention — drop `.contract`)
  *   2. `Foo.contract.ts` → `Foo.contract.test.ts` (explicit — keep `.contract`)
  *
@@ -139,7 +139,7 @@ export function deriveTestPaths(sourcePath: string): string[] {
   const ext = sourcePath.slice(dotIndex);
   const paths = [`${base}.test${ext}`, `${base}.spec${ext}`, `${base}.coverage.test${ext}`];
   // For `.contract.ts` sources, also check the "strip .contract" convention
-  // that most pai-hooks contracts use: `Foo.contract.ts` → `Foo.test.ts`.
+  // that most maple-hooks contracts use: `Foo.contract.ts` → `Foo.test.ts`.
   if (base.endsWith(".contract")) {
     const stripped = base.slice(0, -".contract".length);
     paths.push(

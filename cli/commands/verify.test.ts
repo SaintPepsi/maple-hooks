@@ -12,7 +12,7 @@ import { describe, expect, it } from "bun:test";
 import { install } from "@hooks/cli/commands/install";
 import { verify } from "@hooks/cli/commands/verify";
 import type { ParsedArgs } from "@hooks/cli/core/args";
-import { PaihError, PaihErrorCode, writeFailed } from "@hooks/cli/core/error";
+import { type PaihError, PaihErrorCode, writeFailed } from "@hooks/cli/core/error";
 import type { Result } from "@hooks/cli/core/result";
 import { err } from "@hooks/cli/core/result";
 import { InMemoryDeps } from "@hooks/cli/types/deps";
@@ -168,7 +168,9 @@ describe("verify source-mode", () => {
   // E5: manifest with only stale keys must not be rewritten to {}
   it("--fix with only stale keys reports EMPTY_MANIFEST and does not rewrite file", () => {
     const repo = makeCleanSourceRepo();
-    repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify({ staleKey: "value" });
+    repo["/source/hooks/TestGroup/TestHook/hook.json"] = JSON.stringify({
+      staleKey: "value",
+    });
     const deps = new InMemoryDeps(repo, "/source");
     const result = verify(sourceVerifyArgs({ fix: true }), deps, "/source");
 
@@ -275,7 +277,7 @@ describe("verify installed-mode", () => {
 
     // Modify an installed file
     deps.addFile(
-      "/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts",
+      "/project/.claude/hooks/maple-hooks/TestGroup/TestHook/TestHook.hook.ts",
       "// MODIFIED\n",
     );
 
@@ -293,7 +295,7 @@ describe("verify installed-mode", () => {
     expect(installResult.ok).toBe(true);
 
     // Delete an installed file
-    deps.deleteFile("/project/.claude/hooks/pai-hooks/TestGroup/TestHook/TestHook.hook.ts");
+    deps.deleteFile("/project/.claude/hooks/maple-hooks/TestGroup/TestHook/TestHook.hook.ts");
 
     const result = verify(installedVerifyArgs({ in: "/project" }), deps);
 

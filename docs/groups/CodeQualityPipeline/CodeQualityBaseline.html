@@ -1789,7 +1789,7 @@ section[id] {
     <span class="tag green">CodeQualityPipeline</span>
   </div>
   <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+    <a href="https://github.com/SaintPepsi/maple-hooks/tree/main/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">CodeQualityBaseline.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
@@ -1959,7 +1959,7 @@ if (result.score &lt; LOW_SCORE_THRESHOLD) {
         <div class="card-icon">&#x1F4D6;</div>
         <h3>History</h3>
       </div>
-      <p><strong>Phase 1 Task 1O (2026-04-11)</strong> — Latent bug #13 fixed. The R2 advisory site at <code>CodeQualityBaseline.contract.ts:173</code> was emitting <code>ok(continueOk("Note: Pre-existing quality concerns detected.\n..."))</code> which became a silent drop after Phase 0 Task 0C (commit <code>3705810</code>) deleted the runner's <code>formatOutput()</code> translation layer. <code>validateHookOutput</code> fail-opened on the legacy shape, so the pre-existing quality advisory injected into PostToolUse was never delivered. Fixed by migrating to <code>hookSpecificOutput.additionalContext</code> per recipe R2 in <code>/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77</code>.</p>
+      <p><strong>Phase 1 Task 1O (2026-04-11)</strong> — Latent bug #13 fixed. The R2 advisory site at <code>CodeQualityBaseline.contract.ts:173</code> was emitting <code>ok(continueOk("Note: Pre-existing quality concerns detected.\n..."))</code> which became a silent drop after Phase 0 Task 0C (commit <code>3705810</code>) deleted the runner's <code>formatOutput()</code> translation layer. <code>validateHookOutput</code> fail-opened on the legacy shape, so the pre-existing quality advisory injected into PostToolUse was never delivered. Fixed by migrating to <code>hookSpecificOutput.additionalContext</code> per recipe R2 in <code>/Users/hogers/.claude/maple-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77</code>.</p>
     </div>
   </section>
 
@@ -2008,7 +2008,7 @@ if (result.score &lt; LOW_SCORE_THRESHOLD) {
   </section>
 
   <footer>
-    <p>Generated from <code>CodeQualityBaseline/doc.md</code> &mdash; pai-hooks documentation</p>
+    <p>Generated from <code>CodeQualityBaseline/doc.md</code> &mdash; maple-hooks documentation</p>
   </footer>
 </div>
 

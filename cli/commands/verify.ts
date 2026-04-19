@@ -194,11 +194,7 @@ function validateHookManifest(
   }
 
   // E3: Guard against non-object JSON values (null, array, number, etc.)
-  if (
-    parsed.value === null ||
-    typeof parsed.value !== "object" ||
-    Array.isArray(parsed.value)
-  ) {
+  if (parsed.value === null || typeof parsed.value !== "object" || Array.isArray(parsed.value)) {
     diagnostics.push({
       hookName,
       code: "MANIFEST_PARSE_ERROR",
@@ -239,10 +235,7 @@ function validateHookManifest(
         });
       } else {
         // E1: Check writeFile result — do not report fixed:true on failure
-        const writeResult = deps.writeFile(
-          manifestPath,
-          `${JSON.stringify(cleaned, null, 2)}\n`,
-        );
+        const writeResult = deps.writeFile(manifestPath, `${JSON.stringify(cleaned, null, 2)}\n`);
         if (!writeResult.ok) {
           diagnostics.push({
             hookName,

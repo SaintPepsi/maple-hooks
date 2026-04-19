@@ -1,14 +1,14 @@
 #!/usr/bin/env bun
 
 /**
- * Ensure the pai-hooks env var is set in ~/.zshrc.
+ * Ensure the maple-hooks env var is set in ~/.zshrc.
  *
- * Reads the env var name from pai-hooks.json, then writes/updates
+ * Reads the env var name from maple-hooks.json, then writes/updates
  * the managed block in ~/.zshrc. Idempotent — safe to run on every
  * post-checkout and post-merge.
  *
  * Called by:
- *   - pai-hooks/install.ts (during first install)
+ *   - maple-hooks/install.ts (during first install)
  *   - Main repo .husky/post-merge and .husky/post-checkout
  */
 
@@ -48,7 +48,7 @@ const defaultDeps: EnsureEnvDeps = {
  * and by the CLI entry point below.
  */
 export function ensureEnvVar(envVar: string, deps: EnsureEnvDeps): void {
-  const relPath = "pai-hooks";
+  const relPath = "maple-hooks";
   const zshrcPath = join(deps.homeDir, ".zshrc");
 
   if (!deps.fileExists(zshrcPath)) {
@@ -66,14 +66,14 @@ export function ensureEnvVar(envVar: string, deps: EnsureEnvDeps): void {
 }
 
 /**
- * CLI entry point: reads envVar from pai-hooks.json, then delegates to ensureEnvVar.
+ * CLI entry point: reads envVar from maple-hooks.json, then delegates to ensureEnvVar.
  */
 export function run(deps: EnsureEnvDeps = defaultDeps): void {
   const repoRoot = resolve(import.meta.dir, "..");
 
-  const manifestPath = join(repoRoot, "pai-hooks.json");
+  const manifestPath = join(repoRoot, "maple-hooks.json");
   if (!deps.fileExists(manifestPath)) {
-    deps.stderr("Error: pai-hooks.json not found.");
+    deps.stderr("Error: maple-hooks.json not found.");
     return;
   }
   const manifestResult = deps.readFile(manifestPath);

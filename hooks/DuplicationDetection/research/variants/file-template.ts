@@ -306,8 +306,8 @@ function formatResults(
   lines.push(`Found ${fuzzyMatches.length} near-template pair(s)\n`);
 
   for (const m of fuzzyMatches.slice(0, top)) {
-    const pathA = shortenPath(m.fileA.file.path).replace(/.*pai-hooks\//, "");
-    const pathB = shortenPath(m.fileB.file.path).replace(/.*pai-hooks\//, "");
+    const pathA = shortenPath(m.fileA.file.path).replace(/.*maple-hooks\//, "");
+    const pathB = shortenPath(m.fileB.file.path).replace(/.*maple-hooks\//, "");
     lines.push(`  ${pathA}`);
     lines.push(`  ${pathB}`);
     lines.push(

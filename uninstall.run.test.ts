@@ -12,8 +12,8 @@ interface Captured {
 const zshrcWithBlock = [
   "# before",
   "",
-  "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do not edit",
-  'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"',
+  "# PAI-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit",
+  'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"',
   "# PAI-HOOKS-END",
   "",
   "# after",
@@ -46,7 +46,7 @@ function makeDeps(overrides: Partial<UninstallDeps> = {}): UninstallDeps & Captu
 }
 
 const validManifest = JSON.stringify({
-  name: "saintpepsi-pai-hooks",
+  name: "saintpepsi-maple-hooks",
   envVar: "SAINTPEPSI_PAI_HOOKS_DIR",
 });
 
@@ -96,12 +96,12 @@ const settingsWithHooksNoEnv = JSON.stringify({
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 describe("uninstall run() — early returns", () => {
-  it("returns early when pai-hooks.json not found", () => {
+  it("returns early when maple-hooks.json not found", () => {
     const deps = makeDeps({
-      fileExists: (path: string) => !path.includes("pai-hooks.json"),
+      fileExists: (path: string) => !path.includes("maple-hooks.json"),
     });
     run(deps);
-    expect(deps.stderrLines.some((l) => l.includes("pai-hooks.json not found"))).toBe(true);
+    expect(deps.stderrLines.some((l) => l.includes("maple-hooks.json not found"))).toBe(true);
     expect(deps.writtenFiles.size).toBe(0);
   });
 

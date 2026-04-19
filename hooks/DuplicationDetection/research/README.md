@@ -10,11 +10,11 @@ Design doc: `docs/plans/2026-03-26-pattern-duplication-detector-design.md`
 
 ## Detectors
 
-| ID | Name | Strategy | Source |
-|----|------|----------|--------|
-| A | Import Fingerprint | Groups files by their import signature | [`detectors/import-fingerprint.ts`](detectors/import-fingerprint.ts) |
-| B | Structural Hash | Exact AST structural match (type-erased) | [`detectors/structural-hash.ts`](detectors/structural-hash.ts) |
-| C | Layered | Import fingerprint + body similarity scoring | [`detectors/layered.ts`](detectors/layered.ts) |
+| ID  | Name               | Strategy                                     | Source                                                               |
+| --- | ------------------ | -------------------------------------------- | -------------------------------------------------------------------- |
+| A   | Import Fingerprint | Groups files by their import signature       | [`detectors/import-fingerprint.ts`](detectors/import-fingerprint.ts) |
+| B   | Structural Hash    | Exact AST structural match (type-erased)     | [`detectors/structural-hash.ts`](detectors/structural-hash.ts)       |
+| C   | Layered            | Import fingerprint + body similarity scoring | [`detectors/layered.ts`](detectors/layered.ts)                       |
 
 ---
 
@@ -57,14 +57,14 @@ Tools/pattern-detector/
 
 ---
 
-## Results (pai-hooks evaluation)
+## Results (maple-hooks evaluation)
 
 Source: [`docs/plans/2026-03-26-pattern-duplication-detector-design.md`](/Users/hogers/.claude/docs/plans/2026-03-26-pattern-duplication-detector-design.md)
 
-| Detector | Clusters | Avg Confidence | Precision |
-|----------|----------|----------------|-----------|
-| A (import fingerprint) | 128 | 35% | Low |
-| B (structural hash) | 47 | 100% | High |
-| C (layered) | 128 | 72% | Medium |
+| Detector               | Clusters | Avg Confidence | Precision |
+| ---------------------- | -------- | -------------- | --------- |
+| A (import fingerprint) | 128      | 35%            | Low       |
+| B (structural hash)    | 47       | 100%           | High      |
+| C (layered)            | 128      | 72%            | Medium    |
 
 **Key finding:** Detector B is the most useful — 47 genuine clusters, zero false positives. Detectors A and C surface more candidates but require manual triage.

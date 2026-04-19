@@ -5,11 +5,11 @@
  * location on success. Cleans up staging on failure.
  *
  * Hook file layout follows the source repo structure
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/hooks/CodingStandards/TypeStrictness/):
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/hooks/CodingStandards/TypeStrictness/):
  *   .claude/hooks/<Group>/<Hook>/<Hook>.hook.ts
  *   .claude/hooks/<Group>/<Hook>/<Hook>.contract.ts
  *   .claude/hooks/<Group>/shared.ts  (if group has shared deps)
- *   .claude/hooks/pai-hooks/<module>.ts   (deduped core deps)
+ *   .claude/hooks/maple-hooks/<module>.ts   (deduped core deps)
  */
 
 import type { PaihError } from "@hooks/cli/core/error";
@@ -49,7 +49,7 @@ export function createStaging(claudeDir: string, deps: CliDeps): Result<StagingC
   if (!ensureResult.ok) return ensureResult;
 
   // Derive source root: the repo containing the hook manifests.
-  // In source-copy mode this is the pai-hooks repo itself.
+  // In source-copy mode this is the maple-hooks repo itself.
   // For now we detect it from CWD or a known structure.
   const sourceRoot = deps.cwd();
 
@@ -73,8 +73,8 @@ export function stageHook(
   const groupName = manifest.group;
   const hookName = manifest.name;
 
-  // Target paths: all hooks go inside pai-hooks/ alongside core/ and lib/
-  const hookDir = `${ctx.stagingDir}/pai-hooks/${groupName}/${hookName}`;
+  // Target paths: all hooks go inside maple-hooks/ alongside core/ and lib/
+  const hookDir = `${ctx.stagingDir}/maple-hooks/${groupName}/${hookName}`;
   const ensureResult = deps.ensureDir(hookDir);
   if (!ensureResult.ok) return ensureResult;
 
@@ -85,7 +85,7 @@ export function stageHook(
   const hookDest = `${hookDir}/${hookName}.hook.ts`;
   const hookCopy = copyFile(hookFile, hookDest, deps);
   if (!hookCopy.ok) return hookCopy;
-  files.push(`hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`);
+  files.push(`hooks/maple-hooks/${groupName}/${hookName}/${hookName}.hook.ts`);
 
   // Copy contract.ts
   const contractFile = `${sourceDir}/${hookName}.contract.ts`;
@@ -93,7 +93,7 @@ export function stageHook(
   if (deps.fileExists(contractFile)) {
     const contractCopy = copyFile(contractFile, contractDest, deps);
     if (!contractCopy.ok) return contractCopy;
-    files.push(`hooks/pai-hooks/${groupName}/${hookName}/${hookName}.contract.ts`);
+    files.push(`hooks/maple-hooks/${groupName}/${hookName}/${hookName}.contract.ts`);
   }
 
   // Copy shared files discovered from imports
@@ -101,32 +101,32 @@ export function stageHook(
     const groupSourceDir = sourceDir.substring(0, sourceDir.lastIndexOf("/"));
     for (const sharedFile of sharedFiles) {
       const sharedSrc = `${groupSourceDir}/${sharedFile}`;
-      const sharedDest = `${ctx.stagingDir}/pai-hooks/${groupName}/${sharedFile}`;
+      const sharedDest = `${ctx.stagingDir}/maple-hooks/${groupName}/${sharedFile}`;
       if (deps.fileExists(sharedSrc)) {
         const sharedCopy = copyFile(sharedSrc, sharedDest, deps);
         if (!sharedCopy.ok) return sharedCopy;
-        files.push(`hooks/pai-hooks/${groupName}/${sharedFile}`);
+        files.push(`hooks/maple-hooks/${groupName}/${sharedFile}`);
       }
     }
   }
 
-  const commandString = `bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
+  const commandString = `bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/maple-hooks/${groupName}/${hookName}/${hookName}.hook.ts`;
 
   return ok({ files, commandString });
 }
 
 /**
- * Stage core dependency modules into pai-hooks/ for deduplication.
+ * Stage core dependency modules into maple-hooks/ for deduplication.
  *
  * Core deps (from core/*.ts, core/adapters/*.ts, core/types/*.ts, lib/*.ts)
- * are copied once into .claude/hooks/pai-hooks/ and shared across all hooks.
+ * are copied once into .claude/hooks/maple-hooks/ and shared across all hooks.
  */
 export function stageCoreModules(
   ctx: StagingContext,
   coreDeps: Set<string>,
   deps: CliDeps,
 ): Result<string[], PaihError> {
-  const coreDir = `${ctx.stagingDir}/pai-hooks`;
+  const coreDir = `${ctx.stagingDir}/maple-hooks`;
   const ensureResult = deps.ensureDir(coreDir);
   if (!ensureResult.ok) return ensureResult;
 
@@ -144,7 +144,7 @@ export function stageCoreModules(
 
     const copyResult = copyFile(sourcePath, destPath, deps);
     if (!copyResult.ok) return copyResult;
-    files.push(`hooks/pai-hooks/${dep}.ts`);
+    files.push(`hooks/maple-hooks/${dep}.ts`);
   }
 
   return ok(files);

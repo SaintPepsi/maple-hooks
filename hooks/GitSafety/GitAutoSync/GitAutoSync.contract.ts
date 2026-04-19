@@ -59,7 +59,7 @@ export const DEBOUNCE_MINUTES = 15;
 export const STALE_LOCK_MINUTES = 2;
 const AGENT_FILE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const KEY_FILES = ["statusline-command.sh", "statusline-helpers.ts", "settings.json"];
-export const KEY_HOOK_PATTERN = /^(?:hooks|pai-hooks\/hooks)\/.*\.ts$/;
+export const KEY_HOOK_PATTERN = /^(?:hooks|maple-hooks\/hooks)\/.*\.ts$/;
 
 // ─── Pure Logic Functions ────────────────────────────────────────────────────
 
@@ -124,7 +124,7 @@ function backupKeyFiles(deps: GitAutoSyncDeps): BackupResult | null {
     }
   }
 
-  const hookFilesResult = deps.execSync("git ls-files pai-hooks/hooks/", {
+  const hookFilesResult = deps.execSync("git ls-files maple-hooks/hooks/", {
     cwd: deps.claudeDir,
     timeout: 5000,
   });
@@ -195,7 +195,9 @@ function cleanupStaleAgentFiles(deps: GitAutoSyncDeps): void {
 
     // Check if PID is dead
     let pidDead = false;
-    const killCheck = deps.execSync(`kill -0 ${pid} 2>/dev/null; echo $?`, { timeout: 2000 });
+    const killCheck = deps.execSync(`kill -0 ${pid} 2>/dev/null; echo $?`, {
+      timeout: 2000,
+    });
     if (killCheck.ok && killCheck.value.trim() !== "0") pidDead = true;
 
     if (isOld || pidDead) {

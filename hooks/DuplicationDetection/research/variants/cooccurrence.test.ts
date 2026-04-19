@@ -63,7 +63,7 @@ describe("CLI: missing directory argument", () => {
 
 // ─── CLI: Output Header and Structure ────────────────────────────────────────
 
-describe("CLI: output header and structure against pai-hooks", () => {
+describe("CLI: output header and structure against maple-hooks", () => {
   test("exits with code 0 for valid directory", async () => {
     const { exitCode } = await runCLI([PAI_HOOKS_DIR]);
     expect(exitCode).toBe(0);
@@ -129,7 +129,7 @@ describe("CLI: required output sections are present", () => {
   });
 });
 
-// ─── CLI: Coincidental Section (optional but expected for pai-hooks) ──────────
+// ─── CLI: Coincidental Section (optional but expected for maple-hooks) ──────────
 
 describe("CLI: Coincidental Co-occurrences section (when non-templates exist)", () => {
   test("if Coincidental section present it contains non-template tuple(s) line", async () => {
@@ -376,7 +376,7 @@ describe("CLI: maximal filtering produces fewer tuples than total", () => {
     expect(maximalMatch).not.toBeNull();
     const total = parseInt(totalMatch![1], 10);
     const maximal = parseInt(maximalMatch![1], 10);
-    // Given the known 6-tuple in pai-hooks that subsumes many pairs, maximal < total
+    // Given the known 6-tuple in maple-hooks that subsumes many pairs, maximal < total
     expect(maximal).toBeLessThan(total);
   });
 

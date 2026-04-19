@@ -27,7 +27,7 @@ export interface UpdateCountsDeps {
 
 const defaultDeps: UpdateCountsDeps = {
   spawnBackground,
-  hooksDir: join(getPaiDir(), "pai-hooks"),
+  hooksDir: join(getPaiDir(), "maple-hooks"),
   stderr: defaultStderr,
 };
 

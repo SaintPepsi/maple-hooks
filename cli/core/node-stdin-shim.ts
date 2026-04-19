@@ -4,7 +4,7 @@
  * Used in --compiled (Node target) builds to replace the Bun.stdin adapter
  * with process.stdin (Node built-in). Returns Result, matching the
  * readStdin signature from core/adapters/stdin.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/core/adapters/stdin.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/core/adapters/stdin.ts).
  *
  * This file is injected into the bundle at compile time, replacing
  * core/adapters/stdin.ts so that compiled Node output has no Bun.* globals.

@@ -4,7 +4,8 @@ Ongoing exploration of structural pattern detection approaches. Each cycle produ
 
 ## Baseline (2026-03-27)
 
-Initial spike with three detectors against pai-hooks (214 files, 837 functions):
+Initial spike with three detectors against maple-hooks (214 files, 837 functions):
+
 - **Detector A** (import fingerprint): 128 clusters, avg confidence 35% — too noisy
 - **Detector B** (structural hash): 47 clusters, confidence 100% — high precision, catches exact duplicates only
 - **Detector C** (layered import + body similarity): 128 clusters, avg confidence 72% — better ranking, same noise
@@ -18,6 +19,7 @@ Initial spike with three detectors against pai-hooks (214 files, 837 functions):
 **Hypothesis:** Sliding windows of N consecutive AST node types reveal shared sub-patterns even when full structures differ. Functions following the same template (e.g., "check existence, perform op, wrap in Result") will share characteristic n-grams.
 
 **Approach:**
+
 1. For each function, extract the sequence of AST node types from bodyNodeTypes
 2. Generate all n-grams (default n=4) from the sequence
 3. Build an inverted index: n-gram -> list of functions containing it
@@ -31,17 +33,18 @@ Initial spike with three detectors against pai-hooks (214 files, 837 functions):
 
 **Results:**
 
-| N | Shared n-grams | Pairs | Clusters | Time |
-|---|---------------|-------|----------|------|
-| 3 | 1,014 | 6,776 | 22 | 382ms |
-| 4 | 1,856 | 3,083 | 73 | 311ms |
-| 5 | 2,644 | 1,846 | 90 | 279ms |
-| 6 | 3,251 | 1,304 | 94 | 270ms |
-| 8 | 3,573 | 834 | 80 | 257ms |
+| N   | Shared n-grams | Pairs | Clusters | Time  |
+| --- | -------------- | ----- | -------- | ----- |
+| 3   | 1,014          | 6,776 | 22       | 382ms |
+| 4   | 1,856          | 3,083 | 73       | 311ms |
+| 5   | 2,644          | 1,846 | 90       | 279ms |
+| 6   | 3,251          | 1,304 | 94       | 270ms |
+| 8   | 3,573          | 834   | 80       | 257ms |
 
 **Sweet spot:** N=5 or N=6 — more clusters than N=4 with fewer noisy pairs.
 
 **Key findings (N=4, threshold 0.3):**
+
 - 73 clusters (vs 47 from structural hash) — catches 55% more patterns
 - **17-member cluster:** `getFilePath`/`getCommand`/`getWriteContent` across hook contracts — the input extraction pattern duplicated in every contract
 - **13-member cluster:** `runHook` test helpers across 12 test files — identical test runner setup
@@ -60,6 +63,7 @@ Initial spike with three detectors against pai-hooks (214 files, 837 functions):
 **Hypothesis:** Many duplicated patterns share the same control flow skeleton (sequence of branches, loops, returns) even when their expressions differ entirely. A function that does `if → early return → try → catch → return` will have the same skeleton whether it's processing files, regex, or YAML.
 
 **Approach:**
+
 1. Extract only control flow node types (IfStatement, ForStatement, ReturnStatement, TryStatement, etc.) from bodyNodeTypes
 2. Track nesting depth from BlockStatement entries
 3. Generate four fingerprint variants:
@@ -75,20 +79,22 @@ Initial spike with three detectors against pai-hooks (214 files, 837 functions):
 
 **Results:**
 
-| Strategy | Clusters (min-depth 1) | Clusters (min-depth 0) |
-|----------|----------------------|----------------------|
-| Full skeleton | 3 | 34 |
-| Compressed | 3 | 34 |
-| Shape | 3 | 35 |
-| Abbreviated | 3 | 34 |
-| **Total** | **12** | **137** |
+| Strategy      | Clusters (min-depth 1) | Clusters (min-depth 0) |
+| ------------- | ---------------------- | ---------------------- |
+| Full skeleton | 3                      | 34                     |
+| Compressed    | 3                      | 34                     |
+| Shape         | 3                      | 35                     |
+| Abbreviated   | 3                      | 34                     |
+| **Total**     | **12**                 | **137**                |
 
 **Key findings (min-depth 1):**
+
 - **10-member cluster:** `TryStatement→ReturnStatement→CatchClause→ReturnStatement` — the canonical safe wrapper pattern across `regex.ts`, `yaml.ts`, `result.ts`, stub adapters
 - **7-member shape cluster:** `try→return→catch→if→return` — the "read state, validate, return" pattern across `algorithm-state.ts`, `change-detection.ts`, `notifications.ts`, `tab-setter.ts`
 - **4-member shape cluster:** `return→if→try→catch→if→return` — the "early guard, try operation, check result" pattern in `process.ts`, `identity.ts`, `notifications.ts`, `tab-setter.ts`
 
 **Verdict:** Very high precision — every cluster is a genuine pattern match. But low recall (12 clusters at depth 1) because:
+
 1. Skeleton extraction from flat node type list loses real nesting information
 2. Most functions have short skeletons (avg 4.1 nodes) so many match trivially
 3. The depth filter aggressively reduces matches
@@ -108,6 +114,7 @@ Initial spike with three detectors against pai-hooks (214 files, 837 functions):
 **Hypothesis:** Function names encode architectural roles (factory, accessor, validator, formatter). Grouping by name, then validating with structural body similarity, should find genuine role-based duplication while filtering coincidental name collisions.
 
 **Approach:**
+
 1. **Exact name clustering:** Group functions by exact name across files, compute avg pairwise body similarity
 2. **Role clustering:** Normalize names (strip prefixes like `make`/`get`/`is`, suffixes like `Safe`/`Async`) to extract the "role," then group. This catches variants: `ensureDir` + `ensureDirSafe`, `isTestFile` + `hasTestFile`
 3. **Verb classification:** Classify each function's architectural role (factory/accessor/predicate/formatter/parser/handler/validator) and show distribution
@@ -117,26 +124,27 @@ Initial spike with three detectors against pai-hooks (214 files, 837 functions):
 
 **Results:**
 
-| Metric | Value |
-|--------|-------|
-| Exact name clusters | 25 |
-| Role clusters | 31 |
+| Metric                 | Value        |
+| ---------------------- | ------------ |
+| Exact name clusters    | 25           |
+| Role clusters          | 31           |
 | Structurally validated | 25/25 (100%) |
-| Detection time | 7ms |
+| Detection time         | 7ms          |
 
 **Top findings:**
 
-| Function | Instances | Files | Body Sim | Verb |
-|----------|-----------|-------|----------|------|
-| `makeDeps` | 44 | 44 | 75% | factory |
-| `makeInput` | 31 | 31 | 95% | factory |
-| `runHook` | 13 | 13 | 93% | other |
-| `getFilePath` | 12 | 12 | 99% | accessor |
-| `run` | 9 | 9 | 77% | other |
-| `getStateDir` | 7 | 7 | 88% | accessor |
-| `blockCountPath` | 6 | 6 | 100% | other |
+| Function         | Instances | Files | Body Sim | Verb     |
+| ---------------- | --------- | ----- | -------- | -------- |
+| `makeDeps`       | 44        | 44    | 75%      | factory  |
+| `makeInput`      | 31        | 31    | 95%      | factory  |
+| `runHook`        | 13        | 13    | 93%      | other    |
+| `getFilePath`    | 12        | 12    | 99%      | accessor |
+| `run`            | 9         | 9     | 77%      | other    |
+| `getStateDir`    | 7         | 7     | 88%      | accessor |
+| `blockCountPath` | 6         | 6     | 100%     | other    |
 
 **Verb distribution:**
+
 - **Factories** (make/create/build): 177 total, 98 clustered (55%) — the most duplicated role
 - **Accessors** (get/read/load): 128 total, 24 clustered (19%)
 - **Other** (domain-specific names): 364 total, 53 clustered (15%)
@@ -159,6 +167,7 @@ Also found: `DocObligationStateMachine.shared.ts` and its tracker counterpart sh
 **Hypothesis:** Fingerprinting files by their exported function "interface" (sorted set of function names) detects whole-file template duplication. Fuzzy matching (Jaccard on function names + body similarity) catches adapted templates where a few functions were added/removed.
 
 **Approach:**
+
 1. **File interface fingerprinting:** For each file, build sorted list of function names as a fingerprint
 2. **Exact template clustering:** Group files with identical fingerprints
 3. **Fuzzy template matching:** For file pairs in the same category (test/contract/etc), compute Jaccard similarity on function names + avg body similarity on shared functions
@@ -168,31 +177,32 @@ Also found: `DocObligationStateMachine.shared.ts` and its tracker counterpart sh
 
 **Results:**
 
-| Metric | Value |
-|--------|-------|
-| Exact template clusters | 13 |
-| Fuzzy matches (>50% overlap) | 94 |
-| Files in templates | 65 / 214 (30%) |
-| Detection time | 6ms |
+| Metric                       | Value          |
+| ---------------------------- | -------------- |
+| Exact template clusters      | 13             |
+| Fuzzy matches (>50% overlap) | 94             |
+| Files in templates           | 65 / 214 (30%) |
+| Detection time               | 6ms            |
 
 **Top exact templates:**
 
-| Template | Files | Avg Sim | Category |
-|----------|-------|---------|----------|
-| `{makeDeps, makeInput}` | 21 | 90% | test |
-| `{runHook}` | 12 | 100% | test |
-| `{makeDeps}` | 9 | 93% | test |
-| `{execute}` | 5 | 96% | fixture |
-| `{readStdin}` | 2 | 93% | other |
+| Template                | Files | Avg Sim | Category |
+| ----------------------- | ----- | ------- | -------- |
+| `{makeDeps, makeInput}` | 21    | 90%     | test     |
+| `{runHook}`             | 12    | 100%    | test     |
+| `{makeDeps}`            | 9     | 93%     | test     |
+| `{execute}`             | 5     | 96%     | fixture  |
+| `{readStdin}`           | 2     | 93%     | other    |
 
 **Category breakdown:** 62% of test files follow a template. 0% of contracts or adapters have exact-match templates (they share functions but not identical sets).
 
 **Top fuzzy matches:**
+
 - `CitationEnforcement.shared.ts` ↔ `CitationTracker/CitationEnforcement.ts`: 83% name overlap, 96% body sim — practically the same file
 - `CodingStandardsAdvisor.test.ts` ↔ `CodingStandardsEnforcer.test.ts`: 80% name overlap, 98% body sim
 - `DocObligationStateMachine.shared.ts` ↔ tracker: 11 shared functions, 99% body sim
 
-**Verdict:** This is the first detector that operates at file granularity. It reveals that the test suite is heavily templated — 62% of test files follow one of 8 templates. The fuzzy matching catches near-identical file pairs (shared.ts ↔ tracker/*.ts) that exact matching misses. Combined with cycle 3's role-based naming, this gives a complete picture: "these files are copies of each other, and here are the specific functions that are duplicated."
+**Verdict:** This is the first detector that operates at file granularity. It reveals that the test suite is heavily templated — 62% of test files follow one of 8 templates. The fuzzy matching catches near-identical file pairs (shared.ts ↔ tracker/\*.ts) that exact matching misses. Combined with cycle 3's role-based naming, this gives a complete picture: "these files are copies of each other, and here are the specific functions that are duplicated."
 
 **What it still misses:** Template patterns within contract files (they share individual functions but have different function sets). A "partial template" detector that finds the largest common function subset between files would catch this.
 
@@ -205,6 +215,7 @@ Also found: `DocObligationStateMachine.shared.ts` and its tracker counterpart sh
 **Hypothesis:** Type signatures are a cheap pre-filter (O(1) grouping) that gates expensive body similarity computation. Functions doing the same thing to the same types will cluster together regardless of naming, imports, or minor structural differences.
 
 **Approach:**
+
 1. Extract type signature per function: `(paramType1, paramType2) → returnType`
 2. Group by exact signature fingerprint
 3. Within each group, compute pairwise body similarity (sampled for large groups)
@@ -215,24 +226,24 @@ Also found: `DocObligationStateMachine.shared.ts` and its tracker counterpart sh
 
 **Results:**
 
-| Metric | Value |
-|--------|-------|
-| Signature groups (3+ members) | 45 |
-| Similarity clusters | 47 |
-| Name-diverse clusters | 46 / 47 (98%) |
-| Functions in name-diverse clusters | 708 |
-| Detection time | 43ms |
+| Metric                             | Value         |
+| ---------------------------------- | ------------- |
+| Signature groups (3+ members)      | 45            |
+| Similarity clusters                | 47            |
+| Name-diverse clusters              | 46 / 47 (98%) |
+| Functions in name-diverse clusters | 708           |
+| Detection time                     | 43ms          |
 
 **Top name-diverse clusters (what no other detector finds):**
 
-| Signature | Functions | Files | Body Sim | Example Names |
-|-----------|-----------|-------|----------|--------------|
-| `(string)→Result` | 57 | 27 | 74% | readFile, removeDir, hookNotFound, stat |
-| `(string)→string` | 68 | 42 | 70% | removeDirRecursive, flagKey, countNullReturns |
-| `()→string` | 42 | 20 | 72% | cwd, setupPaiDir, getStateDir, isInCooldown |
-| `(Ref)→Union` | 21 | 16 | 85% | getFilePath, getWriteContent, getEditParts, getCommand |
-| `(string,?)→Result` | 19 | 15 | 84% | exec, safeFetch, makeInput, makeToolInput |
-| `(string,string)→Result` | 29 | 14 | 79% | writeFile, makeHookDef, manifestSchemaInvalid |
+| Signature                | Functions | Files | Body Sim | Example Names                                          |
+| ------------------------ | --------- | ----- | -------- | ------------------------------------------------------ |
+| `(string)→Result`        | 57        | 27    | 74%      | readFile, removeDir, hookNotFound, stat                |
+| `(string)→string`        | 68        | 42    | 70%      | removeDirRecursive, flagKey, countNullReturns          |
+| `()→string`              | 42        | 20    | 72%      | cwd, setupPaiDir, getStateDir, isInCooldown            |
+| `(Ref)→Union`            | 21        | 16    | 85%      | getFilePath, getWriteContent, getEditParts, getCommand |
+| `(string,?)→Result`      | 19        | 15    | 84%      | exec, safeFetch, makeInput, makeToolInput              |
+| `(string,string)→Result` | 29        | 14    | 79%      | writeFile, makeHookDef, manifestSchemaInvalid          |
 
 **Key finding: The `(TsTypeReference)→TsUnionType` cluster** at 85% similarity unifies `getFilePath`, `getWriteContent`, `getEditParts`, `getCommand`, and `getNewContent` across 16 files — all hook contract input extractors following the same pattern. Prior detectors caught fragments of this; type signatures unify it.
 
@@ -242,14 +253,14 @@ Also found: `DocObligationStateMachine.shared.ts` and its tracker counterpart sh
 
 **Cumulative detector comparison:**
 
-| Detector | Clusters | Key Strength | Key Weakness |
-|----------|----------|-------------|--------------|
-| Structural hash (baseline) | 47 | Zero false positives | Exact matches only |
-| N-gram subsequence (cycle 1) | 73-94 | Template patterns | Generic n-grams noisy |
-| CFG skeleton (cycle 2) | 12-137 | Control flow patterns | Low recall at high precision |
-| Role naming (cycle 3) | 25 | Actionable refactoring targets | Misses different-name duplicates |
-| File template (cycle 4) | 13+94 | Whole-file duplication | Only catches file-level patterns |
-| Type signature (cycle 5) | 47 | Highest coverage (708 fns) | Some noise in large groups |
+| Detector                     | Clusters | Key Strength                   | Key Weakness                     |
+| ---------------------------- | -------- | ------------------------------ | -------------------------------- |
+| Structural hash (baseline)   | 47       | Zero false positives           | Exact matches only               |
+| N-gram subsequence (cycle 1) | 73-94    | Template patterns              | Generic n-grams noisy            |
+| CFG skeleton (cycle 2)       | 12-137   | Control flow patterns          | Low recall at high precision     |
+| Role naming (cycle 3)        | 25       | Actionable refactoring targets | Misses different-name duplicates |
+| File template (cycle 4)      | 13+94    | Whole-file duplication         | Only catches file-level patterns |
+| Type signature (cycle 5)     | 47       | Highest coverage (708 fns)     | Some noise in large groups       |
 
 ---
 
@@ -260,6 +271,7 @@ Also found: `DocObligationStateMachine.shared.ts` and its tracker counterpart sh
 **Hypothesis:** Scoring every function across 4 detection dimensions (structural hash, name repetition, type signature commonality, body similarity) and ranking by composite score produces an actionable "top DRY opportunities" list that no individual detector can.
 
 **Approach:**
+
 1. **4 signal extractors run in parallel:** hash (exact match), name (same-name count), signature (shared type sig), body (cross-sig similarity)
 2. **Weighted composite score:** hash=1.0, body=0.8, name=0.7, signature=0.4
 3. **Opportunity grouping:** Functions grouped by name, ranked by avg dimension count then avg score
@@ -269,40 +281,41 @@ Also found: `DocObligationStateMachine.shared.ts` and its tracker counterpart sh
 
 **Results:**
 
-| Metric | Value |
-|--------|-------|
+| Metric                    | Value           |
+| ------------------------- | --------------- |
 | Functions with any signal | 733 / 837 (88%) |
-| 4-dimension functions | 69 |
-| 3-dimension functions | 145 |
-| 2-dimension functions | 387 |
-| 1-dimension functions | 132 |
-| Refactoring opportunities | 71 |
-| Detection time | 38ms |
+| 4-dimension functions     | 69              |
+| 3-dimension functions     | 145             |
+| 2-dimension functions     | 387             |
+| 1-dimension functions     | 132             |
+| Refactoring opportunities | 71              |
+| Detection time            | 38ms            |
 
 **Top 10 opportunities (all 4 dimensions):**
 
-| Rank | Name | Instances | Files | Avg Score | Est. Savings |
-|------|------|-----------|-------|-----------|-------------|
-| #1 | `runHook` | 13 | 13 | 2.70 | ~441 nodes |
-| #2 | `getFilePath` | 12 | 12 | 2.57 | ~100 nodes |
-| #3 | `blockCountPath` | 6 | 6 | 2.62 | ~13 nodes |
-| #4 | `pendingPath` | 4 | 4 | 2.48 | ~8 nodes |
-| #5 | `makeToolInput` | 4 | 4 | 2.46 | ~11 nodes |
-| #6 | `getCommand` | 5 | 5 | 2.31 | ~33 nodes |
-| #7 | `makeSourceRepo` | 5 | 5 | 2.31 | ~120 nodes |
-| #16 | `makeInput` | 31 | 31 | 2.01 | ~111 nodes |
-| #28 | `run` | 9 | 9 | 1.35 | ~489 nodes |
+| Rank | Name             | Instances | Files | Avg Score | Est. Savings |
+| ---- | ---------------- | --------- | ----- | --------- | ------------ |
+| #1   | `runHook`        | 13        | 13    | 2.70      | ~441 nodes   |
+| #2   | `getFilePath`    | 12        | 12    | 2.57      | ~100 nodes   |
+| #3   | `blockCountPath` | 6         | 6     | 2.62      | ~13 nodes    |
+| #4   | `pendingPath`    | 4         | 4     | 2.48      | ~8 nodes     |
+| #5   | `makeToolInput`  | 4         | 4     | 2.46      | ~11 nodes    |
+| #6   | `getCommand`     | 5         | 5     | 2.31      | ~33 nodes    |
+| #7   | `makeSourceRepo` | 5         | 5     | 2.31      | ~120 nodes   |
+| #16  | `makeInput`      | 31        | 31    | 2.01      | ~111 nodes   |
+| #28  | `run`            | 9         | 9     | 1.35      | ~489 nodes   |
 
 **Key insight:** The composite ranking surfaces `runHook` (13 instances, all 4 signals at 100%) as the #1 opportunity over `makeDeps` (44 instances but lower dimensional coverage). Pure instance count is misleading — dimensional convergence is a better proxy for "this should definitely be refactored."
 
 **Verdict: THIS IS THE ONE.** This is the culmination of cycles 1-5 and the core logic that powers the production DuplicationChecker hook. Each individual detector found a different facet of duplication. The composite ranker fuses them into a single actionable report. Its threshold logic (4/4 dimensions + hash 100% = BLOCK, 3/4 = SUGGEST, <3 = SILENT) is the exact decision logic running in the production hook on every Write/Edit to .ts files. The 4-dimension `●●●●` functions (69 total) are near-certain refactoring targets. The 3-dimension `●●●○` functions (145 total) are strong candidates. Together they cover 26% of all functions.
 
 **What remains:** This is a solid stopping point for the exploration spike. The six approaches cover the detection space well:
+
 - **Exact match:** structural hash
 - **Approximate match:** n-gram, CFG skeleton, body similarity
 - **Semantic match:** role naming, type signature
 - **Composite:** multi-signal ranker
-A production tool would combine the composite ranker with a hook that runs on file save, flagging new code that matches existing patterns.
+  A production tool would combine the composite ranker with a hook that runs on file save, flagging new code that matches existing patterns.
 
 ---
 
@@ -313,6 +326,7 @@ A production tool would combine the composite ranker with a hook that runs on fi
 **Hypothesis:** A pre-built JSON index (~166KB) with per-function entries (hash, name, type signature, condensed body fingerprint) enables single-file checks in <5ms. The body fingerprint condenses the full node type list (avg 69 items) into a 32-char hex frequency vector of the top-16 AST node types, enabling approximate cosine similarity without storing the full list.
 
 **Approach:**
+
 1. **Index builder:** Parses all files, extracts per-function data, builds lookup maps (hash groups, name groups, signature groups), writes JSON
 2. **Single-file checker:** Loads the index (1ms), parses one file, checks each function against 3 signals: hash match, name match, fingerprint similarity within signature groups
 3. **Staleness signaling:** Index carries `builtAt` timestamp. If index is >5 minutes old, output prefixed with `stale:`
@@ -322,17 +336,18 @@ A production tool would combine the composite ranker with a hook that runs on fi
 
 **Results:**
 
-| Metric | Value |
-|--------|-------|
-| Index build time | 215ms |
-| Index size | 166KB |
-| Index load time | 1ms |
+| Metric                 | Value  |
+| ---------------------- | ------ |
+| Index build time       | 215ms  |
+| Index size             | 166KB  |
+| Index load time        | 1ms    |
 | Single-file check time | 3-17ms |
-| Hash groups | 47 |
-| Name groups | 71 |
-| Signature groups | 44 |
+| Hash groups            | 47     |
+| Name groups            | 71     |
+| Signature groups       | 44     |
 
 **Check results on known duplicates:**
+
 - `CodingStandardsEnforcer.contract.ts` → found `getFilePath` hash match + 4 fingerprint matches in **3ms**
 - `SecurityValidator.hook.test.ts` → found `runHook` hash match in **17ms**
 - Output format: `[●●○○] getFilePath:54 → CodingStandardsAdvisor.contract.ts:getFilePath:118 (hash:100%)`
@@ -340,10 +355,11 @@ A production tool would combine the composite ranker with a hook that runs on fi
 **Verdict:** This is the production bridge. The index format is compact (166KB), loads instantly (1ms), and checks are fast enough for a PostToolUse hook (<20ms). The staleness contract is built in. The condensed body fingerprint trades some precision for 6x size reduction (1MB → 166KB) while still enabling approximate similarity.
 
 **What remains for production:**
+
 - Background index rebuilder (cron or file-watcher triggered)
 - Hook contract wrapping the checker as a PostToolUse:Write hook
 - Threshold tuning for the fingerprint similarity signal
-- Integration with the pai-hooks HookContract pattern
+- Integration with the maple-hooks HookContract pattern
 
 ---
 
@@ -354,6 +370,7 @@ A production tool would combine the composite ranker with a hook that runs on fi
 **Hypothesis:** Frequent itemset mining on function name sets per file, expanded via Apriori-like tuple growth, reveals template patterns that individual function analysis misses. Structural validation separates genuine templates from coincidental co-occurrence.
 
 **Approach:**
+
 1. **Frequent pair mining:** Count all function name pairs that co-occur in 3+ files
 2. **Apriori expansion:** Grow pairs into larger tuples by finding names that co-occur with ALL members of existing tuples
 3. **Template validation:** Compute avg pairwise body similarity for each function name across the tuple's files. >50% = genuine template.
@@ -363,22 +380,22 @@ A production tool would combine the composite ranker with a hook that runs on fi
 
 **Results:**
 
-| Metric | Value |
-|--------|-------|
-| Frequent pairs | 17 |
-| Total tuples | 59 |
-| Maximal tuples | 5 |
-| Detection time | 10ms |
+| Metric         | Value |
+| -------------- | ----- |
+| Frequent pairs | 17    |
+| Total tuples   | 59    |
+| Maximal tuples | 5     |
+| Detection time | 10ms  |
 
 **All 5 maximal tuples are validated templates:**
 
-| Tuple | Support | Body Sim | Description |
-|-------|---------|----------|-------------|
-| `{blockCountPath, buildBlockLimitReview, getFilePath, getStateDir, isNonTestCodeFile, pendingPath}` | 4 files | 97% | Obligation state machine core |
-| `{makeDeps, makeInput}` | 26 files | 85% | Test file template |
-| `{getFilePath, getStateDir}` | 6 files | 94% | Hook contract accessor pair |
-| `{blockCountPath, getStateDir}` | 5 files | 94% | Obligation state path pair |
-| `{formatDryRun, formatSuccess}` | 3 files | 82% | CLI command output pair |
+| Tuple                                                                                               | Support  | Body Sim | Description                   |
+| --------------------------------------------------------------------------------------------------- | -------- | -------- | ----------------------------- |
+| `{blockCountPath, buildBlockLimitReview, getFilePath, getStateDir, isNonTestCodeFile, pendingPath}` | 4 files  | 97%      | Obligation state machine core |
+| `{makeDeps, makeInput}`                                                                             | 26 files | 85%      | Test file template            |
+| `{getFilePath, getStateDir}`                                                                        | 6 files  | 94%      | Hook contract accessor pair   |
+| `{blockCountPath, getStateDir}`                                                                     | 5 files  | 94%      | Obligation state path pair    |
+| `{formatDryRun, formatSuccess}`                                                                     | 3 files  | 82%      | CLI command output pair       |
 
 **Key finding:** The 6-tuple across obligation state machines (97% body sim) is the strongest "extract a shared module" signal we've produced. These 6 functions are replicated across 4 files with near-identical implementations — they should be imported from a single shared utility.
 
@@ -386,17 +403,17 @@ A production tool would combine the composite ranker with a hook that runs on fi
 
 **Cumulative detector inventory (8 cycles):**
 
-| Cycle | Detector | Signal | Key Finding |
-|-------|----------|--------|-------------|
-| 0 | Structural hash | Exact body match | 47 exact duplicates |
-| 1 | N-gram subsequence | AST subsequence patterns | 73 template clusters |
-| 2 | CFG skeleton | Control flow structure | 12 flow-pattern clusters |
-| 3 | Role naming | Function name semantics | 44 makeDeps factories |
-| 4 | File template | File-level function sets | 21-file test template |
-| 5 | Type signature | Type-gated body similarity | 708 functions in name-diverse clusters |
-| 6 | Composite ranker | Multi-signal ranking | 71 ranked opportunities |
-| 7 | Persistent index | O(1) lookups from pre-built index | 3ms per-file checks |
-| 8 | Co-occurrence | Function tuple mining | 6-function obligation template at 97% sim |
+| Cycle | Detector           | Signal                            | Key Finding                               |
+| ----- | ------------------ | --------------------------------- | ----------------------------------------- |
+| 0     | Structural hash    | Exact body match                  | 47 exact duplicates                       |
+| 1     | N-gram subsequence | AST subsequence patterns          | 73 template clusters                      |
+| 2     | CFG skeleton       | Control flow structure            | 12 flow-pattern clusters                  |
+| 3     | Role naming        | Function name semantics           | 44 makeDeps factories                     |
+| 4     | File template      | File-level function sets          | 21-file test template                     |
+| 5     | Type signature     | Type-gated body similarity        | 708 functions in name-diverse clusters    |
+| 6     | Composite ranker   | Multi-signal ranking              | 71 ranked opportunities                   |
+| 7     | Persistent index   | O(1) lookups from pre-built index | 3ms per-file checks                       |
+| 8     | Co-occurrence      | Function tuple mining             | 6-function obligation template at 97% sim |
 
 ---
 
@@ -405,6 +422,7 @@ A production tool would combine the composite ranker with a hook that runs on fi
 **Problem explored:** Checked whether any genuinely unexplored detection dimension remains. Analyzed signal overlap: hash, name, and type signature union covers 82% of functions (688/837). The remaining 149 functions (18%) are genuinely unique — no duplication to detect.
 
 **Remaining unexplored signals and why they're blocked:**
+
 - Call graph: bodyNodeTypes has node types not identifier values — callee names are lost during parsing
 - Comment/doc patterns: stripped during AST parse
 - Variable naming: stripped during normalization
@@ -420,21 +438,24 @@ A production tool would combine the composite ranker with a hook that runs on fi
 ## Implementation Cycle 1: DuplicationChecker Hook (2026-03-27 11:30)
 
 **What was built:**
-- `pai-hooks/hooks/DuplicationDetection/shared.ts` — index types, loading/caching, checking logic, output formatting (SOLID 8.5/10)
-- `pai-hooks/hooks/DuplicationDetection/parser.ts` — SWC function extraction + body fingerprinting (SOLID 8.8/10)
-- `pai-hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts` — thin PreToolUse contract shell (SOLID 9/10)
-- `pai-hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts` — runner shell
-- `pai-hooks/hooks/DuplicationDetection/DuplicationChecker/hook.json` — manifest
-- `pai-hooks/hooks/DuplicationDetection/DuplicationChecker/settings.hooks.json` — hook registration
+
+- `maple-hooks/hooks/DuplicationDetection/shared.ts` — index types, loading/caching, checking logic, output formatting (SOLID 8.5/10)
+- `maple-hooks/hooks/DuplicationDetection/parser.ts` — SWC function extraction + body fingerprinting (SOLID 8.8/10)
+- `maple-hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts` — thin PreToolUse contract shell (SOLID 9/10)
+- `maple-hooks/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts` — runner shell
+- `maple-hooks/hooks/DuplicationDetection/DuplicationChecker/hook.json` — manifest
+- `maple-hooks/hooks/DuplicationDetection/DuplicationChecker/settings.hooks.json` — hook registration
 
 **Architecture:** Contract imports from shared.ts (index + checking) and parser.ts (SWC extraction). Three files, clean separation of concerns.
 
 **End-to-end test results:**
+
 - Writing content from `RatingCapture.hook.test.ts` → detected `runHook` duplication: `Similar: runHook → hooks/LearningFeedback/RatingCapture/RatingCapture.hook.test.ts:runHook (hash+name+sig+body, 100%)`
 - Writing content from `CodingStandardsAdvisor.contract.ts` → detected `getFilePath` duplication: `Similar: getFilePath → hooks/CodingStandards/CodingStandardsAdvisor/CodingStandardsAdvisor.contract.ts:getFilePath (hash+name+sig+body, 100%)`
 - Writing genuinely unique content → clean, no output
 
 **What works:**
+
 - PreToolUse fires on Write/Edit to .ts files
 - Loads and caches the pre-built index (1ms)
 - Extracts functions from content being written
@@ -443,6 +464,7 @@ A production tool would combine the composite ranker with a hook that runs on fi
 - Staleness prefix when index is old
 
 **Next cycle:**
+
 - Write and run contract tests
 - Build the index at session start (DuplicationIndexBuilder hook or simpler mechanism)
 - Install the hook and test in a real session

@@ -6,7 +6,7 @@
 
 **Architecture:** Two-tier sig normalization in `hooks/DuplicationDetection/shared.ts`, pattern detection pass in `hooks/DuplicationDetection/index-builder-logic.ts:104-124` (`buildResult`) after building entries, pattern advisory in `hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts:98-211` (`execute`) before pair-wise check. Config via `readHookConfig("duplicationChecker")` (`lib/hook-config.ts:28-38`).
 
-**Tech Stack:** TypeScript, Bun test runner, existing pai-hooks contract pattern (SyncHookContract, Result type, DI via deps)
+**Tech Stack:** TypeScript, Bun test runner, existing maple-hooks contract pattern (SyncHookContract, Result type, DI via deps)
 
 **Design doc:** `docs/plans/2026-04-06-pattern-detection-design.md`
 
@@ -115,7 +115,7 @@ describe("isPrimitiveReturn", () => {
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/shared.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/shared.test.ts`
 Expected: FAIL — `normalizeParam`, `normalizeReturn`, `isPrimitiveReturn` not exported
 
 **Step 3: Add PatternEntry type and normalization functions to shared.ts**
@@ -176,18 +176,18 @@ export function isPrimitiveReturn(normalizedReturn: string): boolean {
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/shared.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/shared.test.ts`
 Expected: PASS
 
 **Step 5: Run full test suite to verify no regressions**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test`
 Expected: All existing tests pass
 
 **Step 6: Commit**
 
 ```bash
-cd /Users/hogers/.claude/pai-hooks
+cd /Users/hogers/.claude/maple-hooks
 git add hooks/DuplicationDetection/shared.ts hooks/DuplicationDetection/shared.test.ts
 git commit -m "feat(DuplicationDetection): add PatternEntry type and sig normalization functions"
 ```
@@ -309,7 +309,7 @@ Also add `import type { DuplicationIndex }` to the imports if not already presen
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.test.ts`
 Expected: FAIL — `index.patterns` is undefined
 
 **Step 3: Add detectPatterns function and wire it into buildResult**
@@ -460,18 +460,18 @@ function buildResult(
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.test.ts`
 Expected: PASS
 
 **Step 5: Run full test suite**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test`
 Expected: All tests pass
 
 **Step 6: Commit**
 
 ```bash
-cd /Users/hogers/.claude/pai-hooks
+cd /Users/hogers/.claude/maple-hooks
 git add hooks/DuplicationDetection/index-builder-logic.ts hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.test.ts
 git commit -m "feat(DuplicationDetection): add pattern detection to index builder"
 ```
@@ -538,7 +538,7 @@ const defaultDeps: DuplicationCheckerDeps = {
 
 **Step 2: Run tests to verify nothing breaks**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
 Expected: PASS (existing tests still work — they spread `mockDeps` which will get defaults)
 
 **Step 3: Update mockDeps in test file**
@@ -562,11 +562,11 @@ const mockDeps: DuplicationCheckerDeps = {
 
 **Step 4: Run tests, commit**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
 Expected: PASS
 
 ```bash
-cd /Users/hogers/.claude/pai-hooks
+cd /Users/hogers/.claude/maple-hooks
 git add hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts
 git commit -m "feat(DuplicationChecker): add pattern config to deps and config reader"
 ```
@@ -634,7 +634,7 @@ function superUniqueSpecialFunction123(): string {
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
 Expected: FAIL — no pattern advisory logic exists yet
 
 **Step 3: Implement pattern advisory in execute()**
@@ -725,18 +725,18 @@ const logEntry = {
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts`
 Expected: PASS
 
 **Step 5: Run full test suite**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test`
 Expected: All tests pass
 
 **Step 6: Commit**
 
 ```bash
-cd /Users/hogers/.claude/pai-hooks
+cd /Users/hogers/.claude/maple-hooks
 git add hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.contract.ts hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.test.ts
 git commit -m "feat(DuplicationChecker): add pattern advisory via additionalContext"
 ```
@@ -751,12 +751,12 @@ git commit -m "feat(DuplicationChecker): add pattern advisory via additionalCont
 
 **Step 1: Run type checker**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && npx tsc --noEmit`
+Run: `cd /Users/hogers/.claude/maple-hooks && npx tsc --noEmit`
 Expected: No errors
 
 **Step 2: Run full test suite**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun test`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun test`
 Expected: All tests pass, no regressions
 
 **Step 3: Verify pattern detection end-to-end**
@@ -764,7 +764,7 @@ Expected: All tests pass, no regressions
 Run the index builder against the real codebase and inspect the output:
 
 ```bash
-cd /Users/hogers/.claude/pai-hooks && node -e "
+cd /Users/hogers/.claude/maple-hooks && node -e "
 const fs = require('fs');
 const idx = JSON.parse(fs.readFileSync('/tmp/pai/duplication/685e053b/main/index.json', 'utf-8'));
 console.log('Patterns detected:', idx.patterns?.length ?? 0);
@@ -783,7 +783,7 @@ Expected: `makeDeps` (tier 1), `makeInput` (tier 2), `shortenPath` (tier 1), `bl
 If any adjustments needed:
 
 ```bash
-cd /Users/hogers/.claude/pai-hooks
+cd /Users/hogers/.claude/maple-hooks
 git add -A
 git commit -m "fix(DuplicationDetection): integration test adjustments for pattern detection"
 ```
@@ -817,13 +817,13 @@ Add pattern detection to the group-level README, mentioning the auto-detect appr
 
 **Step 4: Run the doc enforcer check**
 
-Run: `cd /Users/hogers/.claude/pai-hooks && bun run docs:check`
+Run: `cd /Users/hogers/.claude/maple-hooks && bun run docs:check`
 Expected: All hooks have valid doc.md
 
 **Step 5: Commit**
 
 ```bash
-cd /Users/hogers/.claude/pai-hooks
+cd /Users/hogers/.claude/maple-hooks
 git add hooks/DuplicationDetection/DuplicationChecker/doc.md hooks/DuplicationDetection/DuplicationChecker/IDEA.md hooks/DuplicationDetection/README.md
 git commit -m "docs(DuplicationDetection): document pattern detection feature"
 ```

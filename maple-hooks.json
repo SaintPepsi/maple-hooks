@@ -1,5 +1,5 @@
 {
-  "name": "saintpepsi-pai-hooks",
+  "name": "saintpepsi-maple-hooks",
   "description": "Production Claude Code hooks collection by SaintPepsi",
   "version": "1.0.0",
   "envVar": "SAINTPEPSI_PAI_HOOKS_DIR"

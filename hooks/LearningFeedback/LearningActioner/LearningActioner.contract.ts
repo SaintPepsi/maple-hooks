@@ -108,7 +108,7 @@ Before proposing ANY change, understand what already exists. Read these files:
 10. settings.json — Current identity and configuration
 11. skills/skill-index.json — Current skill registry (skim names and descriptions ONLY — do not read full file)
 
-For hook-related proposals: run \`ls pai-hooks/contracts/*.ts\` to see available contracts.
+For hook-related proposals: run \`ls maple-hooks/contracts/*.ts\` to see available contracts.
 Only read the SPECIFIC contract file relevant to your proposal — do NOT read all contracts.
 
 DO NOT propose adding a rule that already exists. DO NOT propose a hook that duplicates existing behavior.

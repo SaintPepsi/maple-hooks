@@ -612,7 +612,7 @@ git commit -m "feat(cli): wire inspect command, remove status stub"
 **Step 1: Run against a real project**
 
 ```bash
-cd /Users/ian.hogers/.claude/pai-hooks
+cd /Users/ian.hogers/.claude/maple-hooks
 bun cli/bin/paih.ts inspect DuplicationChecker
 ```
 

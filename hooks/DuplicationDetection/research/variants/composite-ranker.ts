@@ -158,7 +158,7 @@ function extractBodySignal(allFns: ParsedFunction[]): Map<string, SignalScore> {
             signal: "body",
             score: maxSim,
             groupSize: fns.length,
-            evidence: `${(maxSim * 100).toFixed(0)}% body similarity with ${bestPeer.name} in ${bestPeer.file.replace(/.*pai-hooks\//, "")}`,
+            evidence: `${(maxSim * 100).toFixed(0)}% body similarity with ${bestPeer.name} in ${bestPeer.file.replace(/.*maple-hooks\//, "")}`,
           });
         }
       }
@@ -206,7 +206,13 @@ function buildCompositeScores(allFns: ParsedFunction[]): FunctionSignals[] {
       totalScore += score.score * SIGNAL_WEIGHTS[type];
     }
 
-    results.push({ fn, key, signals, totalScore, dimensionCount: signals.size });
+    results.push({
+      fn,
+      key,
+      signals,
+      totalScore,
+      dimensionCount: signals.size,
+    });
   }
 
   results.sort((a, b) => {
@@ -340,7 +346,7 @@ function formatResults(
 
     // Show top 4 members with their signals
     for (const m of opp.members.slice(0, 4)) {
-      const path = shortenPath(m.fn.file).replace(/.*pai-hooks\//, "");
+      const path = shortenPath(m.fn.file).replace(/.*maple-hooks\//, "");
       const sigs = [...m.signals.values()]
         .map((s) => `${s.signal}:${(s.score * 100).toFixed(0)}%`)
         .join(" ");

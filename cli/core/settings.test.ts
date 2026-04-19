@@ -2,7 +2,7 @@
  * Settings merge tests — verify append-only, idempotent behavior.
  *
  * Tests use InMemoryDeps from cli/types/deps.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/types/deps.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/cli/types/deps.ts).
  */
 
 import { describe, expect, it } from "bun:test";

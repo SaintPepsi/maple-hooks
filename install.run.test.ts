@@ -49,7 +49,7 @@ function makeDeps(overrides: Partial<InstallDeps> = {}): InstallDeps & Captured 
 }
 
 const validManifest = JSON.stringify({
-  name: "saintpepsi-pai-hooks",
+  name: "saintpepsi-maple-hooks",
   envVar: "SAINTPEPSI_PAI_HOOKS_DIR",
 });
 
@@ -120,12 +120,12 @@ describe("extractHookName", () => {
 });
 
 describe("install run() — early returns", () => {
-  it("returns early when pai-hooks.json not found", async () => {
+  it("returns early when maple-hooks.json not found", async () => {
     const deps = makeDeps({
-      fileExists: (path: string) => !path.includes("pai-hooks.json"),
+      fileExists: (path: string) => !path.includes("maple-hooks.json"),
     });
     await run(deps);
-    expect(deps.stderrLines.some((l) => l.includes("pai-hooks.json not found"))).toBe(true);
+    expect(deps.stderrLines.some((l) => l.includes("maple-hooks.json not found"))).toBe(true);
     expect(deps.writtenFiles.size).toBe(0);
   });
 

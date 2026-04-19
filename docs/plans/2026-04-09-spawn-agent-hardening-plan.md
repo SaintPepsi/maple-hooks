@@ -6,7 +6,7 @@
 
 **Architecture:** `lib/spawn-agent.ts` provides the hook-facing API (lock check, log, spawn). `runners/agent-runner.ts` is the detached process that calls `claude -p`. SettingsRevert calls `spawnAgent()` after reverting, passing a hardening prompt that targets `patterns.yaml`. A `BUN_TEST` env guard in the runner prevents accidental token burn in tests.
 
-**Tech Stack:** TypeScript, Bun, pai-hooks Result pipeline (`core/result.ts`), fs/process adapters (`core/adapters/`).
+**Tech Stack:** TypeScript, Bun, maple-hooks Result pipeline (`core/result.ts`), fs/process adapters (`core/adapters/`).
 
 **Design doc:** `docs/plans/2026-04-09-spawn-agent-hardening-design.md`
 
@@ -179,7 +179,7 @@ describe("spawnAgent", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test lib/spawn-agent.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test lib/spawn-agent.test.ts`
 Expected: FAIL — `spawn-agent` module does not exist
 
 **Step 3: Write minimal implementation**
@@ -345,13 +345,13 @@ export function spawnAgent(
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test lib/spawn-agent.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test lib/spawn-agent.test.ts`
 Expected: ALL PASS
 
 **Step 5: Commit**
 
 ```bash
-cd /Users/ian.hogers/.claude/pai-hooks
+cd /Users/ian.hogers/.claude/maple-hooks
 git add lib/spawn-agent.ts lib/spawn-agent.test.ts
 git commit -m "feat: add shared spawnAgent() function in lib/spawn-agent.ts
 
@@ -564,7 +564,7 @@ describe("agent-runner execution", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test runners/agent-runner.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test runners/agent-runner.test.ts`
 Expected: FAIL — `agent-runner` module does not exist
 
 **Step 3: Write minimal implementation**
@@ -741,13 +741,13 @@ if (import.meta.main) {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test runners/agent-runner.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test runners/agent-runner.test.ts`
 Expected: ALL PASS
 
 **Step 5: Commit**
 
 ```bash
-cd /Users/ian.hogers/.claude/pai-hooks
+cd /Users/ian.hogers/.claude/maple-hooks
 git add runners/agent-runner.ts runners/agent-runner.test.ts
 git commit -m "feat: add generic agent-runner with dry-run and BUN_TEST guard
 
@@ -824,7 +824,7 @@ describe("buildHardeningPrompt", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts`
 Expected: FAIL — module does not exist
 
 **Step 3: Write minimal implementation**
@@ -852,7 +852,7 @@ export function buildHardeningPrompt(bypassCommand: string): string {
     "2. Add a new entry under the bash.blocked section that would catch this command BEFORE it executes",
     "3. The pattern should be specific enough to avoid false positives on legitimate uses of the same tool",
     `4. Set the reason field to: "Auto-hardened: <short description of what the pattern blocks> (caught ${date})"`,
-    "5. Run: cd ~/.claude/pai-hooks && bun test hooks/SecurityValidator/SecurityValidator/SecurityValidator.test.ts",
+    "5. Run: cd ~/.claude/maple-hooks && bun test hooks/SecurityValidator/SecurityValidator/SecurityValidator.test.ts",
     "6. If tests pass, commit with a message like: security: auto-harden patterns.yaml against <tool> bypass",
     "7. Include the original bypass command in the commit body for traceability",
     "",
@@ -868,13 +868,13 @@ export function buildHardeningPrompt(bypassCommand: string): string {
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts`
 Expected: ALL PASS
 
 **Step 5: Commit**
 
 ```bash
-cd /Users/ian.hogers/.claude/pai-hooks
+cd /Users/ian.hogers/.claude/maple-hooks
 git add hooks/SecurityValidator/SettingsRevert/hardening-prompt.ts hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts
 git commit -m "feat: add buildHardeningPrompt() pure function
 
@@ -981,7 +981,7 @@ describe("SettingsRevert.execute — hardening agent spawn", () => {
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test hooks/SecurityValidator/SettingsRevert/SettingsRevert.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test hooks/SecurityValidator/SettingsRevert/SettingsRevert.test.ts`
 Expected: FAIL — `spawnAgent` not in deps type
 
 **Step 3: Modify SettingsRevert contract**
@@ -1024,18 +1024,18 @@ deps.spawnAgent({
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test hooks/SecurityValidator/SettingsRevert/`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test hooks/SecurityValidator/SettingsRevert/`
 Expected: ALL PASS (both old and new tests)
 
 **Step 5: Run full SecurityValidator test suite**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test hooks/SecurityValidator/`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test hooks/SecurityValidator/`
 Expected: ALL PASS
 
 **Step 6: Commit**
 
 ```bash
-cd /Users/ian.hogers/.claude/pai-hooks
+cd /Users/ian.hogers/.claude/maple-hooks
 git add hooks/SecurityValidator/SettingsRevert/SettingsRevert.contract.ts hooks/SecurityValidator/SettingsRevert/SettingsRevert.test.ts
 git commit -m "feat: wire SettingsRevert to spawn hardening agent after revert
 
@@ -1054,32 +1054,32 @@ a blocked pattern to patterns.yaml."
 
 **Step 1: Run all lib tests**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test lib/spawn-agent.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test lib/spawn-agent.test.ts`
 Expected: ALL PASS
 
 **Step 2: Run all runner tests**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test runners/agent-runner.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test runners/agent-runner.test.ts`
 Expected: ALL PASS
 
 **Step 3: Run all SecurityValidator group tests**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test hooks/SecurityValidator/`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test hooks/SecurityValidator/`
 Expected: ALL PASS
 
 **Step 4: Run hardening prompt tests**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test hooks/SecurityValidator/SettingsRevert/hardening-prompt.test.ts`
 Expected: ALL PASS
 
 **Step 5: Run full test suite to check for regressions**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && bun test`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && bun test`
 Expected: ALL PASS, no regressions
 
 **Step 6: Type check**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && npx tsc --noEmit`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && npx tsc --noEmit`
 Expected: No type errors
 
 **Step 7: Commit (if any fixups needed)**
@@ -1096,7 +1096,7 @@ Only if previous steps required changes. Otherwise, this task is verification on
 
 **Step 1: Record baseline state**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && cat ~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml | wc -l`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && cat ~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml | wc -l`
 Note the line count.
 
 Run: `cat ~/.claude/MEMORY/SECURITY/settings-audit.jsonl 2>/dev/null | tail -1`
@@ -1151,13 +1151,13 @@ Expected: `completed 0` — agent finished successfully.
 
 **Step 7: Verify patterns.yaml was updated**
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && git diff ~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && git diff ~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml`
 Expected: A new entry under `bash.blocked` with:
 
 - A pattern targeting the python3 write vector
 - `reason:` containing `Auto-hardened` and today's date
 
-Run: `cd /Users/ian.hogers/.claude/pai-hooks && git log --oneline -1 ~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml`
+Run: `cd /Users/ian.hogers/.claude/maple-hooks && git log --oneline -1 ~/.claude/PAI/USER/PAISECURITYSYSTEM/patterns.yaml`
 Expected: A commit message like `security: auto-harden patterns.yaml against python3 bypass`
 
 **Step 8: Verify the new pattern blocks the same bypass**

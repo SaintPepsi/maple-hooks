@@ -59,7 +59,7 @@ const REVERT_CONTEXT = [
 const SNAPSHOT_PREFIX = "pai-settings-snapshot-";
 
 /** Command patterns allowed to modify settings.json without revert. */
-const ALLOWED_PATTERNS = [/\binstall\.ts\b/, /pai-hooks\/install/];
+const ALLOWED_PATTERNS = [/\binstall\.ts\b/, /maple-hooks\/install/];
 
 /** Check if command matches an allowed pattern. */
 function isAllowedCommand(command: string): boolean {

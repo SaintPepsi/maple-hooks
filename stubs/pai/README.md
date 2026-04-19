@@ -1,8 +1,8 @@
 # PAI Stubs
 
-Type-compatible stub modules for `@pai/*` imports. These allow pai-hooks to compile as a standalone repo without the PAI framework installed.
+Type-compatible stub modules for `@pai/*` imports. These allow maple-hooks to compile as a standalone repo without the PAI framework installed.
 
-When pai-hooks is used as a submodule inside `~/.claude/`, the real PAI modules are resolved via the consumer's tsconfig paths. These stubs are only used for standalone development and testing.
+When maple-hooks is used as a submodule inside `~/.claude/`, the real PAI modules are resolved via the consumer's tsconfig paths. These stubs are only used for standalone development and testing.
 
 ## Modules
 

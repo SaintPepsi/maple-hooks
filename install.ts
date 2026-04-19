@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 
 /**
- * Install pai-hooks into the user's Claude Code settings.
+ * Install maple-hooks into the user's Claude Code settings.
  *
- * - Reads pai-hooks.json manifest for env var name
+ * - Reads maple-hooks.json manifest for env var name
  * - Reads settings.hooks.json for hook registrations
  * - Merges hooks into settings.json (additive, idempotent)
  * - Adds env var export to ~/.zshrc (managed block, idempotent)
@@ -204,7 +204,7 @@ export function isAlreadyInstalled(
 
 // ─── Zshrc Management ────────────────────────────────────────────────────────
 
-const ZSHRC_BEGIN = "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do not edit";
+const ZSHRC_BEGIN = "# PAI-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit";
 const ZSHRC_END = "# PAI-HOOKS-END";
 
 export function buildZshrcBlock(envVar: string, relPath: string): string {
@@ -349,12 +349,12 @@ const defaultDeps: InstallDeps = {
 
 export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
   const scriptDir = resolve(import.meta.dir);
-  const _hooksDir = join(deps.paiDir, "pai-hooks");
+  const _hooksDir = join(deps.paiDir, "maple-hooks");
 
   // Read manifest
-  const manifestPath = join(scriptDir, "pai-hooks.json");
+  const manifestPath = join(scriptDir, "maple-hooks.json");
   if (!deps.fileExists(manifestPath)) {
-    deps.stderr("Error: pai-hooks.json not found. Are you in the pai-hooks directory?");
+    deps.stderr("Error: maple-hooks.json not found. Are you in the maple-hooks directory?");
     return;
   }
   const manifestResult = deps.readFile(manifestPath);
@@ -383,7 +383,7 @@ export async function run(deps: InstallDeps = defaultDeps): Promise<void> {
 
   // Check if already installed
   if (isAlreadyInstalled(settings, manifest.envVar)) {
-    deps.stdout(`pai-hooks already installed (${manifest.envVar} found). Re-installing...`);
+    deps.stdout(`maple-hooks already installed (${manifest.envVar} found). Re-installing...`);
   }
 
   // Detect conflicts

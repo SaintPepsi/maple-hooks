@@ -2,7 +2,7 @@
 /**
  * CronFire Hook Shell — runs CronFireContract through the standard runner pipeline.
  *
- * @see /Users/ian.hogers/.claude/pai-hooks/hooks/CronStatusLine/CronFire/CronFire.contract.ts
+ * @see /Users/ian.hogers/.claude/maple-hooks/hooks/CronStatusLine/CronFire/CronFire.contract.ts
  */
 
 import { runHook } from "@hooks/core/runner";

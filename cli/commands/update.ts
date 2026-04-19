@@ -263,17 +263,17 @@ function updateLockfileEntries(lockfile: Lockfile, reinstalled: ReinstalledHook[
 
 /**
  * Map a lockfile relative path (hooks/Group/Hook/file.ts) back to source repo path.
- * pai-hooks/ (or legacy _core/) files map to source root (core/, lib/).
+ * maple-hooks/ (or legacy _core/) files map to source root (core/, lib/).
  * Hook files map to source hooks/ directory.
  */
 function mapToSourcePath(relFile: string, source: string): string | null {
-  // All installed files live under hooks/pai-hooks/ in the target project.
-  // Core/lib deps: hooks/pai-hooks/core/... or hooks/pai-hooks/lib/...
+  // All installed files live under hooks/maple-hooks/ in the target project.
+  // Core/lib deps: hooks/maple-hooks/core/... or hooks/maple-hooks/lib/...
   //   → /source/core/... or /source/lib/...
-  // Hook files: hooks/pai-hooks/Group/Hook/file.ts
+  // Hook files: hooks/maple-hooks/Group/Hook/file.ts
   //   → /source/hooks/Group/Hook/file.ts
-  if (relFile.startsWith("hooks/pai-hooks/")) {
-    const inner = relFile.replace("hooks/pai-hooks/", "");
+  if (relFile.startsWith("hooks/maple-hooks/")) {
+    const inner = relFile.replace("hooks/maple-hooks/", "");
     // Core deps start with core/ or lib/ — map directly to source root
     if (inner.startsWith("core/") || inner.startsWith("lib/")) {
       return `${source}/${inner}`;

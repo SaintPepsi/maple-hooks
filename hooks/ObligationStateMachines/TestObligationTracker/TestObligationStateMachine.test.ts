@@ -1073,7 +1073,7 @@ describe("deriveTestPaths", () => {
       deriveTestPaths,
     } = require("@hooks/hooks/ObligationStateMachines/TestObligationStateMachine.shared");
     const paths = deriveTestPaths("/abs/path/Foo.contract.ts");
-    // "strip .contract" convention (pai-hooks majority)
+    // "strip .contract" convention (maple-hooks majority)
     expect(paths).toContain("/abs/path/Foo.test.ts");
     expect(paths).toContain("/abs/path/Foo.spec.ts");
     expect(paths).toContain("/abs/path/Foo.coverage.test.ts");

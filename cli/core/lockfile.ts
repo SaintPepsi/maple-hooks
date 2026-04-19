@@ -4,7 +4,7 @@
  * The lockfile tracks which hooks were installed, their source,
  * and the command strings written to settings.json.
  *
- * Stored at .claude/hooks/pai-hooks/paih.lock.json
+ * Stored at .claude/hooks/maple-hooks/paih.lock.json
  * (schema defined in cli/types/lockfile.ts).
  */
 
@@ -20,7 +20,7 @@ import { tryCatch } from "@hooks/core/result";
 
 /** Read paih.lock.json. Returns null if file does not exist. */
 export function readLockfile(claudeDir: string, deps: CliDeps): Result<Lockfile | null, PaihError> {
-  const lockPath = `${claudeDir}/hooks/pai-hooks/paih.lock.json`;
+  const lockPath = `${claudeDir}/hooks/maple-hooks/paih.lock.json`;
 
   if (!deps.fileExists(lockPath)) {
     return ok(null);
@@ -47,10 +47,10 @@ export function writeLockfile(
   lockfile: Lockfile,
   deps: CliDeps,
 ): Result<void, PaihError> {
-  const lockPath = `${claudeDir}/hooks/pai-hooks/paih.lock.json`;
+  const lockPath = `${claudeDir}/hooks/maple-hooks/paih.lock.json`;
   const content = `${JSON.stringify(lockfile, null, 2)}\n`;
 
-  const ensureResult = deps.ensureDir(`${claudeDir}/hooks/pai-hooks`);
+  const ensureResult = deps.ensureDir(`${claudeDir}/hooks/maple-hooks`);
   if (!ensureResult.ok) return ensureResult;
 
   return deps.writeFile(lockPath, content);

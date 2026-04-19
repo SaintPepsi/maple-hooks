@@ -4,9 +4,9 @@
  * Verifies the full install pipeline: resolve → stage → settings merge → lockfile → tsconfig.
  *
  * Uses InMemoryDeps from cli/types/deps.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/types/deps.ts)
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/cli/types/deps.ts)
  * and the install function from cli/commands/install.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/commands/install.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/cli/commands/install.ts).
  */
 
 import { describe, expect, it } from "bun:test";
@@ -101,37 +101,37 @@ describe("install command", () => {
     // Hook files copied
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(true);
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
       ),
     ).toBe(true);
 
-    // Core dep deduped into pai-hooks/
-    expect(files.has("/project/.claude/hooks/pai-hooks/core/result.ts")).toBe(true);
+    // Core dep deduped into maple-hooks/
+    expect(files.has("/project/.claude/hooks/maple-hooks/core/result.ts")).toBe(true);
 
     // Settings merged
     const settingsContent = files.get("/project/.claude/settings.json")!;
     const settings: SettingsJson = JSON.parse(settingsContent);
     expect(settings.hooks?.PreToolUse).toBeDefined();
     expect(settings.hooks?.PreToolUse?.[0].hooks[0].command).toBe(
-      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts',
+      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts',
     );
 
     // Lockfile written
-    expect(files.has("/project/.claude/hooks/pai-hooks/paih.lock.json")).toBe(true);
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    expect(files.has("/project/.claude/hooks/maple-hooks/paih.lock.json")).toBe(true);
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock = JSON.parse(lockContent);
     expect(lock.lockfileVersion).toBe(1);
     expect(lock.hooks).toHaveLength(1);
     expect(lock.hooks[0].name).toBe("TypeStrictness");
 
     // tsconfig.json generated
-    expect(files.has("/project/.claude/hooks/pai-hooks/tsconfig.json")).toBe(true);
-    const tsconfig = JSON.parse(files.get("/project/.claude/hooks/pai-hooks/tsconfig.json")!);
+    expect(files.has("/project/.claude/hooks/maple-hooks/tsconfig.json")).toBe(true);
+    const tsconfig = JSON.parse(files.get("/project/.claude/hooks/maple-hooks/tsconfig.json")!);
     expect(tsconfig.compilerOptions.paths["@hooks/hooks/*"]).toEqual(["./*"]);
     expect(tsconfig.compilerOptions.paths["@hooks/*"]).toEqual(["./*"]);
   });
@@ -146,16 +146,16 @@ describe("install command", () => {
     const files = deps.getFiles();
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(true);
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/BashWriteGuard/BashWriteGuard.hook.ts",
       ),
     ).toBe(true);
 
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock = JSON.parse(lockContent);
     expect(lock.hooks).toHaveLength(2);
   });
@@ -170,7 +170,7 @@ describe("install command", () => {
     const files = deps.getFiles();
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(true);
   });
@@ -226,7 +226,7 @@ describe("install command", () => {
     const files = deps.getFiles();
     expect(
       files.has(
-        "/other/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/other/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(true);
   });
@@ -246,7 +246,7 @@ describe("install command", () => {
     const files = deps.getFiles();
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(false);
   });
@@ -300,10 +300,10 @@ describe("install command", () => {
 
     expect(result.ok).toBe(true);
     const files = deps.getFiles();
-    expect(files.has("/project/.claude/hooks/pai-hooks/AgentLifecycle/shared.ts")).toBe(true);
+    expect(files.has("/project/.claude/hooks/maple-hooks/AgentLifecycle/shared.ts")).toBe(true);
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts",
+        "/project/.claude/hooks/maple-hooks/AgentLifecycle/AgentLifecycleStart/AgentLifecycleStart.hook.ts",
       ),
     ).toBe(true);
   });

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { err, ok } from "@hooks/core/result";
 import type { ResultError } from "@hooks/core/error";
+import { err, ok } from "@hooks/core/result";
 import { countCrossSessionViolations, readJsonlLines } from "@hooks/lib/jsonl-reader";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

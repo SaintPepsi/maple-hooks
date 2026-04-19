@@ -172,9 +172,9 @@ describe("hook-output-schema", () => {
 describe("validateOutputSemantics", () => {
   // ── Contradiction 1: continue:true + decision:block ──────────────────────
   it("flags continue:true with decision:block", () => {
-    expect(
-      validateOutputSemantics({ continue: true, decision: "block", reason: "bad" }),
-    ).toBe("continue:true and decision:block are mutually exclusive");
+    expect(validateOutputSemantics({ continue: true, decision: "block", reason: "bad" })).toBe(
+      "continue:true and decision:block are mutually exclusive",
+    );
   });
 
   it("returns null for continue:true with decision:approve", () => {
@@ -183,9 +183,7 @@ describe("validateOutputSemantics", () => {
 
   // ── Contradiction 2: decision:block without reason ───────────────────────
   it("flags decision:block without reason", () => {
-    expect(validateOutputSemantics({ decision: "block" })).toBe(
-      "decision:block requires a reason",
-    );
+    expect(validateOutputSemantics({ decision: "block" })).toBe("decision:block requires a reason");
   });
 
   it("returns null for decision:block with reason", () => {

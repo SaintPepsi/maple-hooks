@@ -1,6 +1,6 @@
 # scripts/docs
 
-HTML documentation generator for pai-hooks. Reads `hook.json`, `group.json`, `doc.md`, and `IDEA.md` from each hook directory and produces static HTML pages.
+HTML documentation generator for maple-hooks. Reads `hook.json`, `group.json`, `doc.md`, and `IDEA.md` from each hook directory and produces static HTML pages.
 
 ## Scripts
 

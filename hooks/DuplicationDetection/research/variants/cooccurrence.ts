@@ -260,7 +260,7 @@ function formatResults(
       `  {${t.names.join(", ")}} — ${t.support} files, ${(t.avgBodySimilarity * 100).toFixed(0)}% avg body sim`,
     );
     for (const f of t.files.slice(0, 5)) {
-      lines.push(`    - ${shortenPath(f).replace(/.*pai-hooks\//, "")}`);
+      lines.push(`    - ${shortenPath(f).replace(/.*maple-hooks\//, "")}`);
     }
     if (t.files.length > 5) {
       lines.push(`    ... and ${t.files.length - 5} more`);

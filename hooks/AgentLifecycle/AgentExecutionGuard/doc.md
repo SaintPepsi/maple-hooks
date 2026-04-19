@@ -79,4 +79,4 @@ which became a silent drop after Phase 0 Task 0C (commit `3705810`) deleted the 
 `formatOutput()` translation layer. `validateHookOutput` fail-opens on unrecognized shapes, so
 the foreground-agent warning was dropped with no diagnostic. Fixed by migrating to the SDK's
 verbose `hookSpecificOutput.additionalContext` shape for PreToolUse events, per recipe R7 in
-`/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:137-151`.
+`/Users/hogers/.claude/maple-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:137-151`.

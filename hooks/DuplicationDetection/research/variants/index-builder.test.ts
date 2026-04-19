@@ -65,7 +65,7 @@ describe("build command: missing args", () => {
 // ─── build command: success ───────────────────────────────────────────────────
 
 describe("build command: success", () => {
-  test("exits 0 for pai-hooks with --output", async () => {
+  test("exits 0 for maple-hooks with --output", async () => {
     const outPath = `/tmp/test-dup-index-${Math.random().toString(36).slice(2)}.json`;
     const { exitCode } = await runCLI(["build", PAI_HOOKS_DIR, "--output", outPath]);
     expect(exitCode).toBe(0);

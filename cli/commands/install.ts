@@ -10,11 +10,11 @@
  *
  * Follows the pipe() pattern from cli/core/pipe.ts and uses CliDeps for DI.
  * Settings merge is append-only and idempotent per cli/core/settings.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/settings.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/settings.ts).
  * File staging is atomic per cli/core/staging.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/staging.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/staging.ts).
  * Compiler defined in cli/core/compiler.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
  */
 
 import type { ParsedArgs } from "@hooks/cli/core/args";
@@ -197,7 +197,7 @@ export function install(
     return commitResult;
   }
 
-  // Step 8a: Remove legacy _core/ directory if it exists (migration to pai-hooks/)
+  // Step 8a: Remove legacy _core/ directory if it exists (migration to maple-hooks/)
   const legacyCoreDir = `${ctx.hooksDir}/_core`;
   if (deps.fileExists(legacyCoreDir)) {
     deps.removeDir(legacyCoreDir);
@@ -205,7 +205,7 @@ export function install(
 
   // Step 8b: Make hook entry files executable
   for (const { hookDef } of stagedHooks) {
-    const hookFilePath = `${ctx.hooksDir}/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
+    const hookFilePath = `${ctx.hooksDir}/maple-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
     deps.chmod(hookFilePath, 0o755);
   }
 
@@ -220,7 +220,7 @@ export function install(
     const compilerDeps = deps as CompilerDeps;
     for (const { hookDef, staged } of stagedHooks) {
       const hookEntryPath = `${source}/hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}.hook.ts`;
-      const outputDir = `${ctx.hooksDir}/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}`;
+      const outputDir = `${ctx.hooksDir}/maple-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}`;
       const compileResult = compileHook(
         {
           hookPath: hookEntryPath,
@@ -234,7 +234,7 @@ export function install(
       if (!compileResult.ok) return compileResult;
 
       const ext = outputMode === "compiled" ? ".js" : ".ts";
-      const hookPath = `"$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
+      const hookPath = `"$CLAUDE_PROJECT_DIR"/.claude/hooks/maple-hooks/${hookDef.manifest.group}/${hookDef.manifest.name}/${hookDef.manifest.name}${ext}`;
       const cmdString = compiledCommandString(hookPath, outputMode);
       // Make compiled output executable
       const compiledPath = `${outputDir}/${hookDef.manifest.name}${ext}`;
@@ -338,7 +338,7 @@ function collectCoreDeps(
  * Derive the settings.json matcher for a hook based on its event type.
  *
  * Hooks in settings.hooks.json use matchers to scope to specific tool names
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/settings.hooks.json).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/settings.hooks.json).
  * For source-copy installs, we do not assign a matcher — hooks are installed
  * into a matcherless group so they run for all tools under their event.
  */
@@ -352,7 +352,7 @@ function getMatcherForHook(_hookDef: HookDef): string | undefined {
  * Determine output mode from parsed flags.
  *
  * Flag precedence defined in cli/core/args.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/args.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/args.ts).
  */
 function resolveOutputMode(args: ParsedArgs): OutputMode {
   if (args.flags.compiled === true) return "compiled";

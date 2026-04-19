@@ -61,7 +61,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
 
     const { commandString } = result.value;
     expect(commandString).toBe(
-      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/GitSafety/MergeGate/MergeGate.hook.ts',
+      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/maple-hooks/GitSafety/MergeGate/MergeGate.hook.ts',
     );
     // Must use $CLAUDE_PROJECT_DIR, not a relative path
     expect(commandString).toContain("$CLAUDE_PROJECT_DIR");
@@ -97,7 +97,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
     if (!result.ok) throw new Error(`Unexpected error: ${result.error.code}`);
 
     expect(result.value.commandString).toBe(
-      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts',
+      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts',
     );
   });
 
@@ -127,7 +127,7 @@ describe("stageHook: commandString uses $CLAUDE_PROJECT_DIR (issue #32)", () => 
 
     // The command uses $CLAUDE_PROJECT_DIR — not hardcoded claudeDir, not cwd
     expect(result.value.commandString).toBe(
-      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/pai-hooks/GitSafety/MergeGate/MergeGate.hook.ts',
+      'bun "$CLAUDE_PROJECT_DIR"/.claude/hooks/maple-hooks/GitSafety/MergeGate/MergeGate.hook.ts',
     );
     expect(result.value.commandString).not.toContain(worktreeCwd);
     expect(result.value.commandString).not.toContain(claudeDir);

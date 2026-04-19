@@ -11,8 +11,8 @@
  *
  * This hook fires on EVERY UserPromptSubmit. Fast path exits early.
  *
- * @see /Users/ian.hogers/.claude/pai-hooks/hooks/CronStatusLine/shared.ts — shared types and I/O
- * @see /Users/ian.hogers/.claude/pai-hooks/core/types/hook-inputs.ts — UserPromptSubmitInput
+ * @see /Users/ian.hogers/.claude/maple-hooks/hooks/CronStatusLine/shared.ts — shared types and I/O
+ * @see /Users/ian.hogers/.claude/maple-hooks/core/types/hook-inputs.ts — UserPromptSubmitInput
  */
 
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";

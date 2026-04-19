@@ -5,7 +5,7 @@
  * All other modules receive CliDeps via dependency injection.
  *
  * Adapter implementations from cli/adapters/fs.ts
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-a0619c6a/cli/adapters/fs.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-a0619c6a/cli/adapters/fs.ts).
  */
 
 import {

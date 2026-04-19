@@ -194,7 +194,7 @@ describe("ProtectedBranchGuard", () => {
   it("allows git push on main when in ~/.claude subdirectory", () => {
     const deps = makeDeps({
       getBranch: () => "main",
-      getCwd: () => "/Users/test/.claude/pai-hooks",
+      getCwd: () => "/Users/test/.claude/maple-hooks",
     });
     const result = ProtectedBranchGuard.execute(makeInput("git push origin main"), deps);
     expect(result.ok).toBe(true);

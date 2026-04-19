@@ -6,11 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import {
-  generatePRDFilename,
-  generatePRDId,
-  generatePRDTemplate,
-} from "@hooks/lib/prd-template";
+import { generatePRDFilename, generatePRDId, generatePRDTemplate } from "@hooks/lib/prd-template";
 
 // ─── generatePRDFilename ─────────────────────────────────────────────────────
 

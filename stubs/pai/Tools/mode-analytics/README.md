@@ -16,5 +16,6 @@ The actual production tools live at `~/.claude/Tools/mode-analytics/` and are mo
 ## Purpose
 
 These stubs exist for:
-1. Compilation — allows pai-hooks to reference the tool paths
+
+1. Compilation — allows maple-hooks to reference the tool paths
 2. Fallback — minimal implementations if production tools are missing

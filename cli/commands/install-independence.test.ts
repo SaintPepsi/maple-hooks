@@ -157,7 +157,7 @@ describe("independent hook installation", () => {
 
       // Verify hook files were staged
       const files = deps.getFiles();
-      const hookFilePattern = `pai-hooks/`;
+      const hookFilePattern = `maple-hooks/`;
       const hasHookFiles = [...files.keys()].some(
         (k) => k.includes(hookFilePattern) && k.includes(hookName),
       );
@@ -169,7 +169,7 @@ describe("independent hook installation", () => {
       expect(settings.hooks).toBeDefined();
 
       // Verify lockfile was written
-      expect(files.has("/project/.claude/hooks/pai-hooks/paih.lock.json")).toBe(true);
+      expect(files.has("/project/.claude/hooks/maple-hooks/paih.lock.json")).toBe(true);
     });
   }
 });
@@ -194,7 +194,7 @@ describe("independent group installation", () => {
 
       // Verify at least one hook file was staged for this group
       const files = deps.getFiles();
-      const groupDir = `/project/.claude/hooks/pai-hooks/${groupName}/`;
+      const groupDir = `/project/.claude/hooks/maple-hooks/${groupName}/`;
       const hasGroupFiles = [...files.keys()].some((k) => k.startsWith(groupDir));
       expect(hasGroupFiles).toBe(true);
 
@@ -205,7 +205,7 @@ describe("independent group installation", () => {
       expect(Object.keys(settings.hooks).length).toBeGreaterThan(0);
 
       // Verify lockfile tracks all hooks in group
-      const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+      const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
       const lock = JSON.parse(lockContent);
       expect(lock.hooks.length).toBeGreaterThan(0);
 

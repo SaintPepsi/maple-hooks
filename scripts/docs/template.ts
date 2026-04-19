@@ -47,7 +47,7 @@ interface DocSection {
 
 // ─── GitHub Links ────────────────────────────────────────────────────────────
 
-const GITHUB_BASE = "https://github.com/SaintPepsi/pai-hooks/tree/main/hooks";
+const GITHUB_BASE = "https://github.com/SaintPepsi/maple-hooks/tree/main/hooks";
 
 function githubGroupUrl(groupName: string): string {
   return `${GITHUB_BASE}/${groupName}`;
@@ -724,7 +724,7 @@ ${hero}
   ${sectionHtml}
 
   <footer>
-    <p>Generated from <code>${esc(hook.name)}/doc.md</code> &mdash; pai-hooks documentation</p>
+    <p>Generated from <code>${esc(hook.name)}/doc.md</code> &mdash; maple-hooks documentation</p>
   </footer>
 </div>`;
 
@@ -771,7 +771,7 @@ export function renderGroupPage(group: GroupMeta): string {
     "Hook Group",
     group.name,
     group.description || `${group.hooks.length} hooks in this group.`,
-    [`${group.hooks.length} hooks`, "pai-hooks"],
+    [`${group.hooks.length} hooks`, "maple-hooks"],
   );
 
   const events = [...new Set(group.hooks.flatMap((h) => eventList(h.event)))];
@@ -806,7 +806,7 @@ ${hero}
 
   ${cards}
 
-  <footer><p>pai-hooks documentation</p></footer>
+  <footer><p>maple-hooks documentation</p></footer>
 </div>`;
 
   return pageShell({ title: `${group.name} — Hook Group`, body });
@@ -832,7 +832,7 @@ export function renderIndexPage(groups: GroupMeta[]): string {
 
   const hero = buildHero(
     "Documentation",
-    "pai-hooks",
+    "maple-hooks",
     `${totalHooks} hooks across ${groups.length} groups.`,
     ["March 2026", `${totalHooks} hooks`, `${groups.length} groups`],
   );
@@ -852,12 +852,12 @@ ${hero}
   ${groupCards}
 
   <footer>
-    <p>pai-hooks documentation</p>
-    <div class="collab"><span>pai-hooks</span></div>
+    <p>maple-hooks documentation</p>
+    <div class="collab"><span>maple-hooks</span></div>
   </footer>
 </div>`;
 
-  return pageShell({ title: "pai-hooks — Documentation", body });
+  return pageShell({ title: "maple-hooks — Documentation", body });
 }
 
 // ─── Exported for tests ───────────────────────────────────────────────────────

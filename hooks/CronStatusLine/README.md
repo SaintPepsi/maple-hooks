@@ -44,7 +44,7 @@ JSONL at `MEMORY/STATE/logs/cron-log-YYYY-MM-DD.jsonl` with events: created, fir
 ## Hook Registration
 
 Each hook directory contains its own `settings.hooks.json` defining how it should be registered.
-The pai-hooks installer discovers and merges these automatically.
+The maple-hooks installer discovers and merges these automatically.
 
 ## Design Doc
 

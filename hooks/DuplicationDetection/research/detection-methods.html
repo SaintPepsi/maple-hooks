@@ -1,658 +1,1719 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pattern Duplication Detector &mdash; Detection Methods</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --surface-2: #1a1a26;
-    --surface-3: #222233;
-    --border: #2a2a3d;
-    --text: #e4e4ed;
-    --text-dim: #8888a0;
-    --text-muted: #55556a;
-    --accent: #7c6aef;
-    --accent-bright: #a78bfa;
-    --accent-glow: #7c6aef30;
-    --green: #34d399;
-    --green-dim: #34d39920;
-    --blue: #60a5fa;
-    --blue-dim: #60a5fa20;
-    --orange: #fb923c;
-    --orange-dim: #fb923c20;
-    --pink: #f472b6;
-    --pink-dim: #f472b620;
-    --cyan: #22d3ee;
-    --cyan-dim: #22d3ee20;
-    --red: #f87171;
-    --red-dim: #f8717120;
-    --maple: #d4956b;
-    --maple-dim: #d4956b20;
-    --maple-bright: #e8b898;
-    --yellow: #fbbf24;
-    --yellow-dim: #fbbf2420;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'Inter', -apple-system, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    line-height: 1.7;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .hero {
-    position: relative;
-    padding: 100px 0 70px;
-    text-align: center;
-    overflow: hidden;
-  }
-  .hero::before {
-    content: '';
-    position: absolute;
-    top: -200px; left: 50%;
-    transform: translateX(-50%);
-    width: 800px; height: 800px;
-    background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .hero-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 16px;
-    background: var(--surface-2); border: 1px solid var(--border); border-radius: 100px;
-    font-size: 13px; color: var(--accent-bright); font-weight: 500; letter-spacing: 0.5px;
-    margin-bottom: 28px;
-  }
-  .hero-badge .dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .hero h1 {
-    font-size: clamp(34px,5vw,52px); font-weight: 800; letter-spacing: -1.5px; line-height: 1.1; margin-bottom: 18px;
-    background: linear-gradient(135deg, var(--text) 0%, var(--accent-bright) 100%);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  }
-  .hero p { font-size: 17px; color: var(--text-dim); max-width: 720px; margin: 0 auto 32px; font-weight: 300; }
-  .hero-meta { display: flex; justify-content: center; gap: 28px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; }
-
-  .container { max-width: 960px; margin: 0 auto; padding: 0 32px; }
-  section { margin-bottom: 72px; }
-  .section-label {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
-  }
-  .section-label::before { content: ''; width: 20px; height: 1px; background: var(--accent); }
-  h2 { font-size: 30px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 14px; }
-  h3 { font-size: 19px; font-weight: 600; margin-bottom: 12px; }
-  section > p { color: var(--text-dim); font-size: 15px; margin-bottom: 36px; max-width: 700px; }
-
-  .card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 30px; margin-bottom: 24px; position: relative; overflow: hidden;
-  }
-  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
-  .card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
-  .card.blue::before { background: linear-gradient(90deg, var(--blue), transparent); }
-  .card.pink::before { background: linear-gradient(90deg, var(--pink), transparent); }
-  .card.accent::before { background: linear-gradient(90deg, var(--accent), transparent); }
-  .card.orange::before { background: linear-gradient(90deg, var(--orange), transparent); }
-  .card.cyan::before { background: linear-gradient(90deg, var(--cyan), transparent); }
-  .card.maple::before { background: linear-gradient(90deg, var(--maple), transparent); }
-  .card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
-  .card.yellow::before { background: linear-gradient(90deg, var(--yellow), transparent); }
-  .card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-  .card-icon {
-    width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
-    border-radius: 10px; font-size: 17px; flex-shrink: 0;
-  }
-  .card.green .card-icon { background: var(--green-dim); }
-  .card.blue .card-icon { background: var(--blue-dim); }
-  .card.pink .card-icon { background: var(--pink-dim); }
-  .card.accent .card-icon { background: var(--accent-glow); }
-  .card.orange .card-icon { background: var(--orange-dim); }
-  .card.cyan .card-icon { background: var(--cyan-dim); }
-  .card.maple .card-icon { background: var(--maple-dim); }
-  .card.red .card-icon { background: var(--red-dim); }
-  .card.yellow .card-icon { background: var(--yellow-dim); }
-  .card-header h3 { margin-bottom: 0; }
-  .card-badge {
-    font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 100px; margin-left: auto;
-    letter-spacing: 0.3px; text-transform: uppercase; white-space: nowrap;
-  }
-  .card p { color: var(--text-dim); font-size: 14px; margin-bottom: 14px; }
-  .card p:last-child { margin-bottom: 0; }
-
-  .insight {
-    background: linear-gradient(135deg, var(--accent-glow), transparent);
-    border: 1px solid var(--accent); border-radius: 16px; padding: 30px; margin: 36px 0;
-  }
-  .insight h3 { color: var(--accent-bright); font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-  .insight p { color: var(--text); font-size: 14px; }
-
-  .tags { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .tag {
-    font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 100px; letter-spacing: 0.3px;
-  }
-  .tag.exact { background: var(--green-dim); color: var(--green); }
-  .tag.approx { background: var(--blue-dim); color: var(--blue); }
-  .tag.semantic { background: var(--orange-dim); color: var(--orange); }
-  .tag.fusion { background: var(--accent-glow); color: var(--accent-bright); }
-  .tag.production { background: var(--maple-dim); color: var(--maple-bright); }
-
-  .tbl {
-    width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 14px;
-  }
-  .tbl th {
-    text-align: left; padding: 8px 12px; background: var(--surface-2); color: var(--text-muted);
-    font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
-  }
-  .tbl th:first-child { border-radius: 6px 0 0 6px; }
-  .tbl th:last-child { border-radius: 0 6px 6px 0; }
-  .tbl td { padding: 10px 12px; border-bottom: 1px solid var(--surface-3); color: var(--text-dim); }
-  .tbl code {
-    font-family: 'JetBrains Mono', monospace; font-size: 12px;
-    background: var(--surface-2); padding: 2px 6px; border-radius: 4px; color: var(--accent-bright);
-  }
-
-  .code {
-    background: var(--surface-2); border-radius: 10px; padding: 20px 24px;
-    font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8;
-    color: var(--text-dim); overflow-x: auto; white-space: pre; margin-bottom: 14px;
-  }
-  .code .k { color: var(--cyan); }
-  .code .s { color: var(--green); }
-  .code .c { color: var(--text-muted); font-style: italic; }
-  .code .o { color: var(--orange); }
-  .code .a { color: var(--accent-bright); }
-
-  .reason {
-    display: flex; gap: 10px; align-items: flex-start;
-    padding: 10px 14px; background: var(--surface-2); border-radius: 8px;
-    margin-bottom: 6px; font-size: 13px; color: var(--text-dim);
-  }
-  .reason:last-child { margin-bottom: 0; }
-  .reason .ri { flex-shrink: 0; font-size: 14px; line-height: 1.5; }
-
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
-  @media (max-width: 700px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
-
-  .mini-card {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;
-  }
-  .mini-card h4 { font-size: 14px; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
-  .mini-card p { font-size: 13px; color: var(--text-dim); margin: 0; }
-
-  .toc {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 28px 32px; margin-bottom: 48px;
-  }
-  .toc h3 { font-size: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
-  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 32px; }
-  @media (max-width: 600px) { .toc-grid { grid-template-columns: 1fr; } }
-  .toc-item { font-size: 14px; color: var(--text-dim); padding: 4px 0; }
-  .toc-item span { color: var(--accent); margin-right: 8px; font-size: 12px; font-weight: 600; }
-
-  .stat-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
-  .stat {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 24px; flex: 1; min-width: 140px;
-  }
-  .stat .num { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1.2; }
-  .stat .label { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-
-  .flow-diagram {
-    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
-    padding: 30px; margin: 36px 0; overflow-x: auto;
-  }
-  .flow-diagram h4 {
-    font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;
-    letter-spacing: 1px; margin-bottom: 20px;
-  }
-  .flow-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; }
-  .flow-node {
-    padding: 10px 18px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap;
-    border: 1px solid var(--border);
-  }
-  .flow-arrow { color: var(--text-muted); font-size: 18px; }
-  .flow-node.exact { background: var(--green-dim); color: var(--green); border-color: var(--green); }
-  .flow-node.approx { background: var(--blue-dim); color: var(--blue); border-color: var(--blue); }
-  .flow-node.semantic { background: var(--orange-dim); color: var(--orange); border-color: var(--orange); }
-  .flow-node.fusion { background: var(--accent-glow); color: var(--accent-bright); border-color: var(--accent); }
-  .flow-node.prod { background: var(--maple-dim); color: var(--maple-bright); border-color: var(--maple); }
-
-  .dim-bar { font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: 2px; }
-  .dim-bar .filled { color: var(--accent-bright); }
-  .dim-bar .empty { color: var(--surface-3); }
-
-  footer {
-    text-align: center; padding: 50px 32px; border-top: 1px solid var(--border); margin-top: 40px;
-  }
-  footer p { color: var(--text-muted); font-size: 13px; }
-</style>
-</head>
-<body>
-
-<!-- HERO -->
-<div class="hero">
-  <div class="container">
-    <div class="hero-badge"><span class="dot"></span> Exploration Complete</div>
-    <h1>Pattern Duplication<br>Detector</h1>
-    <p>Eight detection methods for finding WET code, from exact copy-paste to semantic role patterns. Built over 9 exploration cycles using pure static analysis &mdash; no inference, no token cost.</p>
-    <div class="hero-meta">
-      <span>27 March 2026</span>
-      <span>8 methods &bull; 391 tests &bull; 7,392 lines</span>
-      <span>Corpus: pai-hooks (837 functions)</span>
-    </div>
-  </div>
-</div>
-
-<div class="container">
-
-  <!-- Stats -->
-  <div class="stat-row">
-    <div class="stat"><div class="num">82%</div><div class="label">Functions covered by 3 core signals</div></div>
-    <div class="stat"><div class="num">69</div><div class="label">Functions at 4/4 signal dimensions</div></div>
-    <div class="stat"><div class="num">71</div><div class="label">Ranked refactoring opportunities</div></div>
-    <div class="stat"><div class="num">3ms</div><div class="label">Per-file check time (with index)</div></div>
-  </div>
-
-  <!-- TOC -->
-  <div class="toc">
-    <h3>Detection Methods</h3>
-    <div class="toc-grid">
-      <div class="toc-item"><span>01</span> Structural Hash</div>
-      <div class="toc-item"><span>05</span> File Template</div>
-      <div class="toc-item"><span>02</span> N-gram Subsequence</div>
-      <div class="toc-item"><span>06</span> Type Signature</div>
-      <div class="toc-item" style="opacity:0.5;text-decoration:line-through"><span>03</span> CFG Skeleton (superseded)</div>
-      <div class="toc-item" style="background:linear-gradient(135deg, var(--maple-dim), var(--yellow-dim));border:1px solid var(--yellow);font-weight:700"><span>07</span> Composite Ranker <span style="font-size:0.8em">&#11088;</span></div>
-      <div class="toc-item"><span>04</span> Role Naming</div>
-      <div class="toc-item"><span>08</span> Co-occurrence Mining</div>
-    </div>
-  </div>
-
-  <!-- How they relate -->
-  <section>
-    <div class="section-label">Overview &mdash; Signal Layers</div>
-    <h2>Each Layer Catches What the Others Miss</h2>
-    <p>No single signal detects all duplication. The eight methods form a layered detection system, from exact structural matching to semantic role analysis.</p>
-
-    <div class="flow-diagram">
-      <h4>Detection Signal Flow</h4>
-      <div class="flow-row" style="margin-bottom: 16px;">
-        <div class="flow-node exact">Structural Hash</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-node approx">N-gram</div>
-        <div class="flow-node approx" style="opacity:0.4;text-decoration:line-through">CFG Skeleton</div>
-        <div class="flow-node approx">Type Signature</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-node semantic">Role Naming</div>
-        <div class="flow-node semantic">File Template</div>
-        <div class="flow-node semantic">Co-occurrence</div>
-      </div>
-      <div class="flow-row">
-        <div class="flow-node fusion" style="border:2px solid var(--yellow);box-shadow:0 0 16px var(--yellow-dim);font-weight:700">&#11088; Composite Ranker</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-node prod">Persistent Index</div>
-        <div class="flow-arrow">&rarr;</div>
-        <div class="flow-node prod">Hook</div>
-      </div>
-    </div>
-
-    <div class="grid-3">
-      <div class="mini-card">
-        <h4><span style="color:var(--green)">&#9679;</span> Exact Match</h4>
-        <p>Structural hash. Zero false positives, catches only identical bodies.</p>
-      </div>
-      <div class="mini-card">
-        <h4><span style="color:var(--blue)">&#9679;</span> Approximate Match</h4>
-        <p>N-gram, type signature. Catches templates and similar-but-not-identical code. (CFG skeleton superseded by body fingerprint.)</p>
-      </div>
-      <div class="mini-card">
-        <h4><span style="color:var(--orange)">&#9679;</span> Semantic Match</h4>
-        <p>Role naming, file template, co-occurrence. Uses names and file structure, not AST.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- 01: Structural Hash -->
-  <section>
-    <div class="section-label">01 &mdash; Exact Match</div>
-    <h2>Structural Hash</h2>
-    <p>Two functions are literally the same code, copy-pasted. Different files, different variable names, but the structure is identical.</p>
-
-    <div class="card green">
-      <div class="card-header">
-        <div class="card-icon">#</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:var(--green-dim);color:var(--green)">Baseline</div>
-      </div>
-      <div class="tags"><span class="tag exact">Exact Match</span></div>
-      <p>Take a function's AST. Strip all identifiers and literal values &mdash; variable names, strings, numbers. Keep only node types and structure. Serialize the normalized AST to a canonical string. SHA-256 hash it.</p>
-      <p>Two functions with the same hash have the same skeleton, even if every variable name differs.</p>
-      <div class="code"><span class="c">// Before normalization</span>
-<span class="k">const</span> result = deps.<span class="a">readFile</span>(path);
-<span class="k">if</span> (!result.ok) <span class="k">return</span> result;
-
-<span class="c">// After normalization (identifiers + values stripped)</span>
-<span class="k">const</span> _ = _._(_);
-<span class="k">if</span> (!_._) <span class="k">return</span> _;
-
-<span class="c">// Both produce the same hash: aeb7b87c0ce63c80</span></div>
-    </div>
-
-    <div class="grid-2">
-      <div class="mini-card">
-        <h4><span style="color:var(--green)">&#10003;</span> What It Catches</h4>
-        <p><code>makeSourceRepo</code> in 4 test files. <code>runHook</code> in 11 test files. <code>execute</code> in 4 fixture files. All structurally identical.</p>
-      </div>
-      <div class="mini-card">
-        <h4><span style="color:var(--red)">&#10007;</span> What It Misses</h4>
-        <p>Functions doing the same thing with one extra if-branch, different parameter order, or any structural variation at all.</p>
-      </div>
-    </div>
-
-    <table class="tbl">
-      <tr><th>Metric</th><th>Value</th></tr>
-      <tr><td>Clusters found</td><td><strong>47</strong></td></tr>
-      <tr><td>Precision</td><td>100% (zero false positives)</td></tr>
-      <tr><td>Top finding</td><td><code>runHook</code> &mdash; 11 identical copies across test files</td></tr>
-    </table>
-  </section>
-
-  <!-- 02: N-gram -->
-  <section>
-    <div class="section-label">02 &mdash; Approximate Match</div>
-    <h2>N-gram Subsequence</h2>
-    <p>Functions follow the same template but aren't exactly identical. They share characteristic patterns like "declare variable, call method, check result, return."</p>
-
-    <div class="card blue">
-      <div class="card-header">
-        <div class="card-icon">N</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:var(--blue-dim);color:var(--blue)">Cycle 1</div>
-      </div>
-      <div class="tags"><span class="tag approx">Approximate Match</span></div>
-      <p>Flatten each function's AST into a sequence of node types. Generate sliding windows of N consecutive types (n-grams). Score function pairs using Jaccard similarity: shared n-grams divided by total n-grams. Cluster above threshold.</p>
-      <div class="code"><span class="c">// Function body as node type sequence</span>
-[<span class="s">BlockStatement</span>, <span class="s">VariableDeclaration</span>, <span class="s">CallExpression</span>, <span class="s">IfStatement</span>, <span class="s">ReturnStatement</span>, ...]
-
-<span class="c">// 4-grams extracted</span>
-<span class="a">BlockStatement&rarr;VariableDeclaration&rarr;CallExpression&rarr;IfStatement</span>
-<span class="a">VariableDeclaration&rarr;CallExpression&rarr;IfStatement&rarr;ReturnStatement</span>
-...</div>
-      <p>Two functions sharing many 4-grams follow the same template, even if their overall structure differs.</p>
-    </div>
-
-    <div class="grid-2">
-      <div class="mini-card">
-        <h4><span style="color:var(--green)">&#10003;</span> What It Catches</h4>
-        <p><code>getFilePath</code> + <code>getCommand</code> + <code>getWriteContent</code> across 17 hook contracts. Same "check input, extract field, return" subsequence.</p>
-      </div>
-      <div class="mini-card">
-        <h4><span style="color:var(--red)">&#10007;</span> What It Misses</h4>
-        <p>Functions with the same intent but completely different control flow. Top n-grams are too generic &mdash; <code>CallExpression&rarr;Identifier</code> appears everywhere.</p>
-      </div>
-    </div>
-
-    <table class="tbl">
-      <tr><th>N-gram size</th><th>Clusters</th><th>Pairs</th></tr>
-      <tr><td>N=3</td><td>22</td><td>6,776</td></tr>
-      <tr><td>N=4</td><td><strong>73</strong></td><td>3,083</td></tr>
-      <tr><td>N=5</td><td>90</td><td>1,846</td></tr>
-      <tr><td>N=6</td><td>94</td><td>1,304</td></tr>
-    </table>
-  </section>
-
-  <!-- 03: CFG Skeleton (SUPERSEDED) -->
-  <section style="opacity: 0.55;">
-    <div class="section-label">03 &mdash; Approximate Match</div>
-    <h2>CFG Skeleton <span style="background:var(--red-dim);color:var(--red);font-size:0.5em;padding:4px 10px;border-radius:6px;vertical-align:middle;margin-left:8px;">SUPERSEDED</span></h2>
-    <p>Functions share the same branching logic regardless of what's inside the branches. <strong style="color:var(--red);">Not used in production.</strong> The body fingerprint (used in the composite ranker and production hooks) subsumes this signal with better granularity &mdash; it captures control flow node frequencies as part of a 16-element AST frequency vector with continuous cosine similarity, rather than binary skeleton matching.</p>
-
-    <div class="card cyan" style="border-color: var(--text-muted);">
-      <div class="card-header">
-        <div class="card-icon">&loz;</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:var(--red-dim);color:var(--red)">Cycle 2 &mdash; Research Only</div>
-      </div>
-      <div class="tags"><span class="tag approx">Approximate Match</span><span class="tag" style="background:var(--red-dim);color:var(--red)">Not In Production</span></div>
-      <p>Extract only control flow nodes from the body: <code>IfStatement</code>, <code>ForStatement</code>, <code>ReturnStatement</code>, <code>TryStatement</code>, <code>CatchClause</code>. Track nesting depth. The result is a "skeleton" &mdash; the pure branching structure with all expression-level detail stripped.</p>
-      <div class="code"><span class="c">// Safe wrapper skeleton (10 functions share this)</span>
-<span class="a">TryStatement</span> &rarr; <span class="a">ReturnStatement</span> &rarr; <span class="a">CatchClause</span> &rarr; <span class="a">ReturnStatement</span>
-
-<span class="c">// Read-validate-return skeleton (7 functions)</span>
-<span class="a">TryStatement</span> &rarr; <span class="a">ReturnStatement</span> &rarr; <span class="a">CatchClause</span> &rarr; <span class="a">IfStatement</span> &rarr; <span class="a">ReturnStatement</span>(2)</div>
-      <p>Four fingerprint variants tested: full (with depth), compressed (depth-free), shape (unordered), abbreviated (collapsed runs).</p>
-      <p style="color:var(--red);margin-top:8px;"><strong>Why superseded:</strong> Too coarse at the top end (77 functions match <code>If&rarr;Return</code>), too sparse at the precise end (12 clusters at depth 1). The body fingerprint already captures control flow structure as part of its frequency vector, making this a redundant signal. Its contribution was as a research stepping stone toward the fingerprint design.</p>
-    </div>
-
-    <div class="grid-2">
-      <div class="mini-card">
-        <h4><span style="color:var(--green)">&#10003;</span> What It Catches</h4>
-        <p>The "safe wrapper" pattern: 10 functions across adapters (<code>safeRegexTest</code>, <code>createRegex</code>, <code>safeParseYaml</code>, <code>tryCatch</code>) all share try&rarr;return&rarr;catch&rarr;return.</p>
-      </div>
-      <div class="mini-card">
-        <h4><span style="color:var(--red)">&#10007;</span> What It Misses</h4>
-        <p>Functions where control flow differs even slightly. Very high precision but low recall &mdash; only 12 clusters at strict settings.</p>
-      </div>
-    </div>
-
-    <table class="tbl">
-      <tr><th>Strategy</th><th>Clusters (depth&ge;1)</th><th>Clusters (depth&ge;0)</th></tr>
-      <tr><td>Full skeleton</td><td>3</td><td>34</td></tr>
-      <tr><td>Compressed</td><td>3</td><td>34</td></tr>
-      <tr><td>Shape (best)</td><td><strong>3</strong></td><td><strong>35</strong></td></tr>
-      <tr><td>Abbreviated</td><td>3</td><td>34</td></tr>
-    </table>
-  </section>
-
-  <!-- 04: Role Naming -->
-  <section>
-    <div class="section-label">04 &mdash; Semantic Match</div>
-    <h2>Role Naming</h2>
-    <p>44 functions named <code>makeDeps</code> across 44 files. Each builds a different Deps object, so structural analysis can't group them. The signal is in the name.</p>
-
-    <div class="card orange">
-      <div class="card-header">
-        <div class="card-icon">Aa</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:var(--orange-dim);color:var(--orange)">Cycle 3</div>
-      </div>
-      <div class="tags"><span class="tag semantic">Semantic Match</span></div>
-      <p>Group functions by exact name across files. Validate structurally &mdash; compute average pairwise body similarity. If &gt;30%, it's a genuine pattern. Also normalizes names to extract "roles" (<code>makeDeps</code> &rarr; role <code>deps</code>) to catch variants like <code>ensureDir</code> + <code>ensureDirSafe</code>.</p>
-      <p>Classifies architectural verb: factory (<code>make</code>/<code>create</code>/<code>build</code>), accessor (<code>get</code>/<code>read</code>), predicate (<code>is</code>/<code>has</code>), formatter, parser, handler, validator.</p>
-    </div>
-
-    <table class="tbl">
-      <tr><th>Function</th><th>Instances</th><th>Files</th><th>Body Similarity</th><th>Verb</th></tr>
-      <tr><td><code>makeDeps</code></td><td><strong>44</strong></td><td>44</td><td>75%</td><td>factory</td></tr>
-      <tr><td><code>makeInput</code></td><td>31</td><td>31</td><td>95%</td><td>factory</td></tr>
-      <tr><td><code>runHook</code></td><td>13</td><td>13</td><td>93%</td><td>other</td></tr>
-      <tr><td><code>getFilePath</code></td><td>12</td><td>12</td><td>99%</td><td>accessor</td></tr>
-      <tr><td><code>getStateDir</code></td><td>7</td><td>7</td><td>88%</td><td>accessor</td></tr>
-    </table>
-
-    <div class="insight">
-      <h3>&#128161; Role Clustering Adds Value</h3>
-      <p>Normalizing names catches cross-name variants that exact name matching misses: <code>ensureDir</code> + <code>ensureDirSafe</code> (4 instances, 69% sim), <code>isTestFile</code> + <code>hasTestFile</code> (4 instances, 86% sim), <code>formatBlockMessage</code> + <code>buildBlockMessage</code> (4 instances, 74% sim).</p>
-    </div>
-  </section>
-
-  <!-- 05: File Template -->
-  <section>
-    <div class="section-label">05 &mdash; Semantic Match</div>
-    <h2>File Template</h2>
-    <p>21 test files export exactly <code>{makeDeps, makeInput}</code>. They're all copy-pasted from the same template. Individual function detectors catch each function separately, but miss that the entire file is a duplicate.</p>
-
-    <div class="card pink">
-      <div class="card-header">
-        <div class="card-icon">&#128196;</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:var(--pink-dim);color:var(--pink)">Cycle 4</div>
-      </div>
-      <div class="tags"><span class="tag semantic">Semantic Match</span></div>
-      <p>For each file, build a "function interface" &mdash; the sorted set of exported function names. Group files with identical interfaces. Also does fuzzy matching (Jaccard on function name sets) to catch adapted templates where a function was added or removed.</p>
-      <p>Categorizes files (test/contract/adapter/handler/lib) and shows which categories are most template-heavy.</p>
-    </div>
-
-    <table class="tbl">
-      <tr><th>Template</th><th>Files</th><th>Avg Similarity</th><th>Category</th></tr>
-      <tr><td><code>{makeDeps, makeInput}</code></td><td><strong>21</strong></td><td>90%</td><td>test</td></tr>
-      <tr><td><code>{runHook}</code></td><td>12</td><td>100%</td><td>test</td></tr>
-      <tr><td><code>{makeDeps}</code></td><td>9</td><td>93%</td><td>test</td></tr>
-      <tr><td><code>{execute}</code></td><td>5</td><td>96%</td><td>fixture</td></tr>
-    </table>
-
-    <div class="reason"><div class="ri">&#128200;</div> 62% of test files follow a copy-paste template. 0% of contracts have exact-match templates (they share individual functions but not identical sets).</div>
-    <div class="reason"><div class="ri">&#128279;</div> Fuzzy matching catches near-identical file pairs: <code>DocObligationStateMachine.shared.ts</code> and its tracker counterpart share 11 functions at 99% similarity.</div>
-  </section>
-
-  <!-- 06: Type Signature -->
-  <section>
-    <div class="section-label">06 &mdash; Approximate Match</div>
-    <h2>Type Signature</h2>
-    <p>57 adapter functions share the type signature <code>(string) &rarr; Result</code> and have 74% body similarity. Different names, different imports &mdash; the only consistent signal is the types.</p>
-
-    <div class="card accent">
-      <div class="card-header">
-        <div class="card-icon">T</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:var(--accent-glow);color:var(--accent-bright)">Cycle 5</div>
-      </div>
-      <div class="tags"><span class="tag approx">Approximate Match</span></div>
-      <p>Extract type signature per function: <code>(paramType1, paramType2) &rarr; returnType</code>. Group by exact signature. Within each group, compute body similarity using condensed fingerprints &mdash; cosine similarity on a 16-element frequency vector of the most common AST node types, encoded as a 32-char hex string.</p>
-      <p>Flag "name-diverse" clusters (2+ distinct function names) as the novel findings &mdash; these are invisible to all name-based approaches.</p>
-    </div>
-
-    <table class="tbl">
-      <tr><th>Signature</th><th>Functions</th><th>Files</th><th>Body Sim</th><th>Example Names</th></tr>
-      <tr><td><code>(Ref)&rarr;Union</code></td><td>21</td><td>16</td><td><strong>85%</strong></td><td>getFilePath, getWriteContent, getCommand</td></tr>
-      <tr><td><code>(string,?)&rarr;Result</code></td><td>19</td><td>15</td><td>84%</td><td>exec, safeFetch, makeInput</td></tr>
-      <tr><td><code>(string,string)&rarr;Result</code></td><td>29</td><td>14</td><td>79%</td><td>writeFile, makeHookDef</td></tr>
-      <tr><td><code>(string)&rarr;Result</code></td><td>57</td><td>27</td><td>74%</td><td>readFile, removeDir, stat</td></tr>
-      <tr><td><code>()&rarr;string</code></td><td>42</td><td>20</td><td>72%</td><td>cwd, getStateDir, setupPaiDir</td></tr>
-    </table>
-
-    <div class="insight">
-      <h3>&#128161; Highest Coverage Detector</h3>
-      <p>708 functions in name-diverse clusters &mdash; 85% of the codebase. 98% of clusters have 2+ distinct names, proving these patterns are genuinely invisible to name-based detection. The type signature pre-filter keeps it cheap: 43ms total for all 837 functions.</p>
-    </div>
-  </section>
-
-  <!-- 07: Composite Ranker ★ -->
-  <section style="border:2px solid var(--yellow);border-radius:16px;padding:32px;box-shadow:0 0 40px var(--yellow-dim),0 0 80px rgba(251,191,36,0.05);">
-    <div class="section-label" style="color:var(--yellow)">07 &mdash; Fusion &#11088; THE PRODUCTION ENGINE</div>
-    <h2 style="display:flex;align-items:center;gap:12px">Composite Ranker <span style="background:linear-gradient(135deg, var(--yellow), var(--maple-bright));color:var(--bg);font-size:0.4em;padding:6px 14px;border-radius:8px;font-weight:800;letter-spacing:0.5px">POWERS THE HOOK</span></h2>
-    <p>This is the core of the production DuplicationChecker hook. Every other detector was research leading to this. Five detectors, five separate outputs &mdash; the composite ranker fuses them into one answer: "what should I refactor first?" Its dimension thresholds (4/4 = block, 3/4 = suggest, &lt;3 = silent) are the exact logic running in real-time on every Write/Edit.</p>
-
-    <div class="card maple" style="border-color:var(--yellow);">
-      <div class="card-header">
-        <div class="card-icon">&#11088;</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:linear-gradient(135deg, var(--maple-dim), var(--yellow-dim));color:var(--yellow);border:1px solid var(--yellow)">Cycle 6 &mdash; Production</div>
-      </div>
-      <div class="tags"><span class="tag fusion">Multi-Signal Fusion</span><span class="tag" style="background:var(--yellow-dim);color:var(--yellow)">Production Hook Logic</span></div>
-      <p>Scores every function across 4 dimensions: structural hash (weight 1.0), body similarity (0.8), name repetition (0.7), type signature commonality (0.4). Counts how many dimensions fire. Groups by function name, ranks by average dimension count then score.</p>
-      <p>A function hitting 4/4 dimensions is near-certainly duplicated. The dimension bar shows confidence at a glance:</p>
-      <div class="code"><span class="dim-bar"><span class="filled">&#9679;&#9679;&#9679;&#9679;</span></span>  runHook     &mdash; 13 instances, all signals at 100%
-<span class="dim-bar"><span class="filled">&#9679;&#9679;&#9679;</span><span class="empty">&#9679;</span></span>  makeInput   &mdash; 31 instances, 3 signals
-<span class="dim-bar"><span class="filled">&#9679;&#9679;</span><span class="empty">&#9679;&#9679;</span></span>  categorize  &mdash; moderate signal, needs review
-<span class="dim-bar"><span class="filled">&#9679;</span><span class="empty">&#9679;&#9679;&#9679;</span></span>  utils       &mdash; weak signal, likely coincidental</div>
-    </div>
-
-    <table class="tbl">
-      <tr><th>Dimensions</th><th>Functions</th><th>Interpretation</th></tr>
-      <tr><td><span class="dim-bar"><span class="filled">&#9679;&#9679;&#9679;&#9679;</span></span></td><td><strong>69</strong></td><td>Near-certain refactoring targets</td></tr>
-      <tr><td><span class="dim-bar"><span class="filled">&#9679;&#9679;&#9679;</span><span class="empty">&#9679;</span></span></td><td>145</td><td>Strong candidates</td></tr>
-      <tr><td><span class="dim-bar"><span class="filled">&#9679;&#9679;</span><span class="empty">&#9679;&#9679;</span></span></td><td>387</td><td>Moderate signal</td></tr>
-      <tr><td><span class="dim-bar"><span class="filled">&#9679;</span><span class="empty">&#9679;&#9679;&#9679;</span></span></td><td>132</td><td>Weak signal</td></tr>
-      <tr><td><span class="dim-bar"><span class="empty">&#9679;&#9679;&#9679;&#9679;</span></span></td><td>149</td><td>Genuinely unique</td></tr>
-    </table>
-
-    <div class="insight">
-      <h3>&#128161; Instance Count is Misleading</h3>
-      <p><code>makeDeps</code> has 44 instances but only 3 dimensions. <code>runHook</code> has 13 instances but all 4 dimensions at 100%. Dimensional convergence is a better proxy for "should definitely refactor" than raw count.</p>
-    </div>
-  </section>
-
-  <!-- 08: Co-occurrence -->
-  <section>
-    <div class="section-label">08 &mdash; Semantic Match</div>
-    <h2>Co-occurrence Mining</h2>
-    <p>Functions that always appear <em>together</em> reveal template patterns invisible to individual function analysis.</p>
-
-    <div class="card yellow">
-      <div class="card-header">
-        <div class="card-icon">{}</div>
-        <h3>How It Works</h3>
-        <div class="card-badge" style="background:var(--yellow-dim);color:var(--yellow)">Cycle 8</div>
-      </div>
-      <div class="tags"><span class="tag semantic">Semantic Match</span></div>
-      <p>Frequent itemset mining (like market basket analysis). Count all function name pairs that co-occur in 3+ files. Expand pairs into larger tuples using Apriori: if <code>{A, B}</code> and <code>{A, C}</code> are both frequent, check if <code>{A, B, C}</code> is too. Filter to maximal tuples (remove subsets). Validate each tuple with body similarity.</p>
-    </div>
-
-    <table class="tbl">
-      <tr><th>Tuple</th><th>Files</th><th>Body Sim</th></tr>
-      <tr><td><code>{blockCountPath, buildBlockLimitReview, getFilePath, getStateDir, isNonTestCodeFile, pendingPath}</code></td><td>4</td><td><strong>97%</strong></td></tr>
-      <tr><td><code>{makeDeps, makeInput}</code></td><td>26</td><td>85%</td></tr>
-      <tr><td><code>{getFilePath, getStateDir}</code></td><td>6</td><td>94%</td></tr>
-      <tr><td><code>{blockCountPath, getStateDir}</code></td><td>5</td><td>94%</td></tr>
-      <tr><td><code>{formatDryRun, formatSuccess}</code></td><td>3</td><td>82%</td></tr>
-    </table>
-
-    <div class="reason"><div class="ri">&#128270;</div> The 6-function obligation state machine tuple (97% body sim) is the strongest "extract a shared module" signal produced by any detector.</div>
-    <div class="reason"><div class="ri">&#10004;</div> Zero false positives &mdash; all 5 maximal tuples are validated templates.</div>
-  </section>
-
-  <!-- Production Architecture -->
-  <section>
-    <div class="section-label">Production &mdash; Hook Architecture</div>
-    <h2>From Spike to Hook</h2>
-    <p>The composite ranker's 4 signals are packaged into a persistent index (171KB) that a PreToolUse hook reads in 3ms per file write.</p>
-
-    <div class="card maple">
-      <div class="card-header">
-        <div class="card-icon">&#9881;</div>
-        <h3>Two-Hook Architecture</h3>
-        <div class="card-badge" style="background:var(--maple-dim);color:var(--maple-bright)">Shipped</div>
-      </div>
-      <div class="tags"><span class="tag production">Production</span></div>
-
-      <div class="grid-2">
-        <div class="mini-card">
-          <h4>&#128230; DuplicationIndexBuilder</h4>
-          <p><strong>PostToolUse:Write</strong> &mdash; Builds the index on first .ts write per session. 290ms, 171KB. Skips rebuild if fresh (&lt;30 min).</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pattern Duplication Detector &mdash; Detection Methods</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+      :root {
+        --bg: #0a0a0f;
+        --surface: #12121a;
+        --surface-2: #1a1a26;
+        --surface-3: #222233;
+        --border: #2a2a3d;
+        --text: #e4e4ed;
+        --text-dim: #8888a0;
+        --text-muted: #55556a;
+        --accent: #7c6aef;
+        --accent-bright: #a78bfa;
+        --accent-glow: #7c6aef30;
+        --green: #34d399;
+        --green-dim: #34d39920;
+        --blue: #60a5fa;
+        --blue-dim: #60a5fa20;
+        --orange: #fb923c;
+        --orange-dim: #fb923c20;
+        --pink: #f472b6;
+        --pink-dim: #f472b620;
+        --cyan: #22d3ee;
+        --cyan-dim: #22d3ee20;
+        --red: #f87171;
+        --red-dim: #f8717120;
+        --maple: #d4956b;
+        --maple-dim: #d4956b20;
+        --maple-bright: #e8b898;
+        --yellow: #fbbf24;
+        --yellow-dim: #fbbf2420;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .hero {
+        position: relative;
+        padding: 100px 0 70px;
+        text-align: center;
+        overflow: hidden;
+      }
+      .hero::before {
+        content: "";
+        position: absolute;
+        top: -200px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 800px;
+        height: 800px;
+        background: radial-gradient(
+          circle,
+          var(--accent-glow) 0%,
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+      .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 16px;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        font-size: 13px;
+        color: var(--accent-bright);
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        margin-bottom: 28px;
+      }
+      .hero-badge .dot {
+        width: 6px;
+        height: 6px;
+        background: var(--green);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      .hero h1 {
+        font-size: clamp(34px, 5vw, 52px);
+        font-weight: 800;
+        letter-spacing: -1.5px;
+        line-height: 1.1;
+        margin-bottom: 18px;
+        background: linear-gradient(
+          135deg,
+          var(--text) 0%,
+          var(--accent-bright) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .hero p {
+        font-size: 17px;
+        color: var(--text-dim);
+        max-width: 720px;
+        margin: 0 auto 32px;
+        font-weight: 300;
+      }
+      .hero-meta {
+        display: flex;
+        justify-content: center;
+        gap: 28px;
+        font-size: 13px;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+      }
+
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 0 32px;
+      }
+      section {
+        margin-bottom: 72px;
+      }
+      .section-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 14px;
+      }
+      .section-label::before {
+        content: "";
+        width: 20px;
+        height: 1px;
+        background: var(--accent);
+      }
+      h2 {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        margin-bottom: 14px;
+      }
+      h3 {
+        font-size: 19px;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      section > p {
+        color: var(--text-dim);
+        font-size: 15px;
+        margin-bottom: 36px;
+        max-width: 700px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 24px;
+        position: relative;
+        overflow: hidden;
+      }
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+      }
+      .card.green::before {
+        background: linear-gradient(90deg, var(--green), transparent);
+      }
+      .card.blue::before {
+        background: linear-gradient(90deg, var(--blue), transparent);
+      }
+      .card.pink::before {
+        background: linear-gradient(90deg, var(--pink), transparent);
+      }
+      .card.accent::before {
+        background: linear-gradient(90deg, var(--accent), transparent);
+      }
+      .card.orange::before {
+        background: linear-gradient(90deg, var(--orange), transparent);
+      }
+      .card.cyan::before {
+        background: linear-gradient(90deg, var(--cyan), transparent);
+      }
+      .card.maple::before {
+        background: linear-gradient(90deg, var(--maple), transparent);
+      }
+      .card.red::before {
+        background: linear-gradient(90deg, var(--red), transparent);
+      }
+      .card.yellow::before {
+        background: linear-gradient(90deg, var(--yellow), transparent);
+      }
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+      .card-icon {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        font-size: 17px;
+        flex-shrink: 0;
+      }
+      .card.green .card-icon {
+        background: var(--green-dim);
+      }
+      .card.blue .card-icon {
+        background: var(--blue-dim);
+      }
+      .card.pink .card-icon {
+        background: var(--pink-dim);
+      }
+      .card.accent .card-icon {
+        background: var(--accent-glow);
+      }
+      .card.orange .card-icon {
+        background: var(--orange-dim);
+      }
+      .card.cyan .card-icon {
+        background: var(--cyan-dim);
+      }
+      .card.maple .card-icon {
+        background: var(--maple-dim);
+      }
+      .card.red .card-icon {
+        background: var(--red-dim);
+      }
+      .card.yellow .card-icon {
+        background: var(--yellow-dim);
+      }
+      .card-header h3 {
+        margin-bottom: 0;
+      }
+      .card-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 3px 10px;
+        border-radius: 100px;
+        margin-left: auto;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .card p {
+        color: var(--text-dim);
+        font-size: 14px;
+        margin-bottom: 14px;
+      }
+      .card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .insight {
+        background: linear-gradient(135deg, var(--accent-glow), transparent);
+        border: 1px solid var(--accent);
+        border-radius: 16px;
+        padding: 30px;
+        margin: 36px 0;
+      }
+      .insight h3 {
+        color: var(--accent-bright);
+        font-size: 15px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .insight p {
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .tags {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+        flex-wrap: wrap;
+      }
+      .tag {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 10px;
+        border-radius: 100px;
+        letter-spacing: 0.3px;
+      }
+      .tag.exact {
+        background: var(--green-dim);
+        color: var(--green);
+      }
+      .tag.approx {
+        background: var(--blue-dim);
+        color: var(--blue);
+      }
+      .tag.semantic {
+        background: var(--orange-dim);
+        color: var(--orange);
+      }
+      .tag.fusion {
+        background: var(--accent-glow);
+        color: var(--accent-bright);
+      }
+      .tag.production {
+        background: var(--maple-dim);
+        color: var(--maple-bright);
+      }
+
+      .tbl {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-bottom: 14px;
+      }
+      .tbl th {
+        text-align: left;
+        padding: 8px 12px;
+        background: var(--surface-2);
+        color: var(--text-muted);
+        font-weight: 500;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .tbl th:first-child {
+        border-radius: 6px 0 0 6px;
+      }
+      .tbl th:last-child {
+        border-radius: 0 6px 6px 0;
+      }
+      .tbl td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--surface-3);
+        color: var(--text-dim);
+      }
+      .tbl code {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        background: var(--surface-2);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: var(--accent-bright);
+      }
+
+      .code {
+        background: var(--surface-2);
+        border-radius: 10px;
+        padding: 20px 24px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        line-height: 1.8;
+        color: var(--text-dim);
+        overflow-x: auto;
+        white-space: pre;
+        margin-bottom: 14px;
+      }
+      .code .k {
+        color: var(--cyan);
+      }
+      .code .s {
+        color: var(--green);
+      }
+      .code .c {
+        color: var(--text-muted);
+        font-style: italic;
+      }
+      .code .o {
+        color: var(--orange);
+      }
+      .code .a {
+        color: var(--accent-bright);
+      }
+
+      .reason {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        padding: 10px 14px;
+        background: var(--surface-2);
+        border-radius: 8px;
+        margin-bottom: 6px;
+        font-size: 13px;
+        color: var(--text-dim);
+      }
+      .reason:last-child {
+        margin-bottom: 0;
+      }
+      .reason .ri {
+        flex-shrink: 0;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      .grid-3 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      @media (max-width: 700px) {
+        .grid-2,
+        .grid-3 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .mini-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+      }
+      .mini-card h4 {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .mini-card p {
+        font-size: 13px;
+        color: var(--text-dim);
+        margin: 0;
+      }
+
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 48px;
+      }
+      .toc h3 {
+        font-size: 14px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 14px;
+      }
+      .toc-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 32px;
+      }
+      @media (max-width: 600px) {
+        .toc-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .toc-item {
+        font-size: 14px;
+        color: var(--text-dim);
+        padding: 4px 0;
+      }
+      .toc-item span {
+        color: var(--accent);
+        margin-right: 8px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .stat-row {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+      .stat {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px 24px;
+        flex: 1;
+        min-width: 140px;
+      }
+      .stat .num {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1.2;
+      }
+      .stat .label {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .flow-diagram {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 30px;
+        margin: 36px 0;
+        overflow-x: auto;
+      }
+      .flow-diagram h4 {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 20px;
+      }
+      .flow-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .flow-node {
+        padding: 10px 18px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        border: 1px solid var(--border);
+      }
+      .flow-arrow {
+        color: var(--text-muted);
+        font-size: 18px;
+      }
+      .flow-node.exact {
+        background: var(--green-dim);
+        color: var(--green);
+        border-color: var(--green);
+      }
+      .flow-node.approx {
+        background: var(--blue-dim);
+        color: var(--blue);
+        border-color: var(--blue);
+      }
+      .flow-node.semantic {
+        background: var(--orange-dim);
+        color: var(--orange);
+        border-color: var(--orange);
+      }
+      .flow-node.fusion {
+        background: var(--accent-glow);
+        color: var(--accent-bright);
+        border-color: var(--accent);
+      }
+      .flow-node.prod {
+        background: var(--maple-dim);
+        color: var(--maple-bright);
+        border-color: var(--maple);
+      }
+
+      .dim-bar {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 14px;
+        letter-spacing: 2px;
+      }
+      .dim-bar .filled {
+        color: var(--accent-bright);
+      }
+      .dim-bar .empty {
+        color: var(--surface-3);
+      }
+
+      footer {
+        text-align: center;
+        padding: 50px 32px;
+        border-top: 1px solid var(--border);
+        margin-top: 40px;
+      }
+      footer p {
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- HERO -->
+    <div class="hero">
+      <div class="container">
+        <div class="hero-badge">
+          <span class="dot"></span> Exploration Complete
         </div>
-        <div class="mini-card">
-          <h4>&#128269; DuplicationChecker</h4>
-          <p><strong>PreToolUse:Write</strong> &mdash; Checks functions against index. One-line advisory at 3+ dimensions. Silent when clean. <code>stale:</code> prefix when index &gt;5 min old.</p>
+        <h1>Pattern Duplication<br />Detector</h1>
+        <p>
+          Eight detection methods for finding WET code, from exact copy-paste to
+          semantic role patterns. Built over 9 exploration cycles using pure
+          static analysis &mdash; no inference, no token cost.
+        </p>
+        <div class="hero-meta">
+          <span>27 March 2026</span>
+          <span>8 methods &bull; 391 tests &bull; 7,392 lines</span>
+          <span>Corpus: maple-hooks (837 functions)</span>
         </div>
       </div>
-
-      <p>Output example:</p>
-      <div class="code"><span class="s">Similar:</span> runHook &rarr; RatingCapture.hook.test.ts:runHook (<span class="o">hash+name+sig+body</span>, <span class="a">100%</span>)</div>
     </div>
-  </section>
 
-</div>
+    <div class="container">
+      <!-- Stats -->
+      <div class="stat-row">
+        <div class="stat">
+          <div class="num">82%</div>
+          <div class="label">Functions covered by 3 core signals</div>
+        </div>
+        <div class="stat">
+          <div class="num">69</div>
+          <div class="label">Functions at 4/4 signal dimensions</div>
+        </div>
+        <div class="stat">
+          <div class="num">71</div>
+          <div class="label">Ranked refactoring opportunities</div>
+        </div>
+        <div class="stat">
+          <div class="num">3ms</div>
+          <div class="label">Per-file check time (with index)</div>
+        </div>
+      </div>
 
-<footer>
-  <p>Pattern Duplication Detector &mdash; PAI Exploration Spike</p>
-  <div style="display:flex;justify-content:center;gap:24px;margin-top:14px;font-size:14px;color:var(--text-dim)">
-    <span>8 detection methods</span>
-    <span>&bull;</span>
-    <span>391 tests</span>
-    <span>&bull;</span>
-    <span>7,392 lines</span>
-  </div>
-</footer>
+      <!-- TOC -->
+      <div class="toc">
+        <h3>Detection Methods</h3>
+        <div class="toc-grid">
+          <div class="toc-item"><span>01</span> Structural Hash</div>
+          <div class="toc-item"><span>05</span> File Template</div>
+          <div class="toc-item"><span>02</span> N-gram Subsequence</div>
+          <div class="toc-item"><span>06</span> Type Signature</div>
+          <div
+            class="toc-item"
+            style="opacity: 0.5; text-decoration: line-through"
+          >
+            <span>03</span> CFG Skeleton (superseded)
+          </div>
+          <div
+            class="toc-item"
+            style="
+              background: linear-gradient(
+                135deg,
+                var(--maple-dim),
+                var(--yellow-dim)
+              );
+              border: 1px solid var(--yellow);
+              font-weight: 700;
+            "
+          >
+            <span>07</span> Composite Ranker
+            <span style="font-size: 0.8em">&#11088;</span>
+          </div>
+          <div class="toc-item"><span>04</span> Role Naming</div>
+          <div class="toc-item"><span>08</span> Co-occurrence Mining</div>
+        </div>
+      </div>
 
-</body>
+      <!-- How they relate -->
+      <section>
+        <div class="section-label">Overview &mdash; Signal Layers</div>
+        <h2>Each Layer Catches What the Others Miss</h2>
+        <p>
+          No single signal detects all duplication. The eight methods form a
+          layered detection system, from exact structural matching to semantic
+          role analysis.
+        </p>
+
+        <div class="flow-diagram">
+          <h4>Detection Signal Flow</h4>
+          <div class="flow-row" style="margin-bottom: 16px">
+            <div class="flow-node exact">Structural Hash</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node approx">N-gram</div>
+            <div
+              class="flow-node approx"
+              style="opacity: 0.4; text-decoration: line-through"
+            >
+              CFG Skeleton
+            </div>
+            <div class="flow-node approx">Type Signature</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node semantic">Role Naming</div>
+            <div class="flow-node semantic">File Template</div>
+            <div class="flow-node semantic">Co-occurrence</div>
+          </div>
+          <div class="flow-row">
+            <div
+              class="flow-node fusion"
+              style="
+                border: 2px solid var(--yellow);
+                box-shadow: 0 0 16px var(--yellow-dim);
+                font-weight: 700;
+              "
+            >
+              &#11088; Composite Ranker
+            </div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node prod">Persistent Index</div>
+            <div class="flow-arrow">&rarr;</div>
+            <div class="flow-node prod">Hook</div>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--green)">&#9679;</span> Exact Match
+            </h4>
+            <p>
+              Structural hash. Zero false positives, catches only identical
+              bodies.
+            </p>
+          </div>
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--blue)">&#9679;</span> Approximate Match
+            </h4>
+            <p>
+              N-gram, type signature. Catches templates and
+              similar-but-not-identical code. (CFG skeleton superseded by body
+              fingerprint.)
+            </p>
+          </div>
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--orange)">&#9679;</span> Semantic Match
+            </h4>
+            <p>
+              Role naming, file template, co-occurrence. Uses names and file
+              structure, not AST.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 01: Structural Hash -->
+      <section>
+        <div class="section-label">01 &mdash; Exact Match</div>
+        <h2>Structural Hash</h2>
+        <p>
+          Two functions are literally the same code, copy-pasted. Different
+          files, different variable names, but the structure is identical.
+        </p>
+
+        <div class="card green">
+          <div class="card-header">
+            <div class="card-icon">#</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="background: var(--green-dim); color: var(--green)"
+            >
+              Baseline
+            </div>
+          </div>
+          <div class="tags"><span class="tag exact">Exact Match</span></div>
+          <p>
+            Take a function's AST. Strip all identifiers and literal values
+            &mdash; variable names, strings, numbers. Keep only node types and
+            structure. Serialize the normalized AST to a canonical string.
+            SHA-256 hash it.
+          </p>
+          <p>
+            Two functions with the same hash have the same skeleton, even if
+            every variable name differs.
+          </p>
+          <div class="code">
+            <span class="c">// Before normalization</span>
+            <span class="k">const</span> result = deps.<span class="a"
+              >readFile</span
+            >(path); <span class="k">if</span> (!result.ok)
+            <span class="k">return</span> result;
+
+            <span class="c"
+              >// After normalization (identifiers + values stripped)</span
+            >
+            <span class="k">const</span> _ = _._(_);
+            <span class="k">if</span> (!_._) <span class="k">return</span> _;
+
+            <span class="c"
+              >// Both produce the same hash: aeb7b87c0ce63c80</span
+            >
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--green)">&#10003;</span> What It Catches
+            </h4>
+            <p>
+              <code>makeSourceRepo</code> in 4 test files.
+              <code>runHook</code> in 11 test files. <code>execute</code> in 4
+              fixture files. All structurally identical.
+            </p>
+          </div>
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--red)">&#10007;</span> What It Misses
+            </h4>
+            <p>
+              Functions doing the same thing with one extra if-branch, different
+              parameter order, or any structural variation at all.
+            </p>
+          </div>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>Metric</th>
+            <th>Value</th>
+          </tr>
+          <tr>
+            <td>Clusters found</td>
+            <td><strong>47</strong></td>
+          </tr>
+          <tr>
+            <td>Precision</td>
+            <td>100% (zero false positives)</td>
+          </tr>
+          <tr>
+            <td>Top finding</td>
+            <td>
+              <code>runHook</code> &mdash; 11 identical copies across test files
+            </td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- 02: N-gram -->
+      <section>
+        <div class="section-label">02 &mdash; Approximate Match</div>
+        <h2>N-gram Subsequence</h2>
+        <p>
+          Functions follow the same template but aren't exactly identical. They
+          share characteristic patterns like "declare variable, call method,
+          check result, return."
+        </p>
+
+        <div class="card blue">
+          <div class="card-header">
+            <div class="card-icon">N</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="background: var(--blue-dim); color: var(--blue)"
+            >
+              Cycle 1
+            </div>
+          </div>
+          <div class="tags">
+            <span class="tag approx">Approximate Match</span>
+          </div>
+          <p>
+            Flatten each function's AST into a sequence of node types. Generate
+            sliding windows of N consecutive types (n-grams). Score function
+            pairs using Jaccard similarity: shared n-grams divided by total
+            n-grams. Cluster above threshold.
+          </p>
+          <div class="code">
+            <span class="c">// Function body as node type sequence</span> [<span
+              class="s"
+              >BlockStatement</span
+            >, <span class="s">VariableDeclaration</span>,
+            <span class="s">CallExpression</span>,
+            <span class="s">IfStatement</span>,
+            <span class="s">ReturnStatement</span>, ...]
+
+            <span class="c">// 4-grams extracted</span>
+            <span class="a"
+              >BlockStatement&rarr;VariableDeclaration&rarr;CallExpression&rarr;IfStatement</span
+            >
+            <span class="a"
+              >VariableDeclaration&rarr;CallExpression&rarr;IfStatement&rarr;ReturnStatement</span
+            >
+            ...
+          </div>
+          <p>
+            Two functions sharing many 4-grams follow the same template, even if
+            their overall structure differs.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--green)">&#10003;</span> What It Catches
+            </h4>
+            <p>
+              <code>getFilePath</code> + <code>getCommand</code> +
+              <code>getWriteContent</code> across 17 hook contracts. Same "check
+              input, extract field, return" subsequence.
+            </p>
+          </div>
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--red)">&#10007;</span> What It Misses
+            </h4>
+            <p>
+              Functions with the same intent but completely different control
+              flow. Top n-grams are too generic &mdash;
+              <code>CallExpression&rarr;Identifier</code> appears everywhere.
+            </p>
+          </div>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>N-gram size</th>
+            <th>Clusters</th>
+            <th>Pairs</th>
+          </tr>
+          <tr>
+            <td>N=3</td>
+            <td>22</td>
+            <td>6,776</td>
+          </tr>
+          <tr>
+            <td>N=4</td>
+            <td><strong>73</strong></td>
+            <td>3,083</td>
+          </tr>
+          <tr>
+            <td>N=5</td>
+            <td>90</td>
+            <td>1,846</td>
+          </tr>
+          <tr>
+            <td>N=6</td>
+            <td>94</td>
+            <td>1,304</td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- 03: CFG Skeleton (SUPERSEDED) -->
+      <section style="opacity: 0.55">
+        <div class="section-label">03 &mdash; Approximate Match</div>
+        <h2>
+          CFG Skeleton
+          <span
+            style="
+              background: var(--red-dim);
+              color: var(--red);
+              font-size: 0.5em;
+              padding: 4px 10px;
+              border-radius: 6px;
+              vertical-align: middle;
+              margin-left: 8px;
+            "
+            >SUPERSEDED</span
+          >
+        </h2>
+        <p>
+          Functions share the same branching logic regardless of what's inside
+          the branches.
+          <strong style="color: var(--red)">Not used in production.</strong> The
+          body fingerprint (used in the composite ranker and production hooks)
+          subsumes this signal with better granularity &mdash; it captures
+          control flow node frequencies as part of a 16-element AST frequency
+          vector with continuous cosine similarity, rather than binary skeleton
+          matching.
+        </p>
+
+        <div class="card cyan" style="border-color: var(--text-muted)">
+          <div class="card-header">
+            <div class="card-icon">&loz;</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="background: var(--red-dim); color: var(--red)"
+            >
+              Cycle 2 &mdash; Research Only
+            </div>
+          </div>
+          <div class="tags">
+            <span class="tag approx">Approximate Match</span
+            ><span
+              class="tag"
+              style="background: var(--red-dim); color: var(--red)"
+              >Not In Production</span
+            >
+          </div>
+          <p>
+            Extract only control flow nodes from the body:
+            <code>IfStatement</code>, <code>ForStatement</code>,
+            <code>ReturnStatement</code>, <code>TryStatement</code>,
+            <code>CatchClause</code>. Track nesting depth. The result is a
+            "skeleton" &mdash; the pure branching structure with all
+            expression-level detail stripped.
+          </p>
+          <div class="code">
+            <span class="c"
+              >// Safe wrapper skeleton (10 functions share this)</span
+            >
+            <span class="a">TryStatement</span> &rarr;
+            <span class="a">ReturnStatement</span> &rarr;
+            <span class="a">CatchClause</span> &rarr;
+            <span class="a">ReturnStatement</span>
+
+            <span class="c"
+              >// Read-validate-return skeleton (7 functions)</span
+            >
+            <span class="a">TryStatement</span> &rarr;
+            <span class="a">ReturnStatement</span> &rarr;
+            <span class="a">CatchClause</span> &rarr;
+            <span class="a">IfStatement</span> &rarr;
+            <span class="a">ReturnStatement</span>(2)
+          </div>
+          <p>
+            Four fingerprint variants tested: full (with depth), compressed
+            (depth-free), shape (unordered), abbreviated (collapsed runs).
+          </p>
+          <p style="color: var(--red); margin-top: 8px">
+            <strong>Why superseded:</strong> Too coarse at the top end (77
+            functions match <code>If&rarr;Return</code>), too sparse at the
+            precise end (12 clusters at depth 1). The body fingerprint already
+            captures control flow structure as part of its frequency vector,
+            making this a redundant signal. Its contribution was as a research
+            stepping stone toward the fingerprint design.
+          </p>
+        </div>
+
+        <div class="grid-2">
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--green)">&#10003;</span> What It Catches
+            </h4>
+            <p>
+              The "safe wrapper" pattern: 10 functions across adapters
+              (<code>safeRegexTest</code>, <code>createRegex</code>,
+              <code>safeParseYaml</code>, <code>tryCatch</code>) all share
+              try&rarr;return&rarr;catch&rarr;return.
+            </p>
+          </div>
+          <div class="mini-card">
+            <h4>
+              <span style="color: var(--red)">&#10007;</span> What It Misses
+            </h4>
+            <p>
+              Functions where control flow differs even slightly. Very high
+              precision but low recall &mdash; only 12 clusters at strict
+              settings.
+            </p>
+          </div>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>Strategy</th>
+            <th>Clusters (depth&ge;1)</th>
+            <th>Clusters (depth&ge;0)</th>
+          </tr>
+          <tr>
+            <td>Full skeleton</td>
+            <td>3</td>
+            <td>34</td>
+          </tr>
+          <tr>
+            <td>Compressed</td>
+            <td>3</td>
+            <td>34</td>
+          </tr>
+          <tr>
+            <td>Shape (best)</td>
+            <td><strong>3</strong></td>
+            <td><strong>35</strong></td>
+          </tr>
+          <tr>
+            <td>Abbreviated</td>
+            <td>3</td>
+            <td>34</td>
+          </tr>
+        </table>
+      </section>
+
+      <!-- 04: Role Naming -->
+      <section>
+        <div class="section-label">04 &mdash; Semantic Match</div>
+        <h2>Role Naming</h2>
+        <p>
+          44 functions named <code>makeDeps</code> across 44 files. Each builds
+          a different Deps object, so structural analysis can't group them. The
+          signal is in the name.
+        </p>
+
+        <div class="card orange">
+          <div class="card-header">
+            <div class="card-icon">Aa</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="background: var(--orange-dim); color: var(--orange)"
+            >
+              Cycle 3
+            </div>
+          </div>
+          <div class="tags">
+            <span class="tag semantic">Semantic Match</span>
+          </div>
+          <p>
+            Group functions by exact name across files. Validate structurally
+            &mdash; compute average pairwise body similarity. If &gt;30%, it's a
+            genuine pattern. Also normalizes names to extract "roles" (<code
+              >makeDeps</code
+            >
+            &rarr; role <code>deps</code>) to catch variants like
+            <code>ensureDir</code> + <code>ensureDirSafe</code>.
+          </p>
+          <p>
+            Classifies architectural verb: factory
+            (<code>make</code>/<code>create</code>/<code>build</code>), accessor
+            (<code>get</code>/<code>read</code>), predicate
+            (<code>is</code>/<code>has</code>), formatter, parser, handler,
+            validator.
+          </p>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>Function</th>
+            <th>Instances</th>
+            <th>Files</th>
+            <th>Body Similarity</th>
+            <th>Verb</th>
+          </tr>
+          <tr>
+            <td><code>makeDeps</code></td>
+            <td><strong>44</strong></td>
+            <td>44</td>
+            <td>75%</td>
+            <td>factory</td>
+          </tr>
+          <tr>
+            <td><code>makeInput</code></td>
+            <td>31</td>
+            <td>31</td>
+            <td>95%</td>
+            <td>factory</td>
+          </tr>
+          <tr>
+            <td><code>runHook</code></td>
+            <td>13</td>
+            <td>13</td>
+            <td>93%</td>
+            <td>other</td>
+          </tr>
+          <tr>
+            <td><code>getFilePath</code></td>
+            <td>12</td>
+            <td>12</td>
+            <td>99%</td>
+            <td>accessor</td>
+          </tr>
+          <tr>
+            <td><code>getStateDir</code></td>
+            <td>7</td>
+            <td>7</td>
+            <td>88%</td>
+            <td>accessor</td>
+          </tr>
+        </table>
+
+        <div class="insight">
+          <h3>&#128161; Role Clustering Adds Value</h3>
+          <p>
+            Normalizing names catches cross-name variants that exact name
+            matching misses: <code>ensureDir</code> +
+            <code>ensureDirSafe</code> (4 instances, 69% sim),
+            <code>isTestFile</code> + <code>hasTestFile</code> (4 instances, 86%
+            sim), <code>formatBlockMessage</code> +
+            <code>buildBlockMessage</code> (4 instances, 74% sim).
+          </p>
+        </div>
+      </section>
+
+      <!-- 05: File Template -->
+      <section>
+        <div class="section-label">05 &mdash; Semantic Match</div>
+        <h2>File Template</h2>
+        <p>
+          21 test files export exactly <code>{makeDeps, makeInput}</code>.
+          They're all copy-pasted from the same template. Individual function
+          detectors catch each function separately, but miss that the entire
+          file is a duplicate.
+        </p>
+
+        <div class="card pink">
+          <div class="card-header">
+            <div class="card-icon">&#128196;</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="background: var(--pink-dim); color: var(--pink)"
+            >
+              Cycle 4
+            </div>
+          </div>
+          <div class="tags">
+            <span class="tag semantic">Semantic Match</span>
+          </div>
+          <p>
+            For each file, build a "function interface" &mdash; the sorted set
+            of exported function names. Group files with identical interfaces.
+            Also does fuzzy matching (Jaccard on function name sets) to catch
+            adapted templates where a function was added or removed.
+          </p>
+          <p>
+            Categorizes files (test/contract/adapter/handler/lib) and shows
+            which categories are most template-heavy.
+          </p>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>Template</th>
+            <th>Files</th>
+            <th>Avg Similarity</th>
+            <th>Category</th>
+          </tr>
+          <tr>
+            <td><code>{makeDeps, makeInput}</code></td>
+            <td><strong>21</strong></td>
+            <td>90%</td>
+            <td>test</td>
+          </tr>
+          <tr>
+            <td><code>{runHook}</code></td>
+            <td>12</td>
+            <td>100%</td>
+            <td>test</td>
+          </tr>
+          <tr>
+            <td><code>{makeDeps}</code></td>
+            <td>9</td>
+            <td>93%</td>
+            <td>test</td>
+          </tr>
+          <tr>
+            <td><code>{execute}</code></td>
+            <td>5</td>
+            <td>96%</td>
+            <td>fixture</td>
+          </tr>
+        </table>
+
+        <div class="reason">
+          <div class="ri">&#128200;</div>
+          62% of test files follow a copy-paste template. 0% of contracts have
+          exact-match templates (they share individual functions but not
+          identical sets).
+        </div>
+        <div class="reason">
+          <div class="ri">&#128279;</div>
+          Fuzzy matching catches near-identical file pairs:
+          <code>DocObligationStateMachine.shared.ts</code> and its tracker
+          counterpart share 11 functions at 99% similarity.
+        </div>
+      </section>
+
+      <!-- 06: Type Signature -->
+      <section>
+        <div class="section-label">06 &mdash; Approximate Match</div>
+        <h2>Type Signature</h2>
+        <p>
+          57 adapter functions share the type signature
+          <code>(string) &rarr; Result</code> and have 74% body similarity.
+          Different names, different imports &mdash; the only consistent signal
+          is the types.
+        </p>
+
+        <div class="card accent">
+          <div class="card-header">
+            <div class="card-icon">T</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="
+                background: var(--accent-glow);
+                color: var(--accent-bright);
+              "
+            >
+              Cycle 5
+            </div>
+          </div>
+          <div class="tags">
+            <span class="tag approx">Approximate Match</span>
+          </div>
+          <p>
+            Extract type signature per function:
+            <code>(paramType1, paramType2) &rarr; returnType</code>. Group by
+            exact signature. Within each group, compute body similarity using
+            condensed fingerprints &mdash; cosine similarity on a 16-element
+            frequency vector of the most common AST node types, encoded as a
+            32-char hex string.
+          </p>
+          <p>
+            Flag "name-diverse" clusters (2+ distinct function names) as the
+            novel findings &mdash; these are invisible to all name-based
+            approaches.
+          </p>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>Signature</th>
+            <th>Functions</th>
+            <th>Files</th>
+            <th>Body Sim</th>
+            <th>Example Names</th>
+          </tr>
+          <tr>
+            <td><code>(Ref)&rarr;Union</code></td>
+            <td>21</td>
+            <td>16</td>
+            <td><strong>85%</strong></td>
+            <td>getFilePath, getWriteContent, getCommand</td>
+          </tr>
+          <tr>
+            <td><code>(string,?)&rarr;Result</code></td>
+            <td>19</td>
+            <td>15</td>
+            <td>84%</td>
+            <td>exec, safeFetch, makeInput</td>
+          </tr>
+          <tr>
+            <td><code>(string,string)&rarr;Result</code></td>
+            <td>29</td>
+            <td>14</td>
+            <td>79%</td>
+            <td>writeFile, makeHookDef</td>
+          </tr>
+          <tr>
+            <td><code>(string)&rarr;Result</code></td>
+            <td>57</td>
+            <td>27</td>
+            <td>74%</td>
+            <td>readFile, removeDir, stat</td>
+          </tr>
+          <tr>
+            <td><code>()&rarr;string</code></td>
+            <td>42</td>
+            <td>20</td>
+            <td>72%</td>
+            <td>cwd, getStateDir, setupPaiDir</td>
+          </tr>
+        </table>
+
+        <div class="insight">
+          <h3>&#128161; Highest Coverage Detector</h3>
+          <p>
+            708 functions in name-diverse clusters &mdash; 85% of the codebase.
+            98% of clusters have 2+ distinct names, proving these patterns are
+            genuinely invisible to name-based detection. The type signature
+            pre-filter keeps it cheap: 43ms total for all 837 functions.
+          </p>
+        </div>
+      </section>
+
+      <!-- 07: Composite Ranker ★ -->
+      <section
+        style="
+          border: 2px solid var(--yellow);
+          border-radius: 16px;
+          padding: 32px;
+          box-shadow:
+            0 0 40px var(--yellow-dim),
+            0 0 80px rgba(251, 191, 36, 0.05);
+        "
+      >
+        <div class="section-label" style="color: var(--yellow)">
+          07 &mdash; Fusion &#11088; THE PRODUCTION ENGINE
+        </div>
+        <h2 style="display: flex; align-items: center; gap: 12px">
+          Composite Ranker
+          <span
+            style="
+              background: linear-gradient(
+                135deg,
+                var(--yellow),
+                var(--maple-bright)
+              );
+              color: var(--bg);
+              font-size: 0.4em;
+              padding: 6px 14px;
+              border-radius: 8px;
+              font-weight: 800;
+              letter-spacing: 0.5px;
+            "
+            >POWERS THE HOOK</span
+          >
+        </h2>
+        <p>
+          This is the core of the production DuplicationChecker hook. Every
+          other detector was research leading to this. Five detectors, five
+          separate outputs &mdash; the composite ranker fuses them into one
+          answer: "what should I refactor first?" Its dimension thresholds (4/4
+          = block, 3/4 = suggest, &lt;3 = silent) are the exact logic running in
+          real-time on every Write/Edit.
+        </p>
+
+        <div class="card maple" style="border-color: var(--yellow)">
+          <div class="card-header">
+            <div class="card-icon">&#11088;</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="
+                background: linear-gradient(
+                  135deg,
+                  var(--maple-dim),
+                  var(--yellow-dim)
+                );
+                color: var(--yellow);
+                border: 1px solid var(--yellow);
+              "
+            >
+              Cycle 6 &mdash; Production
+            </div>
+          </div>
+          <div class="tags">
+            <span class="tag fusion">Multi-Signal Fusion</span
+            ><span
+              class="tag"
+              style="background: var(--yellow-dim); color: var(--yellow)"
+              >Production Hook Logic</span
+            >
+          </div>
+          <p>
+            Scores every function across 4 dimensions: structural hash (weight
+            1.0), body similarity (0.8), name repetition (0.7), type signature
+            commonality (0.4). Counts how many dimensions fire. Groups by
+            function name, ranks by average dimension count then score.
+          </p>
+          <p>
+            A function hitting 4/4 dimensions is near-certainly duplicated. The
+            dimension bar shows confidence at a glance:
+          </p>
+          <div class="code">
+            <span class="dim-bar"
+              ><span class="filled">&#9679;&#9679;&#9679;&#9679;</span></span
+            >
+            runHook &mdash; 13 instances, all signals at 100%
+            <span class="dim-bar"
+              ><span class="filled">&#9679;&#9679;&#9679;</span
+              ><span class="empty">&#9679;</span></span
+            >
+            makeInput &mdash; 31 instances, 3 signals
+            <span class="dim-bar"
+              ><span class="filled">&#9679;&#9679;</span
+              ><span class="empty">&#9679;&#9679;</span></span
+            >
+            categorize &mdash; moderate signal, needs review
+            <span class="dim-bar"
+              ><span class="filled">&#9679;</span
+              ><span class="empty">&#9679;&#9679;&#9679;</span></span
+            >
+            utils &mdash; weak signal, likely coincidental
+          </div>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>Dimensions</th>
+            <th>Functions</th>
+            <th>Interpretation</th>
+          </tr>
+          <tr>
+            <td>
+              <span class="dim-bar"
+                ><span class="filled">&#9679;&#9679;&#9679;&#9679;</span></span
+              >
+            </td>
+            <td><strong>69</strong></td>
+            <td>Near-certain refactoring targets</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="dim-bar"
+                ><span class="filled">&#9679;&#9679;&#9679;</span
+                ><span class="empty">&#9679;</span></span
+              >
+            </td>
+            <td>145</td>
+            <td>Strong candidates</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="dim-bar"
+                ><span class="filled">&#9679;&#9679;</span
+                ><span class="empty">&#9679;&#9679;</span></span
+              >
+            </td>
+            <td>387</td>
+            <td>Moderate signal</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="dim-bar"
+                ><span class="filled">&#9679;</span
+                ><span class="empty">&#9679;&#9679;&#9679;</span></span
+              >
+            </td>
+            <td>132</td>
+            <td>Weak signal</td>
+          </tr>
+          <tr>
+            <td>
+              <span class="dim-bar"
+                ><span class="empty">&#9679;&#9679;&#9679;&#9679;</span></span
+              >
+            </td>
+            <td>149</td>
+            <td>Genuinely unique</td>
+          </tr>
+        </table>
+
+        <div class="insight">
+          <h3>&#128161; Instance Count is Misleading</h3>
+          <p>
+            <code>makeDeps</code> has 44 instances but only 3 dimensions.
+            <code>runHook</code> has 13 instances but all 4 dimensions at 100%.
+            Dimensional convergence is a better proxy for "should definitely
+            refactor" than raw count.
+          </p>
+        </div>
+      </section>
+
+      <!-- 08: Co-occurrence -->
+      <section>
+        <div class="section-label">08 &mdash; Semantic Match</div>
+        <h2>Co-occurrence Mining</h2>
+        <p>
+          Functions that always appear <em>together</em> reveal template
+          patterns invisible to individual function analysis.
+        </p>
+
+        <div class="card yellow">
+          <div class="card-header">
+            <div class="card-icon">{}</div>
+            <h3>How It Works</h3>
+            <div
+              class="card-badge"
+              style="background: var(--yellow-dim); color: var(--yellow)"
+            >
+              Cycle 8
+            </div>
+          </div>
+          <div class="tags">
+            <span class="tag semantic">Semantic Match</span>
+          </div>
+          <p>
+            Frequent itemset mining (like market basket analysis). Count all
+            function name pairs that co-occur in 3+ files. Expand pairs into
+            larger tuples using Apriori: if <code>{A, B}</code> and
+            <code>{A, C}</code> are both frequent, check if
+            <code>{A, B, C}</code> is too. Filter to maximal tuples (remove
+            subsets). Validate each tuple with body similarity.
+          </p>
+        </div>
+
+        <table class="tbl">
+          <tr>
+            <th>Tuple</th>
+            <th>Files</th>
+            <th>Body Sim</th>
+          </tr>
+          <tr>
+            <td>
+              <code
+                >{blockCountPath, buildBlockLimitReview, getFilePath,
+                getStateDir, isNonTestCodeFile, pendingPath}</code
+              >
+            </td>
+            <td>4</td>
+            <td><strong>97%</strong></td>
+          </tr>
+          <tr>
+            <td><code>{makeDeps, makeInput}</code></td>
+            <td>26</td>
+            <td>85%</td>
+          </tr>
+          <tr>
+            <td><code>{getFilePath, getStateDir}</code></td>
+            <td>6</td>
+            <td>94%</td>
+          </tr>
+          <tr>
+            <td><code>{blockCountPath, getStateDir}</code></td>
+            <td>5</td>
+            <td>94%</td>
+          </tr>
+          <tr>
+            <td><code>{formatDryRun, formatSuccess}</code></td>
+            <td>3</td>
+            <td>82%</td>
+          </tr>
+        </table>
+
+        <div class="reason">
+          <div class="ri">&#128270;</div>
+          The 6-function obligation state machine tuple (97% body sim) is the
+          strongest "extract a shared module" signal produced by any detector.
+        </div>
+        <div class="reason">
+          <div class="ri">&#10004;</div>
+          Zero false positives &mdash; all 5 maximal tuples are validated
+          templates.
+        </div>
+      </section>
+
+      <!-- Production Architecture -->
+      <section>
+        <div class="section-label">Production &mdash; Hook Architecture</div>
+        <h2>From Spike to Hook</h2>
+        <p>
+          The composite ranker's 4 signals are packaged into a persistent index
+          (171KB) that a PreToolUse hook reads in 3ms per file write.
+        </p>
+
+        <div class="card maple">
+          <div class="card-header">
+            <div class="card-icon">&#9881;</div>
+            <h3>Two-Hook Architecture</h3>
+            <div
+              class="card-badge"
+              style="background: var(--maple-dim); color: var(--maple-bright)"
+            >
+              Shipped
+            </div>
+          </div>
+          <div class="tags"><span class="tag production">Production</span></div>
+
+          <div class="grid-2">
+            <div class="mini-card">
+              <h4>&#128230; DuplicationIndexBuilder</h4>
+              <p>
+                <strong>PostToolUse:Write</strong> &mdash; Builds the index on
+                first .ts write per session. 290ms, 171KB. Skips rebuild if
+                fresh (&lt;30 min).
+              </p>
+            </div>
+            <div class="mini-card">
+              <h4>&#128269; DuplicationChecker</h4>
+              <p>
+                <strong>PreToolUse:Write</strong> &mdash; Checks functions
+                against index. One-line advisory at 3+ dimensions. Silent when
+                clean. <code>stale:</code> prefix when index &gt;5 min old.
+              </p>
+            </div>
+          </div>
+
+          <p>Output example:</p>
+          <div class="code">
+            <span class="s">Similar:</span> runHook &rarr;
+            RatingCapture.hook.test.ts:runHook (<span class="o"
+              >hash+name+sig+body</span
+            >, <span class="a">100%</span>)
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <p>Pattern Duplication Detector &mdash; PAI Exploration Spike</p>
+      <div
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 24px;
+          margin-top: 14px;
+          font-size: 14px;
+          color: var(--text-dim);
+        "
+      >
+        <span>8 detection methods</span>
+        <span>&bull;</span>
+        <span>391 tests</span>
+        <span>&bull;</span>
+        <span>7,392 lines</span>
+      </div>
+    </footer>
+  </body>
 </html>

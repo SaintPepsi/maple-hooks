@@ -532,18 +532,18 @@ describe("CLI: --min-members flag", () => {
   });
 });
 
-describe("CLI: pai-hooks codebase scan", () => {
-  test("scans pai-hooks and exits with code 0", async () => {
+describe("CLI: maple-hooks codebase scan", () => {
+  test("scans maple-hooks and exits with code 0", async () => {
     const { exitCode } = await runCLI([PAI_HOOKS_DIR, "--min-members", "2"]);
     expect(exitCode).toBe(0);
   });
 
-  test("scans pai-hooks and produces CFG Skeleton header", async () => {
+  test("scans maple-hooks and produces CFG Skeleton header", async () => {
     const { stdout } = await runCLI([PAI_HOOKS_DIR, "--min-members", "2"]);
     expect(stdout).toContain("CFG Skeleton Fingerprinting");
   });
 
-  test("scans pai-hooks and finds at least one cluster with member details", async () => {
+  test("scans maple-hooks and finds at least one cluster with member details", async () => {
     const { stdout } = await runCLI([PAI_HOOKS_DIR, "--min-depth", "0", "--min-members", "2"]);
     // Member detail lines start with "    - functionName (path:line)"
     const memberLines = stdout.split("\n").filter((l) => l.match(/^\s+- \w.+:\d+\)/));
@@ -559,7 +559,7 @@ describe("CLI: pai-hooks codebase scan", () => {
     }
   });
 
-  test("stderr reports parse stats for pai-hooks", async () => {
+  test("stderr reports parse stats for maple-hooks", async () => {
     const { stderr } = await runCLI([PAI_HOOKS_DIR, "--min-members", "2"]);
     expect(stderr).toMatch(/Parsed \d+ files \(\d+ functions\) in \d+ms/);
   });

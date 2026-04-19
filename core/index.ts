@@ -6,8 +6,6 @@
 
 // SDK output type (source of truth)
 export type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";
-// Model constants
-export * from "@hooks/core/constants";
 export { type FetchResult, safeFetch } from "@hooks/core/adapters/fetch";
 export {
   appendFile,
@@ -28,6 +26,8 @@ export {
 } from "@hooks/core/adapters/process";
 // Adapters
 export { readStdin } from "@hooks/core/adapters/stdin";
+// Model constants
+export * from "@hooks/core/constants";
 // Contract interface
 export type { HookContract } from "@hooks/core/contract";
 // Error types

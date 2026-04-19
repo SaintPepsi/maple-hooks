@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
 /**
- * Uninstall pai-hooks from the user's Claude Code settings.
+ * Uninstall maple-hooks from the user's Claude Code settings.
  *
  * Removes all hook entries containing the env var reference,
  * removes the env var from settings.json (legacy), and removes
@@ -98,9 +98,9 @@ export function run(deps: UninstallDeps = defaultDeps): void {
   const scriptDir = resolve(import.meta.dir);
 
   // Read manifest
-  const manifestPath = join(scriptDir, "pai-hooks.json");
+  const manifestPath = join(scriptDir, "maple-hooks.json");
   if (!deps.fileExists(manifestPath)) {
-    deps.stderr("Error: pai-hooks.json not found. Are you in the pai-hooks directory?");
+    deps.stderr("Error: maple-hooks.json not found. Are you in the maple-hooks directory?");
     return;
   }
   const manifestResult = deps.readFile(manifestPath);
@@ -126,7 +126,7 @@ export function run(deps: UninstallDeps = defaultDeps): void {
   );
 
   if (!hasEnvVar && !hasHooks) {
-    deps.stdout("pai-hooks is not installed. Nothing to do.");
+    deps.stdout("maple-hooks is not installed. Nothing to do.");
     return;
   }
 
@@ -142,12 +142,12 @@ export function run(deps: UninstallDeps = defaultDeps): void {
       const updated = removeFromZshrc(zshrcResult.value!);
       if (updated !== zshrcResult.value!) {
         deps.writeFile(zshrcPath, updated);
-        deps.stdout("Removed pai-hooks block from ~/.zshrc");
+        deps.stdout("Removed maple-hooks block from ~/.zshrc");
       }
     }
   }
 
-  deps.stdout(`Uninstalled pai-hooks. Removed ${envVar} and all associated hook entries.`);
+  deps.stdout(`Uninstalled maple-hooks. Removed ${envVar} and all associated hook entries.`);
 }
 
 if (import.meta.main) {

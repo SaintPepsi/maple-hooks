@@ -1,5 +1,5 @@
 /**
- * Behavioral parity tests — verifies pai-hooks contracts produce the same
+ * Behavioral parity tests — verifies maple-hooks contracts produce the same
  * results as the original JS hooks in /Users/hogers/Projects/koord/.claude/hooks/.
  *
  * Each test simulates the exact input Claude Code would pipe to the original
@@ -74,7 +74,11 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
     const input: ToolHookInput = {
       session_id: "abc",
       tool_name: "Agent",
-      tool_input: { run_in_background: true, name: "  my-agent  ", prompt: "test" },
+      tool_input: {
+        run_in_background: true,
+        name: "  my-agent  ",
+        prompt: "test",
+      },
     };
     const deps = {
       fileExists: () => true,
@@ -157,7 +161,9 @@ describe("AgentPrepromptInjector parity with original JS hook", () => {
       const hso = result.value.hookSpecificOutput;
       if (hso && hso.hookEventName === "PreToolUse") {
         // Verify the shape matches what the runner would format, matching original JS output
-        expect(hso.updatedInput).toEqual({ prompt: "original\n\n---\n\ninjected" });
+        expect(hso.updatedInput).toEqual({
+          prompt: "original\n\n---\n\ninjected",
+        });
       } else {
         throw new Error("Expected PreToolUse hookSpecificOutput");
       }

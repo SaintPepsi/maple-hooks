@@ -38,9 +38,9 @@ const defaultDeps: ImportHooksDeps = {
 export function run(deps: ImportHooksDeps = defaultDeps): void {
   const repoRoot = resolve(import.meta.dir, "..");
 
-  const manifestPath = join(repoRoot, "pai-hooks.json");
+  const manifestPath = join(repoRoot, "maple-hooks.json");
   if (!deps.fileExists(manifestPath)) {
-    deps.stderr("Error: pai-hooks.json not found.");
+    deps.stderr("Error: maple-hooks.json not found.");
     return;
   }
   const manifestResult = deps.readFile(manifestPath);

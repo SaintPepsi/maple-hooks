@@ -3,7 +3,7 @@
 **Date:** 2026-04-10
 **Status:** Approved
 **Trigger:** PreCompactStatePersist hook failing with `Hook JSON output validation failed: Invalid input`
-**Scope:** Major refactor of pai-hooks to use `@anthropic-ai/claude-agent-sdk` as the single source of truth for all hook types
+**Scope:** Major refactor of maple-hooks to use `@anthropic-ai/claude-agent-sdk` as the single source of truth for all hook types
 
 ## Problem
 
@@ -12,7 +12,7 @@ Two bugs exposed a systemic issue:
 1. **Invalid hookEventName** — `hookSpecificOutput` with `hookEventName: "PreCompact"` rejected because PreCompact is not in Claude Code's discriminated union
 2. **Mismatched hookEventName** — Outputting `hookEventName: "PostToolUse"` from a SessionStart hook rejected with `Hook returned incorrect event name`
 
-**Root cause:** pai-hooks defines its own input/output types manually. These diverge from what Claude Code actually validates. The runner's `formatOutput` function blindly stamps any event name into `hookSpecificOutput` without checking the validated union. The abstraction layer (`ContinueOutput`, `BlockOutput`, etc.) hid the wire format and prevented both humans and AI from seeing what Claude Code actually receives.
+**Root cause:** maple-hooks defines its own input/output types manually. These diverge from what Claude Code actually validates. The runner's `formatOutput` function blindly stamps any event name into `hookSpecificOutput` without checking the validated union. The abstraction layer (`ContinueOutput`, `BlockOutput`, etc.) hid the wire format and prevented both humans and AI from seeing what Claude Code actually receives.
 
 ## Principle
 

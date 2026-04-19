@@ -56,10 +56,10 @@ describe("CLI: missing directory argument", () => {
   });
 });
 
-// ─── CLI: output structure on pai-hooks ─────────────────────────────────────
+// ─── CLI: output structure on maple-hooks ─────────────────────────────────────
 
-describe("CLI: pai-hooks output structure", () => {
-  test("exits with code 0 for pai-hooks directory", async () => {
+describe("CLI: maple-hooks output structure", () => {
+  test("exits with code 0 for maple-hooks directory", async () => {
     const { exitCode } = await runCLI([PAI_HOOKS_DIR]);
     expect(exitCode).toBe(0);
   });

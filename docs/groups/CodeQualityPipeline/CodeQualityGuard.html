@@ -1789,7 +1789,7 @@ section[id] {
     <span class="tag green">CodeQualityPipeline</span>
   </div>
   <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+    <a href="https://github.com/SaintPepsi/maple-hooks/tree/main/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">CodeQualityGuard.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
@@ -1950,10 +1950,16 @@ reportedViolations.set(filePath, { hash, timestamp: Date.now(), editCount: 0 });
 
 // Cross-session escalation
 const crossSessionCount = hasViolations
-  ? deps.dedup.countCrossSessionViolations(deps.signal.baseDir, filePath, input.session_id)
+  ? deps.dedup.countCrossSessionViolations(
+      deps.signal.baseDir,
+      filePath,
+      input.session_id,
+    )
   : 0;
 if (crossSessionCount &gt;= 3) {
-  parts.push(`⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`);
+  parts.push(
+    `⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`,
+  );
 }</div>
         </div>
       </div>
@@ -1967,7 +1973,7 @@ if (crossSessionCount &gt;= 3) {
         <div class="card-icon">&#x1F4D6;</div>
         <h3>History</h3>
       </div>
-      <p><strong>Phase 1 Task 1O (2026-04-11)</strong> — Latent bug #14 fixed. The R2 advisory site at <code>CodeQualityGuard.contract.ts:237</code> was emitting <code>ok(continueOk(parts.join("\n")))</code> which became a silent drop after Phase 0 Task 0C (commit <code>3705810</code>) deleted the runner's <code>formatOutput()</code> translation layer. <code>validateHookOutput</code> fail-opened on the legacy shape, so SOLID quality violations and delta advisories were never surfaced to the editor session. Fixed by migrating to <code>hookSpecificOutput.additionalContext</code> per recipe R2 in <code>/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77</code>.</p>
+      <p><strong>Phase 1 Task 1O (2026-04-11)</strong> — Latent bug #14 fixed. The R2 advisory site at <code>CodeQualityGuard.contract.ts:237</code> was emitting <code>ok(continueOk(parts.join("\n")))</code> which became a silent drop after Phase 0 Task 0C (commit <code>3705810</code>) deleted the runner's <code>formatOutput()</code> translation layer. <code>validateHookOutput</code> fail-opened on the legacy shape, so SOLID quality violations and delta advisories were never surfaced to the editor session. Fixed by migrating to <code>hookSpecificOutput.additionalContext</code> per recipe R2 in <code>/Users/hogers/.claude/maple-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77</code>.</p>
     </div>
   </section>
 
@@ -2032,7 +2038,7 @@ if (crossSessionCount &gt;= 3) {
   </section>
 
   <footer>
-    <p>Generated from <code>CodeQualityGuard/doc.md</code> &mdash; pai-hooks documentation</p>
+    <p>Generated from <code>CodeQualityGuard/doc.md</code> &mdash; maple-hooks documentation</p>
   </footer>
 </div>
 

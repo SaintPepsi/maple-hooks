@@ -8,9 +8,9 @@
 import { join } from "node:path";
 import { readFile } from "@hooks/core/adapters/fs";
 import type { ResultError } from "@hooks/core/error";
-import { tryCatch } from "@hooks/core/result";
-import type { Result } from "@hooks/core/result";
 import type { Violation } from "@hooks/core/quality-scorer";
+import type { Result } from "@hooks/core/result";
+import { tryCatch } from "@hooks/core/result";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

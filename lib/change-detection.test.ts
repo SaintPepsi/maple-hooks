@@ -302,9 +302,9 @@ describe("shouldDocumentChanges", () => {
   });
 
   it("returns true for philosophical changes", () => {
-    expect(
-      shouldDocumentChanges([makeChange({ category: "skill", isPhilosophical: true })]),
-    ).toBe(true);
+    expect(shouldDocumentChanges([makeChange({ category: "skill", isPhilosophical: true })])).toBe(
+      true,
+    );
   });
 
   it("returns true for skill changes", () => {
@@ -312,15 +312,15 @@ describe("shouldDocumentChanges", () => {
   });
 
   it("returns true for hook changes", () => {
-    expect(
-      shouldDocumentChanges([makeChange({ category: "hook", path: "hooks/X/f.ts" })]),
-    ).toBe(true);
+    expect(shouldDocumentChanges([makeChange({ category: "hook", path: "hooks/X/f.ts" })])).toBe(
+      true,
+    );
   });
 
   it("returns true for config changes", () => {
-    expect(
-      shouldDocumentChanges([makeChange({ category: "config", path: "settings.json" })]),
-    ).toBe(true);
+    expect(shouldDocumentChanges([makeChange({ category: "config", path: "settings.json" })])).toBe(
+      true,
+    );
   });
 
   it("returns true when 2+ system files changed", () => {
@@ -332,9 +332,9 @@ describe("shouldDocumentChanges", () => {
   });
 
   it("returns true for new file creation (Write tool)", () => {
-    expect(
-      shouldDocumentChanges([makeChange({ tool: "Write", category: "documentation" })]),
-    ).toBe(true);
+    expect(shouldDocumentChanges([makeChange({ tool: "Write", category: "documentation" })])).toBe(
+      true,
+    );
   });
 });
 
@@ -468,7 +468,9 @@ describe("isInCooldown", () => {
 
 describe("determineSignificance", () => {
   it("returns 'minor' for a single non-structural non-philosophical change", () => {
-    const changes = [makeChange({ category: "skill", isStructural: false, isPhilosophical: false })];
+    const changes = [
+      makeChange({ category: "skill", isStructural: false, isPhilosophical: false }),
+    ];
     expect(determineSignificance(changes)).toBe("minor");
   });
 

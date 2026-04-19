@@ -93,12 +93,12 @@ describe("update command", () => {
     // Verify the new content was copied
     const files = deps.getFiles();
     const content = files.get(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
     );
     expect(content).toContain("v2 — UPDATED");
 
     // Verify lockfile updated
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.hooks[0].name).toBe("TypeStrictness");
   });
@@ -121,7 +121,7 @@ describe("update command", () => {
     const files = deps.getFiles();
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.contract.ts",
       ),
     ).toBe(true);
   });
@@ -137,7 +137,7 @@ describe("update command", () => {
 
     // Also modify local installed copy
     deps.addFile(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       "// LOCALLY MODIFIED\n",
     );
 
@@ -160,7 +160,7 @@ describe("update command", () => {
 
     // Modify local copy
     deps.addFile(
-      "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+      "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       "// LOCALLY MODIFIED\n",
     );
 
@@ -184,7 +184,7 @@ describe("update command", () => {
     const originalContent = deps
       .getFiles()
       .get(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       );
 
     const result = update(updateArgs({ dryRun: true }), deps, "/source");
@@ -199,7 +199,7 @@ describe("update command", () => {
     const currentContent = deps
       .getFiles()
       .get(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       );
     expect(currentContent).toBe(originalContent);
   });
@@ -225,7 +225,7 @@ describe("update command", () => {
 
     // Read lockfile and verify outputMode is preserved
     const lockBefore = JSON.parse(
-      deps.getFiles().get("/project/.claude/hooks/pai-hooks/paih.lock.json")!,
+      deps.getFiles().get("/project/.claude/hooks/maple-hooks/paih.lock.json")!,
     ) as Lockfile;
     const originalMode = lockBefore.outputMode;
 
@@ -239,7 +239,7 @@ describe("update command", () => {
     expect(result.ok).toBe(true);
 
     const lockAfter = JSON.parse(
-      deps.getFiles().get("/project/.claude/hooks/pai-hooks/paih.lock.json")!,
+      deps.getFiles().get("/project/.claude/hooks/maple-hooks/paih.lock.json")!,
     ) as Lockfile;
     expect(lockAfter.outputMode).toBe(originalMode);
   });

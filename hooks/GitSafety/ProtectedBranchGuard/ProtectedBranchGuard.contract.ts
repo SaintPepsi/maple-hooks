@@ -9,7 +9,7 @@
  * ~/.claude/settings.json under hookConfig.protectedBranchGuard.exemptDirs.
  * Fails open if branch cannot be determined.
  *
- * Pattern: pai-hooks/contracts/BashWriteGuard.ts
+ * Pattern: maple-hooks/contracts/BashWriteGuard.ts
  */
 
 import type { SyncHookJSONOutput } from "@anthropic-ai/claude-agent-sdk";

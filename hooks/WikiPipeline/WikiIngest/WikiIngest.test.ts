@@ -97,7 +97,7 @@ describe("isWikiOnlySession", () => {
 
   it("returns false when non-wiki paths are touched", () => {
     const content = [
-      '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/Users/h/.claude/pai-hooks/hooks/Test.ts"}}]}}',
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/Users/h/.claude/maple-hooks/hooks/Test.ts"}}]}}',
       '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"/Users/h/.claude/MEMORY/WIKI/entities/pai.md"}}]}}',
     ].join("\n");
     expect(isWikiOnlySession(content)).toBe(false);

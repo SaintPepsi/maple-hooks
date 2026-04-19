@@ -157,32 +157,32 @@ describe("mergeHooksIntoSettings", () => {
 
 describe("buildZshrcBlock", () => {
   it("creates a managed block with env var export", () => {
-    const block = buildZshrcBlock("SAINTPEPSI_PAI_HOOKS_DIR", "pai-hooks");
+    const block = buildZshrcBlock("SAINTPEPSI_PAI_HOOKS_DIR", "maple-hooks");
     expect(block).toContain("PAI-HOOKS-BEGIN");
     expect(block).toContain("PAI-HOOKS-END");
-    expect(block).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"');
+    expect(block).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"');
   });
 });
 
 describe("addToZshrc", () => {
   it("appends block after PAI-END if present", () => {
     const zshrc = "# some stuff\n# PAI-END\n# other stuff";
-    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "pai-hooks");
+    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "maple-hooks");
     expect(result).toContain("# PAI-END\n\n# PAI-HOOKS-BEGIN");
-    expect(result).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"');
+    expect(result).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"');
     expect(result).toContain("# other stuff");
   });
 
   it("replaces existing managed block on re-install", () => {
     const zshrc = [
       "# before",
-      "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do not edit",
+      "# PAI-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit",
       'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/old-path"',
       "# PAI-HOOKS-END",
       "# after",
     ].join("\n");
-    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "pai-hooks");
-    expect(result).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"');
+    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "maple-hooks");
+    expect(result).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"');
     expect(result).not.toContain("old-path");
     expect(result).toContain("# before");
     expect(result).toContain("# after");
@@ -190,24 +190,24 @@ describe("addToZshrc", () => {
 
   it("relocates block after PAI-END if it was placed before it", () => {
     const zshrc = [
-      "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do not edit",
-      'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"',
+      "# PAI-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit",
+      'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"',
       "# PAI-HOOKS-END",
       "",
       "# PAI-BEGIN — managed by scripts/update.ts, do not edit",
       'export PAI_DIR="$HOME/.claude"',
       "# PAI-END",
     ].join("\n");
-    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "pai-hooks");
+    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "maple-hooks");
     const paiEndPos = result.indexOf("# PAI-END");
     const hooksBeginPos = result.indexOf("# PAI-HOOKS-BEGIN");
     expect(hooksBeginPos).toBeGreaterThan(paiEndPos);
-    expect(result).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"');
+    expect(result).toContain('export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"');
   });
 
   it("appends to end if no PAI-END marker", () => {
     const zshrc = "# just some config\nexport PATH=/usr/bin";
-    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "pai-hooks");
+    const result = addToZshrc(zshrc, "SAINTPEPSI_PAI_HOOKS_DIR", "maple-hooks");
     expect(result).toContain("export PATH=/usr/bin");
     expect(result).toContain("# PAI-HOOKS-BEGIN");
   });
@@ -218,8 +218,8 @@ describe("removeFromZshrc", () => {
     const zshrc = [
       "# before",
       "",
-      "# PAI-HOOKS-BEGIN — managed by pai-hooks/install.ts, do not edit",
-      'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/pai-hooks"',
+      "# PAI-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit",
+      'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"',
       "# PAI-HOOKS-END",
       "",
       "# after",

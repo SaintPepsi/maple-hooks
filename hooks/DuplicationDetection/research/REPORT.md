@@ -2,14 +2,15 @@
 
 **Date:** 2026-03-27
 **Duration:** 8 exploration cycles over ~3 hours
-**Corpus:** pai-hooks — 214 files, 837 functions
+**Corpus:** maple-hooks — 214 files, 837 functions
 **Artifacts:** 8 variant scripts, 391 tests, 7392 lines of code, 3 design docs
 
 ## Executive Summary
 
-Static analysis can detect code duplication across multiple dimensions without inference or token cost. A composite approach using 3 core signals (structural hash, function name, type signature) covers 82% of functions in the pai-hooks codebase. The remaining 18% are genuinely unique — no duplication to find.
+Static analysis can detect code duplication across multiple dimensions without inference or token cost. A composite approach using 3 core signals (structural hash, function name, type signature) covers 82% of functions in the maple-hooks codebase. The remaining 18% are genuinely unique — no duplication to find.
 
 The highest-value refactoring targets are:
+
 1. **runHook** — 13 identical copies across test files (all 4 signals at 100%)
 2. **getFilePath** — 12 identical copies across hook contracts
 3. **Obligation state machine core** — 6 functions replicated across 4 files at 97% body similarity
@@ -18,26 +19,26 @@ The highest-value refactoring targets are:
 
 ## What We Explored
 
-| Cycle | Approach | Signal Type | Clusters | Key Finding |
-|-------|----------|-------------|----------|-------------|
-| 0 | Structural hash | Exact match | 47 | Zero false positives, catches only identical bodies |
-| 1 | N-gram subsequence | Approximate match | 73-94 | Template patterns via Jaccard similarity on AST n-grams |
-| 2 | ~~CFG skeleton~~ | Control flow | 12-137 | **Superseded** — body fingerprint subsumes this signal. Research value only. |
-| 3 | Role naming | Semantic (names) | 25 | 44 makeDeps factories, all structurally validated |
-| 4 | File template | File-level | 13+94 fuzzy | 62% of test files follow copy-paste templates |
-| 5 | Type signature | Type-gated similarity | 47 | 708 functions in name-diverse clusters (85% of codebase) |
-| 6 | **Composite ranker** | **Multi-signal fusion** | **71** | **THE PRODUCTION ENGINE.** Fuses 4 signals into ranked list. Its threshold logic (4/4=block, 3/4=suggest) powers the DuplicationChecker hook. |
-| 7 | Persistent index | Production bridge | — | 166KB index, 1ms load, 3-17ms per-file checks |
-| 8 | Co-occurrence | Function tuples | 5 | 6-function obligation template at 97% similarity |
+| Cycle | Approach             | Signal Type             | Clusters    | Key Finding                                                                                                                                   |
+| ----- | -------------------- | ----------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | Structural hash      | Exact match             | 47          | Zero false positives, catches only identical bodies                                                                                           |
+| 1     | N-gram subsequence   | Approximate match       | 73-94       | Template patterns via Jaccard similarity on AST n-grams                                                                                       |
+| 2     | ~~CFG skeleton~~     | Control flow            | 12-137      | **Superseded** — body fingerprint subsumes this signal. Research value only.                                                                  |
+| 3     | Role naming          | Semantic (names)        | 25          | 44 makeDeps factories, all structurally validated                                                                                             |
+| 4     | File template        | File-level              | 13+94 fuzzy | 62% of test files follow copy-paste templates                                                                                                 |
+| 5     | Type signature       | Type-gated similarity   | 47          | 708 functions in name-diverse clusters (85% of codebase)                                                                                      |
+| 6     | **Composite ranker** | **Multi-signal fusion** | **71**      | **THE PRODUCTION ENGINE.** Fuses 4 signals into ranked list. Its threshold logic (4/4=block, 3/4=suggest) powers the DuplicationChecker hook. |
+| 7     | Persistent index     | Production bridge       | —           | 166KB index, 1ms load, 3-17ms per-file checks                                                                                                 |
+| 8     | Co-occurrence        | Function tuples         | 5           | 6-function obligation template at 97% similarity                                                                                              |
 
 ## Signal Effectiveness
 
-| Signal | Unique Finds | Coverage | Precision | Cost |
-|--------|-------------|----------|-----------|------|
-| Structural hash | 6 functions only hash catches | 15% | 100% | O(1) per function |
-| Function name (3+) | 6 functions only name catches | 22% | High (all validated) | O(1) per function |
-| Type signature (5+) | 454 functions only sig catches | 82% (union) | Medium (some noise in large groups) | O(1) per function |
-| Body fingerprint | — (used within sig groups) | Improves sig precision | High when gated by sig | O(1) per comparison |
+| Signal              | Unique Finds                   | Coverage               | Precision                           | Cost                |
+| ------------------- | ------------------------------ | ---------------------- | ----------------------------------- | ------------------- |
+| Structural hash     | 6 functions only hash catches  | 15%                    | 100%                                | O(1) per function   |
+| Function name (3+)  | 6 functions only name catches  | 22%                    | High (all validated)                | O(1) per function   |
+| Type signature (5+) | 454 functions only sig catches | 82% (union)            | Medium (some noise in large groups) | O(1) per function   |
+| Body fingerprint    | — (used within sig groups)     | Improves sig precision | High when gated by sig              | O(1) per comparison |
 
 **Key insight:** Type signature is the highest-coverage signal (catches 454 functions no other signal finds) but has lower precision alone. Combined with hash + name, the 3-signal composite achieves 82% coverage at high precision.
 
@@ -55,31 +56,31 @@ The highest-value refactoring targets are:
 
 ### Tier 1: Extract immediately (4/4 dimensions, 100% body similarity)
 
-| Function | Instances | Action |
-|----------|-----------|--------|
-| `runHook` | 13 test files | Extract to `core/test-helpers.ts` |
-| `getFilePath` | 12 contracts | Extract to `core/contract-helpers.ts` |
+| Function         | Instances          | Action                                          |
+| ---------------- | ------------------ | ----------------------------------------------- |
+| `runHook`        | 13 test files      | Extract to `core/test-helpers.ts`               |
+| `getFilePath`    | 12 contracts       | Extract to `core/contract-helpers.ts`           |
 | `blockCountPath` | 6 obligation files | Import from `ObligationStateMachines/shared.ts` |
-| `pendingPath` | 4 obligation files | Import from `ObligationStateMachines/shared.ts` |
-| `makeToolInput` | 4 test files | Extract to shared test utility |
-| `getCommand` | 5 contracts | Extract to `core/contract-helpers.ts` |
+| `pendingPath`    | 4 obligation files | Import from `ObligationStateMachines/shared.ts` |
+| `makeToolInput`  | 4 test files       | Extract to shared test utility                  |
+| `getCommand`     | 5 contracts        | Extract to `core/contract-helpers.ts`           |
 
 ### Tier 2: Extract with minor adaptation (3/4 dimensions)
 
-| Function | Instances | Notes |
-|----------|-----------|-------|
-| `makeInput` | 31 test files | 95% body similarity — nearly identical factories |
-| `makeDeps` | 44 test files | 75% body similarity — each builds different Deps shape, may need generic factory |
-| `run` | 9 files | 77% similarity — different enough to need a shared base pattern |
-| `getStateDir` | 7 obligation files | 88% similarity — extract with parameterization |
+| Function      | Instances          | Notes                                                                            |
+| ------------- | ------------------ | -------------------------------------------------------------------------------- |
+| `makeInput`   | 31 test files      | 95% body similarity — nearly identical factories                                 |
+| `makeDeps`    | 44 test files      | 75% body similarity — each builds different Deps shape, may need generic factory |
+| `run`         | 9 files            | 77% similarity — different enough to need a shared base pattern                  |
+| `getStateDir` | 7 obligation files | 88% similarity — extract with parameterization                                   |
 
 ### Tier 3: Template patterns (file-level)
 
-| Template | Files | Action |
-|----------|-------|--------|
-| `{makeDeps, makeInput}` test template | 26 files | Consider a test scaffold generator |
-| `{runHook}` integration test template | 12 files | Shared `runHookTest` utility |
-| `shared.ts` → `Tracker/*.ts` near-clones | 4 pairs | Trackers should re-export from shared |
+| Template                                 | Files    | Action                                |
+| ---------------------------------------- | -------- | ------------------------------------- |
+| `{makeDeps, makeInput}` test template    | 26 files | Consider a test scaffold generator    |
+| `{runHook}` integration test template    | 12 files | Shared `runHookTest` utility          |
+| `shared.ts` → `Tracker/*.ts` near-clones | 4 pairs  | Trackers should re-export from shared |
 
 ## Production Architecture (Council-Approved)
 
@@ -96,6 +97,7 @@ Every .ts Write → DuplicationChecker reads index (1ms), checks file (3-17ms)
 ```
 
 Design docs at:
+
 - `docs/plans/2026-03-27-duplication-hook-architecture.md`
 - `docs/plans/2026-03-27-duplication-index-builder-hook-design.md`
 - `docs/plans/2026-03-27-duplication-checker-hook-design.md`

@@ -5,9 +5,9 @@
  * Tests both --compiled (Node) and --compiled-ts (Bun) output modes.
  *
  * Compiler module under test:
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
  * InMemoryDeps:
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/deps.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/deps.ts).
  */
 
 import { describe, expect, it } from "bun:test";

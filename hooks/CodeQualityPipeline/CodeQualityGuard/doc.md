@@ -55,10 +55,16 @@ reportedViolations.set(filePath, { hash, timestamp: Date.now(), editCount: 0 });
 
 // Cross-session escalation
 const crossSessionCount = hasViolations
-  ? deps.dedup.countCrossSessionViolations(deps.signal.baseDir, filePath, input.session_id)
+  ? deps.dedup.countCrossSessionViolations(
+      deps.signal.baseDir,
+      filePath,
+      input.session_id,
+    )
   : 0;
 if (crossSessionCount >= 3) {
-  parts.push(`⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`);
+  parts.push(
+    `⚠ REPEAT OFFENDER: ${filePath} has been flagged in ${crossSessionCount} prior sessions.`,
+  );
 }
 ```
 
@@ -70,7 +76,7 @@ a silent drop after Phase 0 Task 0C (commit `3705810`) deleted the runner's `for
 translation layer. `validateHookOutput` fail-opened on the legacy shape, so SOLID quality
 violations and delta advisories were never surfaced to the editor session. Fixed by migrating to
 `hookSpecificOutput.additionalContext` per recipe R2 in
-`/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77`.
+`/Users/hogers/.claude/maple-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:62-77`.
 
 ## Examples
 
@@ -92,11 +98,11 @@ violations and delta advisories were never surfaced to the editor session. Fixed
 
 ## Dependencies
 
-| Dependency          | Type    | Purpose                                                                              |
-| ------------------- | ------- | ------------------------------------------------------------------------------------ |
-| `language-profiles` | core    | Determines scorable files and provides check profiles                                |
-| `quality-scorer`    | core    | Scores content, formats advisories and quality deltas                                |
-| `signal-logger`     | lib     | Logs execution data to `quality-violations.jsonl` for analysis                       |
-| `jsonl-reader`      | lib     | Reads cross-session violation counts from `quality-violations.jsonl` for escalation  |
-| `svelte-utils`      | lib     | Extracts `<script>` blocks from Svelte files                                         |
-| `fs`                | adapter | Reads file content and baseline store                                                |
+| Dependency          | Type    | Purpose                                                                             |
+| ------------------- | ------- | ----------------------------------------------------------------------------------- |
+| `language-profiles` | core    | Determines scorable files and provides check profiles                               |
+| `quality-scorer`    | core    | Scores content, formats advisories and quality deltas                               |
+| `signal-logger`     | lib     | Logs execution data to `quality-violations.jsonl` for analysis                      |
+| `jsonl-reader`      | lib     | Reads cross-session violation counts from `quality-violations.jsonl` for escalation |
+| `svelte-utils`      | lib     | Extracts `<script>` blocks from Svelte files                                        |
+| `fs`                | adapter | Reads file content and baseline store                                               |

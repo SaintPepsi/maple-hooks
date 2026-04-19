@@ -300,11 +300,7 @@ describe("criteriaAdd", () => {
     phaseTransition("sess-react", "OBSERVE", deps);
     criteriaAdd("sess-react", makeCriterion({ id: "ISC-C1" }), deps);
     // Mark as completed
-    algorithmEnd(
-      "sess-react",
-      { isAlgorithmResponse: true, taskDescription: "Done" },
-      deps,
-    );
+    algorithmEnd("sess-react", { isAlgorithmResponse: true, taskDescription: "Done" }, deps);
     // Force inactive
     const s = readState("sess-react", deps)!;
     s.active = false;

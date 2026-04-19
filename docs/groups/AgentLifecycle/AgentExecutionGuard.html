@@ -1789,7 +1789,7 @@ section[id] {
     <span class="tag green">AgentLifecycle</span>
   </div>
   <div style="margin-bottom: var(--sp-2xl); display: flex; align-items: center; gap: var(--sp-md);">
-    <a href="https://github.com/SaintPepsi/pai-hooks/tree/main/hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+    <a href="https://github.com/SaintPepsi/maple-hooks/tree/main/hooks/AgentLifecycle/AgentExecutionGuard/AgentExecutionGuard.contract.ts" target="_blank" rel="noopener" style="color: var(--text-dim); font-size: 13px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
       <span style="font-size: 15px;">&#x1F4C4;</span>
       <code style="color: var(--cyan); font-size: 12px;">AgentExecutionGuard.contract.ts</code>
       <span style="opacity: 0.5;">&#x2197;</span>
@@ -1988,12 +1988,12 @@ return ok({
         <div class="card-icon">&#x1F4D6;</div>
         <h3>History</h3>
       </div>
-      <p><strong>Phase 1 Task 1K (2026-04-11)</strong> — Latent bug #22 fixed. The R7 context-injection site at <code>AgentExecutionGuard.contract.ts:96</code> was emitting <code>ok({ type: "context", content: warning })</code>, which became a silent drop after Phase 0 Task 0C (commit <code>3705810</code>) deleted the runner's <code>formatOutput()</code> translation layer. <code>validateHookOutput</code> fail-opens on unrecognized shapes, so the foreground-agent warning was dropped with no diagnostic. Fixed by migrating to the SDK's verbose <code>hookSpecificOutput.additionalContext</code> shape for PreToolUse events, per recipe R7 in <code>/Users/hogers/.claude/pai-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:137-151</code>.</p>
+      <p><strong>Phase 1 Task 1K (2026-04-11)</strong> — Latent bug #22 fixed. The R7 context-injection site at <code>AgentExecutionGuard.contract.ts:96</code> was emitting <code>ok({ type: "context", content: warning })</code>, which became a silent drop after Phase 0 Task 0C (commit <code>3705810</code>) deleted the runner's <code>formatOutput()</code> translation layer. <code>validateHookOutput</code> fail-opens on unrecognized shapes, so the foreground-agent warning was dropped with no diagnostic. Fixed by migrating to the SDK's verbose <code>hookSpecificOutput.additionalContext</code> shape for PreToolUse events, per recipe R7 in <code>/Users/hogers/.claude/maple-hooks/docs/plans/2026-04-10-sdk-type-foundation-implementation.md:137-151</code>.</p>
     </div>
   </section>
 
   <footer>
-    <p>Generated from <code>AgentExecutionGuard/doc.md</code> &mdash; pai-hooks documentation</p>
+    <p>Generated from <code>AgentExecutionGuard/doc.md</code> &mdash; maple-hooks documentation</p>
   </footer>
 </div>
 

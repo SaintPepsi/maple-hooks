@@ -5,11 +5,11 @@
  * mode change detection, command string formatting, and lockfile recording.
  *
  * Install pipeline under test:
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/commands/install.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/commands/install.ts).
  * Compiler:
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/core/compiler.ts).
  * Lockfile types:
- * (see /Users/hogers/.claude/pai-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/lockfile.ts).
+ * (see /Users/hogers/.claude/maple-hooks/.claude/worktrees/agent-ac7f9ecc/cli/types/lockfile.ts).
  */
 
 import { describe, expect, it } from "bun:test";
@@ -104,7 +104,7 @@ describe("install --compiled", () => {
     const files = (deps as CompilerDeps & { getFiles: () => Map<string, string> }).getFiles();
 
     // Lockfile records compiled mode
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.outputMode).toBe("compiled");
 
@@ -131,7 +131,7 @@ describe("install --compiled-ts", () => {
 
     const files = (deps as CompilerDeps & { getFiles: () => Map<string, string> }).getFiles();
 
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.outputMode).toBe("compiled-ts");
 
@@ -151,7 +151,7 @@ describe("mode change detection", () => {
   it("rejects mode change without --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/maple-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -173,7 +173,7 @@ describe("mode change detection", () => {
   it("allows mode change with --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/maple-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -195,7 +195,7 @@ describe("mode change detection", () => {
   it("allows same mode without --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/maple-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -215,7 +215,7 @@ describe("lockfile mode change detection", () => {
   it("re-install in same mode succeeds", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/maple-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -233,7 +233,7 @@ describe("lockfile mode change detection", () => {
   it("switching to compiled mode requires --force", () => {
     const deps = makeCompilerDeps({
       ...makeSourceRepo(),
-      "/project/.claude/hooks/pai-hooks/paih.lock.json": JSON.stringify({
+      "/project/.claude/hooks/maple-hooks/paih.lock.json": JSON.stringify({
         lockfileVersion: 1,
         source: "/source",
         sourceCommit: null,
@@ -263,11 +263,11 @@ describe("install source mode unchanged", () => {
     const files = memDeps.getFiles();
     expect(
       files.has(
-        "/project/.claude/hooks/pai-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
+        "/project/.claude/hooks/maple-hooks/CodingStandards/TypeStrictness/TypeStrictness.hook.ts",
       ),
     ).toBe(true);
 
-    const lockContent = files.get("/project/.claude/hooks/pai-hooks/paih.lock.json")!;
+    const lockContent = files.get("/project/.claude/hooks/maple-hooks/paih.lock.json")!;
     const lock: Lockfile = JSON.parse(lockContent);
     expect(lock.outputMode).toBe("source");
   });

@@ -19,26 +19,26 @@ reduction) with positive or neutral quality impact.
 
 ### Already Done (no action needed)
 
-| # | Item | Status |
-|---|------|--------|
-| 2 | Stop preloading Algorithm | Not in contextFiles, already an agent file |
-| 7 | SteeringRuleInjector on 5 events | Not in settings.json |
-| 9 | MapleBranding off PreToolUse | Not in settings.json |
-| 13 | DuplicationIndexBuilder on SessionStart | Not in settings.json |
-| 15 | WikiContextInjector on Edit/Write | Not in settings.json |
+| #   | Item                                    | Status                                     |
+| --- | --------------------------------------- | ------------------------------------------ |
+| 2   | Stop preloading Algorithm               | Not in contextFiles, already an agent file |
+| 7   | SteeringRuleInjector on 5 events        | Not in settings.json                       |
+| 9   | MapleBranding off PreToolUse            | Not in settings.json                       |
+| 13  | DuplicationIndexBuilder on SessionStart | Not in settings.json                       |
+| 15  | WikiContextInjector on Edit/Write       | Not in settings.json                       |
 
 ### Live Items
 
-| # | Item | Decision | Expected Outcome | Quality Impact |
-|---|------|----------|-------------------|----------------|
-| 1 | Kill mode headers (ALGORITHM/NATIVE/MINIMAL) | Delete all three modes. Algorithm becomes on-demand via skill invocation. | -500 tokens preload, -3,000 tokens/session (~100/response x 30 turns) | **Positive.** No classifier overhead, no format padding. Frees tokens for substance. |
-| 3 | Collapse contextFiles -- SKILL.md | Slim from 1,309 lines to ~80 lines. Move Algorithm content into Algorithm skill file. | -19,300 tokens preload (93% of SKILL.md) | **Neutral.** Discovery preserved via retained triggers/routing. Algorithm content loads on-demand when invoked. |
-| 4-5 | Collapse contextFiles -- both AISTEERINGRULES | **Deferred.** Ian handling separately. SRI exists in pai-hooks but is currently disabled due to implementation issues. | — | — |
-| 6 | DAIDENTITY.md | Keep as sole contextFiles entry. | 0 change | **Neutral.** Identity anchor stays. |
-| 8 | Consolidate PreToolUse guards | Consolidate SecurityValidator from 4 matcher registrations to 1 self-routing hook. | -3 hook fires per tool call | **Neutral to positive.** Same security, fewer execution cycles. |
-| 10 | VoiceGate off PreToolUse | **Pending broader voice system decision.** May remove entirely if voice MCP is decommissioned. | -1 hook fire per Bash call (or full removal) | **Positive if removed.** |
-| 11-12, 16 | Delete NATIVE/MINIMAL, drop mandatory lines, classifier | Covered by item 1 (mode system deletion). | Covered by item 1 | Covered by item 1 |
-| 14 | CLAUDE.md duplicates contextFiles | Slim to ~20 lines. Disable BuildCLAUDE hook, edit CLAUDE.md directly. | -640 tokens preload, -1 SessionStart hook fire | **Positive.** Single source of truth. |
+| #         | Item                                                    | Decision                                                                                                                 | Expected Outcome                                                      | Quality Impact                                                                                                  |
+| --------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 1         | Kill mode headers (ALGORITHM/NATIVE/MINIMAL)            | Delete all three modes. Algorithm becomes on-demand via skill invocation.                                                | -500 tokens preload, -3,000 tokens/session (~100/response x 30 turns) | **Positive.** No classifier overhead, no format padding. Frees tokens for substance.                            |
+| 3         | Collapse contextFiles -- SKILL.md                       | Slim from 1,309 lines to ~80 lines. Move Algorithm content into Algorithm skill file.                                    | -19,300 tokens preload (93% of SKILL.md)                              | **Neutral.** Discovery preserved via retained triggers/routing. Algorithm content loads on-demand when invoked. |
+| 4-5       | Collapse contextFiles -- both AISTEERINGRULES           | **Deferred.** Ian handling separately. SRI exists in maple-hooks but is currently disabled due to implementation issues. | —                                                                     | —                                                                                                               |
+| 6         | DAIDENTITY.md                                           | Keep as sole contextFiles entry.                                                                                         | 0 change                                                              | **Neutral.** Identity anchor stays.                                                                             |
+| 8         | Consolidate PreToolUse guards                           | Consolidate SecurityValidator from 4 matcher registrations to 1 self-routing hook.                                       | -3 hook fires per tool call                                           | **Neutral to positive.** Same security, fewer execution cycles.                                                 |
+| 10        | VoiceGate off PreToolUse                                | **Pending broader voice system decision.** May remove entirely if voice MCP is decommissioned.                           | -1 hook fire per Bash call (or full removal)                          | **Positive if removed.**                                                                                        |
+| 11-12, 16 | Delete NATIVE/MINIMAL, drop mandatory lines, classifier | Covered by item 1 (mode system deletion).                                                                                | Covered by item 1                                                     | Covered by item 1                                                                                               |
+| 14        | CLAUDE.md duplicates contextFiles                       | Slim to ~20 lines. Disable BuildCLAUDE hook, edit CLAUDE.md directly.                                                    | -640 tokens preload, -1 SessionStart hook fire                        | **Positive.** Single source of truth.                                                                           |
 
 ---
 
@@ -67,7 +67,7 @@ For complex, multi-step work, invoke the Algorithm skill.
 ## Rules
 
 - Complete current response format FIRST, then invoke AskUserQuestion.
-- Only the primary agent uses voice (mcp__voice__speak). Subagents do not.
+- Only the primary agent uses voice (mcp**voice**speak). Subagents do not.
 
 ## Context Routing
 
@@ -88,6 +88,7 @@ directly going forward. Template vars ({{ALGO_PATH}}, {DAIDENTITY.NAME}) are no 
 the mode format templates that used them are deleted.
 
 **Files changed:**
+
 - `~/.claude/CLAUDE.md` -- edit directly to new content
 - `~/.claude/settings.json` -- remove BuildCLAUDE hook from SessionStart
 - `~/.claude/CLAUDE.md.template` -- keep but inactive (or delete)
@@ -104,36 +105,36 @@ skill file.
 
 #### What stays in SKILL.md (~1,500 tokens)
 
-| Section | Lines (current) | Why it stays |
-|---------|-----------------|--------------|
-| Frontmatter | 7-10 | Needed for skill system |
-| Intro to PAI | 12-14 | One-sentence identity |
-| No Silent Stalls | 928-940 | Applies always, not just during Algorithm |
-| No Agents for Instant Operations | 942-957 | Applies always |
-| Agent spawning basics | 1143-1190 | Applies always (how to invoke agents) |
-| Context Loading + Doc Reference | 1262-1309 | Routing layer for on-demand loading |
+| Section                          | Lines (current) | Why it stays                              |
+| -------------------------------- | --------------- | ----------------------------------------- |
+| Frontmatter                      | 7-10            | Needed for skill system                   |
+| Intro to PAI                     | 12-14           | One-sentence identity                     |
+| No Silent Stalls                 | 928-940         | Applies always, not just during Algorithm |
+| No Agents for Instant Operations | 942-957         | Applies always                            |
+| Agent spawning basics            | 1143-1190       | Applies always (how to invoke agents)     |
+| Context Loading + Doc Reference  | 1262-1309       | Routing layer for on-demand loading       |
 
 #### What moves to Algorithm skill file (~9,000 tokens)
 
-| Section | Lines (current) | Why it moves |
-|---------|-----------------|--------------|
-| Response Depth Selection | 16-65 | Only relevant when Algorithm is active |
-| Algorithm v1.8.0 (OBSERVE-LEARN) | 67-487 | This IS the Algorithm |
-| ISC Requirements + Quality Gate | 490-556 | ISC is an Algorithm concept |
-| PRD Integration + Sync + Loop Worker + Teams | 559-858 | PRD is Algorithm infrastructure |
-| Algorithm Concept (philosophy) | 889-911 | Only needed when Algorithm runs |
-| Voice + Discrete Phases + Plan Mode | 959-998 | Phase discipline is Algorithm-specific |
-| Capabilities Selection (25 capabilities) | 1000-1141 | Capability audit is an Algorithm phase |
-| Phase Discipline Checklist | 1205-1228 | Algorithm-specific checklist |
+| Section                                      | Lines (current) | Why it moves                           |
+| -------------------------------------------- | --------------- | -------------------------------------- |
+| Response Depth Selection                     | 16-65           | Only relevant when Algorithm is active |
+| Algorithm v1.8.0 (OBSERVE-LEARN)             | 67-487          | This IS the Algorithm                  |
+| ISC Requirements + Quality Gate              | 490-556         | ISC is an Algorithm concept            |
+| PRD Integration + Sync + Loop Worker + Teams | 559-858         | PRD is Algorithm infrastructure        |
+| Algorithm Concept (philosophy)               | 889-911         | Only needed when Algorithm runs        |
+| Voice + Discrete Phases + Plan Mode          | 959-998         | Phase discipline is Algorithm-specific |
+| Capabilities Selection (25 capabilities)     | 1000-1141       | Capability audit is an Algorithm phase |
+| Phase Discipline Checklist                   | 1205-1228       | Algorithm-specific checklist           |
 
 #### What's deleted (~1,100 tokens)
 
-| Section | Lines (current) | Why deleted |
-|---------|-----------------|-------------|
-| Generated header | 1-6 | No runtime value |
-| Minimal/Iteration formats (duplicate) | 862-886 | Duplicated from lines 29-49 |
-| "Everything Uses the Algorithm" | 913-925 | Contradicts on-demand model |
-| Key Takeaways | 1229-1260 | Contradicts on-demand model |
+| Section                               | Lines (current) | Why deleted                 |
+| ------------------------------------- | --------------- | --------------------------- |
+| Generated header                      | 1-6             | No runtime value            |
+| Minimal/Iteration formats (duplicate) | 862-886         | Duplicated from lines 29-49 |
+| "Everything Uses the Algorithm"       | 913-925         | Contradicts on-demand model |
+| Key Takeaways                         | 1229-1260       | Contradicts on-demand model |
 
 **Implementation note:** Since SKILL.md is generated from Components, the actual work is
 reorganizing which Components feed into the preloaded SKILL.md build vs. a new Algorithm skill
@@ -174,7 +175,7 @@ VoiceGate entirely from settings.json. If voice stays, move from PreToolUse to P
 
 ---
 
-## Phase 2: Code Changes (pai-hooks)
+## Phase 2: Code Changes (maple-hooks)
 
 ### 2A. SecurityValidator Self-Routing
 
@@ -188,6 +189,7 @@ receives tool_name in its input. Changes needed:
 ### 2B. Algorithm Skill File
 
 Create or update the Algorithm skill file to contain all content moved from SKILL.md:
+
 - Full 7-phase template (OBSERVE through LEARN)
 - ISC requirements and quality gates
 - PRD integration and lifecycle
@@ -202,6 +204,7 @@ This file loads on-demand when the Algorithm skill is invoked.
 ## Phase 3: Validation
 
 Run 3-5 representative sessions comparing before/after:
+
 - Verify skill discovery works without full SKILL.md preloaded
 - Verify Algorithm invocation loads all necessary content
 - Verify SecurityValidator self-routing produces no security regressions
@@ -211,30 +214,30 @@ Run 3-5 representative sessions comparing before/after:
 
 ## Projected Savings
 
-| Cut | Tokens Saved | Type |
-|-----|-------------|------|
-| SKILL.md slimming | 19,300 | Per session (fixed) |
-| CLAUDE.md slimming | 640 | Per session (fixed) |
-| Mode header removal | 3,000 | Per session (variable, ~30 turns) |
-| BuildCLAUDE hook removal | 1 fewer SessionStart fire | Per session |
-| SecurityValidator consolidation | 3 fewer hook fires | Per tool call |
-| VoiceGate (pending) | 1 fewer PreToolUse fire | Per Bash call |
+| Cut                             | Tokens Saved              | Type                              |
+| ------------------------------- | ------------------------- | --------------------------------- |
+| SKILL.md slimming               | 19,300                    | Per session (fixed)               |
+| CLAUDE.md slimming              | 640                       | Per session (fixed)               |
+| Mode header removal             | 3,000                     | Per session (variable, ~30 turns) |
+| BuildCLAUDE hook removal        | 1 fewer SessionStart fire | Per session                       |
+| SecurityValidator consolidation | 3 fewer hook fires        | Per tool call                     |
+| VoiceGate (pending)             | 1 fewer PreToolUse fire   | Per Bash call                     |
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Session preload | ~23,990 tokens | ~2,100 tokens | **-91%** |
-| Response overhead | ~100 tokens/response | 0 | **-100%** |
-| PreToolUse fires per tool call | up to 8 | 5 (or 4 if VoiceGate removed) | **-37% to -50%** |
+| Metric                         | Before               | After                         | Change           |
+| ------------------------------ | -------------------- | ----------------------------- | ---------------- |
+| Session preload                | ~23,990 tokens       | ~2,100 tokens                 | **-91%**         |
+| Response overhead              | ~100 tokens/response | 0                             | **-100%**        |
+| PreToolUse fires per tool call | up to 8              | 5 (or 4 if VoiceGate removed) | **-37% to -50%** |
 
 ## Risk Summary
 
-| Risk Level | Items | Mitigation |
-|------------|-------|------------|
-| No risk | Mode headers, BuildCLAUDE removal, dedup cleanup | None needed |
-| Low risk | SKILL.md slimming | Verify system-reminder skill list provides adequate discovery. A/B test 5 sessions. |
-| Low risk | SecurityValidator consolidation | Run existing test suite. Verify self-routing matches matcher-based behavior. |
-| Moderate risk | AISTEERINGRULES (deferred) | Ian handling separately. |
-| Pending | VoiceGate | Blocked on voice system decision. |
+| Risk Level    | Items                                            | Mitigation                                                                          |
+| ------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| No risk       | Mode headers, BuildCLAUDE removal, dedup cleanup | None needed                                                                         |
+| Low risk      | SKILL.md slimming                                | Verify system-reminder skill list provides adequate discovery. A/B test 5 sessions. |
+| Low risk      | SecurityValidator consolidation                  | Run existing test suite. Verify self-routing matches matcher-based behavior.        |
+| Moderate risk | AISTEERINGRULES (deferred)                       | Ian handling separately.                                                            |
+| Pending       | VoiceGate                                        | Blocked on voice system decision.                                                   |
 
 ## Non-Goals
 
@@ -245,10 +248,10 @@ Run 3-5 representative sessions comparing before/after:
 
 ## Repos Involved
 
-| Repo | Changes |
-|------|---------|
-| **pai-config** | CLAUDE.md, SKILL.md, settings.json (Phase 1 -- config only) |
-| **pai-hooks** | SecurityValidator contract/hook (Phase 2 -- code) |
+| Repo            | Changes                                                     |
+| --------------- | ----------------------------------------------------------- |
+| **pai-config**  | CLAUDE.md, SKILL.md, settings.json (Phase 1 -- config only) |
+| **maple-hooks** | SecurityValidator contract/hook (Phase 2 -- code)           |
 
 ## Sources
 
@@ -266,6 +269,6 @@ All token counts derived from `wc -c` on actual files, divided by 4:
 - Hook registrations (PreToolUse): `/Users/hogers/Documents/repos/pai-config/settings.json:68-141`
 - Hook registrations (PostToolUse): `/Users/hogers/Documents/repos/pai-config/settings.json:142-200`
 - Hook registrations (SessionStart): `/Users/hogers/Documents/repos/pai-config/settings.json:254-278`
-- SecurityValidator contract: `/Users/hogers/.claude/pai-hooks/hooks/SecurityValidator/SecurityValidator/SecurityValidator.contract.ts`
+- SecurityValidator contract: `/Users/hogers/.claude/maple-hooks/hooks/SecurityValidator/SecurityValidator/SecurityValidator.contract.ts`
 - Algorithm agent file (10,285 chars): `/Users/hogers/Documents/repos/pai-config/agents/Algorithm.md`
 - Issue: https://github.com/SaintPepsi/pai-config/issues/58
