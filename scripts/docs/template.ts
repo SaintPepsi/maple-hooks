@@ -15,8 +15,8 @@
  * Pure functions — no I/O except CSS loading.
  */
 
-import { join } from "node:path";
 import { readFile } from "@hooks/core/adapters/fs";
+import { join } from "node:path";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -675,12 +675,18 @@ export function renderHookPage(
         )
       : "";
 
+  const heroMeta = [];
+
+  if (groupName !== hook.name) {
+    heroMeta.push(groupName);
+  }
+
   const hero = buildHero(
     "Hook Documentation",
     hook.name,
     hook.description ||
       `${eventList(hook.event).join(" + ")} hook in the ${groupName} group.`,
-    [groupName, ...eventList(hook.event), "pai-hooks"],
+    heroMeta,
   );
 
   const sectionHtml = sections.map(renderSection).join("\n");
