@@ -83,6 +83,57 @@ keywords: []
 `;
     expect(parseFrontmatter(content)!.body).toBe("Content with spaces.");
   });
+
+  it("extracts dependsOn from depends-on Tool() items", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: [Tool(Write), Tool(Edit), Tool(Bash)]
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual(["Write", "Edit", "Bash"]);
+  });
+
+  it("returns undefined dependsOn when depends-on is absent", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toBeUndefined();
+  });
+
+  it("returns empty dependsOn when depends-on is empty array", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: []
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual([]);
+  });
+
+  it("ignores depends-on items that don't match Tool() syntax", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: [Tool(Write), Skill(Foo), Mode(ALGORITHM), Tool(Bash)]
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual(["Write", "Bash"]);
+  });
 });
 
 describe("matchesKeywords", () => {

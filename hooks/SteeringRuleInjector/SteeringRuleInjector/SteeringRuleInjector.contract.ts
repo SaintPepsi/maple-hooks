@@ -50,6 +50,7 @@ export interface RuleFrontmatter {
   events: string[];
   keywords: string[];
   body: string;
+  dependsOn?: string[];
 }
 
 export interface SteeringRuleConfig {
@@ -109,7 +110,17 @@ export function parseFrontmatter(content: string): RuleFrontmatter | null {
         .filter(Boolean)
     : [];
 
-  return { name, events, keywords, body: body.trim() };
+  const dependsOnMatch = yaml.match(/^depends-on:\s*\[([^\]]*)\]$/m);
+  const dependsOn = dependsOnMatch
+    ? dependsOnMatch[1]
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((item) => item.match(/^Tool\(([A-Za-z]+)\)$/)?.[1])
+        .filter((name): name is string => Boolean(name))
+    : undefined;
+
+  return { name, events, keywords, body: body.trim(), dependsOn };
 }
 
 // ─── Keyword Matching ───────────────────────────────────────────────────────
