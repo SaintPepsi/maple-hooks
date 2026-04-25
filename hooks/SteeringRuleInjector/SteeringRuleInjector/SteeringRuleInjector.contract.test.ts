@@ -20,6 +20,7 @@ import {
   SteeringRuleInjector,
   type SteeringRuleInjectorDeps,
 } from "./SteeringRuleInjector.contract";
+import { transcriptHasToolCall as realTranscriptHasToolCall } from "./transcript-tool-scan";
 
 describe("parseFrontmatter", () => {
   it("parses valid frontmatter with all fields", () => {
@@ -751,7 +752,36 @@ Ungated body.`,
     expect(result.ok).toBe(true);
     expect(getBlockReason(result.ok ? result.value : {})).toContain("Ungated body");
   });
+
+  it("integrates with the real transcriptHasToolCall against a fixture transcript", () => {
+    // Inline tmp transcript fixture — same convention as transcript-tool-scan.test.ts.
+    const fs = require("node:fs");
+    const dir = `/tmp/pai-steering-injector-int-${Date.now()}-${integrationCounter++}`;
+    fs.mkdirSync(dir, { recursive: true });
+    const transcriptPath = `${dir}/transcript.jsonl`;
+    fs.writeFileSync(
+      transcriptPath,
+      [
+        { type: "user", message: { content: "make the change" } },
+        {
+          type: "assistant",
+          message: { content: [{ type: "tool_use", name: "Edit", input: {} }] },
+        },
+      ]
+        .map((line) => JSON.stringify(line))
+        .join("\n"),
+    );
+
+    const deps = baseDeps({ transcriptHasToolCall: realTranscriptHasToolCall });
+    const inputWithTranscript: StopInput = { ...stopInput, transcript_path: transcriptPath };
+
+    const result = SteeringRuleInjector.execute(inputWithTranscript, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toContain("Gated body");
+  });
 });
+
+let integrationCounter = 0;
 
 describe("SteeringRuleInjector defaultDeps", () => {
   it("defaultDeps.isSubagent returns a boolean", () => {

@@ -168,6 +168,28 @@ function getMatchText(input: SteeringRuleInput, stderr?: (msg: string) => void):
   }
 }
 
+function getTranscriptPath(
+  input: SteeringRuleInput,
+  stderr?: (msg: string) => void,
+): string | undefined {
+  const parsed = parseHookInput(input);
+  if (parsed._tag !== "Right") {
+    stderr?.("[SteeringRuleInjector] input parse failed for transcript_path lookup");
+    return undefined;
+  }
+  const p = parsed.right;
+
+  switch (p.hook_event_name) {
+    case "Stop":
+    case "SubagentStart":
+    case "UserPromptSubmit":
+      return p.transcript_path;
+    // SessionStart/PreToolUse/PostToolUse have no transcript_path
+    default:
+      return undefined;
+  }
+}
+
 // ─── Env Expansion (used only in defaultDeps) ───────────────────────────────
 
 function expandEnvVars(pattern: string, getEnv: (key: string) => string | undefined): string {
@@ -289,12 +311,10 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
         if (!matchesKeywords(matchText, rule.keywords)) continue;
       }
 
+      // Gate on transcript-derived tool history when rule declares depends-on.
       if (
         rule.dependsOn &&
-        !deps.transcriptHasToolCall(
-          (input as { transcript_path?: string }).transcript_path,
-          rule.dependsOn,
-        )
+        !deps.transcriptHasToolCall(getTranscriptPath(input, deps.stderr), rule.dependsOn)
       )
         continue;
 
