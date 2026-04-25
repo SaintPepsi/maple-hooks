@@ -14,12 +14,14 @@ When a hook's `doc.md` file is written, the tracker clears the pending obligatio
 
 - The tool used is `Write` or `Edit`
 - The target file matches a hook source pattern (configurable, default: `.contract.ts`, `hook.json`, `group.json`) or is a hook doc file (default: `doc.md`)
+- The file does not match any exclude pattern (configurable via `excludePatterns`)
 - No project-level `HookDocTracker` hook exists
 
 It does **not** fire when:
 
 - The tool is not `Write` or `Edit`
 - The file path cannot be extracted from the tool input
+- The file matches an exclude pattern (e.g., `test-corpus/`)
 - The file does not match any watched source pattern and is not a hook doc file
 - A project-level `HookDocTracker` hook exists (checked via `projectHasHook`)
 
@@ -63,9 +65,25 @@ for (const docName of allDocFileNames(settings)) {
 
 ## Dependencies
 
-| Dependency                         | Type   | Purpose                                                                                                                                |
-| ---------------------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `obligation-machine`               | lib    | Generic `addPending` and `clearMatching` state machine operations                                                                      |
-| `paths`                            | lib    | Path resolution utilities                                                                                                              |
-| `HookDocStateMachine.shared`       | shared | Provides `defaultDeps`, `pendingPath`, `getFilePath`, `isHookSourceFile`, `isHookDocFile`, `getHookDirFromPath`, `readHookDocSettings` |
-| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks                                                                   |
+| Dependency                         | Type   | Purpose                                                                                                                                              |
+| ---------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `obligation-machine`               | lib    | Generic `addPending` and `clearMatching` state machine operations                                                                                    |
+| `paths`                            | lib    | Path resolution utilities                                                                                                                            |
+| `HookDocStateMachine.shared`       | shared | Provides `defaultDeps`, `pendingPath`, `isHookSourceFile` (with excludePatterns), `isHookDocFile`, `getHookDirFromPath`, `readHookDocSettings` |
+| `DocObligationStateMachine.shared` | shared | Provides `projectHasHook` for deduplication with project-level hooks                                                                                 |
+
+## Configuration
+
+Configure via `~/.claude/settings.json`:
+
+```json
+{
+  "hookConfig": {
+    "hookDocEnforcer": {
+      "excludePatterns": ["test-corpus", "fixtures"]
+    }
+  }
+}
+```
+
+This excludes any file paths matching these patterns from doc enforcement.

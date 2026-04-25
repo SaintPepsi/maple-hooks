@@ -70,6 +70,30 @@ describe("isHookSourceFile", () => {
   it("rejects arbitrary files", () => {
     expect(isHookSourceFile("/src/app.ts", patterns)).toBe(false);
   });
+
+  it("excludes files matching excludePatterns", () => {
+    const patternsWithReadme = [/\.contract\.ts$/, /README\.md$/];
+    const excludes = [/test-corpus/];
+    expect(
+      isHookSourceFile(
+        "/hooks/DuplicationDetection/test-corpus/README.md",
+        patternsWithReadme,
+        excludes,
+      ),
+    ).toBe(false);
+  });
+
+  it("matches files not in excludePatterns", () => {
+    const patternsWithReadme = [/\.contract\.ts$/, /README\.md$/];
+    const excludes = [/test-corpus/];
+    expect(
+      isHookSourceFile(
+        "/hooks/DuplicationDetection/DuplicationChecker/README.md",
+        patternsWithReadme,
+        excludes,
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("isHookDocFile", () => {

@@ -49,6 +49,7 @@ export interface HookDocEnforcerSettings {
   requiredSections: string[];
   docFileName: string;
   watchPatterns: RegExp[];
+  excludePatterns: RegExp[];
   additionalDocs: AdditionalDoc[];
   mode: "independent" | "linked";
 }
@@ -79,6 +80,7 @@ function defaults(): HookDocEnforcerSettings {
     requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
     docFileName: "doc.md",
     watchPatterns: [...DEFAULT_WATCH_PATTERNS],
+    excludePatterns: [],
     additionalDocs: [],
     mode: "independent",
   };
@@ -107,6 +109,9 @@ export function readHookDocSettings(
     watchPatterns: Array.isArray(cfg.watchPatterns)
       ? cfg.watchPatterns.map((p: string) => new RegExp(p))
       : [...DEFAULT_WATCH_PATTERNS],
+    excludePatterns: Array.isArray(cfg.excludePatterns)
+      ? cfg.excludePatterns.map((p: string) => new RegExp(p))
+      : [],
     additionalDocs: Array.isArray(cfg.additionalDocs)
       ? (
           cfg.additionalDocs as Array<{
@@ -129,7 +134,12 @@ export function readHookDocSettings(
 // ─── Domain Helpers ───────────────────────────────────────────────────────────
 
 /** Check if a file path matches any of the watched patterns (hook source files). */
-export function isHookSourceFile(filePath: string, patterns: RegExp[]): boolean {
+export function isHookSourceFile(
+  filePath: string,
+  patterns: RegExp[],
+  excludePatterns: RegExp[] = [],
+): boolean {
+  if (excludePatterns.some((p) => p.test(filePath))) return false;
   return patterns.some((p) => p.test(filePath));
 }
 
