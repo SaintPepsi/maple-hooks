@@ -311,8 +311,12 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
         if (!matchesKeywords(matchText, rule.keywords)) continue;
       }
 
-      // Gate on transcript-derived tool history when rule declares depends-on.
+      // Gate by depends-on: only meaningful on Stop events (turn-scoped tool usage).
+      // For PreToolUse a tool is about to happen; for PostToolUse one just happened;
+      // for SessionStart/SubagentStart there is no turn yet — so "did the agent use
+      // tool X this turn" is malformed for non-Stop events and the gate is skipped.
       if (
+        eventType === "Stop" &&
         rule.dependsOn &&
         !deps.transcriptHasToolCall(getTranscriptPath(input, deps.stderr), rule.dependsOn)
       )

@@ -753,6 +753,35 @@ Ungated body.`,
     expect(getBlockReason(result.ok ? result.value : {})).toContain("Ungated body");
   });
 
+  it("ignores dependsOn on non-Stop events (e.g. PreToolUse)", () => {
+    // Regression: tool-usage semantics ("did the agent use tool X this turn")
+    // are only defined for Stop events. On PreToolUse the gate must be skipped,
+    // otherwise rules like always-proper-fix lose their PreToolUse arm because
+    // PreToolUseInput has no transcript_path and the helper returns false.
+    const deps = baseDeps({
+      readFile: () => `---
+name: pretool-rule
+events: [PreToolUse]
+keywords: [AskUserQuestion]
+depends-on: [Tool(Write)]
+---
+
+PreTool body.`,
+      transcriptHasToolCall: () => false, // would gate it on Stop, must NOT on PreToolUse
+    });
+
+    const preToolInput: ToolHookInput = {
+      hook_event_name: "PreToolUse",
+      session_id: "test-session",
+      tool_name: "AskUserQuestion",
+      tool_input: {},
+    };
+
+    const result = SteeringRuleInjector.execute(preToolInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getInjectedContext(result.ok ? result.value : {})).toContain("PreTool body");
+  });
+
   it("integrates with the real transcriptHasToolCall against a fixture transcript", () => {
     // Inline tmp transcript fixture — same convention as transcript-tool-scan.test.ts.
     const fs = require("node:fs");
