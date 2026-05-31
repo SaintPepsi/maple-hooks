@@ -128,8 +128,12 @@ export function readHookDocSettings(
 
 // ─── Domain Helpers ───────────────────────────────────────────────────────────
 
-/** Check if a file path matches any of the watched patterns (hook source files). */
+/** Check if a file path matches any of the watched patterns (hook source files).
+ *  Scoped to the hook tree: a file only counts if it lives under a `/hooks/`
+ *  segment. Without this, broad patterns like `/README\.md$/` match READMEs in
+ *  unrelated repositories anywhere on disk (false positives at session end). */
 export function isHookSourceFile(filePath: string, patterns: RegExp[]): boolean {
+  if (!filePath.includes("/hooks/")) return false;
   return patterns.some((p) => p.test(filePath));
 }
 

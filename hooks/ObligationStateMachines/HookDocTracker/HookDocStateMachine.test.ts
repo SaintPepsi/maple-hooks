@@ -70,6 +70,15 @@ describe("isHookSourceFile", () => {
   it("rejects arbitrary files", () => {
     expect(isHookSourceFile("/src/app.ts", patterns)).toBe(false);
   });
+
+  it("rejects watched-name files outside any hook tree (scope guard)", () => {
+    const withReadme = [...patterns, /README\.md$/];
+    // README.md in an unrelated repo must NOT be treated as a hook source file
+    expect(isHookSourceFile("/Users/me/repos/ediary/README.md", withReadme)).toBe(false);
+    expect(isHookSourceFile("/Users/me/clank-lit/README.md", withReadme)).toBe(false);
+    // but a README inside a hook tree still counts
+    expect(isHookSourceFile("/hooks/Group/Hook/README.md", withReadme)).toBe(true);
+  });
 });
 
 describe("isHookDocFile", () => {

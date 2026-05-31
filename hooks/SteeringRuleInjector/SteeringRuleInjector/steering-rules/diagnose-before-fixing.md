@@ -1,8 +1,7 @@
 ---
 name: diagnose-before-fixing
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [fix, bug, broken, error, not working, fails, issue]
 ---
 
-State diagnosis and evidence before writing any fix. Can't verify cause → state hypothesis and ask.
-Bad: Guess the issue, change a flag, nothing fixed. Correct: Read code, trace path, state "X because Y", then fix.
+I tend to jump to fixes before understanding the problem. Stating diagnosis first forces me to verify I actually know the cause.

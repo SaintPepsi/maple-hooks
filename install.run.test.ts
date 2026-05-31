@@ -1,16 +1,16 @@
-import { describe, expect, it } from "bun:test";
 import {
-  type Conflict,
-  detectConflicts,
-  type ExportedHooks,
-  extractHookName,
-  filterExportedByResolution,
-  formatConflictSummary,
-  type InstallDeps,
-  type MatcherGroup,
-  parseConflictFlag,
-  run,
+    type Conflict,
+    detectConflicts,
+    type ExportedHooks,
+    extractHookName,
+    filterExportedByResolution,
+    formatConflictSummary,
+    type InstallDeps,
+    type MatcherGroup,
+    parseConflictFlag,
+    run,
 } from "@hooks/install";
+import { describe, expect, it } from "bun:test";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -198,7 +198,7 @@ describe("install run() — successful install", () => {
     // Check zshrc was written with managed block
     const zshrcPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith(".zshrc"))!;
     const zshrc = deps.writtenFiles.get(zshrcPath)!;
-    expect(zshrc).toContain("PAI-HOOKS-BEGIN");
+    expect(zshrc).toContain("MAPLE-HOOKS-BEGIN");
     expect(zshrc).toContain("SAINTPEPSI_PAI_HOOKS_DIR");
   });
 

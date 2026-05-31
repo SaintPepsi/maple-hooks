@@ -9,9 +9,9 @@
  * - Adds env var export to ~/.zshrc (managed block, idempotent)
  */
 
-import { join, resolve } from "node:path";
 import { fileExists, readFile, writeFile } from "@hooks/core/adapters/fs";
 import { ensureEnvVar } from "@hooks/scripts/ensure-env";
+import { join, resolve } from "node:path";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -204,8 +204,8 @@ export function isAlreadyInstalled(
 
 // ─── Zshrc Management ────────────────────────────────────────────────────────
 
-const ZSHRC_BEGIN = "# PAI-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit";
-const ZSHRC_END = "# PAI-HOOKS-END";
+const ZSHRC_BEGIN = "# MAPLE-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit";
+const ZSHRC_END = "# MAPLE-HOOKS-END";
 
 export function buildZshrcBlock(envVar: string, relPath: string): string {
   return [ZSHRC_BEGIN, `export ${envVar}="$PAI_DIR/${relPath}"`, ZSHRC_END].join("\n");

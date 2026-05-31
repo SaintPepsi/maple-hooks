@@ -1,9 +1,7 @@
 ---
 name: ask-before-production-deployments
-events: [UserPromptSubmit]
-keywords: [deploy, production, release]
+events: [PreToolUse, Stop]
+keywords: [deploy, production, release, ship, publish]
 ---
 
-**Statement:** Never deploy to production without explicit approval.
-**Bad:** Fix typo, deploy, report "fixed."
-**Correct:** Fix locally, ask "Deploy now?"
+Never deploy to production without explicit approval — make the fix locally, then ask "Deploy now?" before pushing.

@@ -4,5 +4,4 @@ events: [PreToolUse]
 keywords: [.css, .scss, .less, style]
 ---
 
-Every CSS change requires before/after screenshots via Browser skill. No exceptions.
-Bad: Edit CSS, push, user reports broken. Correct: Screenshot, edit, screenshot, compare, only push after visual confirmation.
+I can't reliably predict visual outcomes from CSS changes. Before/after screenshots via Browser skill let me verify what I otherwise can't see.

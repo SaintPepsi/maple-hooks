@@ -1,5 +1,5 @@
-import { describe, expect, it } from "bun:test";
 import { run, type UninstallDeps } from "@hooks/uninstall";
+import { describe, expect, it } from "bun:test";
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
 
@@ -12,9 +12,9 @@ interface Captured {
 const zshrcWithBlock = [
   "# before",
   "",
-  "# PAI-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit",
+  "# MAPLE-HOOKS-BEGIN — managed by maple-hooks/install.ts, do not edit",
   'export SAINTPEPSI_PAI_HOOKS_DIR="$PAI_DIR/maple-hooks"',
-  "# PAI-HOOKS-END",
+  "# MAPLE-HOOKS-END",
   "",
   "# after",
 ].join("\n");
@@ -230,7 +230,7 @@ describe("uninstall run() — successful uninstall", () => {
 
     const zshrcPath = [...deps.writtenFiles.keys()].find((p) => p.endsWith(".zshrc"))!;
     const zshrc = deps.writtenFiles.get(zshrcPath)!;
-    expect(zshrc).not.toContain("PAI-HOOKS-BEGIN");
+    expect(zshrc).not.toContain("MAPLE-HOOKS-BEGIN");
     expect(zshrc).not.toContain("SAINTPEPSI_PAI_HOOKS_DIR");
     expect(zshrc).toContain("# before");
     expect(zshrc).toContain("# after");
