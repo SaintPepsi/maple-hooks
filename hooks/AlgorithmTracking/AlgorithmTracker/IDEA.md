@@ -14,7 +14,7 @@ Observe four categories of session activity and update a persistent state object
 
 1. After a command executes, check if it contains a known phase-announcement pattern (e.g., "entering the observe phase").
 2. If a phase transition is detected, update the session state to the new phase and append it to phase history.
-3. If the transition is from a completed/late phase back to the beginning, increment the rework counter and notify.
+3. If the transition is from a completed/late phase back to the beginning, increment the rework counter and log it.
 4. After a task is created, parse its identifier for a criteria pattern and add it to the session's criteria list.
 5. After a task's status changes, update the matching criterion's status (pending, in-progress, completed, failed).
 6. After an agent is spawned, record its name, type, and assigned task in session state.

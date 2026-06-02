@@ -1813,7 +1813,7 @@ Observe four categories of session activity and update a persistent state object
 
 1. After a command executes, check if it contains a known phase-announcement pattern (e.g., "entering the observe phase").
 2. If a phase transition is detected, update the session state to the new phase and append it to phase history.
-3. If the transition is from a completed/late phase back to the beginning, increment the rework counter and notify.
+3. If the transition is from a completed/late phase back to the beginning, increment the rework counter and log it.
 4. After a task is created, parse its identifier for a criteria pattern and add it to the session's criteria list.
 5. After a task's status changes, update the matching criterion's status (pending, in-progress, completed, failed).
 6. After an agent is spawned, record its name, type, and assigned task in session state.
@@ -1836,7 +1836,7 @@ Observe four categories of session activity and update a persistent state object
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>AlgorithmTracker is a <strong>sync PostToolUse</strong> hook that consolidates four algorithm state tracking responsibilities into a single hook. It monitors Bash commands for voice notification curls that signal phase transitions, TaskCreate events for ISC criteria creation, TaskUpdate events for criteria status changes, and Task tool events for agent spawns. All state is persisted via the <code>algorithm-state</code> library.</p>
+      <p>AlgorithmTracker is a <strong>sync PostToolUse</strong> hook that consolidates four algorithm state tracking responsibilities into a single hook. It monitors Bash commands for the algorithm's phase-signal curls (POST to <code>localhost:8888/notify</code>) that mark phase transitions, TaskCreate events for ISC criteria creation, TaskUpdate events for criteria status changes, and Task tool events for agent spawns. Phase detection is passive — the hook reads these curls as a signal but emits no notifications of its own. All state is persisted via the <code>algorithm-state</code> library.</p>
       <p>The hook also handles rework detection (re-entering OBSERVE from a completed state) and effort level inference based on criteria count.</p>
     </div>
   </section>
@@ -1861,7 +1861,7 @@ Observe four categories of session activity and update a persistent state object
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> The <code>tool_name</code> is one of: <code>"Bash"</code>, <code>"TaskCreate"</code>, <code>"TaskUpdate"</code>, or <code>"Task"</code></div>
 <div class="reason"><span class="ri">&#x2022;</span> A valid <code>session_id</code> is present in the input</div>
-<div class="reason"><span class="ri">&#x2022;</span> For Bash: the command contains a voice notification curl to <code>localhost:8888/notify</code> with a phase message</div>
+<div class="reason"><span class="ri">&#x2022;</span> For Bash: the command contains a phase-signal curl to <code>localhost:8888/notify</code> with a phase message</div>
 <div class="reason"><span class="ri">&#x2022;</span> For TaskCreate: the tool input or result contains ISC criterion patterns (e.g., <code>ISC-C1:</code>, <code>ISC-A1:</code>)</div>
 <div class="reason"><span class="ri">&#x2022;</span> For TaskUpdate: the input includes <code>taskId</code> and <code>status</code> fields</div>
 <div class="reason"><span class="ri">&#x2022;</span> For Task: any Task tool invocation (agent spawn)</div>
@@ -1882,7 +1882,7 @@ Observe four categories of session activity and update a persistent state object
       <div class="flow-steps">
         <div class="flow-step">
           <div class="step-dot">1</div>
-          <div class="step-content"><p><strong>Phase tracking (Bash):</strong> Detects voice curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, and handles rework detection</p></div>
+          <div class="step-content"><p><strong>Phase tracking (Bash):</strong> Detects phase-signal curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, and handles rework detection</p></div>
         </div>
 
         <div class="flow-step">
@@ -1908,7 +1908,7 @@ Observe four categories of session activity and update a persistent state object
         </div>
         <div class="code-window-body">
           <div class="code-block"><span class="code-lang">typescript</span>
-// Phase detection from voice notification curls
+// Phase detection from algorithm phase-signal curls
 const { phase, isAlgorithmEntry } = detectPhaseFromBash(tool_input.command);
 if (phase) {
   ensureSessionActive(session_id, deps);
@@ -1941,7 +1941,7 @@ if (criterion) {
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Phase transition detected</h3>
       
       <div class="uc-example">
-        <div>Claude executes a Bash curl to <code>localhost:8888/notify</code> with <code>"message": "Entering the Build phase"</code>. AlgorithmTracker detects the BUILD phase, transitions the algorithm state, and logs the transition.</div>
+        <div>Claude executes a Bash curl to <code>localhost:8888/notify</code> with <code>"message": "Entering the Build phase"</code>. AlgorithmTracker reads this as a phase signal, detects the BUILD phase, transitions the algorithm state, and logs the transition.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
@@ -1955,7 +1955,7 @@ if (criterion) {
       <h3 style="color: var(--green); margin-bottom: 12px;">Example 3: Rework detection</h3>
       
       <div class="uc-example">
-        <div>A session in COMPLETE phase with existing criteria receives a new OBSERVE phase transition. AlgorithmTracker detects this as rework, reactivates the session, increments the rework counter, and sends a voice notification announcing the rework iteration.</div>
+        <div>A session in COMPLETE phase with existing criteria receives a new OBSERVE phase transition. AlgorithmTracker detects this as rework, reactivates the session, increments the rework counter, and logs the rework iteration.</div>
       </div>
       </div>
     </div>

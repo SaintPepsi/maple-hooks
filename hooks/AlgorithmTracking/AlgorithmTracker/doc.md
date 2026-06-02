@@ -2,7 +2,7 @@
 
 ## Overview
 
-AlgorithmTracker is a **sync PostToolUse** hook that consolidates four algorithm state tracking responsibilities into a single hook. It monitors Bash commands for voice notification curls that signal phase transitions, TaskCreate events for ISC criteria creation, TaskUpdate events for criteria status changes, and Task tool events for agent spawns. All state is persisted via the `algorithm-state` library.
+AlgorithmTracker is a **sync PostToolUse** hook that consolidates four algorithm state tracking responsibilities into a single hook. It monitors Bash commands for the algorithm's phase-signal curls (POST to `localhost:8888/notify`) that mark phase transitions, TaskCreate events for ISC criteria creation, TaskUpdate events for criteria status changes, and Task tool events for agent spawns. Phase detection is passive — the hook reads these curls as a signal but emits no notifications of its own. All state is persisted via the `algorithm-state` library.
 
 The hook also handles rework detection (re-entering OBSERVE from a completed state) and effort level inference based on criteria count.
 
@@ -14,7 +14,7 @@ The hook also handles rework detection (re-entering OBSERVE from a completed sta
 
 - The `tool_name` is one of: `"Bash"`, `"TaskCreate"`, `"TaskUpdate"`, or `"Task"`
 - A valid `session_id` is present in the input
-- For Bash: the command contains a voice notification curl to `localhost:8888/notify` with a phase message
+- For Bash: the command contains a phase-signal curl to `localhost:8888/notify` with a phase message
 - For TaskCreate: the tool input or result contains ISC criterion patterns (e.g., `ISC-C1:`, `ISC-A1:`)
 - For TaskUpdate: the input includes `taskId` and `status` fields
 - For Task: any Task tool invocation (agent spawn)
@@ -27,13 +27,13 @@ It does **not** fire when:
 
 ## What It Does
 
-1. **Phase tracking (Bash):** Detects voice curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, and handles rework detection
+1. **Phase tracking (Bash):** Detects phase-signal curl commands matching phase patterns (OBSERVE, THINK, PLAN, BUILD, EXECUTE, VERIFY, LEARN). On detection, ensures the session is active, transitions to the new phase, and handles rework detection
 2. **Criteria tracking (TaskCreate):** Parses ISC criterion patterns from task subjects and results. Adds criteria to state with type (criterion vs anti-criterion), status, and phase context. Infers effort level from criteria count (12+ = Extended, 20+ = Advanced, 40+ = Deep)
 3. **Criteria updates (TaskUpdate):** Maps task status changes (pending, in_progress, completed, deleted) to criterion status updates
 4. **Agent tracking (Task):** Records spawned agents with name, type, and task description
 
 ```typescript
-// Phase detection from voice notification curls
+// Phase detection from algorithm phase-signal curls
 const { phase, isAlgorithmEntry } = detectPhaseFromBash(tool_input.command);
 if (phase) {
   ensureSessionActive(session_id, deps);
@@ -56,7 +56,7 @@ if (criterion) {
 
 ### Example 1: Phase transition detected
 
-> Claude executes a Bash curl to `localhost:8888/notify` with `"message": "Entering the Build phase"`. AlgorithmTracker detects the BUILD phase, transitions the algorithm state, and logs the transition.
+> Claude executes a Bash curl to `localhost:8888/notify` with `"message": "Entering the Build phase"`. AlgorithmTracker reads this as a phase signal, detects the BUILD phase, transitions the algorithm state, and logs the transition.
 
 ### Example 2: ISC criteria created
 
@@ -64,7 +64,7 @@ if (criterion) {
 
 ### Example 3: Rework detection
 
-> A session in COMPLETE phase with existing criteria receives a new OBSERVE phase transition. AlgorithmTracker detects this as rework, reactivates the session, increments the rework counter, and sends a voice notification announcing the rework iteration.
+> A session in COMPLETE phase with existing criteria receives a new OBSERVE phase transition. AlgorithmTracker detects this as rework, reactivates the session, increments the rework counter, and logs the rework iteration.
 
 ## Dependencies
 

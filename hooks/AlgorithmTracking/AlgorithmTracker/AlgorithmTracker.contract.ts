@@ -2,10 +2,14 @@
  * AlgorithmTracker Contract — Consolidated algorithm state tracking.
  *
  * Four responsibilities from PostToolUse events:
- * 1. Phase tracking: voice curls in Bash → phaseTransition()
+ * 1. Phase tracking: phase-signal curls in Bash → phaseTransition()
  * 2. Criteria tracking: TaskCreate for ISC → criteriaAdd()
  * 3. Criteria updates: TaskUpdate status changes → criteriaUpdate()
  * 4. Agent tracking: Task tool for agent spawns → agentAdd()
+ *
+ * Phase detection observes the algorithm's own phase-transition curls
+ * (POST to localhost:8888/notify) as a passive signal. This is detection
+ * only — AlgorithmTracker emits no notifications of its own.
  */
 
 import { join } from "node:path";
@@ -29,7 +33,6 @@ import {
   readState,
   writeState,
 } from "@hooks/lib/algorithm-state";
-import { getEnvOrUndefined } from "@hooks/lib/environment";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -44,9 +47,7 @@ export interface AlgorithmTrackerDeps {
   effortLevelUpdate: typeof effortLevelUpdate;
   fileExists: (path: string) => boolean;
   readJson: <T = unknown>(path: string) => Result<T, ResultError>;
-  fetch: typeof globalThis.fetch;
   baseDir: string;
-  voiceId: string;
   stderr: (msg: string) => void;
 }
 
@@ -160,9 +161,7 @@ const defaultDeps: AlgorithmTrackerDeps = {
   effortLevelUpdate,
   fileExists,
   readJson,
-  fetch: globalThis.fetch,
   baseDir: getPaiDir(),
-  voiceId: getEnvOrUndefined("PAI_VOICE_ID") || "pNInz6obpgDQGcFmaJgB",
   stderr: defaultStderr,
 };
 
@@ -182,7 +181,7 @@ export const AlgorithmTracker: SyncHookContract<ToolHookInput, AlgorithmTrackerD
     const tool_result = (input as unknown as Record<string, unknown>).tool_result;
     if (!session_id) return ok({ continue: true });
 
-    // 1. Bash → Phase detection from voice curls
+    // 1. Bash → Phase detection from algorithm phase-signal curls
     if (tool_name === "Bash" && tool_input?.command) {
       const { phase, isAlgorithmEntry } = detectPhaseFromBash(tool_input.command as string);
 
@@ -207,18 +206,6 @@ export const AlgorithmTracker: SyncHookContract<ToolHookInput, AlgorithmTrackerD
         if (isReworkTransition) {
           const postState = deps.readState(session_id);
           const reworkNum = postState?.reworkCount ?? 1;
-          deps
-            .fetch("http://localhost:8888/notify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                message: `Re-entering algorithm. Rework iteration ${reworkNum}.`,
-                voice_id: deps.voiceId,
-              }),
-            })
-            .catch((e) =>
-              deps.stderr(`[AlgorithmTracker] rework notification error: ${String(e)}`),
-            );
           deps.stderr(`[AlgorithmTracker] REWORK detected — iteration ${reworkNum}`);
         }
 

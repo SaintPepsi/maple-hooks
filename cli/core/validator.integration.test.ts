@@ -74,10 +74,10 @@ describe("manifest integration — real hooks", () => {
     expectValid(validate(contract, manifest, realDeps), "CronFire");
   });
 
-  it("VoiceGate: fs-adapter manifest validates", () => {
-    const contract = resolve(HOOKS_DIR, "VoiceGate/VoiceGate/VoiceGate.contract.ts");
-    const manifest = resolve(HOOKS_DIR, "VoiceGate/VoiceGate/hook.json");
-    expectValid(validate(contract, manifest, realDeps), "VoiceGate");
+  it("CanaryHook: fs-adapter manifest validates", () => {
+    const contract = resolve(HOOKS_DIR, "CanaryHook/CanaryHook/CanaryHook.contract.ts");
+    const manifest = resolve(HOOKS_DIR, "CanaryHook/CanaryHook/hook.json");
+    expectValid(validate(contract, manifest, realDeps), "CanaryHook");
   });
 
   it("CitationEnforcement: named-shared manifest validates", () => {

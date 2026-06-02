@@ -44,7 +44,6 @@ function makeDeps(overrides: Partial<RatingCaptureDeps> = {}): RatingCaptureDeps
       name: "TestBot",
       fullName: "TestBot",
       displayName: "TestBot",
-      mainDAVoiceID: "",
       color: "#000000",
     })),
     getLearningCategory: mock((_content: string, _comment?: string) => "SYSTEM" as const),

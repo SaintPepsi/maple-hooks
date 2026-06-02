@@ -35,7 +35,7 @@ export function shellForPlatform(platform: string): [shell: string, flag: string
  * make the child think it is ALSO inside a parent session — which can
  * cause:
  *  - LoadContext / BranchAwareness to short-circuit on SessionStart
- *  - VoiceGate + SkillGuard to mis-detect subagent context
+ *  - SkillGuard to mis-detect subagent context
  *  - Hooks intended as standalone children to behave like nested subagents
  *
  * Always strip these before spawning.

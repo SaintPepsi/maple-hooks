@@ -1,6 +1,0 @@
-{
-  "name": "VoiceGate",
-  "description": "Voice notification routing control",
-  "hooks": ["VoiceGate"],
-  "sharedFiles": []
-}

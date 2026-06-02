@@ -8,16 +8,15 @@ Multiple end-of-session tasks each need the same transcript data. Without coordi
 
 ## Solution
 
-A single orchestrator claims the session-stop event, parses the transcript once, determines which handlers are eligible (e.g., voice only for primary sessions), and runs them all concurrently with individual error isolation. Each handler receives pre-parsed data and cannot affect the others.
+A single orchestrator claims the session-stop event, parses the transcript once, and runs all handlers concurrently with individual error isolation. Each handler receives pre-parsed data and cannot affect the others.
 
 ## How It Works
 
 1. Accept the session stop event and wait a short interval for the transcript to finish writing.
 2. Parse the transcript into a structured object (messages, roles, plain text summary).
-3. Check whether the current session is a primary session or a sub-session.
-4. Build the handler list: always include skill rebuilding and data enrichment; include voice notification only for the primary session.
-5. Run all handlers concurrently using settled-promise semantics so failures are logged but do not propagate.
-6. Return silently after all handlers complete or fail.
+3. Build the handler list: skill rebuilding and data enrichment.
+4. Run all handlers concurrently using settled-promise semantics so failures are logged but do not propagate.
+5. Return silently after all handlers complete or fail.
 
 ## Signals
 

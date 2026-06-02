@@ -26,7 +26,7 @@ import {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeNotifyCommand(message: string): string {
-  return `curl -s -X POST http://localhost:8888/notify -H 'Content-Type: application/json' -d '{"message": "${message}", "voice_id": "test"}'`;
+  return `curl -s -X POST http://localhost:8888/notify -H 'Content-Type: application/json' -d '{"message": "${message}"}'`;
 }
 
 function makeState(overrides: Partial<AlgorithmState> = {}): AlgorithmState {
@@ -57,9 +57,7 @@ function makeDeps(overrides: Partial<AlgorithmTrackerDeps> = {}): AlgorithmTrack
     effortLevelUpdate: () => {},
     fileExists: () => false,
     readJson: (<T>(_path: string) => ok({} as T)) as AlgorithmTrackerDeps["readJson"],
-    fetch: globalThis.fetch,
     baseDir: "/mock/pai",
-    voiceId: "test-voice",
     stderr: () => {},
     ...overrides,
   };
@@ -301,9 +299,9 @@ describe("AlgorithmTracker.execute — Bash", () => {
     expect(writtenState!.summary).toBeUndefined();
   });
 
-  test("detects rework transition (OBSERVE after COMPLETE with criteria) — asserts fetch body", () => {
+  test("detects rework transition (OBSERVE after COMPLETE with criteria) — logs rework", () => {
     let phaseCalled = "";
-    let fetchBody = "";
+    const logs: string[] = [];
     const completeState = makeState({
       currentPhase: "COMPLETE",
       criteria: [
@@ -318,29 +316,24 @@ describe("AlgorithmTracker.execute — Bash", () => {
       reworkCount: 1,
     });
 
-    const mockFetch = ((_url: RequestInfo | URL, init?: RequestInit) => {
-      fetchBody = (init?.body as string) ?? "";
-      return Promise.resolve(new Response());
-    }) as typeof globalThis.fetch;
-
     const deps = makeDeps({
       readState: () => completeState,
       phaseTransition: (_sid, phase) => {
         phaseCalled = phase;
       },
-      fetch: mockFetch,
+      stderr: (msg) => logs.push(msg),
     });
 
     const input = makeBashInput(makeNotifyCommand("Entering the OBSERVE phase"));
     const result = AlgorithmTracker.execute(input, deps);
     expect(result.ok).toBe(true);
     expect(phaseCalled).toBe("OBSERVE");
-    expect(fetchBody).toContain("Rework iteration");
+    expect(logs.some((m) => m.includes("REWORK detected — iteration 1"))).toBe(true);
   });
 
   test("detects rework transition after LEARN phase with criteria", () => {
     let phaseCalled = "";
-    let fetchBody = "";
+    const logs: string[] = [];
     const learnState = makeState({
       currentPhase: "LEARN",
       criteria: [
@@ -355,28 +348,23 @@ describe("AlgorithmTracker.execute — Bash", () => {
       reworkCount: 2,
     });
 
-    const mockFetch = ((_url: RequestInfo | URL, init?: RequestInit) => {
-      fetchBody = (init?.body as string) ?? "";
-      return Promise.resolve(new Response());
-    }) as typeof globalThis.fetch;
-
     const deps = makeDeps({
       readState: () => learnState,
       phaseTransition: (_sid, phase) => {
         phaseCalled = phase;
       },
-      fetch: mockFetch,
+      stderr: (msg) => logs.push(msg),
     });
 
     const input = makeBashInput(makeNotifyCommand("Entering the OBSERVE phase"));
     AlgorithmTracker.execute(input, deps);
     expect(phaseCalled).toBe("OBSERVE");
-    expect(fetchBody).toContain("Rework iteration");
+    expect(logs.some((m) => m.includes("REWORK detected — iteration 2"))).toBe(true);
   });
 
   test("detects rework transition after IDLE phase with criteria", () => {
     let phaseCalled = "";
-    let fetchBody = "";
+    const logs: string[] = [];
     const idleState = makeState({
       currentPhase: "IDLE",
       criteria: [
@@ -391,23 +379,18 @@ describe("AlgorithmTracker.execute — Bash", () => {
       reworkCount: 1,
     });
 
-    const mockFetch = ((_url: RequestInfo | URL, init?: RequestInit) => {
-      fetchBody = (init?.body as string) ?? "";
-      return Promise.resolve(new Response());
-    }) as typeof globalThis.fetch;
-
     const deps = makeDeps({
       readState: () => idleState,
       phaseTransition: (_sid, phase) => {
         phaseCalled = phase;
       },
-      fetch: mockFetch,
+      stderr: (msg) => logs.push(msg),
     });
 
     const input = makeBashInput(makeNotifyCommand("Entering the OBSERVE phase"));
     AlgorithmTracker.execute(input, deps);
     expect(phaseCalled).toBe("OBSERVE");
-    expect(fetchBody).toContain("Rework iteration");
+    expect(logs.some((m) => m.includes("REWORK detected — iteration 1"))).toBe(true);
   });
 
   test("skips when no session_id", () => {
@@ -827,7 +810,7 @@ describe("AlgorithmTracker.execute — edge cases", () => {
 
   // E09: Rework via summary-only (no criteria but has summary)
   test("detects rework when state has summary but no criteria", () => {
-    let fetchBody = "";
+    const logs: string[] = [];
     const summaryState = makeState({
       currentPhase: "COMPLETE",
       criteria: [],
@@ -835,20 +818,15 @@ describe("AlgorithmTracker.execute — edge cases", () => {
       reworkCount: 1,
     });
 
-    const mockFetch = ((_url: RequestInfo | URL, init?: RequestInit) => {
-      fetchBody = (init?.body as string) ?? "";
-      return Promise.resolve(new Response());
-    }) as typeof globalThis.fetch;
-
     const deps = makeDeps({
       readState: () => summaryState,
       phaseTransition: () => {},
-      fetch: mockFetch,
+      stderr: (msg) => logs.push(msg),
     });
 
     const input = makeBashInput(makeNotifyCommand("Entering the OBSERVE phase"));
     AlgorithmTracker.execute(input, deps);
-    expect(fetchBody).toContain("Rework iteration");
+    expect(logs.some((m) => m.includes("REWORK detected — iteration 1"))).toBe(true);
   });
 
   // E10: TaskUpdate missing taskId or status is a no-op

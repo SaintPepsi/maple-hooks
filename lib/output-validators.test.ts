@@ -1,5 +1,5 @@
 /**
- * Tests for output-validators.ts — Voice and tab title validation utilities.
+ * Tests for output-validators.ts — tab title validation utilities.
  */
 import { describe, expect, it } from "bun:test";
 import {
@@ -7,112 +7,12 @@ import {
   getCompletionFallback,
   getQuestionFallback,
   getTabFallback,
-  getVoiceFallback,
   getWorkingFallback,
   isValidCompletionTitle,
   isValidQuestionTitle,
   isValidTabSummary,
-  isValidVoiceCompletion,
   isValidWorkingTitle,
 } from "@hooks/lib/output-validators";
-
-// ─── isValidVoiceCompletion ──────────────────────────────────────────────────
-
-describe("isValidVoiceCompletion", () => {
-  describe("rejects empty/short input", () => {
-    it("rejects empty string", () => {
-      expect(isValidVoiceCompletion("")).toBe(false);
-    });
-
-    it("rejects string shorter than 10 chars", () => {
-      expect(isValidVoiceCompletion("Too short")).toBe(false);
-    });
-  });
-
-  describe("rejects single-word blocklist items", () => {
-    it("rejects 'ready'", () => {
-      expect(isValidVoiceCompletion("ready")).toBe(false);
-    });
-
-    it("rejects 'done'", () => {
-      expect(isValidVoiceCompletion("done")).toBe(false);
-    });
-
-    it("rejects 'processing'", () => {
-      expect(isValidVoiceCompletion("processing")).toBe(false);
-    });
-  });
-
-  describe("rejects garbage patterns", () => {
-    it("rejects 'I appreciate your help with this'", () => {
-      expect(isValidVoiceCompletion("I appreciate your help with this")).toBe(false);
-    });
-
-    it("rejects 'Thank you for your patience here'", () => {
-      expect(isValidVoiceCompletion("Thank you for your patience here")).toBe(false);
-    });
-
-    it("rejects 'Happy to help you with anything'", () => {
-      expect(isValidVoiceCompletion("Happy to help you with anything")).toBe(false);
-    });
-
-    it("rejects 'Let me know if you need more help'", () => {
-      expect(isValidVoiceCompletion("Let me know if you need more help")).toBe(false);
-    });
-
-    it("rejects 'Feel free to ask me anything else'", () => {
-      expect(isValidVoiceCompletion("Feel free to ask me anything else")).toBe(false);
-    });
-  });
-
-  describe("rejects conversational starters", () => {
-    it("rejects 'I'm working on the implementation now'", () => {
-      expect(isValidVoiceCompletion("I'm working on the implementation now")).toBe(false);
-    });
-
-    it("rejects 'Sure, I can handle that for you'", () => {
-      expect(isValidVoiceCompletion("Sure, I can handle that for you")).toBe(false);
-    });
-
-    it("rejects 'Got it, will do that right away'", () => {
-      expect(isValidVoiceCompletion("Got it, will do that right away")).toBe(false);
-    });
-
-    it("rejects 'Done.' as conversational starter", () => {
-      expect(isValidVoiceCompletion("Done.")).toBe(false);
-    });
-  });
-
-  describe("rejects short text with ready/hello", () => {
-    it("rejects short text containing 'ready'", () => {
-      expect(isValidVoiceCompletion("System is ready now")).toBe(false);
-    });
-
-    it("rejects short text containing 'hello'", () => {
-      expect(isValidVoiceCompletion("hello there, how are you")).toBe(false);
-    });
-  });
-
-  describe("accepts valid completions", () => {
-    it("accepts factual summary longer than 10 chars", () => {
-      expect(isValidVoiceCompletion("Refactored the authentication module to use JWT tokens")).toBe(
-        true,
-      );
-    });
-
-    it("accepts technical description", () => {
-      expect(isValidVoiceCompletion("Deployed the new database migration to staging")).toBe(true);
-    });
-  });
-});
-
-// ─── getVoiceFallback ────────────────────────────────────────────────────────
-
-describe("getVoiceFallback", () => {
-  it("returns empty string", () => {
-    expect(getVoiceFallback()).toBe("");
-  });
-});
 
 // ─── isValidWorkingTitle ─────────────────────────────────────────────────────
 

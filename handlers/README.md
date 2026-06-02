@@ -6,31 +6,6 @@ testability.
 
 ## Handlers
 
-### VoiceNotification.ts
-
-Sends voice completion messages to the PAI Voice Server for TTS playback.
-
-**How it works:**
-
-1. Receives a pre-parsed transcript (`ParsedTranscript`) containing the
-   extracted voice completion line from the agent's response.
-2. Validates the completion text via `isValidVoiceCompletion`. Falls back to a
-   generic message via `getVoiceFallback` if invalid.
-3. POSTs to `http://localhost:8888/notify` with the message, identity title,
-   and voice ID from settings.
-4. Logs every voice event (sent, failed, skipped) to two locations:
-   - `MEMORY/VOICE/voice-events.jsonl` (global log)
-   - `MEMORY/WORK/<session-dir>/voice.jsonl` (per-session log, when active)
-
-**Design:**
-
-- Pure handler with dependency injection (`VoiceNotificationDeps`) -- all I/O
-  (filesystem, fetch, stderr) is injectable for testing.
-- Uses Kokoro TTS exclusively via the voice server. ElevenLabs has been removed.
-- 3-second timeout on the HTTP request to avoid blocking the hook pipeline.
-- Reads the active work directory from
-  `MEMORY/STATE/current-work-<sessionId>.json` to locate the session voice log.
-
 ### AlgorithmEnrichment.ts
 
 Enriches algorithm state after response completion. Extracts task description,

@@ -177,7 +177,7 @@ describe("CLI: {runHook} template cluster appears in maple-hooks output", () => 
     expect(stdout).toContain("runHook");
   });
 
-  test("{runHook} template has at least 5 files", async () => {
+  test("{runHook} template has at least 4 files", async () => {
     const { stdout } = await runCLI([PAI_HOOKS_DIR]);
     const templateIdx = stdout.indexOf("runHook");
     expect(templateIdx).toBeGreaterThan(-1);
@@ -185,7 +185,7 @@ describe("CLI: {runHook} template cluster appears in maple-hooks output", () => 
     const match = afterTemplate.match(/(\d+) files,/);
     expect(match).not.toBeNull();
     const count = parseInt(match![1], 10);
-    expect(count).toBeGreaterThanOrEqual(5);
+    expect(count).toBeGreaterThanOrEqual(4);
   });
 });
 

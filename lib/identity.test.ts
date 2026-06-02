@@ -1,8 +1,7 @@
 /**
  * Tests for lib/identity.ts — Central Identity Loader
  *
- * Exercises the voices/personality paths with properly typed data,
- * and verifies the Deps injection pattern works correctly.
+ * Verifies the Deps injection pattern works correctly.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
@@ -15,13 +14,8 @@ import {
   getIdentity,
   getPrincipal,
   getPrincipalName,
-  getVoiceId,
-  getVoicePersonality,
-  getVoiceProsody,
   type IdentityDeps,
   type Settings,
-  type VoicePersonality,
-  type VoiceProsody,
 } from "@hooks/lib/identity";
 
 // Global cache cleanup — ensures no cache leaks between describe blocks
@@ -66,10 +60,7 @@ describe("getIdentity", () => {
     expect(identity.name).toBe("PAI");
     expect(identity.fullName).toBe("Personal AI");
     expect(identity.displayName).toBe("PAI");
-    expect(identity.mainDAVoiceID).toBe("");
     expect(identity.color).toBe("#3B82F6");
-    expect(identity.voice).toBeUndefined();
-    expect(identity.personality).toBeUndefined();
   });
 
   it("returns defaults when settings has no daidentity", () => {
@@ -113,69 +104,6 @@ describe("getIdentity", () => {
     const identity = getIdentity(deps);
     expect(identity.fullName).toBe("Ren");
     expect(identity.displayName).toBe("Ren");
-  });
-
-  it("reads voices.main for voiceId and voice prosody", () => {
-    const prosody: VoiceProsody = {
-      stability: 0.5,
-      similarity_boost: 0.8,
-      style: 0.3,
-      speed: 1.0,
-      use_speaker_boost: true,
-    };
-    const deps = makeDeps({
-      daidentity: {
-        name: "Maple",
-        voices: {
-          main: { voiceId: "voice-123", ...prosody },
-        },
-      },
-    });
-    const identity = getIdentity(deps);
-    expect(identity.mainDAVoiceID).toBe("voice-123");
-    expect(identity.voice).toBeDefined();
-    expect(identity.voice?.stability).toBe(0.5);
-    expect(identity.voice?.use_speaker_boost).toBe(true);
-  });
-
-  it("falls back mainDAVoiceID to direct field when no voices.main", () => {
-    const deps = makeDeps({
-      daidentity: {
-        name: "Maple",
-        mainDAVoiceID: "legacy-id",
-      },
-    });
-    const identity = getIdentity(deps);
-    expect(identity.mainDAVoiceID).toBe("legacy-id");
-    expect(identity.voice).toBeUndefined();
-  });
-
-  it("reads personality from daidentity", () => {
-    const personality: VoicePersonality = {
-      baseVoice: "warm",
-      enthusiasm: 0.8,
-      energy: 0.7,
-      expressiveness: 0.9,
-      resilience: 0.6,
-      composure: 0.5,
-      optimism: 0.8,
-      warmth: 0.9,
-      formality: 0.3,
-      directness: 0.7,
-      precision: 0.8,
-      curiosity: 0.9,
-      playfulness: 0.6,
-    };
-    const deps = makeDeps({
-      daidentity: {
-        name: "Maple",
-        personality,
-      },
-    });
-    const identity = getIdentity(deps);
-    expect(identity.personality).toBeDefined();
-    expect(identity.personality?.baseVoice).toBe("warm");
-    expect(identity.personality?.warmth).toBe(0.9);
   });
 
   it("caches settings across calls with same deps", () => {
@@ -244,55 +172,6 @@ describe("convenience functions", () => {
   it("getPrincipalName returns the principal name", () => {
     const deps = makeDeps({ principal: { name: "TestUser" } });
     expect(getPrincipalName(deps)).toBe("TestUser");
-  });
-
-  it("getVoiceId returns the voice ID", () => {
-    const deps = makeDeps({
-      daidentity: {
-        voices: { main: { voiceId: "v-1" } },
-      },
-    });
-    expect(getVoiceId(deps)).toBe("v-1");
-  });
-
-  it("getVoiceProsody returns prosody settings", () => {
-    const prosody: VoiceProsody = {
-      stability: 0.5,
-      similarity_boost: 0.8,
-      style: 0.3,
-      speed: 1.0,
-      use_speaker_boost: false,
-    };
-    const deps = makeDeps({
-      daidentity: {
-        voices: { main: { voiceId: "v-1", ...prosody } },
-      },
-    });
-    const result = getVoiceProsody(deps);
-    expect(result).toBeDefined();
-    expect(result?.stability).toBe(0.5);
-  });
-
-  it("getVoicePersonality returns personality settings", () => {
-    const personality: VoicePersonality = {
-      baseVoice: "calm",
-      enthusiasm: 0.5,
-      energy: 0.5,
-      expressiveness: 0.5,
-      resilience: 0.5,
-      composure: 0.5,
-      optimism: 0.5,
-      warmth: 0.5,
-      formality: 0.5,
-      directness: 0.5,
-      precision: 0.5,
-      curiosity: 0.5,
-      playfulness: 0.5,
-    };
-    const deps = makeDeps({ daidentity: { personality } });
-    const result = getVoicePersonality(deps);
-    expect(result).toBeDefined();
-    expect(result?.baseVoice).toBe("calm");
   });
 });
 

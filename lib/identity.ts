@@ -11,48 +11,13 @@ import { fileExists as adapterFileExists, readJson } from "@hooks/core/adapters/
 import type { ResultError } from "@hooks/core/error";
 import type { Result } from "@hooks/core/result";
 
-// ─── Voice Types ────────────────────────────────────────────────────────────
-
-export interface VoiceProsody {
-  stability: number;
-  similarity_boost: number;
-  style: number;
-  speed: number;
-  use_speaker_boost: boolean;
-}
-
-export interface VoicePersonality {
-  baseVoice: string;
-  enthusiasm: number;
-  energy: number;
-  expressiveness: number;
-  resilience: number;
-  composure: number;
-  optimism: number;
-  warmth: number;
-  formality: number;
-  directness: number;
-  precision: number;
-  curiosity: number;
-  playfulness: number;
-}
-
-// ─── Voice Config (what lives under voices.main in settings) ────────────────
-
-export interface VoiceConfig extends Partial<VoiceProsody> {
-  voiceId?: string;
-}
-
 // ─── DA Identity Config (what lives under daidentity in settings.json) ──────
 
 export interface DAIdentityConfig {
   name?: string;
   fullName?: string;
   displayName?: string;
-  mainDAVoiceID?: string;
   color?: string;
-  voices?: Record<string, VoiceConfig>;
-  personality?: VoicePersonality;
 }
 
 // ─── Public Types ───────────────────────────────────────────────────────────
@@ -61,10 +26,7 @@ export interface Identity {
   name: string;
   fullName: string;
   displayName: string;
-  mainDAVoiceID: string;
   color: string;
-  voice?: VoiceProsody;
-  personality?: VoicePersonality;
 }
 
 export interface Principal {
@@ -93,7 +55,6 @@ const DEFAULT_IDENTITY: Identity = {
   name: "PAI",
   fullName: "Personal AI",
   displayName: "PAI",
-  mainDAVoiceID: "",
   color: "#3B82F6",
 };
 
@@ -134,27 +95,6 @@ function loadSettings(deps: IdentityDeps): Settings {
   return cachedSettings;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-/**
- * Extract VoiceProsody from a VoiceConfig, returning undefined if any
- * required field is missing. No type casts needed — we validate each field.
- */
-function extractProsody(config: VoiceConfig | undefined): VoiceProsody | undefined {
-  if (!config) return undefined;
-  const { stability, similarity_boost, style, speed, use_speaker_boost } = config;
-  if (
-    stability === undefined ||
-    similarity_boost === undefined ||
-    style === undefined ||
-    speed === undefined ||
-    use_speaker_boost === undefined
-  ) {
-    return undefined;
-  }
-  return { stability, similarity_boost, style, speed, use_speaker_boost };
-}
-
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
@@ -164,18 +104,11 @@ export function getIdentity(deps: IdentityDeps = defaultDeps): Identity {
   const settings = loadSettings(deps);
   const daidentity: DAIdentityConfig = settings.daidentity ?? {};
 
-  const voices = daidentity.voices ?? {};
-  const voiceConfig = voices.main;
-
   return {
     name: daidentity.name ?? DEFAULT_IDENTITY.name,
     fullName: daidentity.fullName ?? daidentity.name ?? DEFAULT_IDENTITY.fullName,
     displayName: daidentity.displayName ?? daidentity.name ?? DEFAULT_IDENTITY.displayName,
-    mainDAVoiceID:
-      voiceConfig?.voiceId ?? daidentity.mainDAVoiceID ?? DEFAULT_IDENTITY.mainDAVoiceID,
     color: daidentity.color ?? DEFAULT_IDENTITY.color,
-    voice: extractProsody(voiceConfig),
-    personality: daidentity.personality,
   };
 }
 
@@ -215,13 +148,6 @@ export function getPrincipalName(deps: IdentityDeps = defaultDeps): string {
 }
 
 /**
- * Get just the voice ID (convenience function)
- */
-export function getVoiceId(deps: IdentityDeps = defaultDeps): string {
-  return getIdentity(deps).mainDAVoiceID;
-}
-
-/**
  * Get the full settings object (for advanced use)
  */
 export function getSettings(deps: IdentityDeps = defaultDeps): Settings {
@@ -240,20 +166,4 @@ export function getDefaultIdentity(): Identity {
  */
 export function getDefaultPrincipal(): Principal {
   return { ...DEFAULT_PRINCIPAL };
-}
-
-/**
- * Get voice prosody settings (convenience function) - legacy ElevenLabs
- */
-export function getVoiceProsody(deps: IdentityDeps = defaultDeps): VoiceProsody | undefined {
-  return getIdentity(deps).voice;
-}
-
-/**
- * Get voice personality settings (convenience function) - Qwen3-TTS
- */
-export function getVoicePersonality(
-  deps: IdentityDeps = defaultDeps,
-): VoicePersonality | undefined {
-  return getIdentity(deps).personality;
 }

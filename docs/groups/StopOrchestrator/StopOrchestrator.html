@@ -1807,16 +1807,15 @@ Multiple end-of-session tasks each need the same transcript data. Without coordi
 
 ## Solution
 
-A single orchestrator claims the session-stop event, parses the transcript once, determines which handlers are eligible (e.g., voice only for primary sessions), and runs them all concurrently with individual error isolation. Each handler receives pre-parsed data and cannot affect the others.
+A single orchestrator claims the session-stop event, parses the transcript once, and runs all handlers concurrently with individual error isolation. Each handler receives pre-parsed data and cannot affect the others.
 
 ## How It Works
 
 1. Accept the session stop event and wait a short interval for the transcript to finish writing.
 2. Parse the transcript into a structured object (messages, roles, plain text summary).
-3. Check whether the current session is a primary session or a sub-session.
-4. Build the handler list: always include skill rebuilding and data enrichment; include voice notification only for the primary session.
-5. Run all handlers concurrently using settled-promise semantics so failures are logged but do not propagate.
-6. Return silently after all handlers complete or fail.
+3. Build the handler list: skill rebuilding and data enrichment.
+4. Run all handlers concurrently using settled-promise semantics so failures are logged but do not propagate.
+5. Return silently after all handlers complete or fail.
 
 ## Signals
 
@@ -1835,8 +1834,7 @@ A single orchestrator claims the session-stop event, parses the transcript once,
         <div class="card-icon">&#x1F4CB;</div>
         <h3>Overview</h3>
       </div>
-      <p>StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to handlers in parallel: VoiceNotification, RebuildSkill, and AlgorithmEnrichment.</p>
-      <p>Voice notifications are only enabled for main terminal sessions, preventing subagent sessions from triggering speech output.</p>
+      <p>StopOrchestrator is the single entry point for all Stop event processing. Rather than having multiple independent hooks parse the transcript separately, it reads and parses the transcript once, then distributes the parsed data to handlers in parallel: RebuildSkill and AlgorithmEnrichment.</p>
     </div>
   </section>
 
@@ -1886,16 +1884,10 @@ A single orchestrator claims the session-stop event, parses the transcript once,
 
         <div class="flow-step">
           <div class="step-dot">3</div>
-          <div class="step-content"><p>Determines if this is a main session (always true; subagent filtering is handled upstream)</p></div>
-        </div>
-
-        <div class="flow-step">
-          <div class="step-dot">4</div>
           <div class="step-content"><p>Runs handlers in parallel via <code>Promise.allSettled</code>:</p></div>
         </div>
 </div>
-      <div class="reason"><span class="ri">&#x2022;</span> <strong>VoiceNotification</strong> (main sessions only): Speaks the completion summary via TTS</div>
-<div class="reason"><span class="ri">&#x2022;</span> <strong>RebuildSkill</strong>: Checks if skills need rebuilding</div>
+      <div class="reason"><span class="ri">&#x2022;</span> <strong>RebuildSkill</strong>: Checks if skills need rebuilding</div>
 <div class="reason"><span class="ri">&#x2022;</span> <strong>AlgorithmEnrichment</strong>: Enriches algorithm state from the response</div>
       <div class="flow-steps">
         <div class="flow-step">
@@ -1917,7 +1909,6 @@ const handlers = [
   deps.handleRebuildSkill(),
   deps.handleAlgorithmEnrichment(parsed, input.session_id),
 ];
-if (voiceEnabled) handlers.unshift(deps.handleVoice(parsed, input.session_id));
 await Promise.allSettled(handlers);</div>
         </div>
       </div>
@@ -1932,17 +1923,17 @@ await Promise.allSettled(handlers);</div>
         <h3>Examples</h3>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Main session with voice</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 1: Response completes</h3>
       
       <div class="uc-example">
-        <div>Claude completes a response in the main terminal session. StopOrchestrator parses the transcript and runs all three handlers. VoiceNotification speaks "Refactoring complete, 3 of 5 criteria satisfied", RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.</div>
+        <div>Claude completes a response. StopOrchestrator parses the transcript and runs both handlers. RebuildSkill checks for stale skills, and AlgorithmEnrichment processes the response.</div>
       </div>
       </div>
       <div style="margin-top: 20px;">
-      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Subagent session (no voice)</h3>
+      <h3 style="color: var(--green); margin-bottom: 12px;">Example 2: Missing transcript</h3>
       
       <div class="uc-example">
-        <div>A spawned subagent (e.g., from ArticleWriter) completes a response. StopOrchestrator parses the transcript. Since <code>isMainSession</code> always returns true now, voice is enabled for all sessions — but subagents are filtered upstream before this hook runs.</div>
+        <div>A Stop event arrives without a <code>transcript_path</code>. <code>accepts()</code> returns false and the orchestrator does nothing.</div>
       </div>
       </div>
     </div>
@@ -1960,7 +1951,6 @@ await Promise.allSettled(handlers);</div>
         <thead><tr><th>Dependency</th><th>Type</th><th>Purpose</th></tr></thead>
         <tbody>
           <tr><td><code>TranscriptParser</code></td><td>tool</td><td>Parses JSONL transcript into structured completion data</td></tr>
-          <tr><td><code>handlers/VoiceNotification</code></td><td>handler</td><td>TTS announcement of completion summaries</td></tr>
           <tr><td><code>handlers/RebuildSkill</code></td><td>handler</td><td>Checks and rebuilds stale skills</td></tr>
           <tr><td><code>handlers/AlgorithmEnrichment</code></td><td>handler</td><td>Enriches algorithm state from responses</td></tr>
           <tr><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>SDK</td><td><code>SyncHookJSONOutput</code> return type; Stop silent no-op via <code>ok({})</code> (R8 shape, post-SDK-refactor 1V, replaces legacy <code>SilentOutput</code>)</td></tr>

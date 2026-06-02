@@ -1,9 +1,0 @@
-{
-  "name": "VoiceGate",
-  "group": "VoiceGate",
-  "event": "PreToolUse",
-  "description": "Block voice notification curls from subagent sessions",
-  "schemaVersion": 1,
-  "tags": ["safety"],
-  "presets": ["full"]
-}

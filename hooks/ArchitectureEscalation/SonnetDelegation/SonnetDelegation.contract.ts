@@ -55,8 +55,7 @@ Independent mechanical steps may be dispatched in parallel.
 **ANTI-REQUIREMENTS:**
 - Sonnet NEVER makes architectural decisions
 - Sonnet NEVER modifies ISC criteria or PRD content
-- Opus verifies every Sonnet output before marking step complete
-- Sonnet NEVER executes voice curls`;
+- Opus verifies every Sonnet output before marking step complete`;
 
 // ─── Default Deps ────────────────────────────────────────────────────────────
 

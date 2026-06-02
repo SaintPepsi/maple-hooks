@@ -19,13 +19,12 @@ describe("safeFetch", () => {
     if (!r.ok) expect(r.error.code).toBe(ErrorCode.FetchFailed);
   });
 
-  it("returns result with status for successful fetch", async () => {
-    // Use a known endpoint — the voice server that's typically running
-    const r = await safeFetch("http://localhost:8888/health", {
+  it("returns a Result (never throws) regardless of endpoint reachability", async () => {
+    // Probe a local port that may or may not have a listener. The adapter must
+    // always return a Result — a value on success, an error on failure.
+    const r = await safeFetch("http://localhost:8123/health", {
       timeout: 2000,
     });
-    // If voice server is running, we get a response. If not, we get a fetch error.
-    // Either way the adapter should return a Result, not throw.
     if (r.ok) {
       expect(r.value.status).toBeGreaterThanOrEqual(200);
       expect(typeof r.value.body).toBe("string");
