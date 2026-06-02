@@ -59,4 +59,6 @@ return ok({
 
 ## History
 
+> **2026-06-02 — Voice server removal:** The delegation guidance's anti-requirements list dropped the `Sonnet NEVER executes voice curls` line. The voice server it referenced no longer exists, so the constraint was dead guidance. No behavioural change — the remaining anti-requirements (no architectural decisions, no ISC/PRD edits) are unaffected.
+
 > **2026-04-11 — SDK Type Foundation (1M):** The delegation guidance injection at `SonnetDelegation.contract.ts:84` was using `continueOk(DELEGATION_GUIDANCE)` which routed `additionalContext` at the top level of the hook output. Claude Code's SDK silently dropped this field on PostToolUse. 9th instance of the same bug class found in this refactor. The fix routes `DELEGATION_GUIDANCE` through `hookSpecificOutput.additionalContext` with `hookEventName: "PostToolUse"`. Behaviour change: loading the `executing-plans` skill now actually delivers the Sonnet delegation guidance to Opus. Previously, the stderr log fired and metrics recorded the injection, but the classified instructions were never received by the model.
