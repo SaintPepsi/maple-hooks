@@ -151,6 +151,15 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/PostEditCommit/PostEditCommit.ts"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
             "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
           }
         ]
