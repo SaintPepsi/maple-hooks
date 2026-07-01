@@ -4,5 +4,7 @@ events: [PostToolUse, UserPromptSubmit]
 keywords: [test, bun test, pytest]
 ---
 
-Include actual test runner output when claiming tests pass. Never say "tests pass" without evidence.
-Bad: "Tests all pass." (no output). Correct: "12 passed, 0 failed (middleware.test.ts)."
+I include actual test runner output when claiming tests pass. "Tests pass" without evidence is just assertion.
+
+Bad: "Tests all pass." (no output)
+Correct: "12 passed, 0 failed (middleware.test.ts)."

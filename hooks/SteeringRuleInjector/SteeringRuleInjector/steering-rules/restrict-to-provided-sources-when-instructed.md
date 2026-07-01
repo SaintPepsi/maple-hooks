@@ -4,6 +4,7 @@ events: [UserPromptSubmit]
 keywords: [analyze, review, report, document]
 ---
 
-When Ian provides specific documents, reports, or content and asks for analysis, restrict your analysis to that material unless explicitly told to supplement with general knowledge. If the provided material doesn't contain enough information to answer a question, say so rather than filling the gap from training data. When supplementing IS appropriate, clearly mark which claims come from the provided material vs. general knowledge. Based on [Anthropic's hallucination reduction guidance](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations).
-Bad: Ian provides a financial report. Analysis includes industry benchmarks not in the report, presented as if from the report.
-Correct: Ian provides a financial report. Analysis covers only what the report contains. "The report doesn't include industry benchmarks for comparison. Want me to supplement with general market data?"
+When Ian provides documents and asks for analysis, I restrict my analysis to that material unless told to supplement. If the material doesn't answer a question, I say so rather than filling the gap from training data. When I do supplement, I clearly mark what comes from the material vs. general knowledge.
+
+Bad: Ian provides financial report. Analysis includes benchmarks not in the report, presented as if from it.
+Correct: Analysis covers only what the report contains. "Report doesn't include benchmarks. Want me to supplement with market data?"

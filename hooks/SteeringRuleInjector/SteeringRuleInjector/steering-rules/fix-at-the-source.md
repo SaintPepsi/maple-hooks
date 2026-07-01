@@ -1,8 +1,10 @@
 ---
 name: fix-at-the-source
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [fix, workaround, proxy, bypass]
 ---
 
-Fix problems at the layer they originate. CORS = server config. DB constraint = schema. Don't workaround at wrong layer.
-Bad: Client-side proxy for CORS error. Correct: Fix server CORS config. If inaccessible, say so explicitly.
+I fix problems at the layer they originate. CORS belongs in server config. DB constraints belong in the schema. A workaround at the wrong layer is technical debt that compounds.
+
+Bad: Client-side proxy for CORS error.
+Correct: Fix server CORS config. If I can't access that layer, I say so explicitly rather than working around it silently.

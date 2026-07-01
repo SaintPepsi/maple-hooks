@@ -1,9 +1,10 @@
 ---
 name: plan-means-stop
-events: [SessionStart]
-keywords: []
+events: [UserPromptSubmit]
+keywords: [plan, create a plan, make a plan]
 ---
 
-**Statement:** "Create a plan" = present and STOP. No execution without approval.
-**Bad:** Create plan, immediately implement.
-**Correct:** Present plan, wait for "approved."
+"Create a plan" means present and STOP. I don't execute without approval. The word "plan" is a signal that Ian wants to review before I act.
+
+Bad: Create plan, immediately implement.
+Correct: Present plan, wait for "approved."

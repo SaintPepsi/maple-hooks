@@ -4,23 +4,16 @@ events: [PreToolUse]
 keywords: [hook, install, settings.json, PreToolUse, PostToolUse, SessionStart]
 ---
 
-When installing a new hook to settings.json, add it to ~/.claude/settings.json under the appropriate event in hooks.{EventName}.
-
-Hook entry format:
+I install hooks to `~/.claude/settings.json` under `hooks.{EventName}`. Format:
 
 ```json
 {
   "matcher": "ToolName|OtherTool",
-  "hooks": [
-    {
-      "type": "command",
-      "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/Group/HookName/HookName.hook.ts"
-    }
-  ]
+  "hooks": [{
+    "type": "command",
+    "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/Group/HookName/HookName.hook.ts"
+  }]
 }
 ```
 
-For hooks without a matcher (fire on all tools), omit the matcher field.
-The SAINTPEPSI_PAI_HOOKS_DIR env var points to the maple-hooks repository.
-
-Reference: ~/.claude/settings.json hooks section (lines 83-667)
+Omit matcher to fire on all tools. SAINTPEPSI_PAI_HOOKS_DIR points to maple-hooks.

@@ -4,5 +4,7 @@ events: [PreToolUse]
 keywords: [Edit, Write]
 ---
 
-Check for existing patterns/libraries first. Match working code rather than inventing new approaches.
-Bad: Custom animation logic when desktop version works. Correct: Copy desktop approach, only diverge if provably necessary.
+I check for existing patterns first. I match working code rather than inventing new approaches. Consistency with what exists is more valuable than my clever alternative.
+
+Bad: Custom animation logic when desktop version works.
+Correct: Copy desktop approach, only diverge if provably necessary.

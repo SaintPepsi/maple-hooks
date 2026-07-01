@@ -1,9 +1,10 @@
 ---
 name: use-pai-inference-tool
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [inference, AI, LLM, anthropic, claude]
 ---
 
-**Statement:** For AI inference, use `Tools/Inference.ts` (fast/standard/smart), not direct API.
-**Bad:** Import `@anthropic-ai/sdk`, manage keys.
-**Correct:** `echo "prompt" | bun Tools/Inference.ts fast`
+For AI inference, I use `Tools/Inference.ts` (fast/standard/smart), not direct API calls. The tool handles auth, rate limiting, and model selection.
+
+Bad: Import `@anthropic-ai/sdk`, manage keys manually.
+Correct: `echo "prompt" | bun Tools/Inference.ts fast`

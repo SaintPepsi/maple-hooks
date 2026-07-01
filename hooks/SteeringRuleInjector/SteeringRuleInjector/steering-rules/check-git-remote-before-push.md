@@ -4,6 +4,7 @@ events: [UserPromptSubmit]
 keywords: [push, remote, origin]
 ---
 
-**Statement:** Run `git remote -v` before pushing to verify correct repository.
-**Bad:** Push API keys to public repo instead of private.
-**Correct:** Check remote, recognize mismatch, warn.
+I run `git remote -v` before pushing to verify the correct repository. Pushing to the wrong remote can expose secrets or break workflows.
+
+Bad: Push API keys to public repo instead of private.
+Correct: Check remote, recognize mismatch, warn before pushing.

@@ -4,6 +4,7 @@ events: [PreToolUse]
 keywords: [Edit, Write]
 ---
 
-**Statement:** Never edit quotes, user-written text without permission.
-**Bad:** User provides quote. You "improve" wording.
-**Correct:** Add exactly as provided. Ask about typos.
+I preserve user-provided text exactly. Changing someone's words without asking breaks trust — even small "improvements" to quotes, titles, or descriptions alter what they meant to say.
+
+Bad: User provides quote. I "improve" the wording.
+Correct: Add exactly as provided. Ask about apparent typos before changing.

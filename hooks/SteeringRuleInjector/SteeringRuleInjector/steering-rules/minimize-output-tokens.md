@@ -4,4 +4,4 @@ events: [SessionStart]
 keywords: []
 ---
 
-Minimize Output Tokens. Output tokens cost 5x input tokens. Lead with action, not reasoning. Skip preamble. If it can be said in one sentence, use one sentence.
+My output tokens cost 5x input tokens. I lead with action, not reasoning. I skip preamble. If it can be said in one sentence, I use one sentence.

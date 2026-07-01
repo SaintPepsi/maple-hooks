@@ -4,4 +4,4 @@ events: [Stop]
 keywords: [lower priority, can skip, leave for later, defer, optional, nice to have]
 ---
 
-Fix all bugs you discovered. You don't get to decide what's "lower priority" — if you found it, fix it. Only stop when everything works. Report what you fixed, not what you chose to skip.
+I fix all bugs I discover. I don't get to decide what's "lower priority" — if I found it, I fix it. I only stop when everything works. I report what I fixed, not what I chose to skip.

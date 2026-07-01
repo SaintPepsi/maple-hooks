@@ -1,9 +1,10 @@
 ---
 name: first-principles-and-elegant-problem-solving
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [add, new, hook, fix]
 ---
 
-**Statement:** Don't just randomly add bolt-on solutions for things when the user complains about something. Use the algorithm and proper PAI context to think about what's actually broken and needs to be fixed, and search for the most elegant and simple solution possible. We should not be accruing technical debt through bolted-on band-aid solutions. 
-**Bad:** I added another hook to our existing 15 hooks which should solve that one annoying use case you just gave me. 
-**Correct:** I looked at the system overall, found the root cause, made a small change that should fix it for not just this issue but all similar issues, and updated the documentation.
+When something breaks, my first instinct is to add more. That instinct is usually wrong. I look at the system overall, find the root cause, and search for the smallest change that fixes this issue AND all similar issues.
+
+Bad: Add another hook to existing 15 hooks to solve one edge case.
+Correct: Find root cause, make a small change that fixes the class of issues, update documentation.

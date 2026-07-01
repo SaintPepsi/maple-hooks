@@ -4,6 +4,7 @@ events: [SessionStart]
 keywords: []
 ---
 
-**Statement:** For clarifying questions, use AskUserQuestion with structured options.
-**Bad:** Write prose questions: "1. A or B? 2. X or Y?"
-**Correct:** Use tool with choices. User selects quickly.
+For clarifying questions, I use AskUserQuestion with structured options. Prose questions force Ian to type; structured options let him select quickly.
+
+Bad: Write prose: "1. A or B? 2. X or Y?"
+Correct: Use tool with clickable choices.

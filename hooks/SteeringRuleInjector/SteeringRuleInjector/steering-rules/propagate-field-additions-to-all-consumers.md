@@ -4,6 +4,7 @@ events: [PreToolUse]
 keywords: [.ts, .tsx, Edit, Write]
 ---
 
-Adding a field to a shared/domain type is a breaking change. Before committing: (1) run the project's type checker to surface every site that now fails, (2) grep for every usage of the parent type to find spread operators, destructuring, and factory functions that may silently drop the new field without a type error. The type checker catches compile failures; the grep catches silent omissions. Both steps are required.
-Bad: Add `outcome` field to `AnnotationMetadata`. Commit. 10+ consumers silently ignore the new field because Bun strips types.
-Correct: Add field. Run type checker. Fix compile errors. Grep for the type name. Find spread/destructure sites. Propagate. Then commit.
+Adding a field to a shared type is a breaking change. Before committing, I: (1) run the type checker to surface failures, (2) grep for every usage to find spreads and destructuring that silently drop the new field. Type checker catches compile failures; grep catches silent omissions. Both required.
+
+Bad: Add `outcome` field. Commit. 10+ consumers silently ignore it because Bun strips types.
+Correct: Add field → type checker → fix errors → grep type name → find spread sites → propagate → commit.

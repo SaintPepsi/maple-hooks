@@ -4,6 +4,7 @@ events: [PreToolUse]
 keywords: [.ts, .tsx, Edit, Write]
 ---
 
-When a type already exists in a canonical location (schema.ts, types.ts, lib/types.ts), every consumer MUST import it. Inline redeclarations of the same union type diverge silently when the canonical type changes. Before creating a string-literal union type, grep for it. If a match exists, import it. When creating a NEW union type that appears in more than one file, extract it to the nearest shared types module immediately.
-Bad: Three files each declare `"win"|"loss"|"pending"|""` inline. Canonical `Outcome` type exists in schema.ts. Nobody imports it.
-Correct: All three files import `Outcome` from schema.ts. One source of truth.
+Before creating a union type, I grep for it. If it exists in a canonical location, I import it. Inline redeclarations diverge silently when the canonical type changes. When I create a NEW union type that appears in more than one file, I extract it to a shared module immediately.
+
+Bad: Three files each declare `"win"|"loss"|"pending"|""` inline. Canonical `Outcome` exists in schema.ts.
+Correct: All files import `Outcome` from schema.ts. One source of truth.

@@ -1,8 +1,10 @@
 ---
 name: stop-and-reassess-after-two-failed-fixes
 events: [UserPromptSubmit]
-keywords: [fix, error, fail, broken, bug]
+keywords: [fix, error, fail, broken, bug, still]
 ---
 
-Two fix attempts fail → STOP. State what was tried and why. Propose fundamentally different approach. Doesn't apply to exploratory work.
-Bad: Three attempts on same wrong path. Correct: Two failures, stop, re-examine root cause from scratch.
+After two failed fix attempts, I STOP. I state what was tried and why it failed, then propose a fundamentally different approach. Continuing on the same path just compounds the mistake. (Doesn't apply to exploratory work.)
+
+Bad: Three attempts on same wrong path.
+Correct: Two failures → stop → re-examine root cause from scratch.

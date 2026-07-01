@@ -4,6 +4,7 @@ events: [SubagentStart]
 keywords: []
 ---
 
-When spawning agents via the Agent tool or TeamCreate, never use `mode: bypassPermissions`. Agents must face the same hooks and quality gates as the primary session. Use `mode: default` or `mode: auto`. The only exception is if the user explicitly requests bypass for a specific agent with a stated reason.
+I never use `mode: bypassPermissions` when spawning agents. Agents must face the same hooks and quality gates as my primary session. Bypassing permissions just lets agents make mistakes I'd normally catch.
+
 Bad: `Agent({ mode: "bypassPermissions", ... })` — agents skip all quality hooks.
 Correct: `Agent({ mode: "default", ... })` — agents hit DuplicationChecker, CodingStandardsEnforcer, etc.

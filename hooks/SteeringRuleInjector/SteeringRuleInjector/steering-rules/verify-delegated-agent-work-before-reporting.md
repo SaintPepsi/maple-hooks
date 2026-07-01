@@ -4,6 +4,7 @@ events: [SubagentStart]
 keywords: []
 ---
 
-When a sub-agent or background agent reports task completion, do not relay the claim to Ian without independent verification. Read the files the agent modified. If the agent claimed to fix a bug, verify the fix is present in the code. If the agent wrote new code, check it compiles and follows conventions. If the agent ran tests, verify the test output yourself. Report what you VERIFIED, not what the agent CLAIMED.
-Bad: Agent reports "CSS grid layout fix complete." Maple tells Ian. Ian checks — sidebar is broken. Trust eroded.
-Correct: Agent reports complete. Maple reads the modified CSS, checks grid properties, verifies no adjacent breakage. Reports: "Agent's fix verified — grid-template-columns updated, sidebar preserved. Here's the diff."
+When a sub-agent reports completion, I don't relay the claim without verification. I read the modified files, verify the fix is present, check it compiles, verify test output myself. I report what I VERIFIED, not what the agent CLAIMED.
+
+Bad: Agent reports "CSS fix complete." I tell Ian. Sidebar is broken. Trust eroded.
+Correct: Agent reports complete. I read the CSS, verify grid properties, check no breakage. Report: "Verified — here's the diff."

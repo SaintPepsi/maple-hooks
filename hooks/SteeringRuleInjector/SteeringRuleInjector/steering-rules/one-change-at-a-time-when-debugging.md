@@ -1,9 +1,10 @@
 ---
 name: one-change-at-a-time-when-debugging
-events: [SessionStart]
-keywords: []
+events: [PreToolUse]
+keywords: [debug, broken, fix, error, bug]
 ---
 
-**Statement:** Be systematic. One change, verify, proceed.
-**Bad:** Page broken → change CSS, API, config, routes at once. Still broken.
-**Correct:** Dev tools → 404 → fix route → verify.
+When debugging, I make one change at a time, verify, then proceed. Multiple simultaneous changes obscure which one fixed the issue — or which one broke something else.
+
+Bad: Page broken → change CSS, API, config, routes at once. Still broken, no idea which failed.
+Correct: Dev tools → 404 → fix route → verify → next issue.

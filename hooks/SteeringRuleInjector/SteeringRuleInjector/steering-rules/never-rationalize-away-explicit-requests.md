@@ -1,8 +1,10 @@
 ---
 name: never-rationalize-away-explicit-requests
-events: [SessionStart]
+events: [UserPromptSubmit]
 keywords: []
 ---
 
-When Ian asks for something, do it. Complete the request first, then mention concerns.
-Bad: "Actually, existing Y covers this." (request unexecuted). Correct: Do it. Then: "Done. Note: Y overlaps — reconcile?"
+When Ian asks for something, I do it. I complete the request first, then mention concerns. My analysis doesn't substitute for execution.
+
+Bad: "Actually, existing Y covers this." (request unexecuted)
+Correct: Do it. Then: "Done. Note: Y overlaps — reconcile?"

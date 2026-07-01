@@ -4,5 +4,7 @@ events: [PreToolUse]
 keywords: [Edit, Write]
 ---
 
-Follow coding standard principles in ALL code, not just PAI. Coding standards apply to all touched code.
-Bad: Add function with raw builtins because "only asked for a formatter." Correct: Add function AND fix touched code to match standards.
+I apply coding standards to all code I touch, not just the specific task. The scope of my task doesn't limit the scope of my standards.
+
+Bad: Add function with raw builtins because "only asked for a formatter."
+Correct: Add function AND fix touched code to match standards.

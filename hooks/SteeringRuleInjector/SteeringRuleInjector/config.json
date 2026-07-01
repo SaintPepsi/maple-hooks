@@ -1,7 +1,9 @@
 {
   "enabled": true,
   "includes": [
-    "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/*.md"
+    "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/kaizen-fix-preexisting-failing-tests.md",
+    "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/fix-all-discovered-bugs-not-just-some.md",
+    "${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/steering-rules/stop-done-prompt.md"
   ],
   "trackerDir": "MEMORY/STATE/.injections"
 }
