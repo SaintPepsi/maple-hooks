@@ -406,20 +406,37 @@ git commit -m "feat(PostEditCommit): pure matchWatched/commitMessage with unknow
 - Create: `hooks/GitSafety/PostEditCommit/PostEditCommit.ts`
 - Create: `hooks/GitSafety/PostEditCommit/doc.md`
 
-**Step 1: Write the entry (the whole hook — no DI)**
+**Config-driven watched list.** The watched files are configuration, not a constant — they live in `settings.json` under `hookConfig.postEditCommit.files` and are read via the maple-hooks convention `readHookConfig(hookName, schema)` (`lib/hook-config.ts`). `WATCHED` (Task 4) is demoted to the built-in **default** used when the hook is unconfigured. Add a pure `resolveWatched(configFiles)` helper to `logic.ts` (+ test): returns `configFiles` when it's a non-empty array, else `WATCHED`. `matchWatched` stays pure — only the source of its `watched` argument changes.
+
+`logic.ts` addition:
 
 ```typescript
-import { Effect } from "effect";
+/** The configured watch list, or the built-in default when unset/empty. Pure. */
+export function resolveWatched(configFiles: readonly string[] | undefined): readonly string[] {
+  return configFiles && configFiles.length > 0 ? configFiles : WATCHED;
+}
+```
+
+**Step 1: Write the entry (the whole hook — no DI, config from settings.json)**
+
+```typescript
+import { Effect, Schema } from "effect";
 import { git, hasStagedChange } from "@hooks/core/effect/git";
 import { runHook } from "@hooks/core/effect/run";
+import { readHookConfig } from "@hooks/lib/hook-config";
 import { getPaiDir } from "@hooks/lib/paths";
-import { WATCHED, commitMessage, matchWatched } from "./logic";
+import { commitMessage, matchWatched, resolveWatched } from "./logic";
 
 const CLAUDE_DIR = getPaiDir();
 
+// Config lives in settings.json under hookConfig.postEditCommit.files; falls back to the default.
+const ConfigSchema = Schema.Struct({ files: Schema.optional(Schema.Array(Schema.String)) });
+const cfg = readHookConfig("postEditCommit", ConfigSchema);
+const files = resolveWatched(cfg.ok ? cfg.value.files : undefined);
+
 runHook("PostToolUse", (input) =>
   Effect.gen(function* () {
-    const rel = matchWatched(input.tool_input.file_path, WATCHED, CLAUDE_DIR);
+    const rel = matchWatched(input.tool_input.file_path, files, CLAUDE_DIR);
     if (!rel) return; // not an identity file → silent no-op
     yield* git(["add", "--", rel]);
     if (yield* hasStagedChange(rel)) {
