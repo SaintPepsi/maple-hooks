@@ -1,23 +1,25 @@
+import { dirname } from "node:path";
+
 /**
- * Normalize a path to repo-relative under `claudeDir`. Accepts three input forms:
- *   1. repo-relative  — `"CLAUDE.md"`            → `"CLAUDE.md"`
- *   2. absolute        — `"<claudeDir>/CLAUDE.md"` → `"CLAUDE.md"`
- *   3. `~/`-prefixed   — `"~/CLAUDE.md"`          → `"CLAUDE.md"`
- * Returns null if the path resolves OUTSIDE `claudeDir`, or to `claudeDir` itself
- * (the repo root is not a watchable file — and an empty rel would make a later
- * `git add -- ""` stage the whole repo). It can't be committed from that repo.
+ * Normalize a path to repo-relative under `claudeDir`. Accepts three forms:
+ *   1. repo-relative — `"CLAUDE.md"`                    → `"CLAUDE.md"`
+ *   2. `~/`-prefixed — `"~/.claude/CLAUDE.md"`          → `"CLAUDE.md"`
+ *   3. absolute      — `"/Users/you/.claude/CLAUDE.md"` → `"CLAUDE.md"`
  *
- * IMPORTANT: `~/` expands to `claudeDir` itself (which IS `~/.claude`), so
- * `~/CLAUDE.md` → `<claudeDir>/CLAUDE.md` ✓ but `~/.claude/CLAUDE.md` →
- * `<claudeDir>/.claude/CLAUDE.md` ✗ (a nonexistent nested `.claude`). To write a
- * literal home path, use the absolute form (`/Users/you/.claude/CLAUDE.md`) or
- * plain repo-relative (`CLAUDE.md`). The `~/` form means `~/<repo-relative>`.
+ * `~` expands to the home dir (the parent of `claudeDir`), so the natural,
+ * portable `~/.claude/...` form resolves correctly and — unlike an absolute
+ * path — never bakes a username into committed config.
+ *
+ * Returns null if the path resolves OUTSIDE `claudeDir`, or to `claudeDir`
+ * itself (the repo root is not a watchable file — an empty rel would make a
+ * later `git add -- ""` stage the whole repo).
  *
  * Pure. macOS/Linux paths.
  */
 export function toRepoRel(path: string, claudeDir: string): string | null {
+  const home = dirname(claudeDir);
   const abs = path.startsWith("~/")
-    ? claudeDir + path.slice(1)
+    ? home + path.slice(1)
     : path.startsWith("/")
       ? path
       : `${claudeDir}/${path}`;

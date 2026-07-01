@@ -8,9 +8,9 @@ PostToolUse (matcher: `Write|Edit`).
 After any Write or Edit whose target is one of the watched files: `CLAUDE.md`, `souls/maple/SOUL.md`, `souls/maple/STYLE.md`. Any other path is a silent no-op.
 
 The watched list entries (and the incoming `file_path`) may each be written in any of three forms — all normalized to repo-relative before comparison, so they match regardless of form:
+- `~/`-prefixed (recommended — clear and portable) — `~/.claude/souls/maple/STYLE.md`. `~` expands to `$HOME`, so this resolves under the `.claude` dir without baking a username into config.
 - repo-relative — `souls/maple/STYLE.md`
-- absolute under the `.claude` dir — `/Users/you/.claude/souls/maple/STYLE.md`
-- `~/`-prefixed — `~/souls/maple/STYLE.md` (`~/` expands to the `.claude` dir; write a literal home path as absolute or repo-relative, not `~/.claude/...`)
+- absolute — `/Users/you/.claude/souls/maple/STYLE.md` (works, but hardcodes the home dir — avoid in committed config)
 
 ## What It Does
 1. Decodes the PostToolUse input.

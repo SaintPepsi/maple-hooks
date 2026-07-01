@@ -8,8 +8,11 @@ describe("matchWatched", () => {
   it("returns the rel path for a watched file (absolute)", () => {
     expect(matchWatched(`${DIR}/souls/maple/STYLE.md`, FILES, DIR)).toBe("souls/maple/STYLE.md");
   });
-  it("expands a leading ~", () => {
-    expect(matchWatched("~/CLAUDE.md", FILES, DIR)).toBe("CLAUDE.md");
+  it("matches a `~/.claude/...` input (tilde expands to home)", () => {
+    expect(matchWatched("~/.claude/CLAUDE.md", FILES, DIR)).toBe("CLAUDE.md");
+  });
+  it("matches an absolute input against a `~/.claude/...` watched entry", () => {
+    expect(matchWatched(`${DIR}/CLAUDE.md`, ["~/.claude/CLAUDE.md"], DIR)).toBe("CLAUDE.md");
   });
   it("matches an absolute input against a relative watched entry", () => {
     // watched written relative, input arrives absolute → both normalize equal.
