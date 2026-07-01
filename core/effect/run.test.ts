@@ -30,4 +30,15 @@ describe("buildPipeline", () => {
     );
     expect(exit._tag).toBe("Right"); // resolved, not failed
   });
+
+  it("never rejects when the program throws a defect (fail-open)", async () => {
+    const exit = await Effect.runPromise(
+      buildPipeline("PostToolUse", SAMPLE, () =>
+        Effect.sync(() => {
+          throw new Error("boom");
+        }),
+      ).pipe(Effect.either),
+    );
+    expect(exit._tag).toBe("Right"); // defect swallowed, not rejected
+  });
 });

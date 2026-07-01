@@ -18,10 +18,14 @@ export function buildPipeline<E extends HookEvent, Err>(
   // Cast the union-indexed schema to a concrete (R = never) schema: the registry
   // only ever holds context-free Schema.Structs, but TS can't prove that through
   // the generic index, so decode's requirements channel would otherwise widen.
+  // (Typing SCHEMAS itself as `Schema.Schema<InputOf<K>>` does NOT fix this — the
+  //  generic index access re-widens R to `unknown` — so the cast lives here.)
   const schema = SCHEMAS[event] as unknown as Schema.Schema<InputOf<E>>;
   return Schema.decodeUnknown(Schema.parseJson(schema))(raw).pipe(
     Effect.flatMap((input) => program(input)),
-    Effect.catchAll(() => Effect.void),
+    // catchAllCause (not catchAll) so DEFECTS/dies from `program` are swallowed
+    // too — otherwise a thrown error would escape the `never` channel and reject.
+    Effect.catchAllCause(() => Effect.void),
   );
 }
 
@@ -40,8 +44,11 @@ export function runHook<E extends HookEvent, Err>(
     yield* buildPipeline(event, raw.value, program);
   });
 
-  void Effect.runPromise(main).then(() => {
+  // Finalize on BOTH settle paths (resolve and reject): even an unexpected
+  // rejection still writes `{}` and exits 0 — the fail-open guarantee.
+  const finish = () => {
     process.stdout.write("{}");
     process.exit(0);
-  });
+  };
+  void Effect.runPromise(main).then(finish, finish);
 }
