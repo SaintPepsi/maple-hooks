@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { DecodeError, GitError } from "./errors";
+import { ConfigError, DecodeError, GitError } from "./errors";
 
 describe("tagged errors", () => {
   it("GitError carries command + message and is tagged", () => {
@@ -11,5 +11,12 @@ describe("tagged errors", () => {
 
   it("DecodeError is tagged", () => {
     expect(new DecodeError({ message: "bad json" })._tag).toBe("DecodeError");
+  });
+
+  it("ConfigError carries hookName + message and is tagged", () => {
+    const e = new ConfigError({ hookName: "x", message: "y" });
+    expect(e._tag).toBe("ConfigError");
+    expect(e.hookName).toBe("x");
+    expect(e.message).toBe("y");
   });
 });

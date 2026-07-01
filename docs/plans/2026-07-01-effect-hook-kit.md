@@ -406,37 +406,66 @@ git commit -m "feat(PostEditCommit): pure matchWatched/commitMessage with unknow
 - Create: `hooks/GitSafety/PostEditCommit/PostEditCommit.ts`
 - Create: `hooks/GitSafety/PostEditCommit/doc.md`
 
-**Config-driven watched list.** The watched files are configuration, not a constant — they live in `settings.json` under `hookConfig.postEditCommit.files` and are read via the maple-hooks convention `readHookConfig(hookName, schema)` (`lib/hook-config.ts`). `WATCHED` (Task 4) is demoted to the built-in **default** used when the hook is unconfigured. Add a pure `resolveWatched(configFiles)` helper to `logic.ts` (+ test): returns `configFiles` when it's a non-empty array, else `WATCHED`. `matchWatched` stays pure — only the source of its `watched` argument changes.
+**Config-driven watched list, read as an Effect program.** The watched files are configuration, not a constant — they live in `settings.json` under `hookConfig.postEditCommit.files`. Reading them is its own composable Effect in the kit (`readConfig`), so the entry `yield*`s it like `git`. `WATCHED` (Task 4) is demoted to the built-in **default**.
 
-`logic.ts` addition:
+Requires three additions before the entry (see Task 5-pre below):
 
-```typescript
-/** The configured watch list, or the built-in default when unset/empty. Pure. */
-export function resolveWatched(configFiles: readonly string[] | undefined): readonly string[] {
-  return configFiles && configFiles.length > 0 ? configFiles : WATCHED;
-}
-```
+- **`ConfigError`** tagged error in `core/effect/errors.ts` (`readonly hookName`, `readonly message`).
+- **`core/effect/config.ts`** — the kit config program:
 
-**Step 1: Write the entry (the whole hook — no DI, config from settings.json)**
+  ```typescript
+  import { Effect, type Schema } from "effect";
+  import { readHookConfig } from "@hooks/lib/hook-config";
+  import { ConfigError } from "./errors";
+
+  /**
+   * Read + validate a hook's settings.json config (`hookConfig.{hookName}`) as an
+   * Effect. Fails with ConfigError when missing/invalid — compose with
+   * `Effect.orElseSucceed(() => default)` for a fallback.
+   */
+  export const readConfig = <A>(
+    hookName: string,
+    schema: Schema.Schema<A>,
+  ): Effect.Effect<A, ConfigError> =>
+    Effect.suspend(() => {
+      const result = readHookConfig(hookName, schema);
+      return result.ok
+        ? Effect.succeed(result.value)
+        : Effect.fail(new ConfigError({ hookName, message: result.error.message }));
+    });
+  ```
+
+- **`resolveWatched`** pure helper in `logic.ts` (+ test): returns `configFiles` when a non-empty array, else `WATCHED`.
+
+  ```typescript
+  /** The configured watch list, or the built-in default when unset/empty. Pure. */
+  export function resolveWatched(configFiles: readonly string[] | undefined): readonly string[] {
+    return configFiles && configFiles.length > 0 ? configFiles : WATCHED;
+  }
+  ```
+
+`matchWatched` stays pure — only the source of its `watched` argument changes.
+
+**Step 1: Write the entry (the whole hook — no DI, config read as an Effect)**
 
 ```typescript
 import { Effect, Schema } from "effect";
 import { git, hasStagedChange } from "@hooks/core/effect/git";
+import { readConfig } from "@hooks/core/effect/config";
 import { runHook } from "@hooks/core/effect/run";
-import { readHookConfig } from "@hooks/lib/hook-config";
 import { getPaiDir } from "@hooks/lib/paths";
 import { commitMessage, matchWatched, resolveWatched } from "./logic";
 
 const CLAUDE_DIR = getPaiDir();
-
-// Config lives in settings.json under hookConfig.postEditCommit.files; falls back to the default.
 const ConfigSchema = Schema.Struct({ files: Schema.optional(Schema.Array(Schema.String)) });
-const cfg = readHookConfig("postEditCommit", ConfigSchema);
-const files = resolveWatched(cfg.ok ? cfg.value.files : undefined);
 
 runHook("PostToolUse", (input) =>
   Effect.gen(function* () {
-    const rel = matchWatched(input.tool_input.file_path, files, CLAUDE_DIR);
+    // Config is its own program; on missing/invalid config, fall back to the default.
+    const cfg = yield* readConfig("postEditCommit", ConfigSchema).pipe(
+      Effect.orElseSucceed(() => ({ files: undefined }) as { files?: readonly string[] }),
+    );
+    const rel = matchWatched(input.tool_input.file_path, resolveWatched(cfg.files), CLAUDE_DIR);
     if (!rel) return; // not an identity file → silent no-op
     yield* git(["add", "--", rel]);
     if (yield* hasStagedChange(rel)) {

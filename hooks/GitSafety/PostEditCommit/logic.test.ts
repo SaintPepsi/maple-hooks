@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { WATCHED, commitMessage, matchWatched } from "./logic";
+import { WATCHED, commitMessage, matchWatched, resolveWatched } from "./logic";
 
 const DIR = "/home/u/.claude";
 
@@ -22,5 +22,18 @@ describe("matchWatched", () => {
 describe("commitMessage", () => {
   it("names the file", () => {
     expect(commitMessage("souls/maple/STYLE.md")).toBe("identity: edit STYLE.md");
+  });
+});
+
+describe("resolveWatched", () => {
+  it("returns a non-empty config list as-is", () => {
+    const configured = ["a.md", "b.md"];
+    expect(resolveWatched(configured)).toBe(configured);
+  });
+  it("falls back to WATCHED when undefined", () => {
+    expect(resolveWatched(undefined)).toBe(WATCHED);
+  });
+  it("falls back to WATCHED when empty", () => {
+    expect(resolveWatched([])).toBe(WATCHED);
   });
 });

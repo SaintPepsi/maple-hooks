@@ -25,3 +25,8 @@ export function matchWatched(
 export function commitMessage(rel: string): string {
   return `identity: edit ${basename(rel)}`;
 }
+
+/** The configured watch list, or the built-in default when unset/empty. Pure. */
+export function resolveWatched(configFiles: readonly string[] | undefined): readonly string[] {
+  return configFiles && configFiles.length > 0 ? configFiles : WATCHED;
+}

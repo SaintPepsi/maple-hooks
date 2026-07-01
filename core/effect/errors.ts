@@ -10,3 +10,9 @@ export class GitError extends Data.TaggedError("GitError")<{
 export class DecodeError extends Data.TaggedError("DecodeError")<{
   readonly message: string;
 }> {}
+
+/** hook config in settings.json was missing or failed schema validation. */
+export class ConfigError extends Data.TaggedError("ConfigError")<{
+  readonly hookName: string;
+  readonly message: string;
+}> {}

@@ -9,14 +9,15 @@ After any Write or Edit whose target is one of the watched files: `CLAUDE.md`, `
 
 ## What It Does
 1. Decodes the PostToolUse input.
-2. `matchWatched` narrows `file_path` and maps it to a repo-relative path (or null).
-3. `git add` the file, then `git commit` it if it has staged changes.
-4. Fail-open: any error resolves to `{}`, never blocking the session.
+2. Reads the watched list from `settings.json` (`hookConfig.postEditCommit.files`) via the `readConfig` Effect program; when the key is missing or invalid it falls back to the default (the three identity files above).
+3. `matchWatched` narrows `file_path` and maps it to a repo-relative path (or null).
+4. `git add` the file, then `git commit` it if it has staged changes.
+5. Fail-open: any error resolves to `{}`, never blocking the session.
 
 ## Examples
 > Edit `~/.claude/souls/maple/STYLE.md` → commit `identity: edit STYLE.md`.
 > Edit `src/app.ts` → no-op.
 
 ## Dependencies
-- `core/effect/run` (`runHook`), `core/effect/git` (`git`, `hasStagedChange`)
+- `core/effect/run` (`runHook`), `core/effect/git` (`git`, `hasStagedChange`), `core/effect/config` (`readConfig`)
 - `lib/paths` (`getPaiDir`)
