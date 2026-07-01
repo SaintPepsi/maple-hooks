@@ -16,3 +16,9 @@ typed errors, and `catchAllCause` (fail-open). No `Layer` / `Context.Tag` / DI â
   already exists.
 
 See `AUTHORING.md` for the authoring recipe and the full vocabulary.
+
+## This document evolves
+
+These rules are not fixed. When a new standard emerges or a finding is worth keeping (a
+pattern that paid off, a mistake worth not repeating), add it here so the next author inherits
+it. Keep each rule short and concrete.
