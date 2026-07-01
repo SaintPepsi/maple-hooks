@@ -12,7 +12,7 @@ runHook("PostToolUse", (input) =>
   Effect.gen(function* () {
     // Config is its own program; on missing/invalid config, fall back to the default.
     const cfg = yield* readConfig("postEditCommit", ConfigSchema).pipe(
-      Effect.orElseSucceed(() => ({ files: undefined }) as { files?: readonly string[] }),
+      Effect.orElseSucceed(() => ({ files: undefined })),
     );
     const rel = matchWatched(input.tool_input.file_path, resolveWatched(cfg.files), CLAUDE_DIR);
     if (!rel) return; // not an identity file → silent no-op
