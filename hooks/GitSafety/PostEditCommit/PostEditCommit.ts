@@ -29,7 +29,8 @@ runHook("PostToolUse", (input) =>
     if (!rel) return; // not a watched file → no-op
     yield* git(["add", "--", rel]);
     if (yield* hasStagedChange(rel)) {
-      yield* git(["commit", "-q", "-m", commitMessage(rel), "--", rel]);
+      // --no-verify: these are .md-tracking commits; skip ~/.claude husky entirely.
+      yield* git(["commit", "-q", "--no-verify", "-m", commitMessage(rel), "--", rel]);
     }
   }),
 );
