@@ -11,6 +11,16 @@ describe("matchWatched", () => {
   it("expands a leading ~", () => {
     expect(matchWatched("~/CLAUDE.md", FILES, DIR)).toBe("CLAUDE.md");
   });
+  it("matches an absolute input against a relative watched entry", () => {
+    // watched written relative, input arrives absolute → both normalize equal.
+    expect(matchWatched(`${DIR}/souls/maple/STYLE.md`, ["souls/maple/STYLE.md"], DIR)).toBe(
+      "souls/maple/STYLE.md",
+    );
+  });
+  it("matches an absolute input against an absolute watched entry", () => {
+    // watched written absolute, input absolute → both normalize equal.
+    expect(matchWatched(`${DIR}/CLAUDE.md`, [`${DIR}/CLAUDE.md`], DIR)).toBe("CLAUDE.md");
+  });
   it("returns null for an unwatched file", () => {
     expect(matchWatched(`${DIR}/notes.md`, FILES, DIR)).toBeNull();
   });

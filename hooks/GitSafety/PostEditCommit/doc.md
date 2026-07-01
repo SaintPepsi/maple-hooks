@@ -7,6 +7,11 @@ PostToolUse (matcher: `Write|Edit`).
 ## When It Fires
 After any Write or Edit whose target is one of the watched files: `CLAUDE.md`, `souls/maple/SOUL.md`, `souls/maple/STYLE.md`. Any other path is a silent no-op.
 
+The watched list entries (and the incoming `file_path`) may each be written in any of three forms — all normalized to repo-relative before comparison, so they match regardless of form:
+- repo-relative — `souls/maple/STYLE.md`
+- absolute under the `.claude` dir — `/Users/you/.claude/souls/maple/STYLE.md`
+- `~/`-prefixed — `~/souls/maple/STYLE.md` (`~/` expands to the `.claude` dir; write a literal home path as absolute or repo-relative, not `~/.claude/...`)
+
 ## What It Does
 1. Decodes the PostToolUse input.
 2. Reads the watched list SOLELY from `settings.json` (`hookConfig.postEditCommit.files`) via the `readConfig` Effect program. There is no in-code default: `settings.json` is the single source of truth. When the key is unset or empty the hook no-ops and writes a one-line warning to stderr so the misconfiguration is visible.

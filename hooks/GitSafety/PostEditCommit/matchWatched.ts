@@ -1,7 +1,10 @@
+import { toRepoRel } from "./toRepoRel";
+
 /**
- * If `filePath` is a watched identity file under `claudeDir`, return its
- * repo-relative path; otherwise null. Accepts `unknown` and narrows: the hook
- * input types `file_path` as unknown, so narrowing lives here (pure + tested).
+ * If `filePath` matches a watched entry (compared as repo-relative paths under
+ * `claudeDir`, regardless of the form each is written in — repo-relative,
+ * absolute, or `~/`-prefixed), return its repo-relative path; else null.
+ * `filePath` is unknown (hook input) and narrowed here. Pure.
  */
 export function matchWatched(
   filePath: unknown,
@@ -9,6 +12,10 @@ export function matchWatched(
   claudeDir: string,
 ): string | null {
   if (typeof filePath !== "string") return null;
-  const norm = filePath.replace(/^~(?=\/)/, claudeDir);
-  return watched.find((rel) => norm === `${claudeDir}/${rel}`) ?? null;
+  const target = toRepoRel(filePath, claudeDir);
+  if (target === null) return null;
+  for (const w of watched) {
+    if (toRepoRel(w, claudeDir) === target) return target;
+  }
+  return null;
 }
