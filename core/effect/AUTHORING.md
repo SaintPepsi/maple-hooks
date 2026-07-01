@@ -9,11 +9,11 @@ The low-ceremony path. No `Deps`, no `Result` plumbing, no `Layer`/DI — plain 
 | read typed input | the `input` arg (decoded via the event's Schema) |
 | do git | `import { git, hasStagedChange } from "@hooks/core/effect/git"` |
 | read settings.json config | `import { readConfig } from "@hooks/core/effect/config"` — `yield* readConfig(name, schema)`, an Effect that fails with `ConfigError` when unset; compose `Effect.orElseSucceed(() => default)` for a fallback |
-| decide | pure functions in a `logic.ts` (unit-tested directly) |
+| decide | pure functions — one file per function, named after it (unit-tested directly) |
 | never block | automatic — `runHook` wraps everything in `catchAllCause` (typed failures AND defects) |
 
 ## New hook in 3 files + config
-1. `hooks/<Group>/<Name>/logic.ts` — pure functions. Narrow `unknown` input here.
+1. One file per pure function, named after it (e.g. `matchWatched.ts`), each with its own test. Narrow `unknown` input in these.
 2. `hooks/<Group>/<Name>/<Name>.ts` — `runHook(event, (input) => Effect.gen(...))`.
 3. `hooks/<Group>/<Name>/doc.md` — convention (not gated for `.ts` hooks, but write it).
 4. Register in `~/.claude/settings.json` under the event, pointing `bun` at `<Name>.ts`.

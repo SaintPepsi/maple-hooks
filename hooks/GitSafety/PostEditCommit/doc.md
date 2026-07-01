@@ -9,7 +9,7 @@ After any Write or Edit whose target is one of the watched files: `CLAUDE.md`, `
 
 ## What It Does
 1. Decodes the PostToolUse input.
-2. Reads the watched list from `settings.json` (`hookConfig.postEditCommit.files`) via the `readConfig` Effect program; when the key is missing or invalid it falls back to the default (the three identity files above).
+2. Reads the watched list SOLELY from `settings.json` (`hookConfig.postEditCommit.files`) via the `readConfig` Effect program. There is no in-code default: `settings.json` is the single source of truth. When the key is unset or empty the hook no-ops and writes a one-line warning to stderr so the misconfiguration is visible.
 3. `matchWatched` narrows `file_path` and maps it to a repo-relative path (or null).
 4. `git add` the file, then `git commit` it if it has staged changes.
 5. Fail-open: any error resolves to `{}`, never blocking the session.

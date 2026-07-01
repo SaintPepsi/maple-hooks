@@ -406,7 +406,9 @@ git commit -m "feat(PostEditCommit): pure matchWatched/commitMessage with unknow
 - Create: `hooks/GitSafety/PostEditCommit/PostEditCommit.ts`
 - Create: `hooks/GitSafety/PostEditCommit/doc.md`
 
-**Config-driven watched list, read as an Effect program.** The watched files are configuration, not a constant — they live in `settings.json` under `hookConfig.postEditCommit.files`. Reading them is its own composable Effect in the kit (`readConfig`), so the entry `yield*`s it like `git`. `WATCHED` (Task 4) is demoted to the built-in **default**.
+**Config-driven watched list, read as an Effect program.** The watched files are configuration, not a constant — they live in `settings.json` under `hookConfig.postEditCommit.files`, which is their **single source of truth**. Reading them is its own composable Effect in the kit (`readConfig`), so the entry `yield*`s it like `git`.
+
+> **Revision (2026-07-01): settings.json is the SOLE source — no in-code default.** The `WATCHED` const and `resolveWatched` helper are **removed** from `logic.ts` (and their tests). The entry reads the list straight from config; when config is missing/empty the hook no-ops and writes a one-line stderr warning so the misconfiguration is visible. This keeps the list in exactly one place (Single Source of Truth). Consequently the `settings.json` `hookConfig.postEditCommit.files` section (Task 7 Step 1b) is **required**, not optional. `matchWatched` is unchanged (it already takes the list as a parameter).
 
 Requires three additions before the entry (see Task 5-pre below):
 
