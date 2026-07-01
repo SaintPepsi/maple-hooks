@@ -534,8 +534,9 @@ The low-ceremony path. No `Deps`, no `Result` plumbing, no `Layer`/DI — plain 
 | run a hook | `runHook(event, program)` — stdin, decode, fail-open exit, all handled |
 | read typed input | the `input` arg (decoded via the event's Schema) |
 | do git | `import { git, hasStagedChange } from "@hooks/core/effect/git"` |
+| read settings.json config | `import { readConfig } from "@hooks/core/effect/config"` — `yield* readConfig(name, schema)`, an Effect that fails with `ConfigError` when unset (compose `Effect.orElseSucceed(() => default)`) |
 | decide | pure functions in a `logic.ts` (unit-tested directly) |
-| never block | automatic — `runHook` wraps everything in `catchAll` |
+| never block | automatic — `runHook` wraps everything in `catchAllCause` (typed failures AND defects) |
 
 ## New hook in 3 files + 1 line
 1. `hooks/<Group>/<Name>/logic.ts` — pure functions. Narrow `unknown` input here.
@@ -564,7 +565,7 @@ git commit -m "docs(effect-hooks): authoring recipe for the golden path"
 **Files:**
 - Modify: `~/.claude/settings.json` (PostToolUse → add a `Write|Edit` entry)
 
-**Step 1: Add the registration entry**
+**Step 1a: Add the registration entry**
 
 Add to `hooks.PostToolUse` (alongside the existing `Write|Edit` entries):
 
@@ -578,6 +579,18 @@ Add to `hooks.PostToolUse` (alongside the existing `Write|Edit` entries):
 ```
 
 > If maple-hooks uses `install.ts`/`export-hooks.ts` to manage settings, prefer running that instead of hand-editing, then verify the entry landed. Check `scripts/export-hooks.ts` first.
+
+**Step 1b: Add the hook config section**
+
+Add to the top-level `hookConfig` object in `~/.claude/settings.json` (this is the configurable watch list — the whole point of the config-driven design; omitting it falls back to the built-in default of the same three files):
+
+```json
+"hookConfig": {
+  "postEditCommit": {
+    "files": ["CLAUDE.md", "souls/maple/SOUL.md", "souls/maple/STYLE.md"]
+  }
+}
+```
 
 **Step 2: Run the full gates**
 
