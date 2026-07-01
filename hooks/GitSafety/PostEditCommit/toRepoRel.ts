@@ -3,8 +3,9 @@
  *   1. repo-relative  — `"CLAUDE.md"`            → `"CLAUDE.md"`
  *   2. absolute        — `"<claudeDir>/CLAUDE.md"` → `"CLAUDE.md"`
  *   3. `~/`-prefixed   — `"~/CLAUDE.md"`          → `"CLAUDE.md"`
- * Returns null if the path resolves OUTSIDE `claudeDir` (it can't be committed
- * from that repo).
+ * Returns null if the path resolves OUTSIDE `claudeDir`, or to `claudeDir` itself
+ * (the repo root is not a watchable file — and an empty rel would make a later
+ * `git add -- ""` stage the whole repo). It can't be committed from that repo.
  *
  * IMPORTANT: `~/` expands to `claudeDir` itself (which IS `~/.claude`), so
  * `~/CLAUDE.md` → `<claudeDir>/CLAUDE.md` ✓ but `~/.claude/CLAUDE.md` →
@@ -21,5 +22,7 @@ export function toRepoRel(path: string, claudeDir: string): string | null {
       ? path
       : `${claudeDir}/${path}`;
   const prefix = `${claudeDir}/`;
-  return abs.startsWith(prefix) ? abs.slice(prefix.length) : null;
+  if (!abs.startsWith(prefix)) return null;
+  const rel = abs.slice(prefix.length);
+  return rel === "" ? null : rel; // empty rel = repo root; never a watched file
 }

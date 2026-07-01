@@ -16,4 +16,10 @@ describe("toRepoRel", () => {
   it("returns null for an absolute path outside claudeDir", () => {
     expect(toRepoRel("/etc/passwd", DIR)).toBeNull();
   });
+  it("returns null for anything resolving to the repo root (guards `git add -- \"\"`)", () => {
+    expect(toRepoRel("", DIR)).toBeNull();
+    expect(toRepoRel("~/", DIR)).toBeNull();
+    expect(toRepoRel(`${DIR}/`, DIR)).toBeNull();
+    expect(toRepoRel(DIR, DIR)).toBeNull();
+  });
 });
