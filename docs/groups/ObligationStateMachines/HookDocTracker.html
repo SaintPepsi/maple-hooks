@@ -1756,6 +1756,7 @@ section[id] {
     <li class="wiki-nav-item"><a href="#what-it-does"><span class="nav-num">04</span> What It Does</a></li>
     <li class="wiki-nav-item"><a href="#examples"><span class="nav-num">05</span> Examples</a></li>
     <li class="wiki-nav-item"><a href="#dependencies"><span class="nav-num">06</span> Dependencies</a></li>
+    <li class="wiki-nav-item"><a href="#configuration"><span class="nav-num">07</span> Configuration</a></li>
   </ul>
   <div class="wiki-nav-progress">
     <div class="wiki-nav-progress-bar">
@@ -1858,10 +1859,12 @@ Watch every file write. When a file matches configurable source patterns (e.g., 
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> The tool used is <code>Write</code> or <code>Edit</code></div>
 <div class="reason"><span class="ri">&#x2022;</span> The target file matches a hook source pattern (configurable, default: <code>.contract.ts</code>, <code>hook.json</code>, <code>group.json</code>) or is a hook doc file (default: <code>doc.md</code>)</div>
+<div class="reason"><span class="ri">&#x2022;</span> The file does not match any exclude pattern (configurable via <code>excludePatterns</code>)</div>
 <div class="reason"><span class="ri">&#x2022;</span> No project-level <code>HookDocTracker</code> hook exists</div>
       <p>It does <strong>not</strong> fire when:</p>
       <div class="reason"><span class="ri">&#x2022;</span> The tool is not <code>Write</code> or <code>Edit</code></div>
 <div class="reason"><span class="ri">&#x2022;</span> The file path cannot be extracted from the tool input</div>
+<div class="reason"><span class="ri">&#x2022;</span> The file matches an exclude pattern (e.g., <code>test-corpus/</code>)</div>
 <div class="reason"><span class="ri">&#x2022;</span> The file does not match any watched source pattern and is not a hook doc file</div>
 <div class="reason"><span class="ri">&#x2022;</span> A project-level <code>HookDocTracker</code> hook exists (checked via <code>projectHasHook</code>)</div>
     </div>
@@ -1964,10 +1967,39 @@ for (const docName of allDocFileNames(settings)) {
         <tbody>
           <tr><td><code>obligation-machine</code></td><td>lib</td><td>Generic <code>addPending</code> and <code>clearMatching</code> state machine operations</td></tr>
           <tr><td><code>paths</code></td><td>lib</td><td>Path resolution utilities</td></tr>
-          <tr><td><code>HookDocStateMachine.shared</code></td><td>shared</td><td>Provides <code>defaultDeps</code>, <code>pendingPath</code>, <code>getFilePath</code>, <code>isHookSourceFile</code>, <code>isHookDocFile</code>, <code>getHookDirFromPath</code>, <code>readHookDocSettings</code></td></tr>
+          <tr><td><code>HookDocStateMachine.shared</code></td><td>shared</td><td>Provides <code>defaultDeps</code>, <code>pendingPath</code>, <code>isHookSourceFile</code> (with excludePatterns), <code>isHookDocFile</code>, <code>getHookDirFromPath</code>, <code>readHookDocSettings</code></td></tr>
           <tr><td><code>DocObligationStateMachine.shared</code></td><td>shared</td><td>Provides <code>projectHasHook</code> for deduplication with project-level hooks</td></tr>
         </tbody>
       </table>
+    </div>
+  </section>
+
+  <section id="configuration">
+    <div class="section-label accent">Configuration</div>
+    <div class="card accent">
+      <div class="card-header">
+        <div class="card-icon">&#x2699;</div>
+        <h3>Configuration</h3>
+      </div>
+      <p>Configure via <code>~/.claude/settings.json</code>:</p>
+      
+      <div class="code-window">
+        <div class="code-window-header">
+          <div class="code-window-dots"><span></span><span></span><span></span></div>
+          <span class="code-window-title">json</span>
+        </div>
+        <div class="code-window-body">
+          <div class="code-block"><span class="code-lang">json</span>
+{
+  "hookConfig": {
+    "hookDocEnforcer": {
+      "excludePatterns": ["test-corpus", "fixtures"]
+    }
+  }
+}</div>
+        </div>
+      </div>
+      <p>This excludes any file paths matching these patterns from doc enforcement.</p>
     </div>
   </section>
 

@@ -30,7 +30,10 @@ export const HookDocTracker: SyncHookContract<ToolHookInput, ObligationDeps> = {
     const filePath = getFilePath(input);
     if (!filePath) return false;
     const settings = readHookDocSettings();
-    return isHookSourceFile(filePath, settings.watchPatterns) || isAnyDocFile(filePath, settings);
+    return (
+      isHookSourceFile(filePath, settings.watchPatterns, settings.excludePatterns) ||
+      isAnyDocFile(filePath, settings)
+    );
   },
 
   execute(input: ToolHookInput, deps: ObligationDeps): Result<SyncHookJSONOutput, ResultError> {

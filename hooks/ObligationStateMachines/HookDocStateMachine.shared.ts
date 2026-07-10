@@ -49,6 +49,9 @@ export interface HookDocEnforcerSettings {
   requiredSections: string[];
   docFileName: string;
   watchPatterns: RegExp[];
+  /** Glob patterns matched via Bun.Glob, consistent with the Test/DocObligation
+   *  machines and the `hookConfig.hookDocEnforcer.excludePatterns` config. */
+  excludePatterns: string[];
   additionalDocs: AdditionalDoc[];
   mode: "independent" | "linked";
 }
@@ -79,6 +82,7 @@ function defaults(): HookDocEnforcerSettings {
     requiredSections: [...DEFAULT_REQUIRED_SECTIONS],
     docFileName: "doc.md",
     watchPatterns: [...DEFAULT_WATCH_PATTERNS],
+    excludePatterns: [],
     additionalDocs: [],
     mode: "independent",
   };
@@ -107,6 +111,9 @@ export function readHookDocSettings(
     watchPatterns: Array.isArray(cfg.watchPatterns)
       ? cfg.watchPatterns.map((p: string) => new RegExp(p))
       : [...DEFAULT_WATCH_PATTERNS],
+    excludePatterns: Array.isArray(cfg.excludePatterns)
+      ? (cfg.excludePatterns as string[])
+      : [],
     additionalDocs: Array.isArray(cfg.additionalDocs)
       ? (
           cfg.additionalDocs as Array<{
@@ -132,8 +139,13 @@ export function readHookDocSettings(
  *  Scoped to the hook tree: a file only counts if it lives under a `/hooks/`
  *  segment. Without this, broad patterns like `/README\.md$/` match READMEs in
  *  unrelated repositories anywhere on disk (false positives at session end). */
-export function isHookSourceFile(filePath: string, patterns: RegExp[]): boolean {
+export function isHookSourceFile(
+  filePath: string,
+  patterns: RegExp[],
+  excludePatterns: string[] = [],
+): boolean {
   if (!filePath.includes("/hooks/")) return false;
+  if (excludePatterns.some((glob) => new Bun.Glob(glob).match(filePath))) return false;
   return patterns.some((p) => p.test(filePath));
 }
 

@@ -79,6 +79,30 @@ describe("isHookSourceFile", () => {
     // but a README inside a hook tree still counts
     expect(isHookSourceFile("/hooks/Group/Hook/README.md", withReadme)).toBe(true);
   });
+
+  it("excludes files matching excludePatterns", () => {
+    const patternsWithReadme = [/\.contract\.ts$/, /README\.md$/];
+    const excludes = ["**/test-corpus/**"];
+    expect(
+      isHookSourceFile(
+        "/hooks/DuplicationDetection/test-corpus/README.md",
+        patternsWithReadme,
+        excludes,
+      ),
+    ).toBe(false);
+  });
+
+  it("matches files not in excludePatterns", () => {
+    const patternsWithReadme = [/\.contract\.ts$/, /README\.md$/];
+    const excludes = ["**/test-corpus/**"];
+    expect(
+      isHookSourceFile(
+        "/hooks/DuplicationDetection/DuplicationChecker/README.md",
+        patternsWithReadme,
+        excludes,
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("isHookDocFile", () => {
@@ -204,6 +228,7 @@ describe("buildDocSuggestions", () => {
       docFileName: "doc.md",
       watchPatterns: [],
       additionalDocs: [],
+      excludePatterns: [],
       mode: "independent" as const,
     };
 
@@ -219,6 +244,7 @@ describe("buildDocSuggestions", () => {
       docFileName: "doc.md",
       watchPatterns: [],
       additionalDocs: [],
+      excludePatterns: [],
       mode: "independent" as const,
     };
 
@@ -235,6 +261,7 @@ describe("buildDocSuggestions", () => {
       docFileName: "doc.md",
       watchPatterns: [],
       additionalDocs: [],
+      excludePatterns: [],
       mode: "independent" as const,
     };
 
@@ -251,6 +278,7 @@ describe("buildDocSuggestions", () => {
       docFileName: "doc.md",
       watchPatterns: [],
       additionalDocs: [{ fileName: "IDEA.md", requiredSections: ["## Problem"] }],
+      excludePatterns: [],
       mode: "independent" as const,
     };
 
@@ -275,6 +303,7 @@ describe("buildDocSuggestions", () => {
           requiredSections: ["## Problem", "## Solution"],
         },
       ],
+      excludePatterns: [],
       mode: "independent" as const,
     };
 
@@ -291,6 +320,7 @@ describe("buildDocSuggestions", () => {
       docFileName: "doc.md",
       watchPatterns: [],
       additionalDocs: [],
+      excludePatterns: [],
       mode: "independent" as const,
     };
 

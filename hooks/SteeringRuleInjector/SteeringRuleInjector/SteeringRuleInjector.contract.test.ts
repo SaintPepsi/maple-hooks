@@ -20,6 +20,7 @@ import {
   SteeringRuleInjector,
   type SteeringRuleInjectorDeps,
 } from "./SteeringRuleInjector.contract";
+import { transcriptHasToolCall as realTranscriptHasToolCall } from "./transcript-tool-scan";
 
 describe("parseFrontmatter", () => {
   it("parses valid frontmatter with all fields", () => {
@@ -82,6 +83,70 @@ keywords: []
   Content with spaces.
 `;
     expect(parseFrontmatter(content)!.body).toBe("Content with spaces.");
+  });
+
+  it("extracts dependsOn from depends-on Tool() items", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: [Tool(Write), Tool(Edit), Tool(Bash)]
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual(["Write", "Edit", "Bash"]);
+  });
+
+  it("returns undefined dependsOn when depends-on is absent", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toBeUndefined();
+  });
+
+  it("returns empty dependsOn when depends-on is empty array", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: []
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual([]);
+  });
+
+  it("ignores depends-on items that don't match Tool() syntax", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: [Tool(Write), Skill(Foo), Mode(ALGORITHM), Tool(Bash)]
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual(["Write", "Bash"]);
+  });
+
+  it("extracts dependsOn for MCP tool names with underscores", () => {
+    const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: [Tool(mcp__voice__speak), Tool(Edit)]
+---
+
+Body.`;
+    const result = parseFrontmatter(content);
+    expect(result!.dependsOn).toEqual(["mcp__voice__speak", "Edit"]);
   });
 });
 
@@ -191,6 +256,7 @@ function makeDeps(overrides: Partial<SteeringRuleInjectorDeps> = {}): SteeringRu
     getConfig: () => makeConfig(),
     isSubagent: () => false,
     stderr: () => {},
+    transcriptHasToolCall: () => false,
     ...overrides,
   };
 }
@@ -628,6 +694,123 @@ Dogfood every task.`;
     expect(isBareContinue(result.value)).toBe(true);
   });
 });
+
+describe("dependsOn gate", () => {
+  const baseDeps = (overrides: Partial<SteeringRuleInjectorDeps>): SteeringRuleInjectorDeps => ({
+    resolveGlobs: () => ["/fake/rule.md"],
+    readFile: () => `---
+name: gated-rule
+events: [Stop]
+keywords: [trigger]
+depends-on: [Tool(Edit)]
+---
+
+Gated body.`,
+    readTracker: (sessionId: string) => ({ sessionId, injected: {} }),
+    writeTracker: () => {},
+    getConfig: () => ({ enabled: true, includes: ["**/*.md"], trackerDir: ".test" }),
+    isSubagent: () => false,
+    stderr: () => {},
+    transcriptHasToolCall: () => false,
+    ...overrides,
+  });
+
+  const stopInput: StopInput = {
+    hook_event_name: "Stop",
+    session_id: "test-session",
+    transcript_path: "/fake/transcript.jsonl",
+    last_assistant_message: "trigger this",
+    stop_hook_active: false,
+  };
+
+  it("skips a rule whose dependsOn helper returns false", () => {
+    const deps = baseDeps({ transcriptHasToolCall: () => false });
+    const result = SteeringRuleInjector.execute(stopInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toBeUndefined();
+  });
+
+  it("includes a rule whose dependsOn helper returns true", () => {
+    const deps = baseDeps({ transcriptHasToolCall: () => true });
+    const result = SteeringRuleInjector.execute(stopInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toContain("Gated body");
+  });
+
+  it("ignores dependsOn when not present in frontmatter", () => {
+    const deps = baseDeps({
+      readFile: () => `---
+name: ungated-rule
+events: [Stop]
+keywords: [trigger]
+---
+
+Ungated body.`,
+      transcriptHasToolCall: () => false,
+    });
+    const result = SteeringRuleInjector.execute(stopInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toContain("Ungated body");
+  });
+
+  it("ignores dependsOn on non-Stop events (e.g. PreToolUse)", () => {
+    // Regression: tool-usage semantics ("did the agent use tool X this turn")
+    // are only defined for Stop events. On PreToolUse the gate must be skipped,
+    // otherwise rules like always-proper-fix lose their PreToolUse arm because
+    // PreToolUseInput has no transcript_path and the helper returns false.
+    const deps = baseDeps({
+      readFile: () => `---
+name: pretool-rule
+events: [PreToolUse]
+keywords: [AskUserQuestion]
+depends-on: [Tool(Write)]
+---
+
+PreTool body.`,
+      transcriptHasToolCall: () => false, // would gate it on Stop, must NOT on PreToolUse
+    });
+
+    const preToolInput: ToolHookInput = {
+      hook_event_name: "PreToolUse",
+      session_id: "test-session",
+      tool_name: "AskUserQuestion",
+      tool_input: {},
+    };
+
+    const result = SteeringRuleInjector.execute(preToolInput, deps);
+    expect(result.ok).toBe(true);
+    expect(getInjectedContext(result.ok ? result.value : {})).toContain("PreTool body");
+  });
+
+  it("integrates with the real transcriptHasToolCall against a fixture transcript", () => {
+    // Inline tmp transcript fixture — same convention as transcript-tool-scan.test.ts.
+    const fs = require("node:fs");
+    const dir = `/tmp/pai-steering-injector-int-${Date.now()}-${integrationCounter++}`;
+    fs.mkdirSync(dir, { recursive: true });
+    const transcriptPath = `${dir}/transcript.jsonl`;
+    fs.writeFileSync(
+      transcriptPath,
+      [
+        { type: "user", message: { content: "make the change" } },
+        {
+          type: "assistant",
+          message: { content: [{ type: "tool_use", name: "Edit", input: {} }] },
+        },
+      ]
+        .map((line) => JSON.stringify(line))
+        .join("\n"),
+    );
+
+    const deps = baseDeps({ transcriptHasToolCall: realTranscriptHasToolCall });
+    const inputWithTranscript: StopInput = { ...stopInput, transcript_path: transcriptPath };
+
+    const result = SteeringRuleInjector.execute(inputWithTranscript, deps);
+    expect(result.ok).toBe(true);
+    expect(getBlockReason(result.ok ? result.value : {})).toContain("Gated body");
+  });
+});
+
+let integrationCounter = 0;
 
 describe("SteeringRuleInjector defaultDeps", () => {
   it("defaultDeps.isSubagent returns a boolean", () => {

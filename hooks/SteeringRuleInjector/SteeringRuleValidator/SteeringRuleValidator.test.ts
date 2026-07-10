@@ -92,6 +92,47 @@ events: [SessionStart]
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.includes("keywords"))).toBe(true);
     });
+
+    test("accepts valid depends-on bracket array", () => {
+      const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on: [Tool(Write), Tool(Edit)]
+---
+
+Body.`;
+      const result = validateSteeringRule(content);
+      expect(result.valid).toBe(true);
+    });
+
+    test("accepts missing depends-on (optional)", () => {
+      const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+---
+
+Body.`;
+      const result = validateSteeringRule(content);
+      expect(result.valid).toBe(true);
+    });
+
+    test("rejects YAML list format for depends-on", () => {
+      const content = `---
+name: test-rule
+events: [Stop]
+keywords: []
+depends-on:
+  - Tool(Write)
+  - Tool(Edit)
+---
+
+Body.`;
+      const result = validateSteeringRule(content);
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.includes("bracket syntax"))).toBe(true);
+    });
   });
 
   describe("contract.execute", () => {

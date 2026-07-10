@@ -83,6 +83,20 @@ export function validateSteeringRule(content: string): ValidationResult {
     }
   }
 
+  // depends-on is optional; if present, must use bracket array form
+  if (yaml.match(/^depends-on:/m)) {
+    const dependsOnBracket = yaml.match(/^depends-on:\s*\[([^\]]*)\]$/m);
+    if (!dependsOnBracket) {
+      if (yaml.match(/^depends-on:\s*$/m) || yaml.match(/^depends-on:\s*\n\s+-/m)) {
+        errors.push(
+          "Invalid 'depends-on' format: use bracket syntax depends-on: [Tool(Write), Tool(Edit)] not YAML list",
+        );
+      } else {
+        errors.push("Invalid 'depends-on' format: use bracket syntax depends-on: [Tool(Write)]");
+      }
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }
 

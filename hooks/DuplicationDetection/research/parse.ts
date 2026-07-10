@@ -252,7 +252,12 @@ export function findTsFiles(dir: string, deps: ParseDeps = defaultParseDeps): st
     const entries = deps.readDir(d);
     if (!entries) return;
     for (const entry of entries) {
-      if (entry === "node_modules" || entry === ".git") continue;
+      if (
+        entry === "node_modules" ||
+        entry === ".git" ||
+        entry === "structural-duplication-patterns"
+      )
+        continue;
       const full = deps.join(d, entry);
       if (deps.isDirectory(full)) {
         walk(full);

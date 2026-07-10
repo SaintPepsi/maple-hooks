@@ -24,6 +24,7 @@ import type {
   ToolHookInput,
   UserPromptSubmitInput,
 } from "@hooks/core/types/hook-inputs";
+import { transcriptHasToolCall } from "@hooks/hooks/SteeringRuleInjector/SteeringRuleInjector/transcript-tool-scan";
 import { getEnvOrUndefined, isSubagentDefault } from "@hooks/lib/environment";
 import { loadHookConfig } from "@hooks/lib/hook-config";
 import { defaultStderr, getPaiDir } from "@hooks/lib/paths";
@@ -50,6 +51,7 @@ export interface RuleFrontmatter {
   events: string[];
   keywords: string[];
   body: string;
+  dependsOn?: string[];
 }
 
 export interface SteeringRuleConfig {
@@ -71,6 +73,7 @@ export interface SteeringRuleInjectorDeps {
   getConfig: () => SteeringRuleConfig;
   isSubagent: () => boolean;
   stderr: (msg: string) => void;
+  transcriptHasToolCall: (transcriptPath: string | undefined, toolNames: string[]) => boolean;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -109,7 +112,17 @@ export function parseFrontmatter(content: string): RuleFrontmatter | null {
         .filter(Boolean)
     : [];
 
-  return { name, events, keywords, body: body.trim() };
+  const dependsOnMatch = yaml.match(/^depends-on:\s*\[([^\]]*)\]$/m);
+  const dependsOn = dependsOnMatch
+    ? dependsOnMatch[1]
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((item) => item.match(/^Tool\((\w+)\)$/)?.[1])
+        .filter((name): name is string => Boolean(name))
+    : undefined;
+
+  return { name, events, keywords, body: body.trim(), dependsOn };
 }
 
 // ─── Keyword Matching ───────────────────────────────────────────────────────
@@ -152,6 +165,28 @@ function getMatchText(input: SteeringRuleInput, stderr?: (msg: string) => void):
     // SessionStart/SubagentStart use always-inject only — keyword matching is skipped in execute()
     default:
       return "";
+  }
+}
+
+function getTranscriptPath(
+  input: SteeringRuleInput,
+  stderr?: (msg: string) => void,
+): string | undefined {
+  const parsed = parseHookInput(input);
+  if (parsed._tag !== "Right") {
+    stderr?.("[SteeringRuleInjector] input parse failed for transcript_path lookup");
+    return undefined;
+  }
+  const p = parsed.right;
+
+  switch (p.hook_event_name) {
+    case "Stop":
+    case "SubagentStart":
+    case "UserPromptSubmit":
+      return p.transcript_path;
+    // SessionStart/PreToolUse/PostToolUse have no transcript_path
+    default:
+      return undefined;
   }
 }
 
@@ -209,6 +244,8 @@ const defaultDeps: SteeringRuleInjectorDeps = {
   isSubagent: isSubagentDefault,
 
   stderr: defaultStderr,
+
+  transcriptHasToolCall,
 };
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -273,6 +310,17 @@ export const SteeringRuleInjector: SyncHookContract<SteeringRuleInput, SteeringR
       if (eventType === "UserPromptSubmit" || eventType === "Stop" || isToolEventType) {
         if (!matchesKeywords(matchText, rule.keywords)) continue;
       }
+
+      // Gate by depends-on: only meaningful on Stop events (turn-scoped tool usage).
+      // For PreToolUse a tool is about to happen; for PostToolUse one just happened;
+      // for SessionStart/SubagentStart there is no turn yet — so "did the agent use
+      // tool X this turn" is malformed for non-Stop events and the gate is skipped.
+      if (
+        eventType === "Stop" &&
+        rule.dependsOn &&
+        !deps.transcriptHasToolCall(getTranscriptPath(input, deps.stderr), rule.dependsOn)
+      )
+        continue;
 
       bodiesToInject.push(rule.body);
       tracker.injected[rule.name] = {
