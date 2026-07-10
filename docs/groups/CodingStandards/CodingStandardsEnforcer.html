@@ -1864,13 +1864,13 @@ This is the "enforce" side of a warn-then-enforce pattern. A companion advisor w
       </div>
       <div class="reason"><span class="ri">&#x2022;</span> An Edit or Write tool targets a <code>.ts</code>, <code>.tsx</code>, or <code>.svelte</code> file</div>
 <div class="reason"><span class="ri">&#x2022;</span> The file is not an adapter file (not in an <code>adapters/</code> directory or named <code>adapter(s).ts</code>)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The file is not auto-generated or in the skipped filenames list</div>
+<div class="reason"><span class="ri">&#x2022;</span> The file is not auto-generated, nor matched by a <code>skipFiles</code> glob (matched against the path via <code>Bun.Glob</code>, e.g. <code><strong>/fixtures/</strong></code>), nor an exact basename match</div>
 <div class="reason"><span class="ri">&#x2022;</span> The resulting content contains at least one coding standard violation</div>
       <p>It does <strong>not</strong> fire when:</p>
       <div class="reason"><span class="ri">&#x2022;</span> The tool is not Edit or Write</div>
 <div class="reason"><span class="ri">&#x2022;</span> The target file is not a TypeScript or Svelte file</div>
 <div class="reason"><span class="ri">&#x2022;</span> The file is an adapter file (these legitimately wrap Node builtins)</div>
-<div class="reason"><span class="ri">&#x2022;</span> The file is auto-generated or has a skipped filename</div>
+<div class="reason"><span class="ri">&#x2022;</span> The file is auto-generated or matched by a <code>skipFiles</code> glob / basename</div>
 <div class="reason"><span class="ri">&#x2022;</span> The resulting content is clean (no violations)</div>
     </div>
   </section>

@@ -14,7 +14,7 @@ This hook is the "enforce" side of the warn-then-enforce pattern. CodingStandard
 
 - An Edit or Write tool targets a `.ts`, `.tsx`, or `.svelte` file
 - The file is not an adapter file (not in an `adapters/` directory or named `adapter(s).ts`)
-- The file is not auto-generated or in the skipped filenames list
+- The file is not auto-generated, nor matched by a `skipFiles` glob (matched against the path via `Bun.Glob`, e.g. `**/fixtures/**`), nor an exact basename match
 - The resulting content contains at least one coding standard violation
 
 It does **not** fire when:
@@ -22,7 +22,7 @@ It does **not** fire when:
 - The tool is not Edit or Write
 - The target file is not a TypeScript or Svelte file
 - The file is an adapter file (these legitimately wrap Node builtins)
-- The file is auto-generated or has a skipped filename
+- The file is auto-generated or matched by a `skipFiles` glob / basename
 - The resulting content is clean (no violations)
 
 ## What It Does
