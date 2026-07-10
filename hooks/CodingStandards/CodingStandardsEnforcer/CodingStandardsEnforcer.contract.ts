@@ -164,7 +164,7 @@ function isSkippedByConfig(filePath: string): boolean {
   const patterns = config.skipFiles;
   if (!patterns?.length) return false;
   const basename = filePath.split("/").pop() ?? "";
-  return patterns.some((p) => basename === p || new RegExp(p).test(filePath));
+  return patterns.some((p) => basename === p || new Bun.Glob(p).match(filePath));
 }
 
 // ─── Contract ────────────────────────────────────────────────────────────────
