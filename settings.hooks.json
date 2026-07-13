@@ -250,14 +250,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationEnforcer/TestObligationEnforcer.hook.ts"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/GitSafety/GitAutoSync/GitAutoSync.hook.ts"
           }
         ]
