@@ -163,60 +163,6 @@
             "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
           }
         ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityBaseline/CodeQualityBaseline.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/CodeQualityPipeline/CodeQualityGuard/CodeQualityGuard.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationEnforcement/CitationEnforcement.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/HookDocTracker/HookDocTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit|Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/TestObligationTracker/TestObligationTracker.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "WebSearch|WebFetch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/CitationTracker/CitationTracker.hook.ts"
-          }
-        ]
       }
     ],
     "SubagentStart": [
@@ -235,14 +181,6 @@
           {
             "type": "command",
             "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/ObligationStateMachines/HookDocEnforcer/HookDocEnforcer.hook.ts"
           }
         ]
       },
