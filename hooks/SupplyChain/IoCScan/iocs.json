@@ -1,0 +1,30 @@
+{
+  "updated": "2026-08-05",
+  "advisory": "https://snyk.io/blog/inside-keyv-npm-compromise-preinstall-malware-trusted-provenance-ide-hooks/",
+  "badVersions": {
+    "keyv": ["6.0.0"],
+    "flat-cache": ["6.1.24"],
+    "file-entry-cache": ["11.1.6"],
+    "cacheable-request": ["13.0.20"],
+    "cacheable": ["2.5.1"],
+    "@cacheable/memory": ["2.2.1"],
+    "@cacheable/node-cache": ["3.1.2"],
+    "@cacheable/utils": ["2.5.1"],
+    "@cacheable/net": ["2.1.1"],
+    "cache-manager": ["7.2.10"],
+    "ecto": ["5.0.1"],
+    "@deliveroo/reevent": ["1.0.1"],
+    "@or-sdk/invitations": ["1.4.9"],
+    "@picsart/ai-sdk": ["3.32.2"],
+    "@qlik/embed-runtime": ["1.6.4"],
+    "picasso.js": ["2.11.6"]
+  },
+  "payloadFilenames": ["setup.mjs", "Math_Symbol.js", "math_init.js"],
+  "lifecycleScriptPattern": "\"(preinstall|install|postinstall)\"\\s*:\\s*\"[^\"]*setup\\.mjs",
+  "persistencePaths": [
+    ".local/bin/gh-token-monitor.sh",
+    ".config/gh-token-monitor",
+    ".config/systemd/user/gh-token-monitor.service",
+    "Library/LaunchAgents/com.user.gh-token-monitor.plist"
+  ]
+}

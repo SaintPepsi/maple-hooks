@@ -1,0 +1,9 @@
+{
+  "name": "IoCScan",
+  "group": "SupplyChain",
+  "event": "SessionStart",
+  "description": "Scans for npm supply-chain attack IoCs on session start",
+  "schemaVersion": 1,
+  "tags": [],
+  "presets": []
+}

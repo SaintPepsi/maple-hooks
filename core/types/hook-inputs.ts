@@ -47,6 +47,8 @@ export interface ToolHookInput extends HookInputBase {
 
 export interface SessionStartInput extends HookInputBase {
   // SessionStart receives minimal data
+  /** Current working directory the session started in (present in real SDK payloads). */
+  cwd?: string;
 }
 
 export interface SessionEndInput extends HookInputBase {

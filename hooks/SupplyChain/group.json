@@ -1,0 +1,6 @@
+{
+  "name": "SupplyChain",
+  "description": "Detection of npm and dependency supply-chain attack indicators",
+  "hooks": ["IoCScan"],
+  "sharedFiles": []
+}
