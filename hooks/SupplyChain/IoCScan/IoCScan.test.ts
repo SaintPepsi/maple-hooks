@@ -148,7 +148,57 @@ describe("IoCScan execute — lockfile scanning", () => {
       expect(ctx).toContain("CRITICAL");
       expect(ctx).toContain("keyv");
       expect(ctx).toContain("6.0.0");
-      expect(ctx).toContain("Possible match, verify");
+      expect(ctx).toContain("Compromised pin");
+    }
+  });
+
+  it("does not flag name/version co-occurrence that is not a real pin (ediary regression)", () => {
+    // "ecto" appears only inside "selector"; "6.0.0"/"5.0.1" belong to other
+    // packages; keyv is present at a safe version. None of these are pins.
+    const yarnLock = [
+      '"css-selector-parser@npm:^1.0.0":',
+      '  version: "5.0.1"',
+      '"keyv@npm:^4.5.3, keyv@npm:^4.5.4":',
+      '  version: "4.5.4"',
+      '"some-other-package@npm:^6.0.0":',
+      '  version: "6.0.0"',
+    ].join("\n");
+    const lockfilePath = "/fake/project/yarn.lock";
+    const deps = makeDeps({
+      fileExists: (path: string) => path === IOCS_PATH || path === lockfilePath,
+      readFile: (path: string) => {
+        if (path === IOCS_PATH) return ok(IOCS_JSON);
+        if (path === lockfilePath) return ok(yarnLock);
+        return err(new ResultError(ErrorCode.FileNotFound, path));
+      },
+    });
+
+    const result = IoCScan.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value).toEqual({});
+    }
+  });
+
+  it("flags a yarn-style block pinning a bad version", () => {
+    const yarnLock = ['"keyv@npm:^6.0.0":', '  version: "6.0.0"', '  resolution: "keyv@npm:6.0.0"'].join(
+      "\n",
+    );
+    const lockfilePath = "/fake/project/yarn.lock";
+    const deps = makeDeps({
+      fileExists: (path: string) => path === IOCS_PATH || path === lockfilePath,
+      readFile: (path: string) => {
+        if (path === IOCS_PATH) return ok(IOCS_JSON);
+        if (path === lockfilePath) return ok(yarnLock);
+        return err(new ResultError(ErrorCode.FileNotFound, path));
+      },
+    });
+
+    const result = IoCScan.execute(makeInput(), deps);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const ctx = getInjectedContextFor(result.value, "SessionStart") ?? "";
+      expect(ctx).toContain("keyv@6.0.0");
     }
   });
 

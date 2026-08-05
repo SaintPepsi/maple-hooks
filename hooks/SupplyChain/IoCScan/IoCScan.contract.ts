@@ -121,6 +121,39 @@ function scanPersistencePaths(deps: IoCScanDeps, iocs: IoCData): Finding[] {
   return findings;
 }
 
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** A bad pin counts only when name and version are bound together: either a
+ *  direct `name@version` token (bun/pnpm/yarn resolutions), or the version
+ *  string inside the name's own lockfile block (npm/yarn stanzas). Plain
+ *  co-occurrence anywhere in the file is not a match — large lockfiles all
+ *  contain "6.0.0" somewhere, and short names ("ecto") appear inside words
+ *  like "selector". */
+export function lockfileHasBadPin(content: string, pkgName: string, version: string): boolean {
+  const name = escapeRegex(pkgName);
+  const ver = escapeRegex(version);
+  const directPin = new RegExp(`(^|["'/\\s])${name}@(npm:)?${ver}(?![\\d.])`, "m");
+  if (directPin.test(content)) return true;
+  // Block proximity: a boundary-delimited name occurrence whose own lockfile
+  // entry declares this exact version. The window is capped at 300 chars and
+  // cut at the entry boundary (blank line, next top-level yarn key, or JSON
+  // entry close) so a neighbouring package's version can't bleed in.
+  const nameBoundary = new RegExp(`(^|["'/\\s])${name}[@"':\\s]`, "gm");
+  const versionField = new RegExp(`version"?\\s*[:\\s]\\s*"?${ver}(?![\\d.])`);
+  for (const match of content.matchAll(nameBoundary)) {
+    const blockStart = match.index ?? 0;
+    let window = content.slice(blockStart, blockStart + 300);
+    for (const boundary of ["\n\n", '\n"', "},"]) {
+      const cut = window.indexOf(boundary, name.length);
+      if (cut !== -1) window = window.slice(0, cut + boundary.length);
+    }
+    if (versionField.test(window)) return true;
+  }
+  return false;
+}
+
 /** (b) Project lockfiles pinned to a known-bad package@version. */
 function scanLockfiles(cwd: string, deps: IoCScanDeps, iocs: IoCData): Finding[] {
   const findings: Finding[] = [];
@@ -133,12 +166,11 @@ function scanLockfiles(cwd: string, deps: IoCScanDeps, iocs: IoCData): Finding[]
     const content = contentResult.value;
 
     for (const [pkgName, versions] of Object.entries(iocs.badVersions)) {
-      if (!content.includes(pkgName)) continue;
       for (const version of versions) {
-        if (content.includes(version)) {
+        if (lockfileHasBadPin(content, pkgName, version)) {
           findings.push({
             severity: "CRITICAL",
-            message: `Possible match, verify: ${pkgName}@${version} referenced in ${lockfilePath}`,
+            message: `Compromised pin ${pkgName}@${version} in ${lockfilePath}`,
           });
         }
       }
