@@ -10,14 +10,7 @@
           }
         ]
       },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationIndexBuilder/DuplicationIndexBuilder.hook.ts"
-          }
-        ]
-      },
+
       {
         "hooks": [
           {
@@ -31,6 +24,14 @@
           {
             "type": "command",
             "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleInjector/SteeringRuleInjector.hook.ts"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SupplyChain/IoCScan/IoCScan.hook.ts"
           }
         ]
       }
@@ -60,15 +61,6 @@
           {
             "type": "command",
             "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/SteeringRuleInjector/SteeringRuleValidator/SteeringRuleValidator.hook.ts"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun ${SAINTPEPSI_PAI_HOOKS_DIR}/hooks/DuplicationDetection/DuplicationChecker/DuplicationChecker.hook.ts"
           }
         ]
       },
